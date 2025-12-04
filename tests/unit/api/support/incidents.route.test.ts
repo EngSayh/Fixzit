@@ -78,10 +78,12 @@ vi.mock('@/lib/redis', () => ({
 
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn(() => ({ allowed: true })),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
 }));
 
 vi.mock('@/server/security/rateLimitKey', () => ({
   buildRateLimitKey: vi.fn(() => 'rate-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'rate-key'),
 }));
 
 // Import after mocks

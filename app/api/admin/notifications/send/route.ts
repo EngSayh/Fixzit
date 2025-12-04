@@ -141,16 +141,22 @@ export async function POST(req: NextRequest) {
     const triggeredBy =
       (session.user as { id?: string }).id || session.user.email || "unknown";
     const senderEmail: string | undefined = session.user.email ?? undefined;
-    const orgFilter =
-      session.user && "orgId" in session.user && session.user.orgId
-        ? { orgId: new ObjectId(session.user.orgId as string) }
-        : {};
-    if (!isSuperAdmin && !orgFilter.orgId) {
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    const orgId = ObjectId.isValid(orgIdString)
+      ? new ObjectId(orgIdString)
+      : null;
+
+    if (!orgId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized: org context required" },
         { status: 401 },
       );
     }
+
+    const orgFilter = { orgId };
 
     // Fetch recipient contacts based on type
     let targetContacts: Array<{
@@ -195,11 +201,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const users = await db
         .collection("users")
-        .find(
-          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
-        )
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
         .toArray();
       targetContacts = users.map((u) => ({
         id: u._id.toString(),
@@ -216,11 +224,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const tenants = await db
         .collection("tenants")
-        .find(
-          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
-        )
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
         .toArray();
       targetContacts = tenants.map((t) => ({
         id: t._id.toString(),
@@ -264,8 +274,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (targetContacts.length === 0) {
+      logger.warn("[Admin Notification] No recipients found for broadcast", {
+        recipients,
+        orgId,
+      });
       return NextResponse.json(
-        { success: false, error: "No recipients found" },
+        { success: false, error: "No recipients found", results: { totalRecipients: 0 } },
         { status: 404 },
       );
     }
@@ -488,6 +502,7 @@ export async function POST(req: NextRequest) {
     // Log notification in database
     await db.collection("admin_notifications").insertOne({
       _id: broadcastId,
+      orgId,
       senderId: session.user.id,
       senderEmail: session.user.email,
       recipients: {

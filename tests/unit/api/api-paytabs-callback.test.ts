@@ -64,8 +64,10 @@ vi.mock("@/server/security/headers", () => ({
 }));
 
 const mockRateLimit = vi.fn(() => ({ allowed: true }));
-vi.mock("@/server/security/rateLimit", () => ({
+const mockSmartRateLimit = vi.fn(async () => ({ allowed: true }));
+vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: (...args: unknown[]) => mockRateLimit(...args),
+  smartRateLimit: (...args: unknown[]) => mockSmartRateLimit(...args),
 }));
 
 const mockRateLimitError = vi.fn(

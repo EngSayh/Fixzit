@@ -3,15 +3,13 @@ import { logger } from "@/lib/logger";
 import DiscountRule from "@/server/models/DiscountRule";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import {
   rateLimitError,
   zodValidationError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { z } from "zod";
-import { getClientIP } from "@/server/security/headers";
-
 export const dynamic = "force-dynamic";
 
 const discountSchema = z.object({
@@ -57,18 +55,35 @@ async function authenticateAdmin(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
-    await authenticateAdmin(req);
+    const user = await authenticateAdmin(req);
+
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    if (!orgId) {
+      return createSecureResponse(
+        { error: "Organization context required" },
+        400,
+        req,
+      );
+    }
+
+    // Rate limiting (org-aware) after authentication
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
+    const rl = await smartRateLimit(key, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     await connectToDatabase();
-    const d = await DiscountRule.findOne({ code: "ANNUAL" });
-    return NextResponse.json(d || { code: "ANNUAL", value: 0, active: false });
+    // TENANCY: Discounts are tenant-scoped; require orgId
+    const d = await DiscountRule.findOne({ key: "ANNUAL", orgId }).lean();
+    return NextResponse.json(
+      d || { key: "ANNUAL", percentage: 0, editableBySuperAdminOnly: true, orgId },
+    );
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "Authentication required") {
       return createSecureResponse(
@@ -92,18 +107,24 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await authenticateAdmin(req);
 
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    if (!orgId) {
+      return createSecureResponse(
+        { error: "Organization context required" },
+        400,
+        req,
+      );
+    }
+
     // Rate limiting for admin operations
-    const key = `admin:discounts:${user.id}`;
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
     const rl = await smartRateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
     if (!rl.allowed) {
       return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
@@ -113,12 +134,12 @@ export async function PUT(req: NextRequest) {
     const body = discountSchema.parse(await req.json());
 
     const d = await DiscountRule.findOneAndUpdate(
-      { code: "ANNUAL" },
+      { key: "ANNUAL", orgId },
       {
-        code: "ANNUAL",
-        type: "percent",
-        value: body.value,
-        active: true,
+        key: "ANNUAL",
+        orgId,
+        percentage: body.value,
+        editableBySuperAdminOnly: true,
         updatedBy: user.id,
         updatedAt: new Date(),
       },

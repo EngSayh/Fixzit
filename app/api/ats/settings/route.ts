@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { atsRBAC } from "@/lib/ats/rbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 /**
  * GET /api/ats/settings - Get ATS settings for organization
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (!authResult.authorized) {
       return authResult.response;
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, authResult.userId), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authResult.orgId ?? null, authResult.userId), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     if (!authResult.authorized) {
       return authResult.response;
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, authResult.userId), 30, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authResult.orgId ?? null, authResult.userId), 30, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

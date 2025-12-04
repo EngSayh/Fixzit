@@ -25,7 +25,9 @@ vi.mock('@/lib/mongodb-unified', () => ({
 }));
 
 vi.mock('@/server/security/rateLimit', () => ({
-  rateLimit: vi.fn().mockReturnValue({ allowed: true })
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({
@@ -413,7 +415,11 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       // Re-import to get new module with updated env
       vi.resetModules();
       vi.doMock('@/lib/mongodb-unified', () => ({ connectToDatabase: vi.fn().mockResolvedValue(undefined) }));
-      vi.doMock('@/server/security/rateLimit', () => ({ rateLimit: vi.fn().mockReturnValue({ allowed: true }) }));
+      vi.doMock('@/server/security/rateLimit', () => ({
+        rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+        smartRateLimit: vi.fn(async () => ({ allowed: true })),
+        buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+      }));
       vi.doMock('@/server/utils/errorResponses', () => ({ rateLimitError: vi.fn() }));
       vi.doMock('@/server/security/headers', () => ({ getClientIP: vi.fn().mockReturnValue('127.0.0.1') }));
       vi.doMock('@/lib/redis', () => ({ getCached: vi.fn(), CacheTTL: { FIFTEEN_MINUTES: 900 } }));
@@ -440,6 +446,20 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
 describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
   beforeAll(async () => {
     vi.resetModules();
+    // Re-register mocks after module reset
+    vi.doMock('@/server/security/rateLimit', () => ({
+      rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+      smartRateLimit: vi.fn(async () => ({ allowed: true })),
+      buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+    }));
+    vi.doMock('@/lib/redis', () => ({
+      getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
+        return fn();
+      }),
+      CacheTTL: {
+        FIFTEEN_MINUTES: 900
+      }
+    }));
     ({ GET } = await import('@/app/api/ats/jobs/public/route'));
   });
 

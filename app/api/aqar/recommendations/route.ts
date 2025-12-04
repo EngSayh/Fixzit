@@ -4,7 +4,7 @@ import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { logger } from "@/lib/logger";
 import {
   AqarRecommendationEngine,
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Rate limit per user/tenant (include org for multi-tenant throttling)
-    const baseKey = buildRateLimitKey(req, session.id);
+    const baseKey = buildOrgAwareRateLimitKey(req, session.orgId ?? null, session.id);
     const rl = await smartRateLimit(
       `${baseKey}:${session.orgId}`,
       60,

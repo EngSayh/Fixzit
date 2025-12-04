@@ -59,6 +59,8 @@ export async function getCollections() {
 export async function createIndexes() {
   const db = await getDatabase();
 
+  await createQaIndexes(db);
+
   // Users
   await db
     .collection(COLLECTIONS.USERS)
@@ -103,6 +105,74 @@ export async function createIndexes() {
     .collection(COLLECTIONS.INVOICES)
     .createIndex({ invoiceNumber: 1 }, { unique: true });
   await db.collection(COLLECTIONS.INVOICES).createIndex({ tenantId: 1 });
+}
+
+async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  // QA Logs - AUDIT-2025-12-03: Multi-tenant isolation and TTL
+  // Org-scoped query index (sparse to exclude legacy docs without orgId)
+  await db
+    .collection("qa_logs")
+    .createIndex({ orgId: 1, timestamp: -1 }, { 
+      name: "orgId_timestamp", 
+      background: true, 
+      sparse: true 
+    });
+  // Event-specific org-scoped query index
+  await db
+    .collection("qa_logs")
+    .createIndex({ orgId: 1, event: 1, timestamp: -1 }, { 
+      name: "orgId_event_timestamp", 
+      background: true, 
+      sparse: true 
+    });
+  // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
+  await db
+    .collection("qa_logs")
+    .createIndex({ timestamp: 1 }, { 
+      name: "qa_logs_ttl_90d", 
+      expireAfterSeconds: 90 * 24 * 60 * 60,  // 90 days
+      background: true 
+    });
+
+  // QA Alerts - AUDIT-2025: Multi-tenant isolation and TTL
+  await db
+    .collection("qa_alerts")
+    .createIndex({ orgId: 1, timestamp: -1 }, { 
+      name: "qa_alerts_orgId_timestamp", 
+      background: true, 
+      sparse: true 
+    });
+  await db
+    .collection("qa_alerts")
+    .createIndex({ timestamp: -1 }, { 
+      name: "qa_alerts_timestamp_desc", 
+      background: true 
+    });
+  await db
+    .collection("qa_alerts")
+    .createIndex({ timestamp: 1 }, { 
+      name: "qa_alerts_ttl_30d", 
+      expireAfterSeconds: 30 * 24 * 60 * 60,  // 30 days
+      background: true 
+    });
+}
+
+let qaIndexesPromise: Promise<void> | null = null;
+
+/**
+ * Ensure QA-related indexes (logs/alerts) are created once per process start.
+ * Guards against drift when migrations are skipped; idempotent via Mongo driver.
+ */
+export async function ensureQaIndexes(): Promise<void> {
+  if (!qaIndexesPromise) {
+    qaIndexesPromise = getDatabase()
+      .then((db) => createQaIndexes(db))
+      .catch((err) => {
+        qaIndexesPromise = null;
+        throw err;
+      });
+  }
+  return qaIndexesPromise;
 }
 
 /**

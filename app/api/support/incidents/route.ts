@@ -8,7 +8,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -91,8 +91,26 @@ export async function POST(req: NextRequest) {
     sessionUser = null;
   }
 
+  if (sessionUser && !sessionUser.orgId) {
+    logger.error("[Incidents] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: sessionUser.id,
+    });
+    return NextResponse.json(
+      {
+        error: "Missing organization context",
+        detail: "Authenticated incident reports require an org-scoped session.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // Rate limiting: Authenticated users get tenant-isolated buckets,
+  // anonymous users (if enabled) share IP-based bucket
+  const orgId = sessionUser?.orgId ?? null;
+  const userId = sessionUser?.id ?? null;
+  
   const rl = await smartRateLimit(
-    buildRateLimitKey(req, sessionUser?.id ?? null),
+    buildOrgAwareRateLimitKey(req, orgId, userId),
     60,
     60_000,
   );

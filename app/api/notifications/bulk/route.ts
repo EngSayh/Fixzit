@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 const bulkActionSchema = z.object({
   action: z.enum(["mark-read", "mark-unread", "archive", "delete"]),
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

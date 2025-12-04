@@ -184,6 +184,11 @@ jobs:
             exit 1
           }
 
+      - name: Ensure Mongo Indexes (idempotent)
+        env:
+          MONGODB_URI: mongodb://localhost:27017/fixzit_test
+        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
+
       - name: Verify MongoDB health
         run: |
           echo "🔍 Checking MongoDB service health..."

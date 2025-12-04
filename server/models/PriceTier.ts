@@ -10,6 +10,8 @@ export interface IPriceTier extends Document {
   flatMonthly?: number;
   currency: string;
   region?: string;
+  orgId?: Schema.Types.ObjectId;
+  isGlobal?: boolean;
   // updatedBy removed - handled by auditPlugin
   createdBy?: Schema.Types.ObjectId;
   updatedBy?: Schema.Types.ObjectId;
@@ -70,6 +72,16 @@ const priceTierSchema = new Schema<IPriceTier>(
       type: String,
       trim: true,
     },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: false,
+      index: true,
+    },
+    isGlobal: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -82,9 +94,19 @@ const priceTierSchema = new Schema<IPriceTier>(
 // Apply audit plugin to track who changes pricing
 priceTierSchema.plugin(auditPlugin);
 
+// Unique per org for tenant-scoped tiers
 priceTierSchema.index(
-  { moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 },
-  { unique: true },
+  { orgId: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 },
+  { unique: true, sparse: true },
+);
+
+// Unique for global tiers (isGlobal=true)
+priceTierSchema.index(
+  { isGlobal: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isGlobal: true },
+  },
 );
 
 export const PriceTier = getModel<IPriceTier>("PriceTier", priceTierSchema);

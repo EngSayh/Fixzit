@@ -6,7 +6,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { getUserFromToken } from "@/lib/auth";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import {
   zodValidationError,
   rateLimitError,
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

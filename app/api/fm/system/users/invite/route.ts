@@ -9,7 +9,7 @@ import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 type InviteDocument = {
   _id: ObjectId;
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rl = await smartRateLimit(buildRateLimitKey(req, actor.id), 30, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, actor.orgId, actor.id), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     const payload = sanitize(await req.json());

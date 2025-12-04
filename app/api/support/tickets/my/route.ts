@@ -8,7 +8,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     let user;
     try {
       user = await getSessionUser(req);
-      const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
       if (!rl.allowed) {
         return rateLimitError();
       }

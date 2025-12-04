@@ -40,6 +40,7 @@ vi.mock('@/lib/storage/s3', () => ({
 
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({

@@ -12,6 +12,7 @@ vi.mock('@/server/middleware/withAuthRbac', () => ({
 
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn(() => ({ allowed: true })),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({
@@ -20,6 +21,7 @@ vi.mock('@/server/utils/errorResponses', () => ({
 
 vi.mock('@/server/security/rateLimitKey', () => ({
   buildRateLimitKey: vi.fn(() => 'test-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-key'),
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -33,7 +35,7 @@ import { GET, POST } from '@/app/api/upload/scan-status/route';
 import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { rateLimit } from '@/server/security/rateLimit';
+import { smartRateLimit } from '@/server/security/rateLimit';
 
 describe('GET /api/upload/scan-status', () => {
   const mockUser = { id: 'user-123', tenantId: 'tenant-1' };
@@ -41,13 +43,13 @@ describe('GET /api/upload/scan-status', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
-    (rateLimit as vi.Mock).mockReturnValue({ allowed: true });
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: true });
     process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
     delete process.env.SCAN_STATUS_TOKEN;
   });
 
   it('enforces rate limiting', async () => {
-    (rateLimit as vi.Mock).mockReturnValue({ allowed: false });
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: false });
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
     const res = await GET(req);
@@ -189,7 +191,7 @@ describe('POST /api/upload/scan-status', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
-    (rateLimit as vi.Mock).mockReturnValue({ allowed: true });
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: true });
     process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
     delete process.env.SCAN_STATUS_TOKEN;
   });
@@ -235,7 +237,7 @@ describe('POST /api/upload/scan-status', () => {
   });
 
   it('enforces rate limiting on POST', async () => {
-    (rateLimit as vi.Mock).mockReturnValue({ allowed: false });
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: false });
     process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
 
     const req = createPostRequest({ key: 'test.jpg' });

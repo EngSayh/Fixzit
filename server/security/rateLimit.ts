@@ -120,8 +120,30 @@ export async function redisRateLimit(
 
     const [countResult, , ttlResult] = results;
     const count = (countResult?.[1] as number) || 0;
-    const ttl = (ttlResult?.[1] as number) || windowSeconds;
-    const resetAt = now + (ttl * 1000);
+    
+    // SECURITY FIX: Redis TTL returns:
+    //   -2 = key doesn't exist (shouldn't happen after INCR, but handle gracefully)
+    //   -1 = key exists but has no expiry (can cause perma-ban!)
+    //   >0 = seconds until expiry
+    // We MUST coerce negative values to prevent indefinite blocks
+    const ttlValue = (ttlResult?.[1] as number) ?? -1;
+    let effectiveTtl = ttlValue > 0 ? ttlValue : windowSeconds;
+    
+    // If TTL is negative, the key has no expiry - forcibly set one to prevent perma-ban
+    if (ttlValue <= 0) {
+      try {
+        await client.expire(windowKey, windowSeconds);
+        effectiveTtl = windowSeconds;
+      } catch {
+        // If expire fails, log but continue - memory fallback will handle eventually
+        logger.warn('[RateLimit] Failed to set expiry on key with no TTL', {
+          key: redactRateLimitKey(key),
+          ttlValue,
+        });
+      }
+    }
+    
+    const resetAt = now + (effectiveTtl * 1000);
 
     // CRITICAL FIX: Use >= to match in-memory behavior (both block at limit, not limit+1)
     if (count >= limit) {

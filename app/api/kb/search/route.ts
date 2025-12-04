@@ -6,7 +6,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 import { logger } from "@/lib/logger";
 // Define proper type for search results
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     rateLimitAssert(req);
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

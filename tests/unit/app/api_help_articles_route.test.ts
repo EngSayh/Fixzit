@@ -149,11 +149,13 @@ vi.mock('@/server/middleware/withAuthRbac', () => ({
 }))
 
 vi.mock('@/server/security/rateLimit', () => ({
-  rateLimit: () => ({ allowed: true })
+  rateLimit: () => ({ allowed: true }),
+  smartRateLimit: async () => ({ allowed: true })
 }))
 
 vi.mock('@/server/security/rateLimitKey', () => ({
-  buildRateLimitKey: () => 'help-articles-key'
+  buildRateLimitKey: () => 'help-articles-key',
+  buildOrgAwareRateLimitKey: () => 'help-articles-key'
 }))
 
 vi.mock('@/server/security/headers', () => ({

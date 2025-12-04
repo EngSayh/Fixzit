@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { getClientIP } from "@/server/security/headers";
 
 import { logger } from "@/lib/logger";
+import { requireSuperAdmin } from "@/lib/authz";
 /**
  * @openapi
  * /api/qa/reconnect:
@@ -24,12 +24,25 @@ import { logger } from "@/lib/logger";
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to trigger reconnect
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
+
+  // SECURITY: Require tenant context before using it in rate-limit key (org isolation)
+  if (!authContext?.tenantId) {
+    return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+  }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   try {
     // Force database reconnection by accessing it

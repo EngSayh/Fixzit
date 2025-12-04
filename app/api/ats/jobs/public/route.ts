@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { logger } from "@/lib/logger";
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { getClientIP } from "@/server/security/headers";
 import { getCached, CacheTTL } from "@/lib/redis";
 
 const DEFAULT_PAGE = 1;
@@ -54,9 +53,16 @@ const parsePositiveInt = (
  * No authentication required - public endpoint
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting (higher limit for public endpoint)
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60_000);
+  // Security: Only allow configured orgs for public job board
+  // Do NOT accept arbitrary orgId from query params to prevent cross-tenant enumeration
+  const orgId = process.env.PUBLIC_JOBS_ORG_ID || process.env.PLATFORM_ORG_ID;
+
+  // Rate limiting (higher limit for public endpoint) - use org-aware key for tenant isolation
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, orgId ?? null, null),
+    100,
+    60_000
+  );
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -65,10 +71,6 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    
-    // Security: Only allow configured orgs for public job board
-    // Do NOT accept arbitrary orgId from query params to prevent cross-tenant enumeration
-    const orgId = process.env.PUBLIC_JOBS_ORG_ID || process.env.PLATFORM_ORG_ID;
 
     if (!orgId) {
       logger.error("[ATS/Public] No PUBLIC_JOBS_ORG_ID or PLATFORM_ORG_ID configured");

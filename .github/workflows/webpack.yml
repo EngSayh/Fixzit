@@ -66,6 +66,11 @@ jobs:
         run: pnpm run lint
         continue-on-error: false
 
+      - name: Ensure Mongo Indexes (idempotent)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test' }}
+        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
+
       - name: Run Tests
         run: |
           export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-test}"

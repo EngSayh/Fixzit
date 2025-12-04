@@ -8,9 +8,8 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
-import { getClientIp } from "@/lib/security/client-ip";
 
 const ALLOWED_TYPES = new Set(["application/pdf", "application/x-pdf"]);
 const ALLOWED_EXTENSIONS = new Set(["pdf"]);
@@ -36,6 +35,12 @@ const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
+    if (user && !user.orgId) {
+      logger.error("[Resumes Presign] Authenticated user missing orgId - denying to preserve tenant isolation", {
+        userId: user.id,
+      });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
     if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
       return createSecureResponse(
         { error: "Storage not configured" },
@@ -60,15 +65,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const safeIp = (() => {
-      try {
-        return getClientIp(req);
-      } catch {
-        return "unknown";
-      }
-    })();
+    // Rate limiting: Authenticated users get tenant-isolated buckets,
+    // anonymous users (careers form) share IP-based bucket with tighter limits
+    const orgId = user?.orgId ?? null;
+    const userId = user?.id ?? null;
+    
     const rl = await smartRateLimit(
-      buildRateLimitKey(req, user?.id || safeIp),
+      buildOrgAwareRateLimitKey(req, orgId, userId),
       user ? 60 : 20, // tighter window for anonymous callers
       60_000,
     );

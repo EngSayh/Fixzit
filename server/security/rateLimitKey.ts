@@ -59,6 +59,8 @@ export function redactRateLimitKey(key: string): string {
 }
 
 /**
+ * @deprecated Use buildOrgAwareRateLimitKey instead for explicit tenant isolation.
+ * 
  * Builds a consistent, org-aware rate limit key for tenant isolation.
  * 
  * KEY FORMAT: `{orgId}:{path}:{userId|ip}`
@@ -82,23 +84,6 @@ export function redactRateLimitKey(key: string): string {
  * @param userId - Optional user ID (only for new 3+ arg calls)
  * @param overridePath - Optional path override (defaults to request pathname)
  * @returns Formatted rate limit key: `{org}:{path}:{identifier}`
- * 
- * @example
- * // LEGACY (deprecated): Per-user limiting without org isolation
- * const key = buildRateLimitKey(req, user.id);
- * // Results in: "anonymous:{path}:{user.id}"
- * 
- * // NEW: Authenticated user with org context (recommended)
- * const key = buildRateLimitKey(req, user.orgId, user.id);
- * // Results in: "{orgId}:{path}:{user.id}"
- * 
- * // NEW: Anonymous user with org context (from session/cookie)
- * const key = buildRateLimitKey(req, orgId, null);
- * // Results in: "{orgId}:{path}:{ip}"
- * 
- * // NEW: Fully anonymous (use sparingly - no tenant isolation)
- * const key = buildRateLimitKey(req, null, null);
- * // Results in: "anonymous:{path}:{ip}"
  */
 export function buildRateLimitKey(
   req: NextRequest,
@@ -110,16 +95,17 @@ export function buildRateLimitKey(
   const ip = safeGetClientIp(req);
   
   // BACKWARD COMPATIBILITY DETECTION:
-  // If userId is explicitly undefined (not null), this is likely a legacy call
-  // where the 2nd arg is userId, not orgId.
+  // Use arguments.length for reliable legacy detection.
+  // This avoids issues where optional chaining (user?.id) passes undefined.
   // 
-  // Legacy pattern: buildRateLimitKey(req, user.id)
-  // New pattern: buildRateLimitKey(req, orgId, userId)
+  // Legacy pattern: buildRateLimitKey(req, user.id) - 2 args
+  // New pattern: buildRateLimitKey(req, orgId, userId) - 3+ args
   //
   // Detection logic:
-  // - If userId === undefined → legacy call, treat 2nd arg as userId
-  // - If userId !== undefined (including null) → new call with explicit org/user
-  const isLegacyCall = userId === undefined;
+  // - arguments.length <= 2 → legacy call, treat 2nd arg as userId
+  // - arguments.length >= 3 → new call with explicit org/user
+  const argCount = arguments.length;
+  const isLegacyCall = argCount <= 2;
   
   if (isLegacyCall) {
     // Emit deprecation warning in development (once per endpoint)
@@ -135,6 +121,27 @@ export function buildRateLimitKey(
     // Preserve per-user limiting, no org isolation
     const identifier = orgIdOrUserId || ip;
     return `anonymous:${path}:${identifier}`;
+  }
+  
+  // FAIL-FAST: For new calls (3+ args), require orgId for authenticated endpoints
+  // If caller passed 3+ args but orgIdOrUserId is null/undefined, that's a bug.
+  // The caller should either:
+  // 1. Pass a valid orgId for tenant isolation
+  // 2. Explicitly use buildOrgAwareRateLimitKey(req, null, null) for anonymous paths
+  if (!orgIdOrUserId) {
+    const redactedPath = path
+      .replace(/[a-f0-9]{24}/gi, '***')
+      .replace(/\d{3,}/g, '***');
+    logger.error(
+      '[RateLimit] buildRateLimitKey called with 3+ args but missing orgId. ' +
+        'This is prohibited—use buildOrgAwareRateLimitKey(req, null, userId) for anonymous/public flows.',
+      {
+        path: redactedPath,
+        hasUserId: !!userId,
+        argCount,
+      },
+    );
+    throw new Error('buildRateLimitKey requires orgId when called with 3+ arguments');
   }
   
   // New: buildRateLimitKey(req, orgId, userId, overridePath?)

@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import PriceTier from "@/server/models/PriceTier";
 import Module from "@/server/models/Module";
 import { getUserFromToken } from "@/lib/auth";
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import {
   createErrorResponse,
@@ -12,7 +12,6 @@ import {
   rateLimitError,
 } from "@/server/utils/errorResponses";
 import { z } from "zod";
-import { getClientIP } from "@/server/security/headers";
 
 const priceTierSchema = z.object({
   moduleCode: z.string().min(1),
@@ -22,6 +21,7 @@ const priceTierSchema = z.object({
   flatMonthly: z.number().min(0).optional(),
   currency: z.string().min(1).default("USD"),
   region: z.string().optional(),
+  isGlobal: z.boolean().optional(),
 });
 
 async function authenticateAdmin(req: NextRequest) {
@@ -63,17 +63,35 @@ async function authenticateAdmin(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
-    await authenticateAdmin(req);
+    const user = await authenticateAdmin(req);
+
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting (org-aware) after successful auth
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
+    const rl = await smartRateLimit(key, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Optional includeGlobal=true to merge shared tiers with org-scoped tiers
+    const includeGlobal = req.nextUrl.searchParams.get("includeGlobal") === "true";
+    const query = includeGlobal && orgId
+      ? { $or: [{ orgId }, { isGlobal: true }] }
+      : orgId
+        ? { orgId }
+        : includeGlobal
+          ? { isGlobal: true }
+          : {};
+
     await connectToDatabase();
-    const rows = await PriceTier.find({}).populate("moduleId", "code name");
+    const rows = await PriceTier.find(query)
+      .populate("moduleId", "code name")
+      .lean();
     return createSecureResponse(rows, 200, req);
   } catch (error: unknown) {
     // Check for specific authentication errors
@@ -97,18 +115,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await authenticateAdmin(req);
 
-    // Rate limiting for admin operations
-    const key = `admin:price-tiers:${user.id}`;
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting for admin operations (org-aware)
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
     const rl = await smartRateLimit(key, 20, 60_000); // 20 requests per minute
     if (!rl.allowed) {
       return createErrorResponse("Rate limit exceeded", 429, req);
@@ -116,6 +132,13 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     const body = priceTierSchema.parse(await req.json());
+
+    const isGlobalRequested = body.isGlobal === true;
+    const isSuperAdmin = user.role === "SUPER_ADMIN";
+    if (isGlobalRequested && !isSuperAdmin) {
+      return createErrorResponse("Global tiers require SUPER_ADMIN", 403, req);
+    }
+    const isGlobal = isSuperAdmin && isGlobalRequested;
 
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
     const mod = await Module.findOne({ code: body.moduleCode });
@@ -127,8 +150,16 @@ export async function POST(req: NextRequest) {
         seatsMin: body.seatsMin,
         seatsMax: body.seatsMax,
         currency: body.currency || "USD",
+        ...(isGlobal ? { isGlobal: true } : orgId ? { orgId } : {}),
       },
-      { ...body, moduleId: mod._id, updatedBy: user.id, updatedAt: new Date() },
+      {
+        ...body,
+        moduleId: mod._id,
+        orgId: isGlobal ? undefined : orgId,
+        isGlobal,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
       { upsert: true, new: true },
     );
     return createSecureResponse(doc, 201, req);

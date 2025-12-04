@@ -4,6 +4,8 @@ import { AuditLogModel } from "@/server/models/AuditLog";
 import { connectDb } from "@/lib/mongo";
 
 import { logger } from "@/lib/logger";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 /**
  * GET /api/admin/audit-logs
  *
@@ -83,6 +85,13 @@ export async function GET(request: NextRequest) {
         { error: "Unauthorized: Invalid organization context" },
         { status: 403 }
       );
+    }
+
+    // Rate limiting (org-aware) to prevent abuse
+    const rlKey = buildOrgAwareRateLimitKey(request, orgId, session.user.id ?? null);
+    const rl = await smartRateLimit(rlKey, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
 
     // Search logs

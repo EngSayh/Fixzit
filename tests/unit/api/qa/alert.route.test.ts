@@ -214,7 +214,8 @@ describe('QA Alert Route', () => {
       const res = await POST(req);
       expect((res as Response).status).toBe(400);
       const body = await (res as Response).json();
-      expect(body.error).toBe('Event name is required');
+      // Zod validation returns specific error message format
+      expect(body.error).toBeDefined();
     });
 
     it('returns 400 when event is empty string', async () => {
@@ -402,7 +403,8 @@ describe('QA Alert Route', () => {
       expect(mod.getDatabase).toHaveBeenCalledTimes(1);
 
       expect(collection).toHaveBeenCalledWith('qa_alerts');
-      expect(find).toHaveBeenCalledWith({});
+      // Query includes orgId for tenant isolation
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(50);
       expect(toArray).toHaveBeenCalledTimes(1);

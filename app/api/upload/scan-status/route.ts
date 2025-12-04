@@ -4,9 +4,8 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { getClientIP } from "@/server/security/headers";
 import { Config } from "@/lib/config/constants";
 
 type ScanStatus = "pending" | "clean" | "infected" | "error";
@@ -78,7 +77,8 @@ function cacheHeaders() {
 export async function GET(req: NextRequest) {
   const tokenAuthorized = isTokenAuthorized(req);
   const { tokenRequired } = getTokenConfig();
-  let userId: string | undefined;
+  let userId: string | null = null;
+  let orgId: string | null = null;
 
   if (tokenRequired && !tokenAuthorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -89,10 +89,11 @@ export async function GET(req: NextRequest) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     userId = user.id;
+    orgId = user.orgId ?? null;
   }
 
   const rl = await smartRateLimit(
-    buildRateLimitKey(req, userId ?? getClientIP(req)),
+    buildOrgAwareRateLimitKey(req, orgId, userId),
     60,
     60_000,
   );
@@ -123,7 +124,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const tokenAuthorized = isTokenAuthorized(req);
   const { tokenRequired } = getTokenConfig();
-  let userId: string | undefined;
+  let userId: string | null = null;
+  let orgId: string | null = null;
 
   if (tokenRequired && !tokenAuthorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -134,10 +136,11 @@ export async function POST(req: NextRequest) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     userId = user.id;
+    orgId = user.orgId ?? null;
   }
 
   const rl = await smartRateLimit(
-    buildRateLimitKey(req, userId ?? getClientIP(req)),
+    buildOrgAwareRateLimitKey(req, orgId, userId),
     60,
     60_000,
   );

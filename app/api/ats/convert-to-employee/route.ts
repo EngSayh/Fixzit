@@ -12,7 +12,7 @@ import {
   rateLimitError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { atsRBAC } from "@/lib/ats/rbac";
 import type { ATSPermission } from "@/lib/ats/permissions";
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
     const { userId, orgId, isSuperAdmin } = authz;
 
-    const rl = await smartRateLimit(buildRateLimitKey(req, userId), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId ?? null, userId), 60, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     await connectToDatabase();

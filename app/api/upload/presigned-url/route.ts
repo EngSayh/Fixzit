@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { createSecureResponse } from "@/server/security/headers";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
 import { Config } from "@/lib/config/constants";
@@ -66,10 +66,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { tenantId, id: userId } = user;
+    const { tenantId, id: userId, orgId } = user;
 
-    // Rate limit to avoid abuse
-    const rl = await smartRateLimit(buildRateLimitKey(req, userId), 30, 60_000);
+    // SECURITY: Require orgId for tenant-isolated rate limiting
+    // Missing orgId indicates session/data issue - fail fast rather than sharing anonymous bucket
+    if (!orgId) {
+      logger.warn('[Presign] Missing orgId in authenticated session', { userId });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
+
+    // Rate limit to avoid abuse - tenant-isolated bucket
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     const body = await req.json().catch(() => ({}));

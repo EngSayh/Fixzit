@@ -11,7 +11,7 @@ import {
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { logger } from "@/lib/logger";
 
 const BodySchema = z.object({
@@ -133,7 +133,17 @@ export async function POST(req: NextRequest) {
     user = null; // allow public help queries without actions
   }
 
-  const rl = await smartRateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
+  // Rate limiting: Authenticated users must have org context; anonymous users are allowed but share IP bucket
+  if (user && !user.orgId) {
+    logger.error("[Assistant] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: user.id,
+    });
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+
+  const orgId = user?.orgId ?? null;
+  const userId = user?.id ?? null;
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
