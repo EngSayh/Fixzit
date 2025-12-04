@@ -127,9 +127,11 @@ export async function POST(req: NextRequest) {
     } catch (dbError) {
       // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
       void recordQaStorageFailure("log", "write", dbError);
-      logger.error("[QA Log] DB unavailable", {
-        error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
-      });
+      logger.error(
+        "[QA Log] DB unavailable",
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? "")),
+        { operation: "write" }
+      );
       return createSecureResponse({ error: "Log storage unavailable" }, 503, req);
     }
   } catch (error) {
@@ -201,9 +203,11 @@ export async function GET(req: NextRequest) {
     } catch (dbError) {
       // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
       void recordQaStorageFailure("log", "read", dbError);
-      logger.error("[QA Log] DB unavailable", {
-        error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
-      });
+      logger.error(
+        "[QA Log] DB unavailable",
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? "")),
+        { operation: "read" }
+      );
       return createSecureResponse({ error: "Log retrieval unavailable" }, 503, req);
     }
   } catch (error) {

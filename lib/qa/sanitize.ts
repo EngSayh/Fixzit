@@ -155,8 +155,12 @@ function redactSensitiveValues(value: string): string {
 
 /**
  * Sanitize a single value (recursive for nested structures)
+ * 
+ * @param value - The value to sanitize
+ * @param depth - Current recursion depth
+ * @param seen - WeakSet to track visited objects and prevent circular reference loops
  */
-function sanitizeValue(value: unknown, depth: number): unknown {
+function sanitizeValue(value: unknown, depth: number, seen: WeakSet<object> = new WeakSet()): unknown {
   if (depth > MAX_DEPTH) {
     return '[MAX_DEPTH_EXCEEDED]';
   }
@@ -190,7 +194,7 @@ function sanitizeValue(value: unknown, depth: number): unknown {
   }
 
   // Handle Buffer objects - redact raw binary data
-  if (Buffer.isBuffer(value)) {
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
     return `[BUFFER:${value.length} bytes]`;
   }
 
@@ -202,17 +206,27 @@ function sanitizeValue(value: unknown, depth: number): unknown {
     return `[BINARY:${(value as ArrayBufferView).byteLength} bytes]`;
   }
 
+  // Circular reference protection for arrays
   if (Array.isArray(value)) {
+    if (seen.has(value)) {
+      return '[CIRCULAR_REFERENCE]';
+    }
+    seen.add(value);
     const truncated = value.slice(0, MAX_ARRAY_LENGTH);
-    const sanitized = truncated.map(item => sanitizeValue(item, depth + 1));
+    const sanitized = truncated.map(item => sanitizeValue(item, depth + 1, seen));
     if (value.length > MAX_ARRAY_LENGTH) {
       sanitized.push(`[...${value.length - MAX_ARRAY_LENGTH} more items]`);
     }
     return sanitized;
   }
 
+  // Circular reference protection for objects
   if (typeof value === 'object') {
-    return sanitizeObject(value as Record<string, unknown>, depth + 1);
+    if (seen.has(value as object)) {
+      return '[CIRCULAR_REFERENCE]';
+    }
+    seen.add(value as object);
+    return sanitizeObject(value as Record<string, unknown>, depth + 1, seen);
   }
 
   // For functions, symbols, etc.
@@ -221,8 +235,12 @@ function sanitizeValue(value: unknown, depth: number): unknown {
 
 /**
  * Sanitize an object, redacting sensitive keys and limiting depth/size
+ * 
+ * @param obj - The object to sanitize
+ * @param depth - Current recursion depth
+ * @param seen - WeakSet to track visited objects and prevent circular reference loops
  */
-function sanitizeObject(obj: Record<string, unknown>, depth: number): Record<string, unknown> {
+function sanitizeObject(obj: Record<string, unknown>, depth: number, seen: WeakSet<object> = new WeakSet()): Record<string, unknown> {
   if (depth > MAX_DEPTH) {
     return { _truncated: '[MAX_DEPTH_EXCEEDED]' };
   }
@@ -234,7 +252,7 @@ function sanitizeObject(obj: Record<string, unknown>, depth: number): Record<str
     if (isSensitiveKey(key)) {
       result[key] = '[REDACTED]';
     } else {
-      result[key] = sanitizeValue(obj[key], depth);
+      result[key] = sanitizeValue(obj[key], depth, seen);
     }
   }
 
@@ -274,13 +292,19 @@ export function sanitizeQaPayload(data: unknown): unknown {
 
 /**
  * Estimate the byte size of a JSON-serializable value
+ * Uses TextEncoder as a fallback for edge runtime environments where Buffer is unavailable
  */
 export function estimatePayloadSize(data: unknown): number {
   if (data === null || data === undefined) {
     return 0;
   }
   try {
-    return Buffer.byteLength(JSON.stringify(data), 'utf8');
+    const json = JSON.stringify(data);
+    // Use Buffer if available (Node.js), otherwise TextEncoder (Edge/Browser)
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.byteLength(json, 'utf8');
+    }
+    return new TextEncoder().encode(json).length;
   } catch {
     return 0;
   }

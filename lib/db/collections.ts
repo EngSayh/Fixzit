@@ -574,26 +574,6 @@ export async function createIndexes() {
     .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
     .createIndex({ timestamp: 1 }, { background: true, expireAfterSeconds: 31536000, name: "agentAudit_timestamp_ttl_1y" });
 
-  // Subscription Invoices (recurring billing)
-  await db
-    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
-    .createIndex({ orgId: 1, status: 1, dueDate: 1 }, { background: true, name: "subscriptioninvoices_orgId_status_dueDate" });
-  await db
-    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
-    .createIndex(
-      { orgId: 1, subscriptionId: 1, dueDate: -1 },
-      { background: true, name: "subscriptioninvoices_orgId_subscription_dueDate_desc" },
-    );
-  await db
-    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
-    .createIndex(
-      { orgId: 1, subscriptionId: 1, status: 1 },
-      { background: true, name: "subscriptioninvoices_orgId_subscription_status" },
-    );
-  await db
-    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
-    .createIndex({ paytabsRef: 1 }, { background: true, sparse: true, name: "subscriptioninvoices_paytabsRef" });
-
   // Support Tickets - STRICT v4.1: code unique per org
   await db
     .collection(COLLECTIONS.SUPPORT_TICKETS)
@@ -1060,6 +1040,11 @@ async function dropLegacyUserIndexes(db: Awaited<ReturnType<typeof getDatabase>>
     "orgId_1_personal.phone_1",
     "orgId_1_assignment.assignedTo.userId_1",
     "orgId_1_assignment.assignedTo.vendorId_1",
+    // Performance-related default-named indexes that conflict with canonical names
+    "orgId_1_professional.skills.category_1",
+    "orgId_1_workload.available_1",
+    "orgId_1_performance.rating_-1",
+    "orgId_1_isSuperAdmin_1",
     // Legacy unique name that used a conflicting partialFilterExpression
     "users_orgId_employeeId_unique",
   ];

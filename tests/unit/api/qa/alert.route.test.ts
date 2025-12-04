@@ -327,7 +327,8 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ error: 'Alert storage unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
         '[QA Alert] DB unavailable',
-        expect.anything()
+        expect.any(Error),
+        { operation: 'write' }
       );
       expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'write', expect.any(Error));
     });
@@ -515,7 +516,8 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ error: 'Alert retrieval unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
         '[QA Alert] DB unavailable',
-        expect.anything()
+        expect.any(Error),
+        { operation: 'read' }
       );
       expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'read', expect.any(Error));
     });
