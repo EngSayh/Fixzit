@@ -1,3 +1,4 @@
+import type { Db } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import type {
   Tenant,
@@ -30,6 +31,7 @@ export const COLLECTIONS: Record<string, string> = {
   ORDERS: "orders",
   INVOICES: "invoices",
   RFQS: "rfqs",
+  PROJECT_BIDS: "projectbids",
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
   AUDIT_LOGS: "auditLogs",
@@ -39,6 +41,7 @@ export const COLLECTIONS: Record<string, string> = {
   COMMUNICATION_LOGS: "communication_logs",
   EMAIL_LOGS: "email_logs",
   PAYMENTS: "payments",
+  AQAR_PAYMENTS: "aqar_payments",
   // ATS module
   ATS_JOBS: "jobs",
   ATS_APPLICATIONS: "applications",
@@ -49,6 +52,7 @@ export const COLLECTIONS: Record<string, string> = {
   HELP_ARTICLES: "helparticles",
   HELP_COMMENTS: "helpcomments",
   KB_EMBEDDINGS: "kb_embeddings",
+  AI_KB: "ai_kb",
   CMS_PAGES: "cmspages",
   // Additional collections used in lib/queries.ts
   SUPPORT_TICKETS: "supporttickets",
@@ -114,6 +118,25 @@ export async function getCollections() {
   };
 }
 
+async function dropDefaultOrgIdIndexes(db: Db) {
+  const indexName = "orgId_1";
+  await Promise.all(
+    Object.values(COLLECTIONS).map(async (collectionName) => {
+      try {
+        await db.collection(collectionName).dropIndex(indexName);
+      } catch (error) {
+        const message = (error as Error).message || "";
+        if (
+          !/index not found/i.test(message) &&
+          !/ns not found/i.test(message)
+        ) {
+          logger.debug("Skipping orgId_1 drop", { collectionName, error: message });
+        }
+      }
+    }),
+  );
+}
+
 // Create indexes
 // STRICT v4.1: All unique indexes MUST be org-scoped for proper multi-tenancy.
 // This prevents cross-tenant collisions (e.g., same email/SKU in different orgs).
@@ -126,6 +149,8 @@ export async function createIndexes() {
   await dropLegacyQaIndexes(db);
   // Clean up legacy user indexes that clash with named variants
   await dropLegacyUserIndexes(db);
+  // Clean up default orgId index names so named orgId indexes can be recreated idempotently
+  await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
   try {
     await db.collection(COLLECTIONS.USERS).dropIndex("users_orgId_employeeId_unique");
