@@ -23,7 +23,7 @@ describe("lib/queries KPI correctness", () => {
     collectionMock.mockReset();
   });
 
-  it("getWorkOrderStats uses canonical statuses/fields", async () => {
+  it("getWorkOrderStats uses canonical statuses/fields with soft-delete guard", async () => {
     const woCollection = {
       countDocuments: vi
         .fn()
@@ -42,9 +42,11 @@ describe("lib/queries KPI correctness", () => {
 
     const stats = await getWorkOrderStats("org1");
 
+    // All queries should include soft-delete guard
     expect(woCollection.countDocuments).toHaveBeenCalledWith({
       orgId: "org1",
       isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
     });
     expect(stats).toEqual({
       total: 10,
@@ -56,7 +58,7 @@ describe("lib/queries KPI correctness", () => {
     });
   });
 
-  it("getInvoiceCounters uses canonical statuses/fields", async () => {
+  it("getInvoiceCounters uses canonical statuses/fields with soft-delete guard", async () => {
     const invoicesCollection = {
       countDocuments: vi
         .fn()
@@ -69,17 +71,24 @@ describe("lib/queries KPI correctness", () => {
 
     const counters = await getInvoiceCounters("org1");
 
+    // All queries should include soft-delete guard
     expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(1, {
       orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
       status: { $in: ["ISSUED", "OVERDUE"] },
     });
     expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(2, {
       orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
       status: { $in: ["ISSUED", "OVERDUE"] },
       dueDate: { $lt: expect.any(Date) },
     });
     expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(3, {
       orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
       status: "PAID",
     });
     expect(counters).toEqual({ unpaid: 5, overdue: 2, paid: 7, total: 12 });

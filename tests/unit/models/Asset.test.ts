@@ -175,43 +175,16 @@ describe('Asset model schema', () => {
     expect((err as AnyObj).errors?.['depreciation.method']).toBeDefined();
   });
 
-  it('exposes expected indexes on the schema', () => {
-    const indexes: Array<[Record<string, any>, Record<string, any>]> = Asset.schema.indexes();
-
-    // Debug: log actual indexes to understand structure
-    console.log('Asset indexes:', JSON.stringify(indexes, null, 2));
-
-    const hasIndex = (fields: Record<string, 1 | -1>) =>
-      indexes.some(([idx]) => {
-        // Check if all expected fields are present with correct values
-        return Object.entries(fields).every(([k, v]) => idx[k] === v);
-      });
-
-    expect(hasIndex({ orgId: 1, type: 1 })).toBe(true);
-    expect(hasIndex({ orgId: 1, status: 1 })).toBe(true);
-    expect(hasIndex({ orgId: 1, 'pmSchedule.nextPM': 1 })).toBe(true);
-    expect(hasIndex({ orgId: 1, 'condition.score': 1 })).toBe(true);
+  it('has autoIndex disabled (indexes managed in lib/db/collections.ts)', () => {
+    // Per STRICT v4.1 architecture: indexes are centralized in lib/db/collections.ts
+    // Schema-level autoIndex should be disabled to prevent duplicate index creation
+    const schema: AnyObj = Asset.schema;
+    expect(schema?.options?.autoIndex).toBe(false);
   });
 
-  it('configures timestamps and compound unique constraint for "code" with orgId', () => {
+  it('configures timestamps', () => {
     const schema: AnyObj = Asset.schema;
     expect(schema?.options?.timestamps).toBe(true);
-
-    // Code uniqueness is enforced via compound index with orgId, not directly on the field
-    const indexes: Array<[Record<string, any>, Record<string, any>]> = Asset.schema.indexes();
-    
-    // Debug: log to understand structure
-    // console.log('Looking for unique code index in:', JSON.stringify(indexes, null, 2));
-    
-    const hasUniqueCodeIndex = indexes.some(([idx, opts]) => {
-      // Check if this index has both orgId and code fields, and unique option
-      const hasOrgId = idx.orgId === 1;
-      const hasCode = idx.code === 1;
-      const isUnique = opts?.unique === true;
-      return hasOrgId && hasCode && isUnique;
-    });
-    expect(hasUniqueCodeIndex).toBe(true);
-
     expect(schema.path('createdAt')).toBeDefined();
     expect(schema.path('updatedAt')).toBeDefined();
   });
