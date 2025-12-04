@@ -18,8 +18,9 @@
  * Patterns that indicate sensitive field names.
  * Uses word boundaries (\b) to avoid matching substrings like "author" or "authority".
  * 
- * IMPORTANT: camelCase patterns (authToken, bearerToken, jwtToken) need explicit
- * matching because \btoken\b won't match "authToken" (no word boundary before T).
+ * IMPORTANT: We use GENERALIZED patterns for camelCase/snake_case token fields
+ * to catch ALL variants like csrfToken, deviceToken, serviceToken, etc.
+ * without needing to enumerate each one explicitly.
  */
 const SENSITIVE_KEY_PATTERNS = [
   /\bpassword\b/i,
@@ -48,18 +49,13 @@ const SENSITIVE_KEY_PATTERNS = [
   /\bclient[_-]?secret\b/i,
   /\bsigning[_-]?key\b/i,
   /\bencryption[_-]?key\b/i,
-  // camelCase token fields (authToken, bearerToken, jwtToken, accessToken, etc.)
-  // These don't have word boundaries between prefix and "Token", so need explicit patterns
-  /authToken/i,
-  /bearerToken/i,
-  /jwtToken/i,
-  /accessToken/i,
-  /refreshToken/i,
-  /idToken/i,
-  /sessionToken/i,
-  /apiToken/i,
-  /userToken/i,
-  /clientToken/i,
+  // GENERALIZED camelCase token pattern: catches ANY field ending in "Token"
+  // Examples: authToken, bearerToken, csrfToken, deviceToken, serviceToken, xToken, etc.
+  // This pattern matches: lowercase letters/digits followed by capital T and "oken"
+  /[a-z0-9]Token$/i,
+  // GENERALIZED snake_case token pattern: catches ANY field ending in "_token"
+  // Examples: auth_token, csrf_token, device_token, service_token, etc.
+  /[a-z0-9]_token$/i,
 ];
 
 // ============================================================================
@@ -186,6 +182,24 @@ function sanitizeValue(value: unknown, depth: number): unknown {
 
   if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
+  }
+
+  // Handle Date objects - preserve temporal context as ISO string
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle Buffer objects - redact raw binary data
+  if (Buffer.isBuffer(value)) {
+    return `[BUFFER:${value.length} bytes]`;
+  }
+
+  // Handle ArrayBuffer and typed arrays (Uint8Array, etc.) - redact raw binary data
+  if (value instanceof ArrayBuffer) {
+    return `[ARRAYBUFFER:${value.byteLength} bytes]`;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return `[BINARY:${(value as ArrayBufferView).byteLength} bytes]`;
   }
 
   if (Array.isArray(value)) {

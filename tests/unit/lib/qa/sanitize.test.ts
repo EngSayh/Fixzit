@@ -133,6 +133,12 @@ describe('sanitizeQaPayload', () => {
         apiToken: 'secret-api-token-value',
         userToken: 'secret-user-token-value',
         clientToken: 'secret-client-token-value',
+        // GENERALIZED: These should also be redacted by the *Token pattern
+        csrfToken: 'secret-csrf-token-value',
+        deviceToken: 'secret-device-token-value',
+        serviceToken: 'secret-service-token-value',
+        xToken: 'secret-x-token-value',
+        myCustomToken: 'secret-custom-token-value',
         // These should NOT be redacted
         authorName: 'John Doe',
         tokenCount: 5,
@@ -148,9 +154,38 @@ describe('sanitizeQaPayload', () => {
       expect(result.apiToken).toBe('[REDACTED]');
       expect(result.userToken).toBe('[REDACTED]');
       expect(result.clientToken).toBe('[REDACTED]');
+      // GENERALIZED patterns should catch these too
+      expect(result.csrfToken).toBe('[REDACTED]');
+      expect(result.deviceToken).toBe('[REDACTED]');
+      expect(result.serviceToken).toBe('[REDACTED]');
+      expect(result.xToken).toBe('[REDACTED]');
+      expect(result.myCustomToken).toBe('[REDACTED]');
       // These should NOT be redacted
       expect(result.authorName).toBe('John Doe');
       expect(result.tokenCount).toBe(5);
+    });
+
+    it('redacts snake_case token fields (csrf_token, device_token, etc.)', () => {
+      const input = {
+        csrf_token: 'secret-csrf-value',
+        device_token: 'secret-device-value',
+        service_token: 'secret-service-value',
+        auth_token: 'secret-auth-value',
+        api_token: 'secret-api-value',
+        // Should NOT be redacted - doesn't end in _token
+        token_count: 5,
+        token_prefix: 'prefix-value',
+      };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      // All snake_case *_token fields should be redacted
+      expect(result.csrf_token).toBe('[REDACTED]');
+      expect(result.device_token).toBe('[REDACTED]');
+      expect(result.service_token).toBe('[REDACTED]');
+      expect(result.auth_token).toBe('[REDACTED]');
+      expect(result.api_token).toBe('[REDACTED]');
+      // These should NOT be redacted - they start with "token" not end with it
+      expect(result.token_count).toBe(5);
+      expect(result.token_prefix).toBe('prefix-value');
     });
 
     it('redacts nested camelCase token fields', () => {
@@ -327,6 +362,95 @@ describe('sanitizeQaPayload', () => {
       const result = sanitizeQaPayload(deep);
       // Should not throw and should contain truncation marker at some depth
       expect(JSON.stringify(result)).toContain('MAX_DEPTH_EXCEEDED');
+    });
+  });
+
+  describe('special type handling', () => {
+    it('converts Date objects to ISO strings', () => {
+      const testDate = new Date('2025-01-15T10:30:00.000Z');
+      const input = {
+        createdAt: testDate,
+        metadata: {
+          lastModified: new Date('2025-01-16T12:00:00.000Z'),
+          name: 'test'
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.createdAt).toBe('2025-01-15T10:30:00.000Z');
+      expect((result.metadata as Record<string, unknown>).lastModified).toBe('2025-01-16T12:00:00.000Z');
+      expect((result.metadata as Record<string, unknown>).name).toBe('test');
+    });
+
+    it('handles Date as top-level value', () => {
+      const testDate = new Date('2025-01-15T10:30:00.000Z');
+      const result = sanitizeQaPayload(testDate);
+      expect(result).toBe('2025-01-15T10:30:00.000Z');
+    });
+
+    it('converts Buffer to size marker', () => {
+      const buffer = Buffer.from('hello world', 'utf-8');
+      const input = {
+        data: buffer,
+        filename: 'test.bin'
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.data).toBe('[BUFFER:11 bytes]');
+      expect(result.filename).toBe('test.bin');
+    });
+
+    it('handles Buffer as top-level value', () => {
+      const buffer = Buffer.from('test data');
+      const result = sanitizeQaPayload(buffer);
+      expect(result).toBe('[BUFFER:9 bytes]');
+    });
+
+    it('converts Uint8Array to binary marker', () => {
+      const uint8 = new Uint8Array([1, 2, 3, 4, 5]);
+      const input = {
+        binaryData: uint8,
+        type: 'binary'
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.binaryData).toBe('[BINARY:5 bytes]');
+      expect(result.type).toBe('binary');
+    });
+
+    it('converts ArrayBuffer to buffer marker', () => {
+      const arrayBuffer = new ArrayBuffer(16);
+      const input = {
+        rawBuffer: arrayBuffer,
+        size: 16
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.rawBuffer).toBe('[ARRAYBUFFER:16 bytes]');
+      expect(result.size).toBe(16);
+    });
+
+    it('handles mixed special types in nested structure', () => {
+      const input = {
+        timestamp: new Date('2025-01-15T10:30:00.000Z'),
+        payload: {
+          binary: Buffer.from('secret data'),
+          metadata: {
+            created: new Date('2025-01-14T08:00:00.000Z'),
+            password: 'should-be-redacted'
+          }
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.timestamp).toBe('2025-01-15T10:30:00.000Z');
+      
+      const payload = result.payload as Record<string, unknown>;
+      expect(payload.binary).toBe('[BUFFER:11 bytes]');
+      
+      const metadata = payload.metadata as Record<string, unknown>;
+      expect(metadata.created).toBe('2025-01-14T08:00:00.000Z');
+      expect(metadata.password).toBe('[REDACTED]');
     });
   });
 
