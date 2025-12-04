@@ -39,7 +39,10 @@ DiscountRuleSchema.plugin(auditPlugin);
 
 // ADD TENANT-SCOPED INDEX
 // Ensures 'key' (e.g., "VAT") is unique within an organization
-DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
+DiscountRuleSchema.index(
+  { orgId: 1, key: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // TypeScript-safe model export
 const DiscountRule = getModel<IDiscountRule>(

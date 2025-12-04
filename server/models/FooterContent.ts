@@ -40,7 +40,10 @@ FooterContentSchema.plugin(tenantIsolationPlugin);
 FooterContentSchema.plugin(auditPlugin);
 
 // Ensure one record per page per tenant (upsert pattern)
-FooterContentSchema.index({ orgId: 1, page: 1 }, { unique: true });
+FooterContentSchema.index(
+  { orgId: 1, page: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // Add helpful method to get content by locale
 FooterContentSchema.methods.getContent = function (

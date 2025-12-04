@@ -193,7 +193,10 @@ AssetSchema.index({ orgId: 1, status: 1 });
 AssetSchema.index({ orgId: 1, "pmSchedule.nextPM": 1 });
 AssetSchema.index({ orgId: 1, "condition.score": 1 });
 // Compound tenant-scoped unique index for code
-AssetSchema.index({ orgId: 1, code: 1 }, { unique: true });
+AssetSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 

@@ -72,7 +72,10 @@ JobSchema.plugin(tenantIsolationPlugin);
 JobSchema.plugin(auditPlugin);
 
 // Tenant-scoped indexes (orgId prepended for proper isolation)
-JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+JobSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 JobSchema.index({
   orgId: 1,
   title: "text",

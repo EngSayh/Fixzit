@@ -10,10 +10,17 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { User } from "@/server/models/User";
+import { Property } from "@/server/models/Property";
+import { Invoice } from "@/server/models/Invoice";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { HelpArticle } from "@/server/models/HelpArticle";
+import { CmsPage } from "@/server/models/CmsPage";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { WorkOrderComment } from "@/server/models/workorder/WorkOrderComment";
 import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
 import { WorkOrderTimeline } from "@/server/models/workorder/WorkOrderTimeline";
-
 type IndexSpec = {
   key: Record<string, 1 | -1 | "text">;
   unique?: boolean;
@@ -51,37 +58,10 @@ export async function ensureCoreIndexes(): Promise<void> {
 
   // Canonical index definitions (aligned with lib/db/collections.ts)
   const indexes: CollectionIndexes[] = [
+    // Users, Properties, Invoices, SupportTickets, HelpArticles, CmsPages are handled via model.createIndexes() below
+    // CRITICAL: Collection name is centralized via COLLECTIONS.WORK_ORDERS (lowercase, aligns with Mongoose default)
     {
-      collection: "users",
-      indexes: [
-        {
-          key: { orgId: 1, email: 1 },
-          unique: true,
-          name: "users_orgId_email_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "users_orgId" },
-        { key: { orgId: 1, role: 1 }, name: "users_orgId_role" },
-        { key: { orgId: 1, "personal.phone": 1 }, name: "users_orgId_phone" },
-      ],
-    },
-    {
-      collection: "properties",
-      indexes: [
-        {
-          key: { orgId: 1, code: 1 },
-          unique: true,
-          name: "properties_orgId_code_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "properties_orgId" },
-        { key: { orgId: 1, type: 1 }, name: "properties_orgId_type" },
-        { key: { orgId: 1, status: 1 }, name: "properties_orgId_status" },
-        { key: { orgId: 1, "address.city": 1 }, name: "properties_orgId_city" },
-      ],
-    },
-    {
-      collection: "workOrders",
+      collection: COLLECTIONS.WORK_ORDERS,
       indexes: [
         {
           key: { orgId: 1, workOrderNumber: 1 },
@@ -98,10 +78,20 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1, createdAt: -1 }, name: "workorders_orgId_createdAt" },
         { key: { orgId: 1, "sla.resolutionDeadline": 1 }, name: "workorders_orgId_slaDeadline" },
         { key: { orgId: 1, status: 1, createdAt: -1 }, name: "workorders_orgId_status_createdAt" },
+        { key: { orgId: 1, "location.propertyId": 1, status: 1 }, name: "workorders_orgId_property_status" },
+        // FIXED: unit_id was never used - WorkOrder schema uses location.unitNumber (String)
+        { key: { orgId: 1, "location.unitNumber": 1, status: 1 }, name: "workorders_orgId_unitNumber_status" },
+        { key: { orgId: 1, "recurrence.nextScheduledDate": 1 }, name: "workorders_orgId_nextScheduledDate" },
+        { key: { orgId: 1, priority: 1, "sla.status": 1 }, name: "workorders_orgId_priority_slaStatus" },
+        {
+          key: { orgId: 1, title: "text", description: "text", "work.solutionDescription": "text" },
+          name: "workorders_text_search",
+        },
+        { key: { "sla.resolutionDeadline": 1 }, sparse: true, name: "workorders_slaDeadline_sparse" },
       ],
     },
     {
-      collection: "products",
+      collection: COLLECTIONS.PRODUCTS,
       indexes: [
         {
           key: { orgId: 1, sku: 1 },
@@ -110,11 +100,13 @@ export async function ensureCoreIndexes(): Promise<void> {
           partialFilterExpression: { orgId: { $exists: true } },
         },
         { key: { orgId: 1, categoryId: 1 }, name: "products_orgId_categoryId" },
+        // ADDED: Missing status index per lib/db/collections.ts
+        { key: { orgId: 1, status: 1 }, name: "products_orgId_status" },
         { key: { title: "text", description: "text" }, name: "products_text_search" },
       ],
     },
     {
-      collection: "orders",
+      collection: COLLECTIONS.ORDERS,
       indexes: [
         {
           key: { orgId: 1, orderNumber: 1 },
@@ -125,64 +117,6 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1, userId: 1 }, name: "orders_orgId_userId" },
         { key: { orgId: 1, status: 1 }, name: "orders_orgId_status" },
         { key: { orgId: 1, createdAt: -1 }, name: "orders_orgId_createdAt" },
-      ],
-    },
-    {
-      collection: "invoices",
-      indexes: [
-        {
-          key: { orgId: 1, number: 1 },
-          unique: true,
-          name: "invoices_orgId_number_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "invoices_orgId" },
-        { key: { orgId: 1, status: 1 }, name: "invoices_orgId_status" },
-        { key: { orgId: 1, dueDate: 1 }, name: "invoices_orgId_dueDate" },
-        { key: { orgId: 1, customerId: 1 }, name: "invoices_orgId_customerId" },
-      ],
-    },
-    {
-      collection: "supporttickets",
-      indexes: [
-        {
-          key: { orgId: 1, code: 1 },
-          unique: true,
-          name: "supporttickets_orgId_code_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "supporttickets_orgId" },
-        { key: { orgId: 1, status: 1 }, name: "supporttickets_orgId_status" },
-        { key: { orgId: 1, priority: 1 }, name: "supporttickets_orgId_priority" },
-        { key: { orgId: 1, "assignment.assignedTo.userId": 1 }, name: "supporttickets_orgId_assignee" },
-        { key: { orgId: 1, createdAt: -1 }, name: "supporttickets_orgId_createdAt" },
-      ],
-    },
-    {
-      collection: "helparticles",
-      indexes: [
-        {
-          key: { orgId: 1, slug: 1 },
-          unique: true,
-          name: "helparticles_orgId_slug_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "helparticles_orgId" },
-        { key: { orgId: 1, category: 1 }, name: "helparticles_orgId_category" },
-        { key: { orgId: 1, published: 1 }, name: "helparticles_orgId_published" },
-      ],
-    },
-    {
-      collection: "cmspages",
-      indexes: [
-        {
-          key: { orgId: 1, slug: 1 },
-          unique: true,
-          name: "cmspages_orgId_slug_unique",
-          partialFilterExpression: { orgId: { $exists: true } },
-        },
-        { key: { orgId: 1 }, name: "cmspages_orgId" },
-        { key: { orgId: 1, published: 1 }, name: "cmspages_orgId_published" },
       ],
     },
     {
@@ -242,8 +176,16 @@ export async function ensureCoreIndexes(): Promise<void> {
     }
   }
 
-  // Schema-driven indexes for work order subdocuments to avoid drift.
+  // Schema-driven indexes for core models to avoid drift.
+  // WorkOrder is included here to ensure text search and all schema indexes are created.
   const modelIndexTargets = [
+    { name: "User", model: User },
+    { name: "Property", model: Property },
+    { name: "Invoice", model: Invoice },
+    { name: "SupportTicket", model: SupportTicket },
+    { name: "HelpArticle", model: HelpArticle },
+    { name: "CmsPage", model: CmsPage },
+    { name: "WorkOrder", model: WorkOrder },
     { name: "WorkOrderComment", model: WorkOrderComment },
     { name: "WorkOrderAttachment", model: WorkOrderAttachment },
     { name: "WorkOrderTimeline", model: WorkOrderTimeline },
@@ -274,13 +216,16 @@ export async function ensureCoreIndexes(): Promise<void> {
 }
 
 async function dropLegacyGlobalUniqueIndexes(db: mongoose.mongo.Db) {
+  // Drop legacy global uniques from BOTH collection name variants to handle any drift
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: "users", indexes: ["email_1", "username_1", "code_1"] },
     { collection: "properties", indexes: ["code_1"] },
-    { collection: "workOrders", indexes: ["code_1", "workOrderNumber_1"] },
+    // CRITICAL: Drop from both naming variants (legacy lowercase and canonical camelCase)
+    { collection: "workorders", indexes: ["code_1", "workOrderNumber_1", "unit_id_1"] },
+    { collection: "workOrders", indexes: ["code_1", "workOrderNumber_1", "unit_id_1"] },
     { collection: "products", indexes: ["sku_1"] },
     { collection: "orders", indexes: ["orderNumber_1"] },
-    { collection: "invoices", indexes: ["code_1", "invoiceNumber_1"] },
+    { collection: "invoices", indexes: ["code_1", "invoiceNumber_1", "number_1"] },
     { collection: "supporttickets", indexes: ["code_1"] },
     { collection: "helparticles", indexes: ["slug_1"] },
     { collection: "cmspages", indexes: ["slug_1"] },

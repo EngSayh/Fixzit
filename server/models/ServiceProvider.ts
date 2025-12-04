@@ -369,7 +369,10 @@ const ServiceProviderSchema = new Schema(
 );
 
 // ----- Indexes -----
-ServiceProviderSchema.index({ orgId: 1, code: 1 }, { unique: true }); // tenant-scoped uniqueness
+ServiceProviderSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // tenant-scoped uniqueness
 ServiceProviderSchema.index({ orgId: 1, status: 1 });
 ServiceProviderSchema.index({ orgId: 1, "services.category": 1 });
 ServiceProviderSchema.index(

@@ -22,7 +22,7 @@ export const COLLECTIONS = {
   TENANTS: "tenants",
   USERS: "users",
   PROPERTIES: "properties",
-  WORK_ORDERS: "workOrders",
+  WORK_ORDERS: "workorders",
   CATEGORIES: "categories",
   VENDORS: "vendors",
   PRODUCTS: "products",
@@ -134,6 +134,12 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex(
+      { orgId: 1, "location.unitNumber": 1, status: 1 },
+      { background: true, name: "workorders_orgId_unitNumber_status" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
       { orgId: 1, "assignment.assignedTo.userId": 1 },
       { background: true, name: "workorders_orgId_assignedUser" },
     );
@@ -146,6 +152,12 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex({ createdAt: -1 }, { background: true, name: "workorders_createdAt_desc" });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { orgId: 1, title: "text", description: "text", "work.solutionDescription": "text" },
+      { background: true, name: "workorders_text_search" },
+    );
 
   // Products - STRICT v4.1: sku unique per org
   await db

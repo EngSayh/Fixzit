@@ -17,141 +17,149 @@ async function addDatabaseIndexes() {
     console.log("\n📊 Adding database indexes...");
     console.log("=====================================");
 
-    // User indexes
+    // User indexes (STRICT v4.1): all uniques/org-scoped to prevent cross-tenant collisions
     console.log("👤 Adding User indexes...");
-    await db.collection("users").createIndex({ email: 1 }, { unique: true });
-    await db.collection("users").createIndex({ phone: 1 });
-    await db.collection("users").createIndex({ organization: 1, role: 1 });
-    await db.collection("users").createIndex({ organization: 1, status: 1 });
-    await db.collection("users").createIndex({ lastLogin: -1 });
-    await db.collection("users").createIndex({ createdAt: -1 });
     await db
       .collection("users")
-      .createIndex({ "deputy.user": 1, "deputy.isActive": 1 });
+      .createIndex({ orgId: 1, email: 1 }, { unique: true, name: "users_orgId_email_unique" });
+    await db
+      .collection("users")
+      .createIndex({ orgId: 1, phone: 1 }, { name: "users_orgId_phone" });
+    await db
+      .collection("users")
+      .createIndex({ orgId: 1, role: 1 }, { name: "users_orgId_role" });
+    await db
+      .collection("users")
+      .createIndex({ orgId: 1, status: 1 }, { name: "users_orgId_status" });
+    await db.collection("users").createIndex({ orgId: 1, lastLogin: -1 }, { name: "users_orgId_lastLogin_desc" });
+    await db.collection("users").createIndex({ orgId: 1, createdAt: -1 }, { name: "users_orgId_createdAt_desc" });
+    await db
+      .collection("users")
+      .createIndex({ orgId: 1, "deputy.user": 1, "deputy.isActive": 1 }, { name: "users_orgId_deputy_user_active" });
     console.log("✅ User indexes created");
 
     // Property indexes
     console.log("🏢 Adding Property indexes...");
     await db
       .collection("properties")
-      .createIndex({ organization: 1, ownerId: 1 });
+      .createIndex({ orgId: 1, ownerId: 1 }, { name: "properties_orgId_ownerId" });
     await db
       .collection("properties")
-      .createIndex({ propertyCode: 1 }, { unique: true });
+      .createIndex({ orgId: 1, propertyCode: 1 }, { unique: true, name: "properties_orgId_code_unique" });
     await db
       .collection("properties")
-      .createIndex({ organization: 1, status: 1 });
-    await db.collection("properties").createIndex({ organization: 1, type: 1 });
+      .createIndex({ orgId: 1, status: 1 }, { name: "properties_orgId_status" });
+    await db.collection("properties").createIndex({ orgId: 1, type: 1 }, { name: "properties_orgId_type" });
     await db
       .collection("properties")
-      .createIndex({ "address.city": 1, "address.district": 1 });
+      .createIndex({ orgId: 1, "address.city": 1, "address.district": 1 }, { name: "properties_orgId_city_district" });
     await db.collection("properties").createIndex({ coordinates: "2dsphere" });
-    await db.collection("properties").createIndex({ createdAt: -1 });
+    await db.collection("properties").createIndex({ orgId: 1, createdAt: -1 }, { name: "properties_orgId_createdAt_desc" });
     await db
       .collection("properties")
-      .createIndex({ "deputies.user": 1, "deputies.isActive": 1 });
+      .createIndex({ orgId: 1, "deputies.user": 1, "deputies.isActive": 1 }, { name: "properties_orgId_deputies_user_active" });
     console.log("✅ Property indexes created");
 
     // WorkOrder indexes
     console.log("🔧 Adding WorkOrder indexes...");
     await db
       .collection("workorders")
-      .createIndex({ organization: 1, status: 1 });
+      .createIndex({ orgId: 1, status: 1 }, { name: "workorders_orgId_status" });
     await db
       .collection("workorders")
-      .createIndex({ workOrderNumber: 1 }, { unique: true });
+      .createIndex({ orgId: 1, workOrderNumber: 1 }, { unique: true, name: "workorders_orgId_number_unique" });
     await db
       .collection("workorders")
-      .createIndex({ organization: 1, propertyId: 1 });
+      .createIndex({ orgId: 1, propertyId: 1 }, { name: "workorders_orgId_propertyId" });
     await db
       .collection("workorders")
-      .createIndex({ organization: 1, technicianId: 1, status: 1 });
+      .createIndex({ orgId: 1, technicianId: 1, status: 1 }, { name: "workorders_orgId_technician_status" });
     await db
       .collection("workorders")
-      .createIndex({ organization: 1, priority: 1, status: 1 });
-    await db.collection("workorders").createIndex({ createdAt: -1 });
-    await db.collection("workorders").createIndex({ dueDate: 1 });
+      .createIndex({ orgId: 1, priority: 1, status: 1 }, { name: "workorders_orgId_priority_status" });
+    await db.collection("workorders").createIndex({ orgId: 1, createdAt: -1 }, { name: "workorders_orgId_createdAt_desc" });
+    await db.collection("workorders").createIndex({ orgId: 1, dueDate: 1 }, { name: "workorders_orgId_dueDate" });
     await db
       .collection("workorders")
-      .createIndex({ "sla.deadline": 1, status: 1 });
-    await db.collection("workorders").createIndex({ category: 1, status: 1 });
+      .createIndex({ orgId: 1, "sla.deadline": 1, status: 1 }, { name: "workorders_orgId_sla_deadline_status" });
+    await db.collection("workorders").createIndex({ orgId: 1, category: 1, status: 1 }, { name: "workorders_orgId_category_status" });
     console.log("✅ WorkOrder indexes created");
 
     // Contract indexes
     console.log("📄 Adding Contract indexes...");
     await db
       .collection("contracts")
-      .createIndex({ organization: 1, propertyId: 1 });
+      .createIndex({ orgId: 1, propertyId: 1 }, { name: "contracts_orgId_propertyId" });
     await db
       .collection("contracts")
-      .createIndex({ organization: 1, tenantId: 1 });
+      .createIndex({ orgId: 1, tenantId: 1 }, { name: "contracts_orgId_tenantId" });
     await db
       .collection("contracts")
-      .createIndex({ contractNumber: 1 }, { unique: true });
+      .createIndex({ orgId: 1, contractNumber: 1 }, { unique: true, name: "contracts_orgId_number_unique" });
     await db
       .collection("contracts")
-      .createIndex({ organization: 1, status: 1 });
-    await db.collection("contracts").createIndex({ startDate: 1, endDate: 1 });
-    await db.collection("contracts").createIndex({ createdAt: -1 });
+      .createIndex({ orgId: 1, status: 1 }, { name: "contracts_orgId_status" });
+    await db.collection("contracts").createIndex({ orgId: 1, startDate: 1, endDate: 1 }, { name: "contracts_orgId_start_end" });
+    await db.collection("contracts").createIndex({ orgId: 1, createdAt: -1 }, { name: "contracts_orgId_createdAt_desc" });
     console.log("✅ Contract indexes created");
 
     // Invoice indexes
     console.log("💰 Adding Invoice indexes...");
-    await db.collection("invoices").createIndex({ organization: 1, status: 1 });
+    await db.collection("invoices").createIndex({ orgId: 1, status: 1 }, { name: "invoices_orgId_status" });
     await db
       .collection("invoices")
-      .createIndex({ invoiceNumber: 1 }, { unique: true });
+      .createIndex({ orgId: 1, invoiceNumber: 1 }, { unique: true, name: "invoices_orgId_number_unique" });
     await db
       .collection("invoices")
-      .createIndex({ organization: 1, propertyId: 1 });
+      .createIndex({ orgId: 1, propertyId: 1 }, { name: "invoices_orgId_propertyId" });
     await db
       .collection("invoices")
-      .createIndex({ organization: 1, tenantId: 1 });
-    await db.collection("invoices").createIndex({ dueDate: 1, status: 1 });
-    await db.collection("invoices").createIndex({ createdAt: -1 });
+      .createIndex({ orgId: 1, tenantId: 1 }, { name: "invoices_orgId_tenantId" });
+    await db.collection("invoices").createIndex({ orgId: 1, dueDate: 1, status: 1 }, { name: "invoices_orgId_dueDate_status" });
+    await db.collection("invoices").createIndex({ orgId: 1, createdAt: -1 }, { name: "invoices_orgId_createdAt_desc" });
     await db
       .collection("invoices")
-      .createIndex({ "payment.status": 1, "payment.method": 1 });
+      .createIndex({ orgId: 1, "payment.status": 1, "payment.method": 1 }, { name: "invoices_orgId_payment_status_method" });
     console.log("✅ Invoice indexes created");
 
     // Payment indexes
     console.log("💳 Adding Payment indexes...");
-    await db.collection("payments").createIndex({ organization: 1, status: 1 });
+    await db.collection("payments").createIndex({ orgId: 1, status: 1 }, { name: "payments_orgId_status" });
     await db
       .collection("payments")
-      .createIndex({ organization: 1, propertyId: 1 });
+      .createIndex({ orgId: 1, propertyId: 1 }, { name: "payments_orgId_propertyId" });
     await db
       .collection("payments")
-      .createIndex({ organization: 1, invoiceId: 1 });
-    await db.collection("payments").createIndex({ paymentDate: -1 });
-    await db.collection("payments").createIndex({ method: 1, status: 1 });
-    await db.collection("payments").createIndex({ createdAt: -1 });
+      .createIndex({ orgId: 1, invoiceId: 1 }, { name: "payments_orgId_invoiceId" });
+    await db.collection("payments").createIndex({ orgId: 1, paymentDate: -1 }, { name: "payments_orgId_paymentDate_desc" });
+    await db.collection("payments").createIndex({ orgId: 1, method: 1, status: 1 }, { name: "payments_orgId_method_status" });
+    await db.collection("payments").createIndex({ orgId: 1, createdAt: -1 }, { name: "payments_orgId_createdAt_desc" });
     console.log("✅ Payment indexes created");
 
     // Vendor indexes (for marketplace)
     console.log("🏪 Adding Vendor indexes...");
-    await db.collection("vendors").createIndex({ organization: 1, status: 1 });
+    await db.collection("vendors").createIndex({ orgId: 1, status: 1 }, { name: "vendors_orgId_status" });
     await db
       .collection("vendors")
-      .createIndex({ vendorCode: 1 }, { unique: true });
+      .createIndex({ orgId: 1, vendorCode: 1 }, { unique: true, name: "vendors_orgId_code_unique" });
     await db
       .collection("vendors")
-      .createIndex({ organization: 1, category: 1 });
+      .createIndex({ orgId: 1, category: 1 }, { name: "vendors_orgId_category" });
     await db
       .collection("vendors")
-      .createIndex({ "location.city": 1, "location.district": 1 });
-    await db.collection("vendors").createIndex({ rating: -1, status: 1 });
-    await db.collection("vendors").createIndex({ createdAt: -1 });
+      .createIndex({ orgId: 1, "location.city": 1, "location.district": 1 }, { name: "vendors_orgId_city_district" });
+    await db.collection("vendors").createIndex({ orgId: 1, rating: -1, status: 1 }, { name: "vendors_orgId_rating_status" });
+    await db.collection("vendors").createIndex({ orgId: 1, createdAt: -1 }, { name: "vendors_orgId_createdAt_desc" });
     console.log("✅ Vendor indexes created");
 
     // RFQ indexes
     console.log("📋 Adding RFQ indexes...");
-    await db.collection("rfqs").createIndex({ organization: 1, status: 1 });
-    await db.collection("rfqs").createIndex({ rfqNumber: 1 }, { unique: true });
-    await db.collection("rfqs").createIndex({ organization: 1, category: 1 });
-    await db.collection("rfqs").createIndex({ organization: 1, propertyId: 1 });
-    await db.collection("rfqs").createIndex({ deadline: 1, status: 1 });
-    await db.collection("rfqs").createIndex({ createdAt: -1 });
+    await db.collection("rfqs").createIndex({ orgId: 1, status: 1 }, { name: "rfqs_orgId_status" });
+    await db.collection("rfqs").createIndex({ orgId: 1, rfqNumber: 1 }, { unique: true, name: "rfqs_orgId_number_unique" });
+    await db.collection("rfqs").createIndex({ orgId: 1, category: 1 }, { name: "rfqs_orgId_category" });
+    await db.collection("rfqs").createIndex({ orgId: 1, propertyId: 1 }, { name: "rfqs_orgId_propertyId" });
+    await db.collection("rfqs").createIndex({ orgId: 1, deadline: 1, status: 1 }, { name: "rfqs_orgId_deadline_status" });
+    await db.collection("rfqs").createIndex({ orgId: 1, createdAt: -1 }, { name: "rfqs_orgId_createdAt_desc" });
     console.log("✅ RFQ indexes created");
 
     // Organization indexes
@@ -167,45 +175,45 @@ async function addDatabaseIndexes() {
     console.log("🔔 Adding Notification indexes...");
     await db
       .collection("notifications")
-      .createIndex({ organization: 1, userId: 1, read: 1 });
+      .createIndex({ orgId: 1, userId: 1, read: 1 }, { name: "notifications_orgId_userId_read" });
     await db
       .collection("notifications")
-      .createIndex({ organization: 1, type: 1, status: 1 });
-    await db.collection("notifications").createIndex({ createdAt: -1 });
+      .createIndex({ orgId: 1, type: 1, status: 1 }, { name: "notifications_orgId_type_status" });
+    await db.collection("notifications").createIndex({ orgId: 1, createdAt: -1 }, { name: "notifications_orgId_createdAt_desc" });
     await db
       .collection("notifications")
-      .createIndex({ scheduledFor: 1, status: 1 });
+      .createIndex({ orgId: 1, scheduledFor: 1, status: 1 }, { name: "notifications_orgId_scheduled_status" });
     console.log("✅ Notification indexes created");
 
     // Audit log indexes
     console.log("📝 Adding Audit log indexes...");
     await db
       .collection("auditlogs")
-      .createIndex({ organization: 1, action: 1 });
+      .createIndex({ orgId: 1, action: 1 }, { name: "auditlogs_orgId_action" });
     await db
       .collection("auditlogs")
-      .createIndex({ organization: 1, userId: 1 });
-    await db.collection("auditlogs").createIndex({ timestamp: -1 });
+      .createIndex({ orgId: 1, userId: 1 }, { name: "auditlogs_orgId_userId" });
+    await db.collection("auditlogs").createIndex({ orgId: 1, timestamp: -1 }, { name: "auditlogs_orgId_timestamp_desc" });
     await db
       .collection("auditlogs")
-      .createIndex({ resourceType: 1, resourceId: 1 });
+      .createIndex({ orgId: 1, resourceType: 1, resourceId: 1 }, { name: "auditlogs_orgId_resource" });
     console.log("✅ Audit log indexes created");
 
     // Help/Knowledge Center indexes
     console.log("📚 Adding Help/Knowledge Center indexes...");
     await db
       .collection("helparticles")
-      .createIndex({ slug: 1 }, { unique: true });
+      .createIndex({ orgId: 1, slug: 1 }, { unique: true, name: "helparticles_orgId_slug_unique" });
     await db
       .collection("helparticles")
       .createIndex({ status: 1, updatedAt: -1 });
     await db
       .collection("helparticles")
       .createIndex({ title: "text", content: "text", tags: "text" });
-    await db.collection("helparticles").createIndex({ tenantId: 1, status: 1 });
+    await db.collection("helparticles").createIndex({ orgId: 1, status: 1 }, { name: "helparticles_orgId_status" });
     await db
       .collection("helparticles")
-      .createIndex({ tenantId: 1, category: 1, status: 1 });
+      .createIndex({ orgId: 1, category: 1, status: 1 }, { name: "helparticles_orgId_category_status" });
     console.log("✅ Help/Knowledge Center indexes created");
 
     // KB Embeddings indexes
@@ -215,8 +223,8 @@ async function addDatabaseIndexes() {
       await db
         .collection("kb_embeddings")
         .createIndex(
-          { tenantId: 1, articleId: 1, chunkId: 1 },
-          { unique: true, name: "tenant_article_chunk_unique" },
+          { orgId: 1, articleId: 1, chunkId: 1 },
+          { unique: true, name: "org_article_chunk_unique" },
         );
     } catch (e) {
       console.warn(

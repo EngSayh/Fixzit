@@ -185,7 +185,10 @@ SLASchema.plugin(tenantIsolationPlugin);
 SLASchema.plugin(auditPlugin); // Adds orgId, createdBy, updatedBy (as ObjectId)
 
 // Tenant-scoped indexes (orgId from plugin)
-SLASchema.index({ orgId: 1, code: 1 }, { unique: true }); // FIXED: tenant-scoped code
+SLASchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // FIXED: tenant-scoped code
 SLASchema.index({ orgId: 1, type: 1 });
 SLASchema.index({ orgId: 1, status: 1 });
 SLASchema.index({ orgId: 1, priority: 1 });

@@ -47,7 +47,10 @@ CandidateSchema.plugin(encryptionPlugin, {
 });
 
 // Tenant-scoped index
-CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
+CandidateSchema.index(
+  { orgId: 1, emailLower: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 CandidateSchema.pre("validate", function (next) {
   if (this.email) {
