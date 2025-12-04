@@ -65,9 +65,10 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
     }
 
-    // VALIDATION: Check payload size before processing
+    // VALIDATION: Check payload size before processing (use byte length for accurate UTF-8 sizing)
     const bodyStr = JSON.stringify(rawBody);
-    if (bodyStr.length > MAX_PAYLOAD_SIZE) {
+    const bodyBytes = Buffer.byteLength(bodyStr, 'utf8');
+    if (bodyBytes > MAX_PAYLOAD_SIZE) {
       return createSecureResponse({ error: "Payload too large (max 10KB)" }, 400, req);
     }
 
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       });
       
       // Log event for observability (redact data to prevent PII leakage)
-      logger.info(`📝 QA Log: ${event}`, { orgId, userId, payloadSize: bodyStr.length });
+      logger.info(`📝 QA Log: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
       // Fallback mock mode if DB unavailable

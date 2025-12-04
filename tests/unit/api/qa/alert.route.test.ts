@@ -137,7 +137,7 @@ describe('QA Alert Route', () => {
       // Verify logging includes org context (not payload data for PII safety)
       expect(logger.warn).toHaveBeenCalledWith(
         `🚨 QA Alert: ${event}`,
-        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id' })
+        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id', payloadBytes: expect.any(Number) })
       );
 
       // Verify DB interaction
