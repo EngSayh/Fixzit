@@ -54,6 +54,8 @@ jobs:
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run RBAC v4.1 Tests
+        env:
+          SKIP_GLOBAL_MONGO: "true"
         run: |
           echo "🔒 Running STRICT v4.1 RBAC validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {

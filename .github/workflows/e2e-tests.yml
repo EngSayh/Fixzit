@@ -162,6 +162,7 @@ jobs:
       - name: Run RBAC v4.1 Unit Tests
         env:
           NODE_ENV: test
+          SKIP_GLOBAL_MONGO: "true"
         run: |
           echo "🔒 Running RBAC v4.1 validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
