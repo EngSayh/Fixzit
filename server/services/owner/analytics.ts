@@ -14,6 +14,7 @@
 
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 export interface AnalyticsPeriod {
   startDate: Date;
@@ -232,7 +233,7 @@ export async function calculateMaintenanceCosts(
   if (options?.perUnit) {
     // Group by unit
     const result = await db
-      .collection("workorders")
+    .collection(COLLECTIONS.WORK_ORDERS)
       .aggregate([
         { $match: matchStage },
         {
@@ -253,7 +254,7 @@ export async function calculateMaintenanceCosts(
   } else {
     // Total maintenance costs
     const result = await db
-      .collection("workorders")
+      .collection(COLLECTIONS.WORK_ORDERS)
       .aggregate([
         { $match: matchStage },
         {
@@ -346,7 +347,7 @@ export async function calculatePortfolioAnalytics(
   }
 
   const properties = await db
-    .collection("properties")
+    .collection(COLLECTIONS.PROPERTIES)
     .find(propertyMatch)
     .toArray();
 

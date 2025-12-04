@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
@@ -39,13 +40,13 @@ export async function GET(
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
       order = await db
-        .collection("orders")
+        .collection(COLLECTIONS.ORDERS)
         .findOne({ _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) })
         .catch(() => null);
     }
     if (!order) {
       order = await db
-        .collection("orders")
+        .collection(COLLECTIONS.ORDERS)
         .findOne({ orderId: orderIdValue, orgId: new ObjectId(userOrgId) })
         .catch(() => null);
     }
@@ -58,13 +59,13 @@ export async function GET(
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
       ? await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.buyerId)), orgId: new ObjectId(userOrgId) })
           .catch(() => null)
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
       ? await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.sellerId)), orgId: new ObjectId(userOrgId) })
           .catch(() => null)
       : null;
@@ -116,7 +117,7 @@ export async function PUT(
     const orderFilter = ObjectId.isValid(orderIdValue)
       ? { _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) }
       : { orderId: orderIdValue, orgId: new ObjectId(userOrgId) };
-    const order = await db.collection("orders").findOne(orderFilter);
+    const order = await db.collection(COLLECTIONS.ORDERS).findOne(orderFilter);
     if (!order) {
       return NextResponse.json(
         { error: "Forbidden: claim does not belong to your organization" },

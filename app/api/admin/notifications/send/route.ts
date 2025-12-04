@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, type Document, type Filter } from "mongodb";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { sendEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
@@ -203,7 +204,7 @@ export async function POST(req: NextRequest) {
 
       // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const users = await db
-        .collection("users")
+        .collection(COLLECTIONS.USERS)
         .find({
           orgId,
           ...(query ?? {}),
@@ -226,7 +227,7 @@ export async function POST(req: NextRequest) {
 
       // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const tenants = await db
-        .collection("tenants")
+        .collection(COLLECTIONS.TENANTS)
         .find({
           orgId,
           ...(query ?? {}),
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
     } else if (recipients.type === "all") {
       // Fetch all users; non-super-admins are scoped to their org
       const users = await db
-        .collection("users")
+        .collection(COLLECTIONS.USERS)
         .find(!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {})
         .toArray();
       targetContacts = users.map((u) => ({

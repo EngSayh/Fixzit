@@ -146,28 +146,6 @@ export async function POST(req: NextRequest) {
   const locale = body.locale || session.locale;
 
   try {
-    // Enhanced GUEST user guidance
-    if (session.role === "GUEST" && body.message) {
-      const guestMessage =
-        locale === "ar"
-          ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
-          : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account.";
-
-      await recordAudit({
-        session,
-        intent: "guest_info",
-        status: "SUCCESS",
-        message: guestMessage,
-        prompt: body.message,
-      });
-
-      return NextResponse.json({
-        reply: guestMessage,
-        intent: "guest_info",
-        requiresAuth: true,
-      });
-    }
-
     if (body.tool) {
       if (!getPermittedTools(session.role).includes(body.tool.name)) {
         await recordAudit({
@@ -213,6 +191,46 @@ export async function POST(req: NextRequest) {
     const message = body.message?.trim();
     if (!message) {
       return createSecureResponse({ error: "Message is required" }, 400, req);
+    }
+
+    // Strict data-class enforcement BEFORE guest guidance or intent routing
+    const policy = evaluateMessagePolicy({ ...session, locale }, message);
+    if (!policy.allowed) {
+      const response =
+        locale === "ar"
+          ? `لا يمكنني مشاركة هذه المعلومات لأنها ${describeDataClass(policy.dataClass)} ولا يتيحها دورك.`
+          : `I cannot share that because it is ${describeDataClass(policy.dataClass)} data and your role is not permitted.`;
+      await recordAudit({
+        session,
+        intent: "policy_denied",
+        status: "DENIED",
+        message: response,
+        prompt: message,
+        metadata: { dataClass: policy.dataClass },
+      });
+      return createSecureResponse({ reply: response }, 403, req);
+    }
+
+    // Enhanced GUEST user guidance (after policy guard)
+    if (session.role === "GUEST") {
+      const guestMessage =
+        locale === "ar"
+          ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
+          : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account.";
+
+      await recordAudit({
+        session,
+        intent: "guest_info",
+        status: "SUCCESS",
+        message: guestMessage,
+        prompt: message,
+      });
+
+      return NextResponse.json({
+        reply: guestMessage,
+        intent: "guest_info",
+        requiresAuth: true,
+      });
     }
 
     // Classify intent and detect sentiment for routing and escalation
@@ -270,23 +288,6 @@ export async function POST(req: NextRequest) {
         data: result.data,
         intent: result.intent,
       });
-    }
-
-    const policy = evaluateMessagePolicy({ ...session, locale }, message);
-    if (!policy.allowed) {
-      const response =
-        locale === "ar"
-          ? `لا يمكنني مشاركة هذه المعلومات لأنها ${describeDataClass(policy.dataClass)} ولا يتيحها دورك.`
-          : `I cannot share that because it is ${describeDataClass(policy.dataClass)} data and your role is not permitted.`;
-      await recordAudit({
-        session,
-        intent: "policy_denied",
-        status: "DENIED",
-        message: response,
-        prompt: message,
-        metadata: { dataClass: policy.dataClass },
-      });
-      return createSecureResponse({ reply: response }, 403, req);
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);

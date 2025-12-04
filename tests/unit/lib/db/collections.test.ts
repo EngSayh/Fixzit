@@ -30,6 +30,8 @@ describe("COLLECTIONS constant", () => {
     expect(COLLECTIONS.SERVICES).toBe("services");
     expect(COLLECTIONS.PROJECTS).toBe("projects");
     expect(COLLECTIONS.AGENTS).toBe("agents");
+    expect(COLLECTIONS.LISTINGS).toBe("listings");
+    expect(COLLECTIONS.RFQ_RESPONSES).toBe("rfq_responses");
 
     // Support/CRM collections
     expect(COLLECTIONS.SUPPORT_TICKETS).toBe("supporttickets");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
@@ -28,9 +29,9 @@ export async function POST(
     const db = await getDatabase();
     const adminRecord = ObjectId.isValid(session.user.id)
       ? await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(session.user.id) })
-      : await db.collection("users").findOne({ id: session.user.id });
+      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id });
 
     const role = (adminRecord?.role || session.user.role || "").toUpperCase();
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
@@ -61,7 +62,9 @@ export async function POST(
     const claimOrgFilter = ObjectId.isValid(claim.orderId)
       ? { orgId: new ObjectId(userOrgId), _id: new ObjectId(claim.orderId) }
       : { orgId: new ObjectId(userOrgId), orderId: claim.orderId };
-    const orderForScope = await db.collection("orders").findOne(claimOrgFilter);
+    const orderForScope = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne(claimOrgFilter);
     if (!orderForScope) {
       return NextResponse.json(
         { error: "Forbidden: claim does not belong to your organization" },

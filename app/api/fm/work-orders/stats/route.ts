@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { logger } from "@/lib/logger";
 import { WOStatus, WOPriority, type WorkOrderStats } from "@/types/fm";
 import { FMErrors } from "../../errors";
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
     const { tenantId } = tenantResolution;
 
     const db = await getDatabase();
-    const collection = db.collection("workorders");
+    const collection = db.collection(COLLECTIONS.WORK_ORDERS);
 
     const match = { tenantId };
 

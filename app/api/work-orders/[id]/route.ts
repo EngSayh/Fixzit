@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
@@ -147,7 +148,7 @@ export async function PATCH(
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const { ObjectId } = await import('mongodb');
     const db = await getDatabase();
-    const propertyExists = await db.collection('properties').countDocuments({
+    const propertyExists = await db.collection(COLLECTIONS.PROPERTIES).countDocuments({
       _id: new ObjectId(updates.propertyId),
       orgId: user.orgId
     });
@@ -161,7 +162,7 @@ export async function PATCH(
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const { ObjectId } = await import('mongodb');
     const db = await getDatabase();
-    const userExists = await db.collection('users').countDocuments({
+    const userExists = await db.collection(COLLECTIONS.USERS).countDocuments({
       _id: new ObjectId(updates.assignment.assignedTo.userId),
       orgId: user.orgId
     });

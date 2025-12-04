@@ -338,6 +338,26 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.ORDERS)
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "orders_orgId_createdAt_desc" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orgId: 1, buyerUserId: 1, status: 1 }, { background: true, name: "orders_orgId_buyer_status" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orgId: 1, vendorId: 1, status: 1 }, { background: true, name: "orders_orgId_vendor_status" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orgId: 1, "source.workOrderId": 1 }, { background: true, name: "orders_orgId_source_workOrderId" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex(
+      { orgId: 1, orderId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "orders_orgId_orderId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, orderId: { $exists: true } },
+      },
+    );
 
   // Invoices - STRICT v4.1: number unique per org
   await db
@@ -361,10 +381,22 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.INVOICES)
     .createIndex({ orgId: 1, customerId: 1 }, { background: true, name: "invoices_orgId_customerId" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, "recipient.customerId": 1 }, { background: true, name: "invoices_orgId_recipient_customerId" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, issueDate: -1 }, { background: true, name: "invoices_orgId_issueDate_desc" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, "zatca.status": 1 }, { background: true, name: "invoices_orgId_zatca_status" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, type: 1, status: 1 }, { background: true, name: "invoices_orgId_type_status" });
 
   // Support Tickets - STRICT v4.1: code unique per org
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1, code: 1 }, {
       unique: true,
       background: true,
@@ -372,19 +404,19 @@ export async function createIndexes() {
       partialFilterExpression: { orgId: { $exists: true } },
     });
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1 }, { background: true, name: "supporttickets_orgId" });
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1, status: 1 }, { background: true, name: "supporttickets_orgId_status" });
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1, priority: 1 }, { background: true, name: "supporttickets_orgId_priority" });
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1, "assignment.assignedTo.userId": 1 }, { background: true, name: "supporttickets_orgId_assignee" });
   await db
-    .collection("supporttickets")
+    .collection(COLLECTIONS.SUPPORT_TICKETS)
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "supporttickets_orgId_createdAt_desc" });
 
   // HR - Employees
@@ -434,6 +466,23 @@ export async function createIndexes() {
     .createIndex(
       { orgId: 1, "items.sellerId": 1, createdAt: -1 },
       { background: true, name: "souq_orders_orgId_seller_createdAt" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { orgId: 1, status: 1, createdAt: -1 },
+      { background: true, name: "souq_orders_orgId_status_createdAt_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { orgId: 1, orderId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_orders_orgId_orderId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, orderId: { $exists: true } },
+      },
     );
   await db
     .collection(COLLECTIONS.SOUQ_REVIEWS)

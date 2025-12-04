@@ -220,6 +220,8 @@ const InvoiceSchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
@@ -253,18 +255,6 @@ InvoiceSchema.plugin(encryptionPlugin, {
     "payment.account.swift": "Payment SWIFT",
   },
 });
-
-// Tenant-scoped indexes for performance and data isolation
-InvoiceSchema.index(
-  { orgId: 1, number: 1 },
-  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
-);
-InvoiceSchema.index({ orgId: 1, status: 1 });
-InvoiceSchema.index({ orgId: 1, "recipient.customerId": 1 });
-InvoiceSchema.index({ orgId: 1, issueDate: -1 });
-InvoiceSchema.index({ orgId: 1, dueDate: 1 });
-InvoiceSchema.index({ orgId: 1, "zatca.status": 1 });
-InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 

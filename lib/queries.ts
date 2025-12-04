@@ -5,8 +5,7 @@
 // AUDIT-2025-12-04: Fixed collection names to use COLLECTIONS constant
 
 import { getDatabase } from "./mongodb-unified";
-import { logger } from "./logger";
-import { COLLECTIONS } from "./db/collections";
+import { COLLECTIONS, createIndexes } from "./db/collections";
 
 // Alias for consistency
 const getDb = getDatabase;
@@ -406,51 +405,6 @@ export async function getAllCounters(orgId: string) {
  * Create indexes for performance (run once on setup)
  */
 export async function createPerformanceIndexes() {
-  const db = await getDb();
-
-  const indexes: Array<{ collection: string; index: Record<string, 1 | -1> }> =
-    [
-      // Work Orders - AUDIT-2025-11-29: Updated to orgId
-      {
-        collection: COLLECTIONS.WORK_ORDERS,
-        index: { orgId: 1, status: 1, sla_due: 1 },
-      },
-      { collection: COLLECTIONS.WORK_ORDERS, index: { orgId: 1, created_at: -1 } },
-
-      // Invoices - AUDIT-2025-11-29: Updated to orgId
-      { collection: COLLECTIONS.INVOICES, index: { orgId: 1, status: 1, due_date: 1 } },
-      { collection: COLLECTIONS.INVOICES, index: { orgId: 1, paid_date: -1 } },
-
-      // Employees - AUDIT-2025-11-29: Updated to orgId
-      { collection: COLLECTIONS.EMPLOYEES, index: { orgId: 1, status: 1 } },
-
-      // Properties - AUDIT-2025-11-29: Updated to orgId
-      {
-        collection: COLLECTIONS.PROPERTIES,
-        index: { orgId: 1, status: 1, lease_status: 1 },
-      },
-
-      // Souq
-      { collection: COLLECTIONS.SOUQ_LISTINGS, index: { sellerId: 1, status: 1 } },
-      {
-        collection: COLLECTIONS.SOUQ_ORDERS,
-        index: { "items.sellerId": 1, createdAt: -1 },
-      },
-    ];
-
-  for (const { collection, index } of indexes) {
-    try {
-      await db.collection(collection).createIndex(index);
-      logger.info(`✅ Created index on ${collection}`, { collection, index });
-    } catch (_error) {
-      const error =
-        _error instanceof Error ? _error : new Error(String(_error));
-      void error;
-      logger.error(
-        `❌ Failed to create index on ${collection}`,
-        error as Error,
-        { collection, index },
-      );
-    }
-  }
+  // Delegates to centralized index management to prevent drift and IndexOptionsConflict.
+  await createIndexes();
 }

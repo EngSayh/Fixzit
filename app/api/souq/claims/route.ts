@@ -6,6 +6,7 @@ import {
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
@@ -70,7 +71,9 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDatabase();
-    const order = await db.collection("orders").findOne({ _id: orderObjectId });
+    const order = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne({ _id: orderObjectId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }

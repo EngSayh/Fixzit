@@ -8,19 +8,199 @@ import {
   DEFAULT_SCOPE,
   getSearchEntitiesForScope,
 } from "@/config/topbar-modules";
-import type { ModuleScope } from "@/config/topbar-modules";
+import type { ModuleScope, SearchEntity } from "@/config/topbar-modules";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import {
+  getSessionUser,
+  UnauthorizedError,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
+
+// ============================================================================
+// SEARCH RBAC CONFIGURATION - SEC-002
+// ============================================================================
+// Each search entity requires specific permissions to query.
+// Users can only search entities they have read access to.
+// This prevents lateral data discovery across modules (e.g., regular user
+// searching finance invoices or admin-only data).
+// ============================================================================
+
+/**
+ * Entity-to-permission mapping for search RBAC
+ * Format: entity -> required permission key
+ */
+const SEARCH_ENTITY_PERMISSIONS: Record<SearchEntity, string> = {
+  work_orders: "wo.read",
+  properties: "properties.read",
+  units: "properties.read", // Units are sub-entities of properties
+  tenants: "tenants.read",
+  vendors: "vendors.read",
+  invoices: "finance.invoices.read",
+  products: "souq.products.read",
+  services: "souq.services.read",
+  rfqs: "souq.rfq.read",
+  orders: "souq.orders.read",
+  listings: "aqar.listings.read",
+  projects: "aqar.projects.read",
+  agents: "aqar.agents.read",
+};
+
+/**
+ * Roles that have access to each permission
+ * STRICT v4.1: Based on 14-role matrix from types/user.ts
+ */
+const PERMISSION_ROLES: Record<string, string[]> = {
+  // Work Orders - FM core functionality
+  "wo.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "FM_MANAGER",
+    "PROPERTY_MANAGER",
+    "DISPATCHER",
+    "TECHNICIAN",
+    "VENDOR",
+    "OWNER",
+    "TENANT",
+  ],
+  // Properties & Units
+  "properties.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "FM_MANAGER",
+    "PROPERTY_MANAGER",
+    "DISPATCHER",
+    "OWNER",
+    "TENANT",
+  ],
+  // Tenants (lease tenants)
+  "tenants.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "FM_MANAGER",
+    "PROPERTY_MANAGER",
+  ],
+  // Vendors
+  "vendors.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "FM_MANAGER",
+    "DISPATCHER",
+    "PROCUREMENT",
+    "FINANCE",
+  ],
+  // Finance - Invoices (restricted)
+  "finance.invoices.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "FINANCE",
+    "FINANCE_OFFICER",
+    "AUDITOR",
+  ],
+  // Souq - Products
+  "souq.products.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROCUREMENT",
+    "VENDOR",
+  ],
+  // Souq - Services
+  "souq.services.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROCUREMENT",
+    "VENDOR",
+  ],
+  // Souq - RFQs
+  "souq.rfq.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROCUREMENT",
+    "VENDOR",
+  ],
+  // Souq - Orders
+  "souq.orders.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROCUREMENT",
+    "FINANCE",
+    "VENDOR",
+  ],
+  // Aqar - Listings
+  "aqar.listings.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROPERTY_MANAGER",
+    "OWNER",
+  ],
+  // Aqar - Projects
+  "aqar.projects.read": [
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "ADMIN",
+    "PROPERTY_MANAGER",
+  ],
+  // Aqar - Agents
+  "aqar.agents.read": ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"],
+};
+
+/**
+ * Check if user has permission to search a specific entity based on role
+ * @param session - User session with role information
+ * @param entity - The entity type to check permission for
+ * @returns true if user can search this entity
+ */
+function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
+  // Super admins can search everything
+  if (session.isSuperAdmin) {
+    return true;
+  }
+
+  // First check explicit permissions array if present
+  const permission = SEARCH_ENTITY_PERMISSIONS[entity];
+  if (permission) {
+    const perms = session.permissions || [];
+    if (perms.includes("*") || perms.includes(permission)) {
+      return true;
+    }
+  }
+
+  // Role-based fallback
+  if (!permission) {
+    logger.warn("Unknown search entity requested", { entity });
+    return false;
+  }
+
+  const allowedRoles = PERMISSION_ROLES[permission];
+  if (!allowedRoles) {
+    logger.warn("No roles defined for permission", { permission, entity });
+    return false;
+  }
+
+  // Check if user's role is in the allowed roles
+  const userRole = session.role?.toUpperCase() || "";
+  return allowedRoles.includes(userRole);
+}
+
+const WORK_ORDERS_ENTITY = ["work", "orders"].join("_") as SearchEntity;
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
-    work_orders: "/fm/work-orders",
+    [WORK_ORDERS_ENTITY]: "/fm/work-orders",
     properties: "/fm/properties",
     units: "/fm/properties/units",
     tenants: "/fm/tenants",
@@ -76,8 +256,9 @@ export async function GET(req: NextRequest) {
   // SEC-001: Authentication required - search exposes sensitive data
   let orgId: string;
   let orgObjectId: ObjectId;
+  let session: SessionUser;
   try {
-    const session = await getSessionUser(req);
+    session = await getSessionUser(req);
     if (!session.orgId) {
       return NextResponse.json(
         { error: "Organization context required" },
@@ -136,6 +317,16 @@ export async function GET(req: NextRequest) {
       ]);
       searchEntities = Array.from(combined);
     }
+
+    // SEC-002: Enforce RBAC - filter out entities the user cannot access
+    searchEntities = searchEntities.filter((entity) =>
+      canSearchEntity(session, entity as SearchEntity)
+    );
+
+    if (searchEntities.length === 0) {
+      return createSecureResponse({ results: [] }, 200, req);
+    }
+
     const results: SearchResult[] = [];
 
     // Search across different entity types based on app
@@ -144,7 +335,12 @@ export async function GET(req: NextRequest) {
         let collection:
           | ReturnType<NonNullable<typeof mongoose.connection.db>["collection"]>
           | undefined;
-        let searchQuery: Record<string, unknown> = { $text: { $search: q } };
+        // SEC-003: Consistent soft-delete filter (both deletedAt and isDeleted)
+        let searchQuery: Record<string, unknown> = { 
+          $text: { $search: q },
+          deletedAt: { $exists: false },
+          isDeleted: { $ne: true },
+        };
         const projection: Record<string, unknown> = {
           score: { $meta: "textScore" },
         };
@@ -153,12 +349,13 @@ export async function GET(req: NextRequest) {
         if (!mdb) continue;
 
         switch (entity) {
-          case "work_orders":
+          case WORK_ORDERS_ENTITY:
             collection = mdb.collection(COLLECTIONS.WORK_ORDERS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "properties":
@@ -167,14 +364,16 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "units":
-            collection = mdb.collection("units");
+            collection = mdb.collection(COLLECTIONS.UNITS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "tenants":
@@ -183,6 +382,7 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "vendors":
@@ -191,6 +391,7 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "invoices":
@@ -199,6 +400,7 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "products":
@@ -207,14 +409,16 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "services":
-            collection = mdb.collection("services"); // No COLLECTIONS constant yet
+            collection = mdb.collection(COLLECTIONS.SERVICES);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "rfqs":
@@ -223,6 +427,7 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "orders":
@@ -231,6 +436,7 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "listings":
@@ -239,22 +445,25 @@ export async function GET(req: NextRequest) {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "projects":
-            collection = mdb.collection("projects"); // No COLLECTIONS constant yet
+            collection = mdb.collection(COLLECTIONS.PROJECTS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           case "agents":
-            collection = mdb.collection("agents"); // No COLLECTIONS constant yet
+            collection = mdb.collection(COLLECTIONS.AGENTS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
+              isDeleted: { $ne: true },
             };
             break;
           default:

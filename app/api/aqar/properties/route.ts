@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
     const db = await getDatabase();
-    const col = db.collection("properties");
+    const col = db.collection(COLLECTIONS.PROPERTIES);
 
     const { searchParams } = new URL(req.url);
     const city = searchParams.get("city") || undefined;

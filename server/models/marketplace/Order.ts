@@ -112,18 +112,17 @@ const OrderSchema = new Schema<MarketplaceOrder>(
       approverIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },
   },
-  { timestamps: true, collection: "orders" },
+  {
+    timestamps: true,
+    collection: "orders",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
+  },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation
 OrderSchema.plugin(tenantIsolationPlugin);
 OrderSchema.plugin(auditPlugin);
-
-// All indexes MUST be tenant-scoped
-OrderSchema.index({ orgId: 1, buyerUserId: 1, status: 1 });
-OrderSchema.index({ orgId: 1, vendorId: 1, status: 1 });
-OrderSchema.index({ orgId: 1, status: 1, createdAt: -1 });
-OrderSchema.index({ orgId: 1, "source.workOrderId": 1 });
 
 const OrderModel =
   (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||
