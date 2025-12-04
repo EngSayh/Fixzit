@@ -81,6 +81,24 @@ afterAll(() => {
 
 // --- Mock Modules ---
 
+// Mock @/lib/mongo when SKIP_GLOBAL_MONGO is true (for pure domain tests)
+if (process.env.SKIP_GLOBAL_MONGO === "true") {
+  vi.mock("@/lib/mongo", () => ({
+    db: Promise.resolve(null),
+    connectDb: vi.fn().mockResolvedValue(null),
+    connectMongo: vi.fn().mockResolvedValue(null),
+    getDatabase: vi.fn().mockResolvedValue({
+      collection: () => ({
+        findOne: vi.fn(),
+        find: vi.fn(),
+        insertOne: vi.fn(),
+        updateOne: vi.fn(),
+        deleteOne: vi.fn(),
+      }),
+    }),
+  }));
+}
+
 // NOTE: We used to mock 'mongoose' here to work around some plugin/type issues
 // (Schema.plugin and Schema.Types.Mixed). However this global mock interferes
 // with tests that rely on real Mongoose models (create/deleteMany/etc.).
