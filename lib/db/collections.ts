@@ -155,6 +155,8 @@ export async function createIndexes() {
   await dropLegacyInvoiceIndexes(db);
   // Clean up legacy subscription invoice indexes that clash with named variants
   await dropLegacySubscriptionInvoiceIndexes(db);
+  // Clean up legacy asset indexes that clash with named variants
+  await dropLegacyAssetIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1187,6 +1189,42 @@ async function dropLegacySubscriptionInvoiceIndexes(db: Awaited<ReturnType<typeo
         continue;
       }
       logger.warn("[indexes] Failed to drop legacy subscription invoice index", {
+        indexName,
+        error: err?.message,
+      });
+    }
+  }
+}
+
+/**
+ * Drop legacy asset indexes that use default names and conflict with canonical named indexes.
+ * This allows the canonical indexes (e.g., assets_orgId_type) to be created idempotently.
+ */
+async function dropLegacyAssetIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const assetIndexes = [
+    // Default-named orgId-prefixed compound indexes that conflict with canonical named versions
+    "orgId_1_type_1",
+    "orgId_1_status_1",
+    "orgId_1_pmSchedule.nextPM_1",
+    "orgId_1_location.propertyId_1",
+    "orgId_1_location.unitId_1",
+    "orgId_1_assignedTo_1",
+    "orgId_1_serialNumber_1",
+  ];
+
+  for (const indexName of assetIndexes) {
+    try {
+      await db.collection(COLLECTIONS.ASSETS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) {
+        continue;
+      }
+      logger.warn("[indexes] Failed to drop legacy asset index", {
         indexName,
         error: err?.message,
       });
