@@ -21,6 +21,7 @@ describe("COLLECTIONS constant", () => {
     expect(COLLECTIONS.PROPERTIES).toBe("properties");
     expect(COLLECTIONS.WORK_ORDERS).toBe("workorders");
     expect(COLLECTIONS.INVOICES).toBe("invoices");
+    expect(COLLECTIONS.SUBSCRIPTION_INVOICES).toBe("subscriptioninvoices");
     expect(COLLECTIONS.VENDORS).toBe("vendors");
     expect(COLLECTIONS.PRODUCTS).toBe("products");
     expect(COLLECTIONS.ORDERS).toBe("orders");
@@ -119,6 +120,7 @@ describe("Collection name usage validation", () => {
     "souq_listings",
     "souq_orders",
     "souq_reviews",
+    "subscriptioninvoices",
     "products",
     "orders",
     "rfqs",

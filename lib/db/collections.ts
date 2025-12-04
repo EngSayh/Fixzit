@@ -29,6 +29,7 @@ export const COLLECTIONS = {
   CARTS: "carts",
   ORDERS: "orders",
   INVOICES: "invoices",
+  SUBSCRIPTION_INVOICES: "subscriptioninvoices",
   RFQS: "rfqs",
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
@@ -393,6 +394,26 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.INVOICES)
     .createIndex({ orgId: 1, type: 1, status: 1 }, { background: true, name: "invoices_orgId_type_status" });
+
+  // Subscription Invoices (recurring billing)
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex({ orgId: 1, status: 1, dueDate: 1 }, { background: true, name: "subscriptioninvoices_orgId_status_dueDate" });
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex(
+      { orgId: 1, subscriptionId: 1, dueDate: -1 },
+      { background: true, name: "subscriptioninvoices_orgId_subscription_dueDate_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex(
+      { orgId: 1, subscriptionId: 1, status: 1 },
+      { background: true, name: "subscriptioninvoices_orgId_subscription_status" },
+    );
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex({ paytabsRef: 1 }, { background: true, sparse: true, name: "subscriptioninvoices_paytabsRef" });
 
   // Support Tickets - STRICT v4.1: code unique per org
   await db
