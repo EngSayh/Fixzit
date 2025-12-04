@@ -165,6 +165,8 @@ export async function createIndexes() {
   await dropLegacyFMApprovalIndexes(db);
   // Clean up legacy employee indexes that clash with named variants
   await dropLegacyEmployeeIndexes(db);
+  // Clean up legacy error event indexes that clash with named variants
+  await dropLegacyErrorEventIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1354,6 +1356,33 @@ async function dropLegacyEmployeeIndexes(db: Awaited<ReturnType<typeof getDataba
         err?.message?.includes("index not found");
       if (isMissing) continue;
       logger.warn("[indexes] Failed to drop legacy employee index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy error events indexes that conflict with canonical named indexes.
+ */
+async function dropLegacyErrorEventIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const errorEventIndexes = [
+    "error_events_org_incidentKey", // legacy name, conflicts with error_events_orgId_incidentKey_unique
+    "orgId_1_incidentKey_1",
+    "orgId_1_createdAt_-1",
+    "orgId_1_severity_1",
+    "orgId_1_status_1",
+  ];
+
+  for (const indexName of errorEventIndexes) {
+    try {
+      await db.collection(COLLECTIONS.ERROR_EVENTS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy error event index", { indexName, error: err?.message });
     }
   }
 }
