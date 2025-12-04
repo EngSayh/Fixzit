@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 import { SouqClaim } from "@/server/models/souq/Claim";
+import { User } from "@/server/models/User";
 
 type ClaimLean = {
   buyerEvidence?: unknown[];
@@ -277,27 +278,58 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Build query
-    const query: Record<string, unknown> = {};
+    // Build query with $and for combining multiple $or filters safely
+    const andConditions: Record<string, unknown>[] = [];
+
+    // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see claims involving their org's users
+    // Platform admins (isSuperAdmin or ADMIN role) see all claims
+    const isPlatformAdmin = isSuperAdmin || userRole === "ADMIN";
+    
+    if (!isPlatformAdmin && userRole === "CORPORATE_ADMIN") {
+      // Get user IDs belonging to this corporate admin's org
+      const orgId = session.user.orgId;
+      if (!orgId) {
+        return NextResponse.json(
+          { error: "Organization context required for CORPORATE_ADMIN" },
+          { status: 403 },
+        );
+      }
+      
+      const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+      const userIdStrings = orgUserIds.map((u) => String(u._id));
+      
+      // Only show claims where buyer OR seller belongs to this org
+      andConditions.push({
+        $or: [
+          { buyerId: { $in: userIdStrings } },
+          { sellerId: { $in: userIdStrings } },
+        ],
+      });
+    }
 
     if (statusParam && statusParam !== "all") {
       const mapped = STATUS_MAP[statusParam];
-      query.status = mapped ? { $in: mapped } : statusParam;
+      andConditions.push({ status: mapped ? { $in: mapped } : statusParam });
     }
 
     if (priority && priority !== "all") {
-      query.priority = priority;
+      andConditions.push({ priority });
     }
 
     if (search) {
       // Escape special regex characters to prevent injection
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.$or = [
-        { claimId: { $regex: escapedSearch, $options: "i" } },
-        { orderNumber: { $regex: escapedSearch, $options: "i" } },
-        { orderId: { $regex: escapedSearch, $options: "i" } },
-      ];
+      andConditions.push({
+        $or: [
+          { claimId: { $regex: escapedSearch, $options: "i" } },
+          { orderNumber: { $regex: escapedSearch, $options: "i" } },
+          { orderId: { $regex: escapedSearch, $options: "i" } },
+        ],
+      });
     }
+
+    // Combine all conditions with $and, or use empty filter if no conditions
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
     // Fetch claims with pagination
     const skip = (page - 1) * limit;

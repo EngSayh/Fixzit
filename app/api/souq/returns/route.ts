@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import { User } from "@/server/models/User";
 
 /**
  * GET /api/souq/returns
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
 
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
+    const isPlatformAdmin = session.user.isSuperAdmin || session.user.role === "ADMIN";
+    const isCorporateAdmin = session.user.role === "CORPORATE_ADMIN";
+    const isAdmin = isPlatformAdmin || isCorporateAdmin;
 
     if (type === "buyer") {
       // Get buyer's return history
@@ -47,7 +50,44 @@ export async function GET(request: NextRequest) {
       const { SouqRMA } = await import("@/server/models/souq/RMA");
       const status = searchParams.get("status");
 
-      const query = status ? { status } : {};
+      // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see returns involving their org's users
+      let query: Record<string, unknown> = status ? { status } : {};
+      
+      if (isCorporateAdmin && !isPlatformAdmin) {
+        const orgId = session.user.orgId;
+        if (!orgId) {
+          return NextResponse.json(
+            { error: "Organization context required for CORPORATE_ADMIN" },
+            { status: 403 },
+          );
+        }
+        
+        const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+        const userIdStrings = orgUserIds.map((u: { _id: unknown }) => String(u._id));
+        
+        query = {
+          $and: [
+            ...(status ? [{ status }] : []),
+            {
+              $or: [
+                { buyerId: { $in: userIdStrings } },
+                { sellerId: { $in: userIdStrings } },
+              ],
+            },
+          ],
+        };
+        
+        // If no conditions, simplify
+        if (!status) {
+          query = {
+            $or: [
+              { buyerId: { $in: userIdStrings } },
+              { sellerId: { $in: userIdStrings } },
+            ],
+          };
+        }
+      }
+      
       const returns = await SouqRMA.find(query)
         .sort({ createdAt: -1 })
         .limit(100)

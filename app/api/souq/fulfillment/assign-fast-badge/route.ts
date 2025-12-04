@@ -37,15 +37,22 @@ export async function POST(request: NextRequest) {
       }
     } else if (sellerId) {
       // Assign badge to all seller's listings
-      let listings = await SouqListing.find({
-        sellerId,
-        status: "active",
-        ...(orgId ? { orgId } : {}),
-      });
-
-      if (listings.length === 0 && orgId) {
-        listings = await SouqListing.find({ sellerId, status: "active" });
+      // 🔒 SECURITY FIX: Always require orgId for CORPORATE_ADMIN
+      // Platform admins (SUPER_ADMIN) can optionally scope by orgId
+      const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
+      
+      const listingQuery: Record<string, unknown> = { sellerId, status: "active" };
+      if (orgId) {
+        listingQuery.orgId = orgId;
+      } else if (!isPlatformAdmin) {
+        // CORPORATE_ADMIN must have orgId
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
       }
+      
+      const listings = await SouqListing.find(listingQuery);
 
       for (const listing of listings) {
         const result = await fulfillmentService.assignFastBadge(

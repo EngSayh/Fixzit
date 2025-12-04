@@ -4,6 +4,7 @@ import { connectDb } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 import { SouqClaim } from "@/server/models/souq/Claim";
 import { SouqOrder, type IOrder } from "@/server/models/souq/Order";
+import { User } from "@/server/models/User";
 import { Types } from "mongoose";
 import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
@@ -88,11 +89,39 @@ export async function POST(request: NextRequest) {
       .filter((id: string) => Types.ObjectId.isValid(id))
       .map((id: string) => new Types.ObjectId(id));
 
+    // 🔒 SECURITY FIX: CORPORATE_ADMIN can only process claims involving their org's users
+    const isPlatformAdmin = isSuperAdmin || userRole === "ADMIN";
+    let orgUserFilter: Record<string, unknown> | null = null;
+    
+    if (!isPlatformAdmin && userRole === "CORPORATE_ADMIN") {
+      const orgId = session.user.orgId;
+      if (!orgId) {
+        return NextResponse.json(
+          { error: "Organization context required for CORPORATE_ADMIN" },
+          { status: 403 },
+        );
+      }
+      
+      const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+      const userIdStrings = orgUserIds.map((u: { _id: Types.ObjectId }) => String(u._id));
+      
+      orgUserFilter = {
+        $or: [
+          { buyerId: { $in: userIdStrings } },
+          { sellerId: { $in: userIdStrings } },
+        ],
+      };
+    }
+
     // Fetch all claims to validate they exist and can be bulk processed
-    const claims = await SouqClaim.find({
-      status: { $in: ELIGIBLE_STATUSES },
-      $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }],
-    });
+    const claimQuery = {
+      $and: [
+        { status: { $in: ELIGIBLE_STATUSES } },
+        { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
+        ...(orgUserFilter ? [orgUserFilter] : []),
+      ],
+    };
+    const claims = await SouqClaim.find(claimQuery);
 
     if (claims.length === 0) {
       return NextResponse.json(
