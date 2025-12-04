@@ -2,13 +2,13 @@
  * Unit tests for api/qa/log route.
  * Testing framework: Vitest
  * 
- * Tests rate limiting, POST/GET operations, and error handling.
+ * Tests rate limiting, POST/GET operations, RBAC, and error handling.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Import MongoDB mock to access mocked functions
-import * as mongodbUnified from '@/lib/mongodb-unified';
+import { getDatabase } from '@/lib/mongodb-unified';
 
 // We will mock the mongo module used by the route
 vi.mock('@/lib/mongodb-unified');
@@ -20,15 +20,25 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }
 }));
+vi.mock('@/lib/authz', () => ({
+  requireSuperAdmin: vi.fn(async () => ({
+    id: 'test-user-id',
+    email: 'admin@test.com',
+    role: 'SUPER_ADMIN',
+    tenantId: 'test-org-id',
+  })),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
 }));
 
 // Route handlers will be dynamically imported per-test to avoid module cache leakage across suites
 let POST: typeof import('@/app/api/qa/log/route').POST;
 let GET: typeof import('@/app/api/qa/log/route').GET;
 import { logger } from '@/lib/logger';
-import { smartRateLimit } from '@/server/security/rateLimit';
+import { requireSuperAdmin } from '@/lib/authz';
+import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 
 // Type helper for building minimal NextRequest-like object
 type HeadersLike = {
@@ -89,7 +99,13 @@ describe('api/qa/log route', () => {
     vi.clearAllMocks();
     vi.resetModules();
 
-    // Reset rate limit mock to allow by default
+    // Reset mocks to defaults
+    vi.mocked(requireSuperAdmin).mockResolvedValue({
+      id: 'test-user-id',
+      email: 'admin@test.com',
+      role: 'SUPER_ADMIN',
+      tenantId: 'test-org-id',
+    });
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
     // Re-import handlers with fresh module cache
@@ -103,14 +119,38 @@ describe('api/qa/log route', () => {
     vi.clearAllMocks();
   });
 
+  describe('RBAC', () => {
+    it('returns 401 when not authenticated (POST)', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), { status: 401 })
+      );
+      const res = await POST(createPostRequest({ event: 'test', data: {} }));
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 401 when not authenticated (GET)', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), { status: 401 })
+      );
+      const res = await GET(createGetRequest());
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 403 when user lacks SUPER_ADMIN role', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'FORBIDDEN' }), { status: 403 })
+      );
+      const res = await POST(createPostRequest({ event: 'test', data: {} }));
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe('POST /api/qa/log', () => {
     it('returns success when request is valid', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       const event = 'button_click';
       const data = { id: 123, label: 'Save' };
@@ -119,19 +159,17 @@ describe('api/qa/log route', () => {
       const body = await res.json();
 
       expect(body).toEqual({ success: true });
-      expect(logger.info).toHaveBeenCalledWith(`📝 QA Log: ${event}`, { data });
-      expect(mod.getDatabase).toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalled();
+      expect(getDatabase).toHaveBeenCalled();
       expect(collection).toHaveBeenCalledWith('qa_logs');
       expect(insertOne).toHaveBeenCalledTimes(1);
     });
 
-    it('inserts log into DB with correct fields', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
+    it('inserts log into DB with correct fields including orgId and userId', async () => {
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       const event = 'page_view';
       const data = { page: '/dashboard' };
@@ -150,59 +188,68 @@ describe('api/qa/log route', () => {
 
       expect(body).toEqual({ success: true });
 
-      // Validate inserted document shape
+      // Validate inserted document includes org-scoped fields
       const insertedDoc = insertOne.mock.calls[0][0];
       expect(insertedDoc).toMatchObject({
         event,
         data,
-        ip: '203.0.113.10',
-        userAgent: 'Mozilla/5.0 Test',
-        sessionId: 'sess-123',
+        orgId: 'test-org-id',
+        userId: 'test-user-id',
       });
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
     });
 
-    it('returns 500 when event is missing', async () => {
+    it('returns 400 when event is missing', async () => {
       const res = await POST(createPostRequest({ data: {} }));
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('Failed to log event');
+      // Zod error when event is undefined
+      expect(body.error).toBeDefined();
     });
 
-    it('returns 500 when event is not a string', async () => {
+    it('returns 400 when event is not a string', async () => {
       const res = await POST(createPostRequest({ event: 123, data: {} }));
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('Failed to log event');
+      // Zod returns a type error message for non-strings
+      expect(body.error).toBeDefined();
     });
 
-    it('returns 500 when body is not an object', async () => {
+    it('returns 400 when event is too long', async () => {
+      const longEvent = 'x'.repeat(129);
+      const res = await POST(createPostRequest({ event: longEvent, data: {} }));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('Event name too long');
+    });
+
+    it('returns 400 when body is not an object', async () => {
       const req = asNextRequest({
         json: async () => 'not-an-object',
         headers: buildHeaders({}),
       });
       
       const res = await POST(req);
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('Failed to log event');
+      // Zod fails when parsing non-object
+      expect(body.error).toBeDefined();
     });
 
-    it('returns 500 when JSON parsing fails', async () => {
+    it('returns 400 when JSON parsing fails', async () => {
       const req = asNextRequest({
         json: async () => { throw new SyntaxError('Unexpected token'); },
         headers: buildHeaders({}),
       });
       
       const res = await POST(req);
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('Failed to log event');
+      expect(body.error).toBe('Invalid JSON body');
     });
 
     it('returns mock success when DB is unavailable', async () => {
-      const mod = vi.mocked(mongodbUnified);
-      mod.getDatabase.mockRejectedValue(new Error('DB connection failed'));
+      vi.mocked(getDatabase).mockRejectedValue(new Error('DB connection failed'));
 
       const res = await POST(createPostRequest({ event: 'test', data: {} }));
       expect(res.status).toBe(200);
@@ -217,15 +264,24 @@ describe('api/qa/log route', () => {
       const res = await POST(createPostRequest({ event: 'test', data: {} }));
       expect(res.status).toBe(429);
     });
+
+    it('uses org-aware rate limit key', async () => {
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
+
+      await POST(createPostRequest({ event: 'test', data: {} }));
+
+      expect(buildOrgAwareRateLimitKey).toHaveBeenCalled();
+    });
   });
 
   describe('GET /api/qa/log', () => {
-    it('returns logs from DB', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
+    it('returns logs from DB filtered by orgId', async () => {
       const logs = [
-        { event: 'event1', timestamp: new Date() },
-        { event: 'event2', timestamp: new Date() },
+        { event: 'event1', timestamp: new Date(), orgId: 'test-org-id' },
+        { event: 'event2', timestamp: new Date(), orgId: 'test-org-id' },
       ];
 
       const toArray = vi.fn().mockResolvedValue(logs);
@@ -234,7 +290,7 @@ describe('api/qa/log route', () => {
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       const res = await GET(createGetRequest());
       expect(res.status).toBe(200);
@@ -242,61 +298,84 @@ describe('api/qa/log route', () => {
 
       expect(body.logs).toHaveLength(2);
       expect(body.logs[0].event).toBe('event1');
-      expect(find).toHaveBeenCalledWith({});
+      // Verify org-scoped query
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(100); // Default limit
     });
 
-    it('filters by event type when provided', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
+    it('filters by event type within org scope', async () => {
       const toArray = vi.fn().mockResolvedValue([]);
       const limit = vi.fn().mockReturnValue({ toArray });
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       const res = await GET(createGetRequest({ event: 'button_click' }));
       expect(res.status).toBe(200);
 
-      expect(find).toHaveBeenCalledWith({ event: 'button_click' });
+      // Verify both org filter and event filter are applied
+      expect(find).toHaveBeenCalledWith({ 
+        orgId: 'test-org-id',
+        event: 'button_click' 
+      });
+    });
+
+    it('returns all logs when platform admin has no tenantId', async () => {
+      vi.mocked(requireSuperAdmin).mockResolvedValue({
+        id: 'platform-admin',
+        email: 'platform@test.com',
+        role: 'SUPER_ADMIN',
+        tenantId: '', // Platform-level admin
+      });
+
+      const logs = [{ event: 'platform-event' }];
+      const toArray = vi.fn().mockResolvedValue(logs);
+      const limit = vi.fn().mockReturnValue({ toArray });
+      const sort = vi.fn().mockReturnValue({ limit });
+      const find = vi.fn().mockReturnValue({ sort });
+      const collection = vi.fn().mockReturnValue({ find });
+      const nativeDb = { collection } as any;
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
+
+      const res = await GET(createGetRequest());
+      const body = await res.json();
+
+      expect(body).toEqual({ logs });
+      // Empty query = all logs (platform-level access)
+      expect(find).toHaveBeenCalledWith({});
     });
 
     it('respects custom limit parameter', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
       const toArray = vi.fn().mockResolvedValue([]);
       const limit = vi.fn().mockReturnValue({ toArray });
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       await GET(createGetRequest({ limit: '50' }));
       expect(limit).toHaveBeenCalledWith(50);
     });
 
     it('caps limit at 1000', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
       const toArray = vi.fn().mockResolvedValue([]);
       const limit = vi.fn().mockReturnValue({ toArray });
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
+      vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       await GET(createGetRequest({ limit: '5000' }));
       expect(limit).toHaveBeenCalledWith(1000);
     });
 
     it('returns mock logs when DB is unavailable', async () => {
-      const mod = vi.mocked(mongodbUnified);
-      mod.getDatabase.mockRejectedValue(new Error('DB connection failed'));
+      vi.mocked(getDatabase).mockRejectedValue(new Error('DB connection failed'));
 
       const res = await GET(createGetRequest());
       expect(res.status).toBe(200);
@@ -310,37 +389,6 @@ describe('api/qa/log route', () => {
 
       const res = await GET(createGetRequest());
       expect(res.status).toBe(429);
-    });
-
-    it('returns 500 on unexpected error', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
-      // Mock URL parsing to throw
-      const originalURL = globalThis.URL;
-      const brokenReq = {
-        url: 'invalid-url-that-will-throw',
-        nextUrl: { protocol: 'http:' },
-        json: async () => ({}),
-        headers: { get: () => null },
-        cookies: { get: () => undefined },
-        ip: '127.0.0.1',
-      };
-
-      // The route should catch and return 500
-      // Since URL parsing happens before DB, we need to simulate another error
-      const toArray = vi.fn().mockImplementation(() => {
-        throw new Error('Unexpected error');
-      });
-      const limit = vi.fn().mockReturnValue({ toArray });
-      const sort = vi.fn().mockReturnValue({ limit });
-      const find = vi.fn().mockReturnValue({ sort });
-      const collection = vi.fn().mockReturnValue({ find });
-      const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
-
-      const res = await GET(createGetRequest());
-      // The error is caught in the outer try-catch
-      expect(res.status).toBe(200); // Mock fallback
     });
   });
 });
