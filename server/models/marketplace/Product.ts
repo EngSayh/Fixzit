@@ -125,41 +125,17 @@ const ProductSchema = new Schema<MarketplaceProduct>(
 ProductSchema.plugin(tenantIsolationPlugin);
 ProductSchema.plugin(auditPlugin);
 
-// INDEXES (AFTER PLUGINS) - orgId is now added by the plugin
-ProductSchema.index(
-  { orgId: 1, sku: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { orgId: { $exists: true } },
-    name: "products_orgId_sku_unique",
-  },
-);
-ProductSchema.index(
-  { orgId: 1, slug: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { orgId: { $exists: true } },
-    name: "products_orgId_slug_unique",
-  },
-);
-ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
-ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
-
-// ⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)
-// This was previously a global text index that would search ALL organizations
-ProductSchema.index(
-  {
-    orgId: 1,
-    title: "text",
-    summary: "text",
-    brand: "text",
-    standards: "text",
-  },
-  {
-    name: "products_orgId_text_search",
-    partialFilterExpression: { orgId: { $exists: true } },
-  },
-);
+// ═══════════════════════════════════════════════════════════════════════════
+// INDEXES REMOVED - Managed centrally in lib/db/collections.ts
+// ═══════════════════════════════════════════════════════════════════════════
+// All Product indexes are defined in createIndexes() to prevent
+// IndexOptionsConflict errors during deployment. See:
+//   - products_orgId_sku_unique
+//   - products_orgId_slug_unique
+//   - products_orgId_status
+//   - products_orgId_categoryId
+//   - products_orgId_text_search (tenant-scoped text search)
+// ═══════════════════════════════════════════════════════════════════════════
 
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||
