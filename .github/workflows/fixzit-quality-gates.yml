@@ -25,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=8192
+      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
+      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
+      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

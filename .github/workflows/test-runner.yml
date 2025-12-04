@@ -26,6 +26,9 @@ jobs:
       NEXTAUTH_SECRET: test-nextauth-secret-for-ci-tests-32-chars
       NEXTAUTH_URL: http://localhost:3000
       MONGODB_URI: mongodb://localhost:27017/fixzit_test
+      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
+      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
+      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
       
     steps:
       - name: Checkout

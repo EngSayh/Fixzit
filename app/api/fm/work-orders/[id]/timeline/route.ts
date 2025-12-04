@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { logger } from "@/lib/logger";
 import type { WorkOrderTimeline } from "@/types/fm";
 import { buildWorkOrderUser } from "../../utils";
@@ -46,7 +47,7 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     const db = await getDatabase();
-    const collection = db.collection("workorder_timeline");
+    const collection = db.collection(COLLECTIONS.WORKORDER_TIMELINE);
     // RBAC-002 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
     const filter = { tenantId: tenantId, workOrderId };
 

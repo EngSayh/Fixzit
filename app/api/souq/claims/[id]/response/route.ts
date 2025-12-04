@@ -7,6 +7,7 @@ import {
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
@@ -121,7 +122,7 @@ export async function POST(
       ? { _id: new ObjectId(params.id) }
       : { claimId: params.id };
 
-    await db.collection("claims").updateOne(filter, {
+    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
       $set: {
         status: newStatus,
         sellerResponse,

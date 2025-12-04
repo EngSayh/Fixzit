@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { createSecureResponse } from "@/server/security/headers";
 import { validationError } from "@/server/utils/errorResponses";
@@ -40,8 +41,8 @@ export async function POST(
     const data = commentSchema.parse(payload);
 
     const db = await getDatabase();
-    const articles = db.collection("helparticles");
-    const comments = db.collection("helpcomments");
+  const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
+  const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
 
     const articleFilter = buildArticleFilter(params.id, user.orgId);
     const article = await articles.findOne(articleFilter, {

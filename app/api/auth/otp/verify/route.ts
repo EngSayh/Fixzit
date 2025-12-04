@@ -165,29 +165,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // SECURITY: Validate orgId matches (SEC-BLOCKER-001)
-    // If OTP was stored with orgId, verify it matches the resolved org
+    // SECURITY: Validate orgId matches (SEC-BLOCKER-001) and clean up OTP on mismatch
     if (otpData.orgId && orgScopeId && otpData.orgId !== orgScopeId) {
       logger.warn("[OTP] OrgId mismatch - potential cross-tenant attack", {
         identifier: redactIdentifier(otpKey),
         storedOrgId: otpData.orgId,
         requestedOrgId: orgScopeId,
-      });
-      return NextResponse.json(
-        {
-          success: false,
-          error: "OTP not found or expired. Please request a new code.",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Enforce tenant isolation on OTP payload vs request context
-    if (otpData.orgId && orgScopeId && otpData.orgId !== orgScopeId) {
-      logger.warn("[OTP] Org mismatch during verify", {
-        identifier: redactIdentifier(otpKey),
-        expectedOrg: orgScopeId,
-        receivedOrg: otpData.orgId,
       });
       await redisOtpStore.delete(otpKey);
       return NextResponse.json(

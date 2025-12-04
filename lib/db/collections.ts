@@ -37,12 +37,19 @@ export const COLLECTIONS: Record<string, string> = {
   ORGANIZATIONS: "organizations",
   ADMIN_NOTIFICATIONS: "admin_notifications",
   COMMUNICATION_LOGS: "communication_logs",
+  EMAIL_LOGS: "email_logs",
+  PAYMENTS: "payments",
   // ATS module
   ATS_JOBS: "jobs",
   ATS_APPLICATIONS: "applications",
   ATS_INTERVIEWS: "interviews",
   ATS_CANDIDATES: "candidates",
   ATS_SETTINGS: "ats_settings",
+  // Knowledge base / CMS
+  HELP_ARTICLES: "helparticles",
+  HELP_COMMENTS: "helpcomments",
+  KB_EMBEDDINGS: "kb_embeddings",
+  CMS_PAGES: "cmspages",
   // Additional collections used in lib/queries.ts
   SUPPORT_TICKETS: "supporttickets",
   EMPLOYEES: "employees",
@@ -52,18 +59,29 @@ export const COLLECTIONS: Record<string, string> = {
   ROLES: "roles",
   PERMISSIONS: "permissions",
   API_KEYS: "api_keys",
+  INVOICE_COUNTERS: "invoice_counters",
   // Souq marketplace collections
   SOUQ_LISTINGS: "souq_listings",
   SOUQ_ORDERS: "souq_orders",
   SOUQ_REVIEWS: "souq_reviews",
+  SOUQ_SETTLEMENTS: "souq_settlements",
+  CLAIMS: "claims",
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
+  // Errors / telemetry
+  ERROR_EVENTS: "error_events",
   // Approvals / Assets / SLA / Agent audit
   FM_APPROVALS: "fm_approvals",
   ASSETS: "assets",
   SLAS: "slas",
   AGENT_AUDIT_LOGS: "agent_audit_logs",
+  WORKORDER_TIMELINE: "workorder_timeline",
+  WORKORDER_ATTACHMENTS: "workorder_attachments",
+  UTILITY_BILLS: "utilitybills",
+  OWNERS: "owners",
+  CREDENTIALS: "credentials",
+  ACCOUNTS: "accounts",
   // Search-related collections (used in app/api/search/route.ts)
   UNITS: "units",
   SERVICES: "services",
@@ -633,7 +651,7 @@ export async function createIndexes() {
 
   // Help Articles - STRICT v4.1: slug unique per org
   await db
-    .collection("helparticles")
+    .collection(COLLECTIONS.HELP_ARTICLES)
     .createIndex(
       { orgId: 1, slug: 1 },
       {
@@ -643,17 +661,17 @@ export async function createIndexes() {
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
-  await db.collection("helparticles").createIndex({ orgId: 1 }, { background: true, name: "helparticles_orgId" });
+  await db.collection(COLLECTIONS.HELP_ARTICLES).createIndex({ orgId: 1 }, { background: true, name: "helparticles_orgId" });
   await db
-    .collection("helparticles")
+    .collection(COLLECTIONS.HELP_ARTICLES)
     .createIndex({ orgId: 1, category: 1 }, { background: true, name: "helparticles_orgId_category" });
   await db
-    .collection("helparticles")
+    .collection(COLLECTIONS.HELP_ARTICLES)
     .createIndex({ orgId: 1, published: 1 }, { background: true, name: "helparticles_orgId_published" });
 
   // CMS Pages - STRICT v4.1: slug unique per org
   await db
-    .collection("cmspages")
+    .collection(COLLECTIONS.CMS_PAGES)
     .createIndex(
       { orgId: 1, slug: 1 },
       {
@@ -663,9 +681,9 @@ export async function createIndexes() {
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
-  await db.collection("cmspages").createIndex({ orgId: 1 }, { background: true, name: "cmspages_orgId" });
+  await db.collection(COLLECTIONS.CMS_PAGES).createIndex({ orgId: 1 }, { background: true, name: "cmspages_orgId" });
   await db
-    .collection("cmspages")
+    .collection(COLLECTIONS.CMS_PAGES)
     .createIndex({ orgId: 1, published: 1 }, { background: true, name: "cmspages_orgId_published" });
 
   // Communication Logs - STRICT v4.1: always org-scoped for tenant isolation
@@ -845,7 +863,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // Org-scoped query index (sparse to exclude legacy docs without orgId)
   await db
-    .collection("qa_logs")
+    .collection(COLLECTIONS.QA_LOGS)
     .createIndex({ orgId: 1, timestamp: -1 }, { 
       name: "qa_logs_orgId_timestamp", 
       background: true, 
@@ -854,7 +872,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // Event-specific org-scoped query index
   await db
-    .collection("qa_logs")
+    .collection(COLLECTIONS.QA_LOGS)
     .createIndex({ orgId: 1, event: 1, timestamp: -1 }, { 
       name: "qa_logs_orgId_event_timestamp", 
       background: true, 
@@ -864,7 +882,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   // PLATFORM-FRIENDLY: Global timestamp index for platform admin queries (no orgId filter)
   // Supports: db.qa_logs.find({}).sort({timestamp:-1}) and db.qa_logs.find({event:x}).sort({timestamp:-1})
   await db
-    .collection("qa_logs")
+    .collection(COLLECTIONS.QA_LOGS)
     .createIndex({ timestamp: -1 }, { 
       name: "qa_logs_timestamp_desc", 
       background: true 
@@ -872,7 +890,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // PLATFORM-FRIENDLY: Event + timestamp for platform admin event-filtered queries
   await db
-    .collection("qa_logs")
+    .collection(COLLECTIONS.QA_LOGS)
     .createIndex({ event: 1, timestamp: -1 }, { 
       name: "qa_logs_event_timestamp", 
       background: true 
@@ -880,7 +898,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
   await db
-    .collection("qa_logs")
+    .collection(COLLECTIONS.QA_LOGS)
     .createIndex({ timestamp: 1 }, { 
       name: "qa_logs_ttl_90d", 
       expireAfterSeconds: 90 * 24 * 60 * 60,  // 90 days
@@ -893,7 +911,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // Org-scoped query index (sparse to exclude legacy docs without orgId)
   await db
-    .collection("qa_alerts")
+    .collection(COLLECTIONS.QA_ALERTS)
     .createIndex({ orgId: 1, timestamp: -1 }, { 
       name: "qa_alerts_orgId_timestamp", 
       background: true, 
@@ -902,7 +920,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // Event-specific org-scoped query index (parity with qa_logs for event filtering)
   await db
-    .collection("qa_alerts")
+    .collection(COLLECTIONS.QA_ALERTS)
     .createIndex({ orgId: 1, event: 1, timestamp: -1 }, { 
       name: "qa_alerts_orgId_event_timestamp", 
       background: true, 
@@ -911,7 +929,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // PLATFORM-FRIENDLY: Global timestamp index for platform admin queries (no orgId filter)
   await db
-    .collection("qa_alerts")
+    .collection(COLLECTIONS.QA_ALERTS)
     .createIndex({ timestamp: -1 }, { 
       name: "qa_alerts_timestamp_desc", 
       background: true 
@@ -919,7 +937,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // PLATFORM-FRIENDLY: Event + timestamp for platform admin event-filtered queries
   await db
-    .collection("qa_alerts")
+    .collection(COLLECTIONS.QA_ALERTS)
     .createIndex({ event: 1, timestamp: -1 }, { 
       name: "qa_alerts_event_timestamp", 
       background: true 
@@ -927,7 +945,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   
   // TTL index: Auto-delete qa_alerts after 30 days to bound storage growth
   await db
-    .collection("qa_alerts")
+    .collection(COLLECTIONS.QA_ALERTS)
     .createIndex({ timestamp: 1 }, { 
       name: "qa_alerts_ttl_30d", 
       expireAfterSeconds: 30 * 24 * 60 * 60,  // 30 days
@@ -1023,8 +1041,8 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
     { collection: COLLECTIONS.ORDERS, indexes: ["orderNumber_1"] },
     { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1", "number_1", "code_1"] },
     { collection: "supporttickets", indexes: ["code_1", "orgId_1_code_1"] },
-    { collection: "helparticles", indexes: ["slug_1", "orgId_1_slug_1"] },
-    { collection: "cmspages", indexes: ["slug_1", "orgId_1_slug_1"] },
+    { collection: COLLECTIONS.HELP_ARTICLES, indexes: ["slug_1", "orgId_1_slug_1"] },
+    { collection: COLLECTIONS.CMS_PAGES, indexes: ["slug_1", "orgId_1_slug_1"] },
   ];
 
   for (const { collection, indexes } of targets) {

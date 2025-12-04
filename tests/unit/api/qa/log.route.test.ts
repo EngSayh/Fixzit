@@ -30,6 +30,7 @@ vi.mock('@/lib/authz', () => ({
 }));
 vi.mock('@/lib/db/collections', () => ({
   ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
+  COLLECTIONS: { QA_LOGS: "qa_logs" },
 }));
 vi.mock('@/lib/qa/telemetry', () => ({
   recordQaStorageFailure: vi.fn().mockResolvedValue(undefined),

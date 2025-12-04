@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 
 import { validationError } from "@/server/utils/errorResponses";
@@ -52,7 +53,7 @@ export async function PATCH(
     const body = await req.json().catch(() => ({}));
     const data = patchSchema.parse(body);
     const db = await getDatabase();
-    const coll = db.collection("helparticles");
+    const coll = db.collection(COLLECTIONS.HELP_ARTICLES);
 
     const baseFilter = (() => {
       try {

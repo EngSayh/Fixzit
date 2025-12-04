@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 /**
  * Normalize orgId to ObjectId, keeping string if invalid.
@@ -108,7 +109,7 @@ export async function logCommunication(
     };
 
     const result = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .insertOne(communicationLog);
 
     logger.info("[Communication] Logged", {
@@ -208,7 +209,7 @@ export async function updateCommunicationStatus(
 
     // SECURITY: Use org-scoped query for tenant isolation
     await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .updateOne(
         query,
         metadata ? update : { $set: update },
@@ -276,7 +277,7 @@ export async function getUserCommunications(
     }
 
     const logs = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .find(query)
       .sort({ createdAt: -1 })
       .skip(options?.skip || 0)
@@ -358,7 +359,7 @@ export async function getCommunicationStats(filters?: {
     }
 
     const result = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate([
         { $match: matchStage },
         {

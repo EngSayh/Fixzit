@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
-import { ensureQaIndexes } from '@/lib/db/collections';
+import { ensureQaIndexes, COLLECTIONS } from '@/lib/db/collections';
 import { sanitizeQaPayload } from '@/lib/qa/sanitize';
 import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 import { getClientIP } from '@/server/security/headers';
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       const native = await resolveDatabase();
       // SECURITY: Sanitize payload to redact PII/credentials before storage
       const sanitizedData = sanitizeQaPayload(data);
-      await native.collection('qa_alerts').insertOne({
+      await native.collection(COLLECTIONS.QA_ALERTS).insertOne({
         event,
         data: sanitizedData,
         timestamp: new Date(),
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
       // PERFORMANCE: Exclude large data field by default to keep responses small
       const projection = includeData ? {} : { data: 0 };
       
-      const alerts = await native.collection('qa_alerts')
+      const alerts = await native.collection(COLLECTIONS.QA_ALERTS)
         .find(query, { projection })
         .sort({ timestamp: -1 })
         .limit(limit)

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const claimsCollection = db.collection("claims");
+    const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
     const existingClaim = await claimsCollection.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
       status: {

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 export async function GET(
   request: NextRequest,
@@ -22,7 +23,7 @@ export async function GET(
 
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection("souq_settlements");
+    const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
 
     // Fetch statement
     const statement = await statementsCollection.findOne({ statementId });

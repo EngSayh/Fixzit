@@ -11,6 +11,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 const createInvoiceSchema = z.object({
   type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
     const result = await Invoice.db
-      .collection("invoice_counters")
+      .collection(COLLECTIONS.INVOICE_COUNTERS)
       .findOneAndUpdate(
         { orgId: user.orgId, year },
         { $inc: { sequence: 1 } },

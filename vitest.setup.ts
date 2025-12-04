@@ -393,7 +393,11 @@ const mockFetch: typeof globalThis.fetch = async (input, init) => {
 globalThis.fetch = mockFetch;
 
 // --- MongoDB Memory Server Setup ---
-const shouldUseInMemoryMongo = process.env.SKIP_GLOBAL_MONGO !== "true";
+const isJsdomEnv = typeof window !== "undefined" && typeof document !== "undefined";
+const forceMongo =
+  process.env.SKIP_GLOBAL_MONGO === "false" || process.env.FORCE_GLOBAL_MONGO === "true";
+// Default: skip MongoMemoryServer in jsdom unless explicitly forced via env above.
+const shouldUseInMemoryMongo = forceMongo || (!isJsdomEnv && process.env.SKIP_GLOBAL_MONGO !== "true");
 let mongoServer: MongoMemoryServer | undefined;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 

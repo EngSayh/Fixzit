@@ -6,6 +6,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import {
@@ -175,7 +176,7 @@ The Fixzit Enterprise Team
       // Track email in MongoDB
       try {
         const db = await getDatabase();
-        const emailsCollection = db.collection("email_logs");
+        const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
 
         await emailsCollection.insertOne({
           emailId,
@@ -226,7 +227,7 @@ The Fixzit Enterprise Team
 
       try {
         const db = await getDatabase();
-        await db.collection("email_logs").insertOne({
+        await db.collection(COLLECTIONS.EMAIL_LOGS).insertOne({
           emailId,
           type: "welcome_email",
           recipient: body.email,
@@ -304,7 +305,7 @@ export async function GET(req: NextRequest) {
   try {
     // Query MongoDB for email delivery status
     const db = await getDatabase();
-    const emailsCollection = db.collection("email_logs");
+    const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
 
     const emailRecords = await emailsCollection
       .find({ recipient: email, type: "welcome_email" })

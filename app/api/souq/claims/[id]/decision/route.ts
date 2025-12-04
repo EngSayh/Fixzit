@@ -119,7 +119,7 @@ export async function POST(
       decidedBy: session.user.id,
     };
 
-    await db.collection("claims").updateOne(filter, {
+    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
       $set: {
         status,
         refundAmount: refundAmountNumber,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import type { WorkOrderPhoto } from "@/types/fm";
@@ -57,7 +58,7 @@ export async function GET(
 
     const db = await getDatabase();
     const attachments = await db
-      .collection("workorder_attachments")
+      .collection(COLLECTIONS.WORKORDER_ATTACHMENTS)
       .find({ orgId, workOrderId })
       .sort({ uploadedAt: -1 })
       .toArray();
@@ -108,7 +109,7 @@ export async function POST(
     const now = new Date();
     await getDatabase();
     await assertWorkOrderQuota(
-      "workorder_attachments",
+      COLLECTIONS.WORKORDER_ATTACHMENTS,
       orgId,
       workOrderId,
       WORK_ORDER_ATTACHMENT_LIMIT,

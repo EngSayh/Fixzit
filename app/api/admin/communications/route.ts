@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 interface MatchStage {
   userId?: ObjectId;
@@ -211,7 +212,7 @@ export async function GET(request: NextRequest) {
     // Count total matching documents
     const countPipeline = [...pipeline, { $count: "total" }];
     const countResult = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate(countPipeline)
       .toArray();
     const total = countResult[0]?.total || 0;
@@ -245,13 +246,13 @@ export async function GET(request: NextRequest) {
 
     // Execute aggregation
     const communications = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate(pipeline)
       .toArray();
 
     // 5. Get statistics
     const statsResult = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate([
         { $match: matchStage },
         {

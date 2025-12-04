@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase, type ConnectionDb } from "@/lib/mongodb-unified";
-import { ensureQaIndexes } from "@/lib/db/collections";
+import { ensureQaIndexes, COLLECTIONS } from "@/lib/db/collections";
 import { sanitizeQaPayload } from "@/lib/qa/sanitize";
 import { recordQaStorageFailure } from "@/lib/qa/telemetry";
 import { getClientIP, createSecureResponse } from "@/server/security/headers";
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       const native = await resolveDatabase();
       // SECURITY: Sanitize payload to redact PII/credentials before storage
       const sanitizedData = sanitizeQaPayload(data);
-      await native.collection("qa_logs").insertOne({
+      await native.collection(COLLECTIONS.QA_LOGS).insertOne({
         event,
         data: sanitizedData,
         timestamp: new Date(),
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
       // PERFORMANCE: Exclude large data field by default to keep responses small
       const projection = includeData ? {} : { data: 0 };
       const logs = await native
-        .collection("qa_logs")
+        .collection(COLLECTIONS.QA_LOGS)
         .find(query, { projection })
         .sort({ timestamp: -1 })
         .limit(limit)

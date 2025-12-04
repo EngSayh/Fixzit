@@ -168,7 +168,7 @@ export async function calculateRevenue(
   }
 
   const result = await db
-    .collection("payments")
+    .collection(COLLECTIONS.PAYMENTS)
     .aggregate([
       { $match: matchStage },
       {
@@ -299,7 +299,7 @@ export async function calculateUtilityCosts(
   }
 
   const result = await db
-    .collection("utilitybills")
+    .collection(COLLECTIONS.UTILITY_BILLS)
     .aggregate([
       { $match: matchStage },
       {
@@ -327,7 +327,7 @@ export async function calculatePortfolioAnalytics(
   const { ownerId, propertyId, period, orgId } = input;
 
   // Get owner details
-  const ownerDoc = await db.collection("owners").findOne({
+  const ownerDoc = await db.collection(COLLECTIONS.OWNERS).findOne({
     _id: ownerId,
     orgId,
   });
@@ -480,7 +480,7 @@ export async function detectUtilityAnomalies(
   const db = (await import("mongoose")).default.connection.db!;
 
   const result = await db
-    .collection("utilitybills")
+    .collection(COLLECTIONS.UTILITY_BILLS)
     .aggregate([
       {
         $match: {

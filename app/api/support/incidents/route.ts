@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { z } from "zod";
@@ -9,6 +10,10 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -179,7 +184,7 @@ export async function POST(req: NextRequest) {
   }
   const existing = incidentKey
     ? await native
-        .collection("error_events")
+        .collection(COLLECTIONS.ERROR_EVENTS)
         .findOne({ incidentKey, tenantScope })
     : null;
   if (existing) {
@@ -194,7 +199,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Store minimal incident document for indexing/analytics
-  await native.collection("error_events").insertOne({
+  await native.collection(COLLECTIONS.ERROR_EVENTS).insertOne({
     incidentKey,
     incidentId,
     code,
@@ -204,7 +209,7 @@ export async function POST(req: NextRequest) {
     details,
     sessionUser: sessionUser || null,
     clientContext: body?.clientContext || null,
-    tenantScope: sessionUser?.orgId || null,
+    tenantScope,
     createdAt: now,
   });
 
@@ -219,8 +224,20 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
+      const ticketOrgId = sessionUser?.orgId || process.env.SUPPORT_PUBLIC_ORG_ID;
+      if (!ticketOrgId) {
+        return NextResponse.json(
+          {
+            error: "Missing organization context",
+            detail:
+              "Support tickets require an organization. Set SUPPORT_PUBLIC_ORG_ID for anonymous incidents.",
+          },
+          { status: 400 },
+        );
+      }
+      setTenantContext({ orgId: ticketOrgId });
       ticket = await SupportTicket.create({
-        orgId: sessionUser?.orgId || undefined,
+        orgId: ticketOrgId,
         code: ticketCode,
         subject: `[${code}] ${message}`.slice(0, 140),
         module: "Other",
@@ -257,13 +274,15 @@ export async function POST(req: NextRequest) {
       if (_e && typeof _e === "object" && "code" in _e && _e.code === 11000)
         continue; // duplicate code -> retry
       throw _e;
+    } finally {
+      clearTenantContext();
     }
   }
 
   // Persist ticket linkage for dedupe/analytics
   if (ticket) {
     await native
-      .collection("error_events")
+      .collection(COLLECTIONS.ERROR_EVENTS)
       .updateOne(
         { incidentId, tenantScope },
         { $set: { ticketId: ticket.code } },
