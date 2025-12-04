@@ -27,204 +27,243 @@ import { UserRole, type UserRoleType } from "@/types/user";
 // ============================================================================
 // SEARCH RBAC CONFIGURATION - SEC-002
 // ============================================================================
-// Each search entity requires specific permissions to query.
-// Users can only search entities they have read access to.
-// This prevents lateral data discovery across modules (e.g., regular user
-// searching finance invoices or admin-only data).
+// Use canonical "module:action" permission keys (Permission model format).
+// Wildcards:
+//   - "*" grants all
+//   - "<module>:*" grants all actions within a module
 // ============================================================================
 
-/**
- * Entity-to-permission mapping for search RBAC
- * Format: entity -> required permission key
- */
-const SEARCH_ENTITY_PERMISSIONS: Partial<Record<SearchEntity, string>> = {
-  [WORK_ORDERS_ENTITY]: "wo.read",
-  [WORK_ORDERS_ENTITY_LEGACY]: "wo.read", // legacy alias (normalized later)
-  properties: "properties.read",
-  units: "properties.read", // Units are sub-entities of properties
-  tenants: "tenants.read",
-  vendors: "vendors.read",
-  invoices: "finance.invoices.read",
-  products: "souq.products.read",
-  services: "souq.services.read",
-  rfqs: "souq.rfq.read",
-  orders: "souq.orders.read",
-  listings: "aqar.listings.read",
-  projects: "aqar.projects.read",
-  agents: "aqar.agents.read",
+type EntityPermissionConfig = {
+  permission: string; // canonical module:action
+  allowedRoles: readonly UserRoleType[];
 };
-/**
- * Roles that have access to each permission
- * STRICT v4.1: Based on 14-role matrix + sub-roles from types/user.ts
- * Includes CORPORATE_OWNER, HR_OFFICER, SUPPORT_AGENT where applicable
- */
-const PERMISSION_ROLES: Record<string, readonly UserRoleType[]> = {
-  // Work Orders - FM core functionality
-  "wo.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.TEAM_MEMBER,
-    UserRole.TECHNICIAN,
-    UserRole.VENDOR,
-    UserRole.OWNER,
-    UserRole.TENANT,
-    UserRole.SUPPORT_AGENT, // Support needs WO visibility for ticket correlation
-  ],
-  // Properties & Units - add CORPORATE_OWNER and TENANT (scoped via applyEntityScope)
-  "properties.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.TEAM_MEMBER,
-    UserRole.OWNER,
-    UserRole.TENANT, // Tenants can view properties their units belong to (scoped)
-  ],
-  // Tenants (lease tenants) - add HR_OFFICER for people data access
-  "tenants.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.SUPPORT_AGENT,
-    UserRole.HR, // HR needs tenant/people data
-    UserRole.HR_OFFICER, // HR sub-role for PII access
-  ],
-  // Vendors - add CORPORATE_OWNER and PROPERTY_MANAGER
-  "vendors.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.PROCUREMENT,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.VENDOR, // Vendors see only their own record (scoped)
-  ],
-  // Finance - Invoices (restricted) - add CORPORATE_OWNER
-  "finance.invoices.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.PROCUREMENT,
-    UserRole.AUDITOR,
-  ],
-  // Souq - Products - add CORPORATE_OWNER and PROPERTY_MANAGER
-  "souq.products.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROCUREMENT,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.VENDOR, // Vendors see only their own products (scoped)
-  ],
-  // Souq - Services - add CORPORATE_OWNER and PROPERTY_MANAGER
-  "souq.services.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROCUREMENT,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FM_MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.VENDOR, // Vendors see only their own services (scoped)
-  ],
-  // Souq - RFQs - add CORPORATE_OWNER
-  "souq.rfq.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROCUREMENT,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FM_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.VENDOR, // Vendors can see RFQs they've been invited to
-  ],
-  // Souq - Orders - add CORPORATE_OWNER and VENDOR
-  "souq.orders.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROCUREMENT,
-    UserRole.FINANCE,
-    UserRole.FINANCE_OFFICER,
-    UserRole.VENDOR, // Vendors see only their own orders (scoped)
-  ],
-  // Aqar - Listings - add CORPORATE_OWNER
-  "aqar.listings.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.OWNER, // Owners see only their assigned properties (scoped)
-    UserRole.VENDOR, // Vendors see only their own listings (scoped)
-  ],
-  // Aqar - Projects - add CORPORATE_OWNER
-  "aqar.projects.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.OWNER, // Owners see only their assigned projects (scoped)
-  ],
-  // Aqar - Agents - add CORPORATE_OWNER and SUPPORT_AGENT
-  "aqar.agents.read": [
-    UserRole.SUPER_ADMIN,
-    UserRole.CORPORATE_ADMIN,
-    UserRole.CORPORATE_OWNER,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.PROPERTY_MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.OPERATIONS_MANAGER,
-    UserRole.OWNER,
-    UserRole.SUPPORT_AGENT, // Support needs agent visibility for CRM
-  ],
+
+export const ENTITY_PERMISSION_CONFIG: Record<SearchEntity, EntityPermissionConfig> = {
+  workOrders: {
+    permission: "workorders:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.TECHNICIAN,
+      UserRole.VENDOR,
+      UserRole.OWNER,
+      UserRole.TENANT,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
+  work_orders: {
+    permission: "workorders:read", // legacy alias for backwards compatibility
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.TECHNICIAN,
+      UserRole.VENDOR,
+      UserRole.OWNER,
+      UserRole.TENANT,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
+  properties: {
+    permission: "properties:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.OWNER,
+      UserRole.TENANT,
+    ],
+  },
+  units: {
+    permission: "properties:read", // units belong to properties
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.OWNER,
+      UserRole.TENANT,
+    ],
+  },
+  tenants: {
+    permission: "tenants:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.SUPPORT_AGENT,
+      UserRole.HR,
+      UserRole.HR_OFFICER,
+    ],
+  },
+  vendors: {
+    permission: "vendors:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.VENDOR,
+    ],
+  },
+  invoices: {
+    permission: "finance:invoice.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.PROCUREMENT,
+      UserRole.AUDITOR,
+    ],
+  },
+  products: {
+    permission: "souq:products.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  services: {
+    permission: "souq:services.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  rfqs: {
+    permission: "souq:rfq.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  orders: {
+    permission: "souq:orders.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.VENDOR,
+    ],
+  },
+  listings: {
+    permission: "aqar:listings.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+      UserRole.VENDOR,
+    ],
+  },
+  projects: {
+    permission: "aqar:projects.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+    ],
+  },
+  agents: {
+    permission: "aqar:agents.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
 };
 
 // Text-search-ready entities (must have a text index). Exported for regression tests.
@@ -258,7 +297,7 @@ export const ENTITY_COLLECTION_MAP = {
   services: COLLECTIONS.SERVICES,
   rfqs: COLLECTIONS.RFQS,
   orders: COLLECTIONS.ORDERS,
-  listings: COLLECTIONS.SOUQ_LISTINGS,
+  listings: COLLECTIONS.LISTINGS, // FIXED: Use LISTINGS (aqar_listings), not SOUQ_LISTINGS
   projects: COLLECTIONS.PROJECTS,
   agents: COLLECTIONS.AGENTS,
 } as Record<SearchEntity, string | undefined>;
@@ -267,33 +306,33 @@ export const ENTITY_COLLECTION_MAP = {
 const normalizeEntity = (entity: string): SearchEntity =>
   entity === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : (entity as SearchEntity);
 
+const hasPermissionKey = (session: SessionUser, permission: string): boolean => {
+  if (session.isSuperAdmin) return true;
+  const normalizedPermission = permission.toLowerCase();
+  const moduleKey = normalizedPermission.split(":")[0];
+  const permissions = (session.permissions || []).map((p) => String(p).toLowerCase());
+
+  if (permissions.includes("*")) return true;
+  if (moduleKey && permissions.includes(`${moduleKey}:*`)) return true;
+  return permissions.includes(normalizedPermission);
+};
+
 // Evaluate whether the requester can search a given entity
 export function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
+  const normalizedEntity = normalizeEntity(entity);
   if (session.isSuperAdmin) return true;
 
-  const permission = SEARCH_ENTITY_PERMISSIONS[entity];
-  if (!permission) {
-    logger.warn("[search] Unknown entity requested", { entity });
+  const config = ENTITY_PERMISSION_CONFIG[normalizedEntity];
+  if (!config) {
+    logger.warn("[search] Unknown entity requested", { entity: normalizedEntity });
     return false;
   }
 
-  const perms = session.permissions || [];
-  if (perms.includes("*") || perms.includes(permission)) {
+  if (hasPermissionKey(session, config.permission)) {
     return true;
   }
 
-  const allowedRoles = PERMISSION_ROLES[permission];
-  if (!allowedRoles) {
-    logger.warn("[search] No roles configured for permission", { permission, entity });
-    return false;
-  }
-
-  const normalizedRoles = new Set<string>();
-  const primaryRole = session.role?.toUpperCase();
-  if (primaryRole) normalizedRoles.add(primaryRole);
-  (session.roles || []).forEach((role) => normalizedRoles.add(String(role).toUpperCase()));
-
-  return allowedRoles.some((role) => normalizedRoles.has(role));
+  return config.allowedRoles.some((role) => hasRole(session, role));
 }
 
 // Helpers for per-role scoping
@@ -333,61 +372,68 @@ export function applyEntityScope(
 
   switch (entity) {
     case WORK_ORDERS_ENTITY: {
-      // Tenants limited to their own requests (by requester.userId)
-      if (hasRole(session, UserRole.TENANT)) {
-        if (!ObjectId.isValid(session.id)) return { allowed: false, query: scopedQuery };
-        scopedQuery["requester.userId"] = new ObjectId(session.id);
+      // Collect role-based conditions with OR semantics for multi-role users
+      const roleConditions: Record<string, unknown>[] = [];
+
+      if (hasRole(session, UserRole.TENANT) && ObjectId.isValid(session.id)) {
+        roleConditions.push({ "requester.userId": new ObjectId(session.id) });
       }
-      // Technicians limited to assignments
-      if (hasRole(session, UserRole.TECHNICIAN)) {
-        if (!ObjectId.isValid(session.id)) return { allowed: false, query: scopedQuery };
-        scopedQuery["assignment.assignedTo.userId"] = new ObjectId(session.id);
+      if (hasRole(session, UserRole.TECHNICIAN) && ObjectId.isValid(session.id)) {
+        roleConditions.push({ "assignment.assignedTo.userId": new ObjectId(session.id) });
       }
-      // Vendors limited to their vendor assignments
-      if (hasRole(session, UserRole.VENDOR)) {
-        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["assignment.assignedTo.vendorId"] = new ObjectId(session.vendorId);
+      if (hasRole(session, UserRole.VENDOR) && session.vendorId && ObjectId.isValid(session.vendorId)) {
+        roleConditions.push({ "assignment.assignedTo.vendorId": new ObjectId(session.vendorId) });
       }
-      // Owners limited to owned/managed properties - require assignment
-      if (hasRole(session, UserRole.OWNER)) {
-        if (!session.assignedProperties?.length) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["location.propertyId"] = {
-          $in: toObjectIds(session.assignedProperties),
-        };
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ "location.propertyId": { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
+        roleConditions.push({ "location.propertyId": { $in: toObjectIds(session.assignedProperties) } });
+      }
+
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      }
+      if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
       }
       return { allowed: true, query: scopedQuery };
     }
     case "properties": {
-      if (hasRole(session, UserRole.OWNER)) {
-        if (!session.assignedProperties?.length) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["_id"] = { $in: toObjectIds(session.assignedProperties) };
+      // OR semantics: multi-role users see properties matching ANY role
+      const roleConditions: Record<string, unknown>[] = [];
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.assignedProperties) } });
       }
-      if (hasRole(session, UserRole.TENANT)) {
-        if (!session.units?.length) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["units.unitId"] = { $in: toObjectIds(session.units) };
+      if (hasRole(session, UserRole.TENANT) && session.units?.length) {
+        roleConditions.push({ "units.unitId": { $in: toObjectIds(session.units) } });
+      }
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      } else if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
       }
       return { allowed: true, query: scopedQuery };
     }
     case "units": {
-      if (hasRole(session, UserRole.TENANT)) {
-        if (!session.units?.length) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["_id"] = { $in: toObjectIds(session.units) };
+      // OR semantics: multi-role users see units matching ANY role
+      const roleConditions: Record<string, unknown>[] = [];
+      if (hasRole(session, UserRole.TENANT) && session.units?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.units) } });
       }
-      if (hasRole(session, UserRole.OWNER)) {
-        if (!session.assignedProperties?.length) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      } else if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
       }
       return { allowed: true, query: scopedQuery };
     }
@@ -605,6 +651,12 @@ export async function GET(req: NextRequest) {
 
     const projection: Record<string, unknown> = {
       score: { $meta: "textScore" },
+      title: 1,
+      name: 1,
+      code: 1,
+      description: 1,
+      address: 1,
+      status: 1,
     };
 
     // Execute all entity searches in parallel
