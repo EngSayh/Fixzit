@@ -1245,6 +1245,7 @@ async function dropLegacySLAIndexes(db: Awaited<ReturnType<typeof getDatabase>>)
     // Default-named orgId-prefixed compound indexes that conflict with canonical named versions
     "orgId_1_type_1",
     "orgId_1_status_1",
+    "orgId_1_priority_1",
     "orgId_1_code_1", // conflicts with slas_orgId_code_unique
     "orgId_1_isActive_1",
   ];
