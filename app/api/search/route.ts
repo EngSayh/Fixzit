@@ -354,23 +354,28 @@ export function applyEntityScope(
   session: SessionUser,
   baseQuery: Record<string, unknown>,
 ): ScopedQueryResult {
-  // Broad roles keep base org scoping
+  // Broad roles keep base org scoping - these roles see all org data
+  // SEC-002: Aligned with ENTITY_PERMISSION_CONFIG allowedRoles
   const isSuperUser =
     session.isSuperAdmin ||
     hasRole(session, UserRole.SUPER_ADMIN) ||
     hasRole(session, UserRole.CORPORATE_ADMIN) ||
+    hasRole(session, UserRole.CORPORATE_OWNER) ||
     hasRole(session, UserRole.ADMIN) ||
     hasRole(session, UserRole.MANAGER) ||
     hasRole(session, UserRole.FM_MANAGER) ||
-    hasRole(session, UserRole.OPERATIONS_MANAGER);
+    hasRole(session, UserRole.OPERATIONS_MANAGER) ||
+    hasRole(session, UserRole.TEAM_MEMBER) ||
+    hasRole(session, UserRole.SUPPORT_AGENT);
 
   if (isSuperUser) {
     return { allowed: true, query: baseQuery };
   }
 
   const scopedQuery = { ...baseQuery };
+  const scopedEntity = normalizeEntity(entity);
 
-  switch (entity) {
+  switch (scopedEntity) {
     case WORK_ORDERS_ENTITY: {
       // Collect role-based conditions with OR semantics for multi-role users
       const roleConditions: Record<string, unknown>[] = [];
@@ -470,8 +475,25 @@ export function applyEntityScope(
       }
       return { allowed: true, query: scopedQuery };
     }
+    case "rfqs": {
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["invitedVendors.vendorId"] = new ObjectId(session.vendorId);
+      }
+      return { allowed: true, query: scopedQuery };
+    }
     case "products":
-    case "services":
+    case "services": {
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["vendorId"] = new ObjectId(session.vendorId);
+      }
+      return { allowed: true, query: scopedQuery };
+    }
     case "listings": {
       if (hasRole(session, UserRole.VENDOR)) {
         if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
@@ -479,6 +501,24 @@ export function applyEntityScope(
         }
         scopedQuery["vendorId"] = new ObjectId(session.vendorId);
       }
+      if (hasRole(session, UserRole.OWNER)) {
+        if (!session.assignedProperties?.length) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
+      }
+      return { allowed: true, query: scopedQuery };
+    }
+    case "projects": {
+      if (hasRole(session, UserRole.OWNER)) {
+        if (!session.assignedProperties?.length) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
+      }
+      return { allowed: true, query: scopedQuery };
+    }
+    case "agents": {
       return { allowed: true, query: scopedQuery };
     }
     default:
@@ -599,10 +639,12 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ results: [] }, 200, req);
     }
 
+    // Dedup normalized entities to prevent duplicate collection queries
+    // when both canonical and legacy names are passed (e.g., workOrders,work_orders)
     let searchEntities =
       entities.length > 0
-        ? entities.map(normalizeEntity)
-        : getSearchEntitiesForScope(moduleScope, app).map(normalizeEntity);
+        ? Array.from(new Set(entities.map(normalizeEntity)))
+        : Array.from(new Set(getSearchEntitiesForScope(moduleScope, app).map(normalizeEntity)));
     if (scope === "all") {
       const combined = new Set<SearchEntity>([
         ...searchEntities,
@@ -610,6 +652,8 @@ export async function GET(req: NextRequest) {
       ]);
       searchEntities = Array.from(combined);
     }
+    // Prevent duplicate searches when both canonical and legacy entities are provided
+    searchEntities = Array.from(new Set(searchEntities));
 
     // Only search collections with text indexes
     searchEntities = searchEntities.filter((entity) =>

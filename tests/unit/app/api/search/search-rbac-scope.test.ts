@@ -79,6 +79,29 @@ describe("search RBAC and tenancy scoping", () => {
       expect(scoped.query).toEqual(baseQuery());
     });
 
+    it("treats broad corporate owner as org-wide for work orders", () => {
+      const session = makeSession({ role: UserRole.CORPORATE_OWNER });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query).toEqual(baseQuery());
+    });
+
+    it("treats team member/support agent as org-wide for properties", () => {
+      const teamMember = makeSession({ role: UserRole.TEAM_MEMBER });
+      const supportAgent = makeSession({
+        role: UserRole.TEAM_MEMBER,
+        roles: [UserRole.SUPPORT_AGENT],
+      });
+
+      const scopedTeamMember = applyEntityScope("properties", teamMember, baseQuery());
+      expect(scopedTeamMember.allowed).toBe(true);
+      expect(scopedTeamMember.query).toEqual(baseQuery());
+
+      const scopedSupport = applyEntityScope("properties", supportAgent, baseQuery());
+      expect(scopedSupport.allowed).toBe(true);
+      expect(scopedSupport.query).toEqual(baseQuery());
+    });
+
     it("scopes tenants to their own work orders", () => {
       const tenantId = new ObjectId().toHexString();
       const session = makeSession({ role: UserRole.TENANT, id: tenantId });

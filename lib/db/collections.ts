@@ -33,6 +33,15 @@ export const COLLECTIONS: Record<string, string> = {
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
   AUDIT_LOGS: "auditLogs",
+  // Admin + org
+  ORGANIZATIONS: "organizations",
+  ADMIN_NOTIFICATIONS: "admin_notifications",
+  // ATS module
+  ATS_JOBS: "jobs",
+  ATS_APPLICATIONS: "applications",
+  ATS_INTERVIEWS: "interviews",
+  ATS_CANDIDATES: "candidates",
+  ATS_SETTINGS: "ats_settings",
   // Additional collections used in lib/queries.ts
   SUPPORT_TICKETS: "supporttickets",
   EMPLOYEES: "employees",
@@ -95,6 +104,17 @@ export async function createIndexes() {
   await dropLegacyGlobalUniqueIndexes(db);
   // Clean up legacy QA indexes that conflict with TTL/org-scoped variants
   await dropLegacyQaIndexes(db);
+  // Clean up legacy user indexes that clash with named variants
+  await dropLegacyUserIndexes(db);
+  // Ensure employeeId unique index uses canonical partial filter
+  try {
+    await db.collection(COLLECTIONS.USERS).dropIndex("users_orgId_employeeId_unique");
+  } catch (error) {
+    const message = (error as Error).message || String(error);
+    if (!/index not found/i.test(message)) {
+      logger.warn("Could not drop legacy users_orgId_employeeId_unique", { error: message });
+    }
+  }
 
   await createQaIndexes(db);
 
@@ -136,17 +156,6 @@ export async function createIndexes() {
         unique: true,
         background: true,
         name: "users_orgId_code_unique",
-        partialFilterExpression: { orgId: { $exists: true } },
-      },
-    );
-  await db
-    .collection(COLLECTIONS.USERS)
-    .createIndex(
-      { orgId: 1, employeeId: 1 },
-      {
-        unique: true,
-        background: true,
-        name: "users_orgId_employeeId_unique",
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
@@ -213,7 +222,8 @@ export async function createIndexes() {
         unique: true,
         background: true,
         name: "workorders_orgId_workOrderNumber_unique",
-        partialFilterExpression: { orgId: { $exists: true } },
+        // Exclude documents without a string workOrderNumber to avoid collisions on null/undefined
+        partialFilterExpression: { orgId: { $exists: true }, workOrderNumber: { $type: "string" } },
       },
     );
   await db
@@ -891,6 +901,54 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
     });
 }
 
+/**
+ * Drop legacy user indexes that are either non-org-scoped or use default names,
+ * so canonical org-scoped, named indexes can be created without collisions.
+ */
+async function dropLegacyUserIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const userIndexes = [
+    // Global/non-org-scoped defaults
+    "email_1",
+    "phone_1",
+    "username_1",
+    "code_1",
+    "employeeId_1",
+    // Default-named orgId-prefixed variants (conflict with canonical named indexes)
+    "orgId_1_email_1",
+    "orgId_1_phone_1",
+    "orgId_1_username_1",
+    "orgId_1_code_1",
+    "orgId_1_employeeId_1",
+    "orgId_1_role_1",
+    "orgId_1_professional.role_1",
+    "orgId_1_professional.subRole_1",
+    "orgId_1_personal.phone_1",
+    "orgId_1_assignment.assignedTo.userId_1",
+    "orgId_1_assignment.assignedTo.vendorId_1",
+    // Legacy unique name that used a conflicting partialFilterExpression
+    "users_orgId_employeeId_unique",
+  ];
+
+  for (const indexName of userIndexes) {
+    try {
+      await db.collection(COLLECTIONS.USERS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) {
+        continue;
+      }
+      logger.warn("[indexes] Failed to drop legacy user index", {
+        indexName,
+        error: err?.message,
+      });
+    }
+  }
+}
+
 async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
@@ -913,6 +971,8 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
       indexes: [
         "code_1",
         "workOrderNumber_1",
+        // Drop canonical-named unique index to allow recreation with updated partial filters
+        "workorders_orgId_workOrderNumber_unique",
         "orgId_1_assignedTo_1_status_1",
         "orgId_1_status_1",
         "orgId_1_priority_1",

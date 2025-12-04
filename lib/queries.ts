@@ -4,12 +4,21 @@
 // AUDIT-2025-11-29: Standardized from org_id to orgId
 // AUDIT-2025-12-04: Fixed collection names to use COLLECTIONS constant
 
+import { ObjectId } from "mongodb";
 import { getDatabase } from "./mongodb-unified";
 import { COLLECTIONS, createIndexes } from "./db/collections";
 
 // Alias for consistency
 const getDb = getDatabase;
 type MongoDb = Awaited<ReturnType<typeof getDb>>;
+
+// Standard soft-delete guard to exclude deleted documents
+const softDeleteGuard = { isDeleted: { $ne: true }, deletedAt: { $exists: false } };
+
+const normalizeId = (id: string | ObjectId): ObjectId | string =>
+  id instanceof ObjectId ? id : ObjectId.isValid(id) ? new ObjectId(id) : id;
+
+const normalizeOrgId = (orgId: string): ObjectId | string => normalizeId(orgId);
 
 // ==========================================
 // WORK ORDERS MODULE
@@ -20,12 +29,14 @@ type MongoDb = Awaited<ReturnType<typeof getDb>>;
  */
 export async function getSLAWatchlist(orgId: string, limit = 50) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
   return db
     .collection(COLLECTIONS.WORK_ORDERS)
     .aggregate([
       {
         $match: {
-          orgId: orgId,
+          orgId: nOrgId,
+          ...softDeleteGuard,
           status: { $in: ["Open", "In Progress", "Pending Approval"] },
           sla_due: { $exists: true },
         },
@@ -64,30 +75,19 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
 export async function getWorkOrderStats(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.WORK_ORDERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
-    collection.countDocuments({ orgId: orgId, isDeleted: { $ne: true } }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: { $in: ["SUBMITTED", "ASSIGNED"] } }),
+    collection.countDocuments({ ...base, status: "IN_PROGRESS" }),
     collection.countDocuments({
-      orgId: orgId,
-      isDeleted: { $ne: true },
-      status: { $in: ["SUBMITTED", "ASSIGNED"] },
-    }),
-    collection.countDocuments({
-      orgId: orgId,
-      isDeleted: { $ne: true },
-      status: "IN_PROGRESS",
-    }),
-    collection.countDocuments({
-      orgId: orgId,
-      isDeleted: { $ne: true },
+      ...base,
       status: { $in: ["ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL"] },
       "sla.resolutionDeadline": { $lt: new Date() },
     }),
-    collection.countDocuments({
-      orgId: orgId,
-      isDeleted: { $ne: true },
-      status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] },
-    }),
+    collection.countDocuments({ ...base, status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] } }),
   ]);
 
   return {
@@ -110,16 +110,18 @@ export async function getWorkOrderStats(orgId: string) {
 export async function getInvoiceCounters(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.INVOICES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ orgId: orgId, status: { $in: ["ISSUED", "OVERDUE"] } }),
+    collection.countDocuments({ ...base, status: { $in: ["ISSUED", "OVERDUE"] } }),
     collection.countDocuments({
-      orgId: orgId,
+      ...base,
       status: { $in: ["ISSUED", "OVERDUE"] },
       dueDate: { $lt: new Date() },
     }),
-    collection.countDocuments({ orgId: orgId, status: "PAID" }),
-    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ ...base, status: "PAID" }),
+    collection.countDocuments(base),
   ]);
 
   return { unpaid, overdue, paid, total };
@@ -130,6 +132,7 @@ export async function getInvoiceCounters(orgId: string) {
  */
 export async function getRevenueStats(orgId: string, days = 30) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
@@ -138,7 +141,8 @@ export async function getRevenueStats(orgId: string, days = 30) {
     .aggregate([
       {
         $match: {
-          orgId: orgId,
+          orgId: nOrgId,
+          ...softDeleteGuard,
           status: "PAID",
           paidAt: { $gte: startDate },
         },
@@ -170,12 +174,14 @@ export async function getRevenueStats(orgId: string, days = 30) {
 export async function getEmployeeCounters(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.EMPLOYEES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, onLeave, probation] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, status: "On Leave" }),
-    collection.countDocuments({ orgId: orgId, status: "Probation" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "On Leave" }),
+    collection.countDocuments({ ...base, status: "Probation" }),
   ]);
 
   return { total, active, onLeave, probation };
@@ -188,13 +194,15 @@ export async function getAttendanceSummary(orgId: string) {
   const db = await getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const nOrgId = normalizeOrgId(orgId);
 
   const result = await db
     .collection(COLLECTIONS.ATTENDANCE)
     .aggregate([
       {
         $match: {
-          orgId: orgId,
+          orgId: nOrgId,
+          ...softDeleteGuard,
           date: { $gte: today },
         },
       },
@@ -237,12 +245,14 @@ export async function getAttendanceSummary(orgId: string) {
 export async function getPropertyCounters(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.PROPERTIES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, maintenance, leased] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, status: "Under Maintenance" }),
-    collection.countDocuments({ orgId: orgId, lease_status: "Leased" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "Under Maintenance" }),
+    collection.countDocuments({ ...base, lease_status: "Leased" }),
   ]);
 
   const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
@@ -260,14 +270,14 @@ export async function getPropertyCounters(orgId: string) {
 export async function getCustomerCounters(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.CUSTOMERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, leads, contracts] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, type: "Lead" }),
-    db
-      .collection(COLLECTIONS.CONTRACTS)
-      .countDocuments({ orgId: orgId, status: "Active" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, type: "Lead" }),
+    db.collection(COLLECTIONS.CONTRACTS).countDocuments({ ...base, status: "Active" }),
   ]);
 
   return { total, active, leads, contracts };
@@ -283,12 +293,14 @@ export async function getCustomerCounters(orgId: string) {
 export async function getSupportCounters(orgId: string) {
   const db = await getDb();
   const collection = db.collection(COLLECTIONS.SUPPORT_TICKETS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, open, pending, resolved] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Open" }),
-    collection.countDocuments({ orgId: orgId, status: "Pending" }),
-    collection.countDocuments({ orgId: orgId, status: "Resolved" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Open" }),
+    collection.countDocuments({ ...base, status: "Pending" }),
+    collection.countDocuments({ ...base, status: "Resolved" }),
   ]);
 
   return { total, open, pending, resolved };
@@ -303,19 +315,22 @@ export async function getSupportCounters(orgId: string) {
  */
 export async function getMarketplaceCounters(orgId: string, sellerId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const seller = normalizeId(sellerId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ orgId, sellerId }),
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ ...base, sellerId: seller }),
     db
       .collection(COLLECTIONS.SOUQ_ORDERS)
-      .countDocuments({ orgId, "items.sellerId": sellerId }),
+      .countDocuments({ ...base, "items.sellerId": seller }),
     db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
-      orgId,
-      productId: { $in: await getSellerProductIds(orgId, sellerId, db) },
+      ...base,
+      productId: { $in: await getSellerProductIds(nOrgId, seller, db) },
     }),
     db
       .collection(COLLECTIONS.SOUQ_LISTINGS)
-      .countDocuments({ orgId, sellerId, status: "active" }),
+      .countDocuments({ ...base, sellerId: seller, status: "active" }),
   ]);
 
   return { listings, activeListings, orders, reviews };
@@ -327,24 +342,26 @@ export async function getMarketplaceCounters(orgId: string, sellerId: string) {
  */
 export async function getMarketplaceCountersForOrg(orgId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [listings, orders, reviews] = await Promise.all([
-    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments(base), // ✅ Tenant-scoped
   ]);
 
   return { listings, orders, reviews };
 }
 
 async function getSellerProductIds(
-  orgId: string,
-  sellerId: string,
+  orgId: string | ObjectId,
+  sellerId: string | ObjectId,
   db: MongoDb,
 ): Promise<unknown[]> {
   const listings = await db
     .collection(COLLECTIONS.SOUQ_LISTINGS)
-    .find({ orgId, sellerId })
+    .find({ orgId, sellerId, ...softDeleteGuard })
     .project({ productId: 1 })
     .toArray();
   return listings.map((l) => l.productId);
@@ -359,12 +376,14 @@ async function getSellerProductIds(
  */
 export async function getSystemCounters(orgId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [users, roles, tenants, apiKeys] = await Promise.all([
-    db.collection(COLLECTIONS.USERS).countDocuments({ orgId }),
-    db.collection(COLLECTIONS.ROLES).countDocuments({ orgId }),
-    db.collection(COLLECTIONS.TENANTS).countDocuments({ orgId }),
-    db.collection(COLLECTIONS.API_KEYS).countDocuments({ orgId, status: "Active" }),
+    db.collection(COLLECTIONS.USERS).countDocuments(base),
+    db.collection(COLLECTIONS.ROLES).countDocuments(base),
+    db.collection(COLLECTIONS.TENANTS).countDocuments(base),
+    db.collection(COLLECTIONS.API_KEYS).countDocuments({ ...base, status: "Active" }),
   ]);
 
   return { users, roles, tenants, apiKeys };

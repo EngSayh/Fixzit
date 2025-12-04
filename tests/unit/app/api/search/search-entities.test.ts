@@ -5,10 +5,14 @@ import {
 } from "@/app/api/search/route";
 import { COLLECTIONS } from "@/lib/db/collections";
 import type { SearchEntity } from "@/config/topbar-modules";
+import {
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY,
+} from "@/config/topbar-modules";
 
 const EXPECTED_ENTITIES: SearchEntity[] = [
-  "workOrders",
-  "work_orders", // legacy alias
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY, // legacy alias
   "properties",
   "units",
   "tenants",
@@ -42,7 +46,7 @@ describe("search route – text search coverage", () => {
       expect(Object.values(COLLECTIONS)).toContain(value);
 
       // Work orders (both canonical and legacy) must map to canonical collection
-      if (entity === "workOrders" || entity === "work_orders") {
+      if (entity === WORK_ORDERS_ENTITY || entity === WORK_ORDERS_ENTITY_LEGACY) {
         expect(value).toBe(COLLECTIONS.WORK_ORDERS);
       }
     }
