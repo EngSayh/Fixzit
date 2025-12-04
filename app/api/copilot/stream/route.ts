@@ -7,7 +7,7 @@ import { retrieveKnowledge } from "@/server/copilot/retrieval";
 import { generateCopilotStreamResponse } from "@/server/copilot/llm";
 import { recordAudit } from "@/server/copilot/audit";
 import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { validateSystemGovernors } from "@/server/copilot/governors";
@@ -67,9 +67,9 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting - more strict for AI endpoints
+    // Rate limiting - more strict for AI endpoints (distributed for multi-instance)
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`copilot:stream:${clientIp}`, 30, 60_000); // 30 requests per minute
+    const rl = await smartRateLimit(`copilot:stream:${clientIp}`, 30, 60_000); // 30 requests per minute
     if (!rl.allowed) {
       return rateLimitError();
     }

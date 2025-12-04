@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   try {
     // Rate limit based on IP for public endpoint
     const ip = getClientIP(req);
-    const rl = rateLimit(`aqar:pricing:${ip}`, 30, 60_000); // 30 requests per minute
+    const rl = await smartRateLimit(`aqar:pricing:${ip}`, 30, 60_000); // 30 requests per minute
     if (!rl.allowed) {
       return NextResponse.json(
         { ok: false, error: "Rate limit exceeded" },

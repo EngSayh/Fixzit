@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { Config } from "@/lib/config/constants";
 import { createSecureResponse } from "@/server/security/headers";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
@@ -43,7 +43,7 @@ interface PMPlanDocument {
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

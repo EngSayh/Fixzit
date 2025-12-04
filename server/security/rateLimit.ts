@@ -1,6 +1,7 @@
 import { LRUCache } from "lru-cache";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+import { redactRateLimitKey } from "./rateLimitKey";
 
 /**
  * In-memory LRU cache for rate limiting (fallback when Redis unavailable)
@@ -124,8 +125,9 @@ export async function redisRateLimit(
 
     // CRITICAL FIX: Use >= to match in-memory behavior (both block at limit, not limit+1)
     if (count >= limit) {
+      // SECURITY: Use redactRateLimitKey to mask org IDs, paths with entity IDs, and IPs
       logger.warn('[RateLimit] Rate limit exceeded', { 
-        key: key.replace(/:[^:]+$/, ':***'), // Redact last segment (IP)
+        key: redactRateLimitKey(key),
         count, 
         limit 
       });
@@ -149,9 +151,12 @@ export async function redisRateLimit(
   }
 }
 
-// Re-export the consolidated buildRateLimitKey from rateLimitKey.ts
-// This ensures all callers use the same org-aware key builder
-export { buildRateLimitKey } from './rateLimitKey';
+// Re-export key builders from rateLimitKey.ts
+// buildRateLimitKey: backward-compatible, auto-detects legacy vs new call pattern
+// buildOrgAwareRateLimitKey: explicit org-aware key builder (recommended for new code)
+// safeGetClientIp: helper for getting client IP with fallback
+// redactRateLimitKey: helper for safe logging of rate limit keys
+export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp, redactRateLimitKey } from './rateLimitKey';
 
 /**
  * Smart rate limiting that automatically uses Redis when available.

@@ -4,7 +4,7 @@ import { Asset } from "@/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
@@ -100,7 +100,7 @@ export async function GET(
 ) {
   try {
     const user = await getSessionUser(req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -196,7 +196,7 @@ export async function DELETE(
 ) {
   try {
     const user = await getSessionUser(req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

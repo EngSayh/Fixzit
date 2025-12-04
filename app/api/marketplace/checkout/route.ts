@@ -3,7 +3,7 @@ import { z } from "zod";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { serializeOrder } from "@/lib/marketplace/serializers";
 import { createSecureResponse } from "@/server/security/headers";
 import {
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
       return unauthorizedError();
     }
 
-    // Rate limiting for checkout operations
+    // Rate limiting for checkout operations (distributed for multi-instance)
     const key = `marketplace:checkout:${context.userId}`;
-    const rl = rateLimit(key, 10, 300_000); // 10 checkouts per 5 minutes
+    const rl = await smartRateLimit(key, 10, 300_000); // 10 checkouts per 5 minutes
     if (!rl.allowed) {
       return rateLimitError("Checkout rate limit exceeded");
     }

@@ -15,7 +15,7 @@ import {
 } from "@/server/models/finance/TapTransaction";
 import { Payment } from "@/server/models/finance/Payment";
 import { Invoice } from "@/server/models/Invoice";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { withIdempotency } from "@/server/security/idempotency";
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       `tap-webhook:${clientIp}`,
       TAP_WEBHOOK_RATE_LIMIT.requests,
       TAP_WEBHOOK_RATE_LIMIT.windowMs,

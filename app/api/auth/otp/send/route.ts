@@ -13,7 +13,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_SENDS_PER_WINDOW,
 } from "@/lib/otp-store";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   EMPLOYEE_ID_REGEX,
@@ -313,7 +313,8 @@ export async function POST(request: NextRequest) {
   });
   if (ipRateLimited) return ipRateLimited;
   const clientIp = request.headers.get("x-forwarded-for") || "otp-ip";
-  const rl = rateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
+  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  const rl = await smartRateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { success: false, error: "Too many attempts. Please try again later." },

@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { verifyPasswordResetToken } from "@/lib/auth/passwordReset";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -37,8 +37,9 @@ const resetSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: 10 attempts per 15 minutes per IP
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`reset-password:${clientIp}`, 10, 15 * 60 * 1000);
+    const rl = await smartRateLimit(`reset-password:${clientIp}`, 10, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many attempts. Please try again later." },

@@ -6,7 +6,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { auth } from "@/auth";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

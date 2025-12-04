@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { AtsSettings } from "@/server/models/AtsSettings";
 import { logger } from "@/lib/logger";
 import { atsRBAC } from "@/lib/ats/rbac";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (!authResult.authorized) {
       return authResult.response;
     }
-    const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, authResult.userId), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     if (!authResult.authorized) {
       return authResult.response;
     }
-    const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 30, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, authResult.userId), 30, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

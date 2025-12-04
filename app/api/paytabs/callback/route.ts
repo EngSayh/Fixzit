@@ -16,7 +16,7 @@ import {
 } from "@/lib/payments/paytabs-callback.contract";
 import { logger } from "@/lib/logger";
 import { withIdempotency } from "@/server/security/idempotency";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 /**
@@ -39,7 +39,7 @@ import { createSecureResponse, getClientIP } from "@/server/security/headers";
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(
+  const rl = await smartRateLimit(
     `paytabs:subscription:${clientIp}`,
     PAYTABS_CALLBACK_RATE_LIMIT.requests,
     PAYTABS_CALLBACK_RATE_LIMIT.windowMs,

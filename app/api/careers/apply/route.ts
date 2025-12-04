@@ -6,7 +6,7 @@ import {
   submitApplicationFromForm,
   ApplicationSubmissionError,
 } from "@/server/services/ats/application-intake";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
@@ -42,7 +42,7 @@ interface JobWithScreening {
  */
 export async function POST(req: NextRequest) {
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

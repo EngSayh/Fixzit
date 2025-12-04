@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import PriceTier from "@/server/models/PriceTier";
 import Module from "@/server/models/Module";
 import { getUserFromToken } from "@/lib/auth";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import {
   createErrorResponse,
@@ -65,7 +65,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting for admin operations
     const key = `admin:price-tiers:${user.id}`;
-    const rl = rateLimit(key, 20, 60_000); // 20 requests per minute
+    const rl = await smartRateLimit(key, 20, 60_000); // 20 requests per minute
     if (!rl.allowed) {
       return createErrorResponse("Rate limit exceeded", 429, req);
     }

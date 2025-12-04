@@ -5,7 +5,7 @@ import Customer from "@/server/models/Customer";
 import { computeQuote } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 import { getUserFromToken } from "@/lib/auth";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   rateLimitError,
   zodValidationError,
@@ -51,9 +51,9 @@ const subscriptionSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate limiting for subscription operations (per tenant)
+    // Rate limiting for subscription operations (per tenant) - SECURITY: Distributed
     const key = `billing:subscribe:${user.orgId}`;
-    const tenantRl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
+    const tenantRl = await smartRateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
     if (!tenantRl.allowed) {
       return createSecureResponse(
         {
