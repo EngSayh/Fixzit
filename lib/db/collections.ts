@@ -153,6 +153,8 @@ export async function createIndexes() {
   await dropLegacyWorkOrderIndexes(db);
   // Clean up legacy invoice indexes that clash with named variants
   await dropLegacyInvoiceIndexes(db);
+  // Clean up legacy subscription invoice indexes that clash with named variants
+  await dropLegacySubscriptionInvoiceIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1153,6 +1155,38 @@ async function dropLegacyInvoiceIndexes(db: Awaited<ReturnType<typeof getDatabas
         continue;
       }
       logger.warn("[indexes] Failed to drop legacy invoice index", {
+        indexName,
+        error: err?.message,
+      });
+    }
+  }
+}
+
+/**
+ * Drop legacy subscription invoice indexes that use default names and conflict with canonical named indexes.
+ * This allows the canonical indexes (e.g., subscriptioninvoices_orgId_status_dueDate) to be created idempotently.
+ */
+async function dropLegacySubscriptionInvoiceIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const subscriptionInvoiceIndexes = [
+    // Default-named orgId-prefixed compound indexes that conflict with canonical named versions
+    "orgId_1_status_1_dueDate_1",
+    "orgId_1_subscriptionId_1_dueDate_-1",
+    "orgId_1_subscriptionId_1",
+  ];
+
+  for (const indexName of subscriptionInvoiceIndexes) {
+    try {
+      await db.collection(COLLECTIONS.SUBSCRIPTION_INVOICES).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) {
+        continue;
+      }
+      logger.warn("[indexes] Failed to drop legacy subscription invoice index", {
         indexName,
         error: err?.message,
       });
