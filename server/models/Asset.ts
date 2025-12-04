@@ -189,6 +189,26 @@ const AssetSchema = new Schema(
 AssetSchema.plugin(tenantIsolationPlugin);
 AssetSchema.plugin(auditPlugin);
 
+// Schema-level indexes to mirror centralized createIndexes() definitions
+AssetSchema.index({ orgId: 1, type: 1 }, { name: "assets_orgId_type" });
+AssetSchema.index({ orgId: 1, status: 1 }, { name: "assets_orgId_status" });
+AssetSchema.index(
+  { orgId: 1, "pmSchedule.nextPM": 1 },
+  { name: "assets_orgId_nextPM" },
+);
+AssetSchema.index(
+  { orgId: 1, "condition.score": 1 },
+  { name: "assets_orgId_conditionScore" },
+);
+AssetSchema.index(
+  { orgId: 1, code: 1 },
+  {
+    unique: true,
+    name: "assets_orgId_code_unique",
+    partialFilterExpression: { orgId: { $exists: true }, code: { $exists: true } },
+  },
+);
+
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 
 // Export model with singleton pattern for production, recreation for tests

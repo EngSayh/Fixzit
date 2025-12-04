@@ -22,28 +22,20 @@
  *   --dry-run    Preview changes without applying them
  */
 
-import { MongoClient } from "mongodb";
-import { config } from "dotenv";
-
-config({ path: ".env.local" });
-config({ path: ".env" });
-
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
-  process.exit(1);
-}
+import "dotenv/config";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const INDEXES_TO_CREATE = [
   {
-    collection: "qa_logs",
+    collection: COLLECTIONS.QA_LOGS,
     index: { timestamp: -1 },
     options: { name: "timestamp_desc", background: true },
   },
   {
-    collection: "qa_logs",
+    collection: COLLECTIONS.QA_LOGS,
     index: { orgId: 1, timestamp: -1 },
     options: { 
       name: "orgId_timestamp", 
@@ -52,7 +44,7 @@ const INDEXES_TO_CREATE = [
     },
   },
   {
-    collection: "qa_logs",
+    collection: COLLECTIONS.QA_LOGS,
     index: { orgId: 1, event: 1, timestamp: -1 },
     options: { 
       name: "orgId_event_timestamp", 
@@ -62,7 +54,7 @@ const INDEXES_TO_CREATE = [
   },
   {
     // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
-    collection: "qa_logs",
+    collection: COLLECTIONS.QA_LOGS,
     index: { timestamp: 1 },
     options: { 
       name: "qa_logs_ttl_90d", 
@@ -76,22 +68,18 @@ async function main() {
   console.log("🔧 QA Logs Index Migration");
   console.log(DRY_RUN ? "📝 DRY RUN MODE - No changes will be applied\n" : "\n");
 
-  const client = new MongoClient(MONGO_URI!);
-
   try {
-    await client.connect();
+    const db = await getDatabase();
     console.log("✅ Connected to MongoDB");
 
-    const db = client.db();
-
     // First, check if qa_logs collection exists
-    const collections = await db.listCollections({ name: "qa_logs" }).toArray();
+    const collections = await db.listCollections({ name: COLLECTIONS.QA_LOGS }).toArray();
     if (collections.length === 0) {
       console.log("⚠️  qa_logs collection does not exist yet, will be created on first insert");
     } else {
       // Count documents for context
-      const totalCount = await db.collection("qa_logs").countDocuments({});
-      const withOrgId = await db.collection("qa_logs").countDocuments({ orgId: { $exists: true } });
+      const totalCount = await db.collection(COLLECTIONS.QA_LOGS).countDocuments({});
+      const withOrgId = await db.collection(COLLECTIONS.QA_LOGS).countDocuments({ orgId: { $exists: true } });
       console.log(`📊 qa_logs stats: ${totalCount} total documents, ${withOrgId} with orgId`);
       
       if (totalCount > 0 && withOrgId < totalCount) {
@@ -130,7 +118,7 @@ async function main() {
       console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
     }
   } finally {
-    await client.close();
+    await disconnectFromDatabase();
   }
 }
 

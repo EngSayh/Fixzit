@@ -163,6 +163,20 @@ export async function createIndexes() {
 
   await createQaIndexes(db);
 
+  // Error telemetry - ensure org-scoped dedupe for incidents
+  await db.collection(COLLECTIONS.ERROR_EVENTS).createIndex(
+    { orgId: 1, incidentKey: 1 },
+    {
+      name: "error_events_org_incidentKey",
+      unique: true,
+      background: true,
+      partialFilterExpression: {
+        orgId: { $exists: true },
+        incidentKey: { $exists: true },
+      },
+    },
+  );
+
   // Users - STRICT v4.1: email unique per org, not globally
   await db
     .collection(COLLECTIONS.USERS)
@@ -740,6 +754,50 @@ export async function createIndexes() {
         background: true,
         name: "communication_logs_orgId_status_createdAt_desc",
         partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Error Events (Support/Incidents) - STRICT v4.1: org-scoped for tenant isolation
+  // Supports dedupe queries and analytics by tenant
+  await db
+    .collection(COLLECTIONS.ERROR_EVENTS)
+    .createIndex(
+      { orgId: 1, incidentKey: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "error_events_orgId_incidentKey_unique",
+        partialFilterExpression: { orgId: { $exists: true }, incidentKey: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.ERROR_EVENTS)
+    .createIndex(
+      { tenantScope: 1, incidentKey: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "error_events_tenantScope_incidentKey_unique",
+        partialFilterExpression: { tenantScope: { $exists: true }, incidentKey: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.ERROR_EVENTS)
+    .createIndex(
+      { orgId: 1, severity: 1, createdAt: -1 },
+      {
+        background: true,
+        name: "error_events_orgId_severity_createdAt_desc",
+      },
+    );
+  await db
+    .collection(COLLECTIONS.ERROR_EVENTS)
+    .createIndex(
+      { createdAt: 1 },
+      {
+        background: true,
+        name: "error_events_createdAt_ttl",
+        expireAfterSeconds: 60 * 60 * 24 * 90, // 90 days retention
       },
     );
 

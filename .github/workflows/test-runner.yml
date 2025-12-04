@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Test Runner
 
 on:
@@ -18,7 +20,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     # MongoDB service for index creation and DB-bound tests
     services:
       mongodb:
@@ -32,7 +34,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     env:
       NODE_ENV: test
       CI: true
@@ -42,10 +44,11 @@ jobs:
       NEXTAUTH_URL: http://localhost:3000
       MONGODB_URI: mongodb://localhost:27017/fixzit_test
       ALLOW_OFFLINE_MONGODB: 'false'
+      HEALTH_CHECK_TOKEN: ${{ secrets.HEALTH_CHECK_TOKEN || 'ci-health-token' }}
       PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
       DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
       TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
-      
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,13 +78,15 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          # Run unit tests with coverage
+          set -e
+          # Run unit tests with coverage. Fail-fast if both runners fail.
           if pnpm run test:ci --passWithNoTests 2>/dev/null; then
             echo "Tests completed successfully"
           elif pnpm test --passWithNoTests 2>/dev/null; then
             echo "Tests completed with fallback command"
           else
-            echo "::warning::No test runner configured or tests failed"
+            echo "::error::Unit tests failed (test:ci and test fallback both failed)"
+            exit 1
           fi
 
       - name: Run Auth API Tests

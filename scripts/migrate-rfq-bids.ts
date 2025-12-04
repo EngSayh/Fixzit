@@ -49,7 +49,9 @@ async function main() {
     await connectToDatabase();
 
     const RFQCollection = mongoose.connection.collection(COLLECTIONS.RFQS);
-    const ProjectBidCollection = mongoose.connection.collection("projectbids");
+    const ProjectBidCollection = mongoose.connection.collection(
+      COLLECTIONS.PROJECT_BIDS,
+    );
 
     if (mode === "VERIFY") {
       await verifyMigration(RFQCollection, ProjectBidCollection);

@@ -1,20 +1,14 @@
-import { MongoClient } from "mongodb";
 import "dotenv/config";
+import "tsx/register";
 import { embedText } from "@/ai/embeddings";
 import { chunkText } from "@/kb/chunk";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 async function run() {
-  const uri = process.env.MONGODB_URI as string;
-  if (!uri) throw new Error("MONGODB_URI not set");
-  const client = new MongoClient(uri);
-  await client.connect();
-  const dbName =
-    (new URL(uri).pathname || "/").slice(1) ||
-    process.env.MONGODB_DB ||
-    undefined;
-  const db = dbName ? client.db(dbName) : client.db();
-  const articles = db.collection("helparticles");
-  const kb = db.collection("kb_embeddings");
+  const db = await getDatabase();
+  const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
+  const kb = db.collection(COLLECTIONS.KB_EMBEDDINGS);
   console.log("KB Change Stream watcher started…");
   interface ChangeEvent {
     operationType: string;
@@ -77,5 +71,5 @@ async function run() {
 
 run().catch((err) => {
   console.error(err);
-  process.exit(1);
+  disconnectFromDatabase().finally(() => process.exit(1));
 });

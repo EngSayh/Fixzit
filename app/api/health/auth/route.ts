@@ -8,9 +8,10 @@
  * X-Health-Token matching HEALTH_CHECK_TOKEN. Unauthenticated callers receive
  * a minimal status payload to avoid recon/fingerprinting.
  */
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { createSecureResponse } from "@/server/security/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -97,12 +98,13 @@ export async function GET(_request: NextRequest) {
     // Redact details for unauthenticated callers to avoid recon. Only minimal
     // status + timestamp is exposed publicly.
     if (!isAuthorized) {
-      return NextResponse.json(
+      return createSecureResponse(
         {
           status,
           timestamp: new Date().toISOString(),
         },
-        { status: status === "healthy" ? 200 : 503 },
+        status === "healthy" ? 200 : 503,
+        _request,
       );
     }
 
@@ -172,22 +174,30 @@ export async function GET(_request: NextRequest) {
       criticalMissing,
     });
 
-    return NextResponse.json(response, {
-      status: status === "healthy" ? 200 : 503,
-    });
+    return createSecureResponse(
+      response,
+      status === "healthy" ? 200 : 503,
+      _request,
+    );
   } catch (error) {
     logger.error("[Health/Auth] Error checking auth config", { error });
-    return NextResponse.json(
+    const isAuthorized = isAuthorizedHealthRequest(_request);
+    
+    // Only expose error details to authorized callers to prevent recon
+    return createSecureResponse(
       {
         status: "error",
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-        recommendations: [
-          "Check Vercel function logs for detailed error",
-          "Ensure all environment variables are set correctly",
-        ],
+        ...(isAuthorized && {
+          error: error instanceof Error ? error.message : "Unknown error",
+          recommendations: [
+            "Check Vercel function logs for detailed error",
+            "Ensure all environment variables are set correctly",
+          ],
+        }),
       },
-      { status: 500 },
+      500,
+      _request,
     );
   }
 }

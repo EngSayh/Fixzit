@@ -16,7 +16,6 @@ import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
-import { COLLECTIONS } from "@/lib/db/collections";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +32,27 @@ export async function GET(request: NextRequest) {
 
     const dbStart = Date.now();
     try {
-      const connection = await db;
-      
-      // Verify connection by attempting an actual DB operation (not just checking method exists)
-      // This runs for ALL callers to ensure accurate health status for LB/monitors
-      if (connection && typeof connection.collection === "function") {
+      const connection = (await db) as unknown as {
+        command?: (
+          cmd: Record<string, unknown>,
+          options?: { signal?: AbortSignal },
+        ) => Promise<unknown>;
+      };
+
+      // Lightweight admin ping with server-side timeout; avoids full collection scans.
+      const command = connection?.command;
+      if (typeof command === "function") {
+        const cmd = command;
         await withTimeout(
-          async (_signal: AbortSignal) => {
-            // Use a simple findOne on users collection as a lightweight liveness check
-            // This verifies actual DB connectivity, not just that the handle exists
-            await connection.collection(COLLECTIONS.USERS).findOne({});
+          async (signal: AbortSignal) => {
+            await cmd({ ping: 1, maxTimeMS: DB_PING_TIMEOUT_MS }, { signal });
           },
-          { timeoutMs: DB_PING_TIMEOUT_MS }
+          { timeoutMs: DB_PING_TIMEOUT_MS },
         );
         dbStatus = "connected";
         dbLatency = Date.now() - dbStart;
+      } else {
+        throw new Error("Database handle does not support command()");
       }
     } catch (dbError) {
       dbLatency = Date.now() - dbStart;

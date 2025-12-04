@@ -43,6 +43,7 @@ import mongoose, { ClientSession } from "mongoose";
 import { User } from "@/server/models/User";
 import { normalizeRole } from "@/domain/fm/fm.behavior";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 // Configuration
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -132,7 +133,7 @@ async function createBackup(): Promise<void> {
   const matchStage = ORG_ID ? { $match: { orgId: ORG_ID } } : { $match: {} };
   
   // Copy users to backup (tenant-scoped if applicable)
-  await db.collection("users").aggregate([
+  await db.collection(COLLECTIONS.USERS).aggregate([
     matchStage,
     { $out: backupName },
   ]).toArray();

@@ -130,10 +130,33 @@ const ProductSchema = new Schema<MarketplaceProduct>(
 ProductSchema.plugin(tenantIsolationPlugin);
 ProductSchema.plugin(auditPlugin);
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Indexes are defined centrally in lib/db/collections.ts (createIndexes()) to
-// avoid IndexOptionsConflict when deploying. Do not add schema-level indexes
-// here; update the central definitions instead.
+// Schema-level indexes to mirror centralized createIndexes() definitions
+// (names/partials match to avoid IndexOptionsConflict).
+ProductSchema.index(
+  { orgId: 1, sku: 1 },
+  {
+    unique: true,
+    name: "products_orgId_sku_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index(
+  { orgId: 1, slug: 1 },
+  {
+    unique: true,
+    name: "products_orgId_slug_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
+ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
+ProductSchema.index(
+  { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
+  {
+    name: "products_orgId_text_search",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
 
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||

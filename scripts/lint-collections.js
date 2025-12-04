@@ -7,8 +7,9 @@ const path = require('path');
 const glob = require('glob');
 
 const args = process.argv.slice(2);
-// By default, scan runtime code (app/server/lib/modules). Pass additional paths explicitly if needed (e.g., scripts).
-const roots = args.length ? args : ['app', 'server', 'lib', 'modules'];
+// By default, scan runtime and scripts (app/server/lib/modules/scripts).
+// Pass additional paths explicitly if needed.
+const roots = args.length ? args : ['app', 'server', 'lib', 'modules', 'scripts'];
 
 const allowExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const allowLiterals = new Set([
@@ -18,6 +19,7 @@ const allowLiterals = new Set([
   '_tenant_test',
   '_perf_test',
   'test', // generic test DB in scripts
+  'system.version', // Mongo internal collection used for health checks
 ]);
 
 let violations = [];
@@ -26,6 +28,7 @@ for (const root of roots) {
   const pattern = path.join(root, '**/*.{ts,tsx,js,mjs,cjs}');
     const files = glob.sync(pattern, { nodir: true, ignore: ['**/node_modules/**', '**/coverage/**', '**/dist/**', '**/.next/**'] });
   for (const file of files) {
+    if (file.endsWith('scripts/lint-collections.js')) continue; // skip self
     const ext = path.extname(file);
     if (!allowExtensions.has(ext)) continue;
     const content = fs.readFileSync(file, 'utf8');

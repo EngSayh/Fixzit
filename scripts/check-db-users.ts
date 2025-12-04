@@ -53,9 +53,9 @@ async function checkDatabase() {
     // Check credentials collection presence/count
     console.log("\n🔐 Checking credentials collection...\n");
     const collections = await db.listCollections().toArray();
-    const hasCredentials = collections.some((c) => c.name === "credentials");
+    const hasCredentials = collections.some((c) => c.name === COLLECTIONS.CREDENTIALS);
     if (hasCredentials) {
-      const credentialsCount = await db.collection("credentials").countDocuments();
+      const credentialsCount = await db.collection(COLLECTIONS.CREDENTIALS).countDocuments();
       console.log(`✅ Found ${credentialsCount} credential(s) in database`);
     } else {
       console.log("⚠️  No credentials collection found");

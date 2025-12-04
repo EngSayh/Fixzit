@@ -184,11 +184,20 @@ export async function POST(req: NextRequest) {
       );
     }
   }
-  const existing = incidentKey
-    ? await native
+  // Align telemetry with org-level tenancy for analytics + isolation
+  const orgScope = tenantScope;
+
+  let existing: Record<string, unknown> | null = null;
+  if (incidentKey) {
+    // Prefer orgId-based dedupe (indexed); fallback to legacy tenantScope-only records
+    existing =
+      (await native
         .collection(COLLECTIONS.ERROR_EVENTS)
-        .findOne({ incidentKey, tenantScope })
-    : null;
+        .findOne({ incidentKey, orgId: orgScope })) ||
+      (await native
+        .collection(COLLECTIONS.ERROR_EVENTS)
+        .findOne({ incidentKey, tenantScope: orgScope }));
+  }
   if (existing) {
     return NextResponse.json(
       {
@@ -202,6 +211,7 @@ export async function POST(req: NextRequest) {
 
   // Store minimal incident document for indexing/analytics
   await native.collection(COLLECTIONS.ERROR_EVENTS).insertOne({
+    orgId: orgScope,
     incidentKey,
     incidentId,
     code,
@@ -286,7 +296,13 @@ export async function POST(req: NextRequest) {
     await native
       .collection(COLLECTIONS.ERROR_EVENTS)
       .updateOne(
-        { incidentId, tenantScope },
+        {
+          incidentId,
+          $or: [
+            { orgId: orgScope },
+            { tenantScope: orgScope },
+          ],
+        },
         { $set: { ticketId: ticket.code } },
       );
   }

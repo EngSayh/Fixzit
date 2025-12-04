@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Fixzit Quality Gates
 
 on:
@@ -134,6 +136,15 @@ jobs:
             pnpm) pnpm lint || pnpm run eslint . ;;
             yarn) yarn lint || yarn run eslint . ;;
             *) npm run lint || npm run eslint . ;;
+          esac
+
+      - name: Lint Collections (canonical names)
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm lint:collections ;;
+            yarn) yarn lint:collections ;;
+            *) npm run lint:collections ;;
           esac
 
       - name: Typecheck
@@ -374,47 +385,47 @@ jobs:
         shell: bash
         run: |
           mkdir -p .artifacts
-          
+
           # Calculate scores based on actual step outcomes
           # Each check contributes to its section score
-          
+
           # Code Quality: lint passed (step wouldn't reach here otherwise)
           lint_score=100
           typecheck_score=100
-          
-          # Security: Check if audit passed (we're here so it did) 
+
+          # Security: Check if audit passed (we're here so it did)
           audit_score=100
-          
+
           # Check if RBAC parity passed
           rbac_score=100
           if [ -f .artifacts/rbac-parity-result.txt ]; then
             rbac_result=$(cat .artifacts/rbac-parity-result.txt)
             [ "$rbac_result" = "failed" ] && rbac_score=0
           fi
-          
+
           # Performance: Parse ACTUAL Lighthouse scores from manifest.json
           # AUDIT-2025-11-30: Parse real scores instead of defaulting to 70
           perf_score=0
           lighthouse_parsed="false"
-          
+
           # Try multiple possible locations for Lighthouse reports
           for lhci_path in ".artifacts/lhci_reports/manifest.json" "lhci_reports/manifest.json" ".lighthouseci/manifest.json"; do
             if [ -f "$lhci_path" ]; then
               echo "📊 Found Lighthouse report at: $lhci_path"
-              
+
               # Check if jq is available for JSON parsing
               if command -v jq &> /dev/null; then
                 # Parse average performance score from all runs
                 # Lighthouse stores scores as decimals (0-1), multiply by 100
                 raw_score=$(jq -r '[.[].summary.performance // 0] | add / length * 100 | floor' "$lhci_path" 2>/dev/null || echo "0")
-                
+
                 if [ "$raw_score" != "0" ] && [ "$raw_score" != "null" ]; then
                   perf_score=$raw_score
                   lighthouse_parsed="true"
                   echo "✅ Parsed Lighthouse performance score: ${perf_score}"
                 else
                   echo "⚠️ Could not parse performance from manifest, checking for lhr files..."
-                  
+
                   # Fallback: try to parse individual LHR JSON files
                   lhr_dir=$(dirname "$lhci_path")
                   if ls "$lhr_dir"/*.json 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
@@ -443,11 +454,11 @@ jobs:
                   fi
                 fi
               fi
-              
+
               break  # Found manifest, stop looking
             fi
           done
-          
+
           # Only default if Lighthouse was expected to run but parsing failed
           if [ "$lighthouse_parsed" = "false" ]; then
             if [ -d "lhci_reports" ] || [ -d ".lighthouseci" ]; then
@@ -465,16 +476,16 @@ jobs:
               echo "LIGHTHOUSE_MISSING=true" >> $GITHUB_OUTPUT
             fi
           fi
-          
+
           # Calculate section scores
           code_quality_score=$(( (lint_score + typecheck_score) / 2 ))
           security_score=$(( (audit_score + rbac_score) / 2 ))
           performance_score=$perf_score
-          
+
           # Calculate total (weighted average)
           # Code Quality: 40%, Security: 40%, Performance: 20%
           total_score=$(( (code_quality_score * 40 + security_score * 40 + performance_score * 20) / 100 ))
-          
+
           # Generate dynamic scorecard
           cat > .artifacts/fixzit_scorecard.json << EOF
           {
@@ -518,7 +529,7 @@ jobs:
             ]
           }
           EOF
-          
+
           echo "📊 Security Scorecard generated with total score: ${total_score}"
           echo "   Code Quality: ${code_quality_score}, Security: ${security_score}, Performance: ${performance_score}"
 
@@ -573,13 +584,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: gates
-    
+
     # Run on schedule, manual dispatch, or when PR has 'run-rbac-e2e' label
     if: |
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-rbac-e2e'))
-    
+
     services:
       mongodb:
         image: mongo:7
@@ -592,10 +603,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-      
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -629,7 +640,7 @@ jobs:
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps
-      
+
       - name: Install Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps
@@ -653,20 +664,20 @@ jobs:
           AUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_SKIP_CSRF_CHECK: 'true'
           AUTH_TRUST_HOST: 'true'
-          
+
           # Database - AUDIT-2025-12-01: Changed from 'true' to 'false'
           # E2E tests MUST hit real MongoDB to validate RBAC/tenancy correctly.
           # With offline mode, API handlers return empty data, making tests pass
           # without actually validating permissions or tenant isolation.
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
           ALLOW_OFFLINE_MONGODB: 'false'
-          
+
           # Test environment
           NODE_ENV: test
           CI: 'true'
           SKIP_ENV_VALIDATION: 'true'
           BASE_URL: http://localhost:3000
-          
+
           # ============================================================
           # RBAC TEST CREDENTIALS (Required - from GitHub Secrets)
           # These validate sub-role permissions at the API layer
@@ -683,10 +694,10 @@ jobs:
           TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
-          
+
           # Multi-tenancy validation
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
-          
+
         run: |
           echo "🔒 Running RBAC E2E Tests - Sub-Role API Access"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -698,7 +709,7 @@ jobs:
           echo "  • Cross-boundary access denials"
           echo "  • Tenant data isolation (org_id scoping)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
+
           pnpm exec playwright test \
             tests/e2e/subrole-api-access.spec.ts \
             --retries=2 \
@@ -707,7 +718,7 @@ jobs:
               echo "Check the test report for details on which permissions are misconfigured."
               exit 1
             }
-          
+
           echo "✅ All RBAC E2E tests passed - Sub-role permissions verified"
 
       - name: Upload RBAC E2E Report
@@ -726,16 +737,16 @@ jobs:
         with:
           script: |
             const body = `## 🔒 RBAC E2E Tests Failed
-            
+
             One or more sub-role API access tests failed. This indicates:
             - A role may have too much or too little access
             - Cross-tenant data may be leaking
             - An API endpoint may be returning wrong status codes
-            
+
             **Action Required:** Review the [test report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) and fix RBAC configuration.
-            
+
             See \`tests/e2e/subrole-api-access.spec.ts\` for test details.`;
-            
+
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,

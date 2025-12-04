@@ -124,6 +124,19 @@ const OrderSchema = new Schema<MarketplaceOrder>(
 OrderSchema.plugin(tenantIsolationPlugin);
 OrderSchema.plugin(auditPlugin);
 
+// Schema-level indexes to mirror centralized createIndexes() definitions
+OrderSchema.index(
+  { orgId: 1, orderNumber: 1 },
+  {
+    unique: true,
+    name: "orders_orgId_orderNumber_unique",
+    partialFilterExpression: { orgId: { $exists: true }, orderNumber: { $exists: true } },
+  },
+);
+OrderSchema.index({ orgId: 1, userId: 1 }, { name: "orders_orgId_userId" });
+OrderSchema.index({ orgId: 1, status: 1 }, { name: "orders_orgId_status" });
+OrderSchema.index({ orgId: 1, createdAt: -1 }, { name: "orders_orgId_createdAt_desc" });
+
 const OrderModel =
   (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||
   model<MarketplaceOrder>("MarketplaceOrder", OrderSchema);

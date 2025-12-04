@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { checkDatabaseHealth, getDatabase } from "@/lib/mongodb-unified";
+import { createSecureResponse } from "@/server/security/headers";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 
 /**
  * @openapi
@@ -19,23 +21,22 @@ import { checkDatabaseHealth, getDatabase } from "@/lib/mongodb-unified";
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  const isAuthorized = isAuthorizedHealthRequest(request);
 
   try {
     const isConnected = await checkDatabaseHealth();
 
     if (!isConnected) {
-      return NextResponse.json(
-        {
-          status: "unhealthy",
-          database: "mongodb",
-          connection: "failed",
-          timestamp: new Date().toISOString(),
-          responseTime: Date.now() - startTime,
-        },
-        { status: 503 },
-      );
+      const payload = {
+        status: "unhealthy",
+        database: "mongodb",
+        connection: "failed",
+        timestamp: new Date().toISOString(),
+        responseTime: Date.now() - startTime,
+      };
+      return createSecureResponse(payload, 503, request);
     }
 
     const db = await getDatabase();
@@ -43,17 +44,29 @@ export async function GET() {
 
     const responseTime = Date.now() - startTime;
 
-    return NextResponse.json({
+    const basePayload = {
       status: "healthy",
       database: "mongodb",
       connection: "active",
       timestamp: new Date().toISOString(),
       responseTime,
-      details: {
-        ping: pingResult,
-        database: db.databaseName,
+    };
+
+    if (!isAuthorized) {
+      return createSecureResponse(basePayload, 200, request);
+    }
+
+    return createSecureResponse(
+      {
+        ...basePayload,
+        details: {
+          ping: pingResult,
+          database: db.databaseName,
+        },
       },
-    });
+      200,
+      request,
+    );
   } catch (error) {
     const responseTime = Date.now() - startTime;
     logger.error(
@@ -61,7 +74,7 @@ export async function GET() {
       error instanceof Error ? error.message : "Unknown error",
     );
 
-    return NextResponse.json(
+    return createSecureResponse(
       {
         status: "unhealthy",
         database: "mongodb",
@@ -70,28 +83,31 @@ export async function GET() {
         responseTime,
         error: "Database connection failed",
       },
-      { status: 503 },
+      503,
+      request,
     );
   }
 }
 
-export async function HEAD() {
+export async function HEAD(request: NextRequest) {
   try {
     const isHealthy = await checkDatabaseHealth();
-    return new NextResponse(null, {
-      status: isHealthy ? 200 : 503,
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+    return createSecureResponse(
+      null,
+      isHealthy ? 200 : 503,
+      request,
+      {
         "X-Health-Status": isHealthy ? "healthy" : "unhealthy",
       },
-    });
+    );
   } catch {
-    return new NextResponse(null, {
-      status: 503,
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+    return createSecureResponse(
+      null,
+      503,
+      request,
+      {
         "X-Health-Status": "error",
       },
-    });
+    );
   }
 }

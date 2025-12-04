@@ -6,6 +6,7 @@
 
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 async function verifyPasswords() {
   try {
@@ -37,7 +38,7 @@ async function verifyPasswords() {
 
     // Get users with passwords
     const users = await db
-      .collection("users")
+      .collection(COLLECTIONS.USERS)
       .find({ password: { $exists: true, $ne: null } })
       .project({ email: 1, password: 1 })
       .toArray();
