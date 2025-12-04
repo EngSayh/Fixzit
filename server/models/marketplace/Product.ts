@@ -118,7 +118,12 @@ const ProductSchema = new Schema<MarketplaceProduct>(
       default: "ACTIVE",
     },
   },
-  { timestamps: true, collection: "products" },
+  {
+    timestamps: true,
+    collection: "products",
+    // Disable automatic index creation; indexes are managed in lib/db/collections.ts
+    autoIndex: false,
+  },
 );
 
 // APPLY PLUGINS (BEFORE INDEXES)
@@ -126,45 +131,9 @@ ProductSchema.plugin(tenantIsolationPlugin);
 ProductSchema.plugin(auditPlugin);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INDEXES REMOVED - Managed centrally in lib/db/collections.ts
-// ═══════════════════════════════════════════════════════════════════════════
-// All Product indexes are defined in createIndexes() to prevent
-// IndexOptionsConflict errors during deployment. See:
-//   - products_orgId_sku_unique
-//   - products_orgId_slug_unique
-//   - products_orgId_status
-//   - products_orgId_categoryId
-//   - products_orgId_text_search (tenant-scoped text search)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Keep schema-level index definitions in sync with createIndexes() so tests can
-// assert tenancy and search coverage without relying on database state. Names
-// match the central definitions to avoid IndexOptionsConflict.
-ProductSchema.index(
-  { orgId: 1, sku: 1 },
-  {
-    unique: true,
-    name: "products_orgId_sku_unique",
-    partialFilterExpression: { orgId: { $exists: true } },
-  },
-);
-ProductSchema.index(
-  { orgId: 1, slug: 1 },
-  {
-    unique: true,
-    name: "products_orgId_slug_unique",
-    partialFilterExpression: { orgId: { $exists: true } },
-  },
-);
-ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
-ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
-ProductSchema.index(
-  { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
-  {
-    name: "products_orgId_text_search",
-    partialFilterExpression: { orgId: { $exists: true } },
-  },
-);
+// Indexes are defined centrally in lib/db/collections.ts (createIndexes()) to
+// avoid IndexOptionsConflict when deploying. Do not add schema-level indexes
+// here; update the central definitions instead.
 
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||

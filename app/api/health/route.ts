@@ -5,32 +5,15 @@
  * Returns server health status for monitoring and E2E test readiness checks
  */
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { db } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Use constant-time comparison to prevent timing attacks on token validation.
- */
-function isAuthorizedInternal(request: NextRequest): boolean {
-  const token = process.env.HEALTH_CHECK_TOKEN;
-  if (!token) return false;
-  const provided =
-    request.headers.get("x-health-token") || request.headers.get("X-Health-Token");
-  if (!provided) return false;
-  try {
-    return timingSafeEqual(Buffer.from(token, "utf8"), Buffer.from(provided, "utf8"));
-  } catch {
-    // Buffers have different lengths - tokens don't match
-    return false;
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const isAuthorized = isAuthorizedInternal(request);
+    const isAuthorized = isAuthorizedHealthRequest(request);
     // Check database connection
     let dbStatus = "disconnected";
     let dbLatency = 0;
@@ -40,6 +23,12 @@ export async function GET(request: NextRequest) {
       const connection = await db;
       // Verify connection by checking if collection method exists
       if (connection && typeof connection.collection === "function") {
+        // Perform actual ping to verify liveness (reduces false positives from stale connections)
+        // Use a lightweight collection access instead of admin ping for compatibility
+        if (isAuthorized) {
+          // Access a known collection to verify the connection is live
+          await connection.collection("system.version").findOne({});
+        }
         dbStatus = "connected";
         dbLatency = Date.now() - dbStart;
       } else {

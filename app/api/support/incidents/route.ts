@@ -128,7 +128,9 @@ export async function POST(req: NextRequest) {
   const { getRedisClient } = await import("@/lib/redis");
   const redis = getRedisClient();
   const ip = getClientIP(req);
-  const rateKey = `incidents:rate:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
+  // SECURITY: Include tenant scope in rate limit key to prevent cross-tenant interference (STRICT v4.1)
+  const rateLimitTenantScope = sessionUser?.orgId ?? "anonymous";
+  const rateKey = `incidents:rate:${rateLimitTenantScope}:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
   const windowSecs = 30; // 30s window
   const maxRequests = 3;
 

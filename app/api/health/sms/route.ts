@@ -8,35 +8,16 @@
  * treated as non-prod for dev-mode SMS.
  */
 import { NextRequest } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
 import { getRedisClient } from "@/lib/redis-client";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 
 export const dynamic = "force-dynamic";
 
 const TWILIO_TIMEOUT_MS = 3_000;
 const REDIS_TIMEOUT_MS = 1_500;
-
-/**
- * Check if the request is from an authorized internal tool.
- * Uses X-Health-Token header to authenticate monitoring systems.
- * Uses constant-time comparison to prevent timing attacks.
- */
-function isAuthorizedInternal(request: NextRequest): boolean {
-  const healthToken = process.env.HEALTH_CHECK_TOKEN;
-  if (!healthToken) return false;
-
-  const providedToken =
-    request.headers.get("X-Health-Token") || request.headers.get("x-health-token");
-  if (!providedToken) return false;
-  try {
-    return timingSafeEqual(Buffer.from(healthToken, "utf8"), Buffer.from(providedToken, "utf8"));
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Resolve production/preview flags so that Vercel preview deployments do not
@@ -114,7 +95,7 @@ async function checkRedisReachability(redisConfigured: boolean) {
 export async function GET(request: NextRequest) {
   try {
     const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
-    const isAuthorized = isAuthorizedInternal(request);
+    const isAuthorized = isAuthorizedHealthRequest(request);
     const deepCheckRequested =
       isAuthorized &&
       request.headers.get("X-Health-Deep") !== "0" &&

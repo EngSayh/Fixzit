@@ -17,6 +17,7 @@ import {
   disconnectFromDatabase,
 } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 interface VerificationResult {
   test: string;
@@ -125,7 +126,12 @@ class DatabaseVerifier {
       const db = await getDatabase();
 
       // Check common collections exist and have proper indexes
-      const collections = ["users", "properties", "work_orders", "tenancies"];
+      const collections = [
+        COLLECTIONS.USERS,
+        COLLECTIONS.PROPERTIES,
+        COLLECTIONS.WORK_ORDERS,
+        COLLECTIONS.TENANTS,
+      ];
       const indexInfo: Record<string, unknown> = {};
 
       for (const collName of collections) {
