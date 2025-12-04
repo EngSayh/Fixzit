@@ -1,19 +1,33 @@
 /**
  * Database index management for MongoDB
- * 
+ *
  * STRICT v4.1 Multi-Tenancy Compliance:
- * - All unique indexes are org-scoped (e.g., { orgId: 1, email: 1 } not { email: 1 })
- * - Normalized tenant key naming to `orgId` (no more tenantId drift)
- * - Prevents cross-tenant collisions (same email/slug/code in different orgs)
+ * - All unique indexes are org-scoped (e.g., { orgId: 1, email: 1 })
+ * - Normalized tenant key naming to `orgId`
+ * - MUST stay in sync with lib/db/collections.ts createIndexes()
  */
 
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 
+type IndexSpec = {
+  key: Record<string, 1 | -1 | "text">;
+  unique?: boolean;
+  sparse?: boolean;
+  expireAfterSeconds?: number;
+  name?: string;
+  partialFilterExpression?: Record<string, unknown>;
+};
+
+type CollectionIndexes = {
+  collection: string;
+  indexes: IndexSpec[];
+};
+
 /**
- * Ensures core indexes are created on all collections
- * This should be run during deployment to optimize query performance
+ * Ensures core indexes are created on all collections.
+ * Should be run during deployment to optimize query performance.
  */
 export async function ensureCoreIndexes(): Promise<void> {
   await connectToDatabase();
@@ -23,115 +37,169 @@ export async function ensureCoreIndexes(): Promise<void> {
     throw new Error("Database connection not established");
   }
 
-  // Define indexes for each collection
-  // STRICT v4.1: All unique indexes MUST be org-scoped for proper multi-tenancy.
-  // This prevents cross-tenant collisions (e.g., same email/slug/code in different orgs).
-  // NAMING: Normalized to `orgId` across all collections (no more tenantId drift).
-  const indexes = [
-    // Users - STRICT v4.1: email unique per org
+  // Drop legacy global uniques so org-scoped uniques can be enforced
+  await dropLegacyGlobalUniqueIndexes(db);
+
+  // Canonical index definitions (aligned with lib/db/collections.ts)
+  const indexes: CollectionIndexes[] = [
     {
       collection: "users",
       indexes: [
-        { key: { orgId: 1, email: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { role: 1 } },
-        { key: { "personal.phone": 1 } },
+        {
+          key: { orgId: 1, email: 1 },
+          unique: true,
+          name: "users_orgId_email_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1 }, name: "users_orgId" },
+        { key: { orgId: 1, role: 1 }, name: "users_orgId_role" },
+        { key: { orgId: 1, "personal.phone": 1 }, name: "users_orgId_phone" },
       ],
     },
-    // Work Orders - STRICT v4.1: workOrderNumber unique per org
-    {
-      collection: "workorders",
-      indexes: [
-        { key: { orgId: 1, workOrderNumber: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { status: 1 } },
-        { key: { priority: 1 } },
-        { key: { "location.propertyId": 1 } },
-        { key: { "assignment.assignedTo.userId": 1 } },
-        { key: { "assignment.assignedTo.vendorId": 1 } },
-        { key: { createdAt: -1 } },
-        { key: { "sla.resolutionDeadline": 1 } },
-        { key: { orgId: 1, status: 1, createdAt: -1 } },
-      ],
-    },
-    // Work Order Comments - normalized to orgId
-    {
-      collection: "workorder_comments",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, createdAt: -1 } },
-        { key: { workOrderId: 1, createdAt: -1 } },
-        { key: { createdAt: -1 } },
-      ],
-    },
-    // Work Order Attachments - normalized to orgId
-    {
-      collection: "workorder_attachments",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, uploadedAt: -1 } },
-        { key: { workOrderId: 1, uploadedAt: -1 } },
-        { key: { uploadedAt: -1 } },
-      ],
-    },
-    // Work Order Timeline - normalized to orgId
-    {
-      collection: "workorder_timeline",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, performedAt: -1 } },
-        { key: { workOrderId: 1, performedAt: -1 } },
-        { key: { performedAt: -1 } },
-      ],
-    },
-    // Properties - STRICT v4.1: code unique per org
     {
       collection: "properties",
       indexes: [
-        { key: { orgId: 1, code: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { type: 1 } },
-        { key: { status: 1 } },
-        { key: { "location.city": 1 } },
+        {
+          key: { orgId: 1, code: 1 },
+          unique: true,
+          name: "properties_orgId_code_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1 }, name: "properties_orgId" },
+        { key: { orgId: 1, type: 1 }, name: "properties_orgId_type" },
+        { key: { orgId: 1, status: 1 }, name: "properties_orgId_status" },
+        { key: { orgId: 1, "location.city": 1 }, name: "properties_orgId_city" },
       ],
     },
-    // Invoices - STRICT v4.1: code unique per org
+    {
+      collection: "workOrders",
+      indexes: [
+        {
+          key: { orgId: 1, code: 1 },
+          unique: true,
+          name: "workorders_orgId_code_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1 }, name: "workorders_orgId" },
+        { key: { orgId: 1, status: 1 }, name: "workorders_orgId_status" },
+        { key: { orgId: 1, priority: 1 }, name: "workorders_orgId_priority" },
+        { key: { orgId: 1, "location.propertyId": 1 }, name: "workorders_orgId_propertyId" },
+        { key: { orgId: 1, "assignment.assignedTo.userId": 1 }, name: "workorders_orgId_assignedUserId" },
+        { key: { orgId: 1, "assignment.assignedTo.vendorId": 1 }, name: "workorders_orgId_assignedVendorId" },
+        { key: { orgId: 1, createdAt: -1 }, name: "workorders_orgId_createdAt" },
+        { key: { orgId: 1, "sla.resolutionDeadline": 1 }, name: "workorders_orgId_slaDeadline" },
+        { key: { orgId: 1, status: 1, createdAt: -1 }, name: "workorders_orgId_status_createdAt" },
+      ],
+    },
+    {
+      collection: "workorder_comments",
+      indexes: [
+        { key: { orgId: 1, workOrderId: 1, createdAt: -1 }, name: "wo_comments_orgId_woId_createdAt" },
+        { key: { orgId: 1, createdAt: -1 }, name: "wo_comments_orgId_createdAt" },
+      ],
+    },
+    {
+      collection: "workorder_attachments",
+      indexes: [
+        { key: { orgId: 1, workOrderId: 1, uploadedAt: -1 }, name: "wo_attachments_orgId_woId_uploadedAt" },
+        { key: { orgId: 1, uploadedAt: -1 }, name: "wo_attachments_orgId_uploadedAt" },
+      ],
+    },
+    {
+      collection: "workorder_timeline",
+      indexes: [
+        { key: { orgId: 1, workOrderId: 1, performedAt: -1 }, name: "wo_timeline_orgId_woId_performedAt" },
+        { key: { orgId: 1, performedAt: -1 }, name: "wo_timeline_orgId_performedAt" },
+      ],
+    },
+    {
+      collection: "products",
+      indexes: [
+        {
+          key: { orgId: 1, sku: 1 },
+          unique: true,
+          name: "products_orgId_sku_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1, categoryId: 1 }, name: "products_orgId_categoryId" },
+        { key: { title: "text", description: "text" }, name: "products_text_search" },
+      ],
+    },
+    {
+      collection: "orders",
+      indexes: [
+        {
+          key: { orgId: 1, orderNumber: 1 },
+          unique: true,
+          name: "orders_orgId_orderNumber_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1, userId: 1 }, name: "orders_orgId_userId" },
+        { key: { orgId: 1, status: 1 }, name: "orders_orgId_status" },
+        { key: { orgId: 1, createdAt: -1 }, name: "orders_orgId_createdAt" },
+      ],
+    },
     {
       collection: "invoices",
       indexes: [
-        { key: { orgId: 1, code: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { status: 1 } },
-        { key: { dueDate: 1 } },
-        { key: { customerId: 1 } },
+        {
+          key: { orgId: 1, invoiceNumber: 1 },
+          unique: true,
+          name: "invoices_orgId_invoiceNumber_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
+        { key: { orgId: 1 }, name: "invoices_orgId" },
+        { key: { orgId: 1, status: 1 }, name: "invoices_orgId_status" },
+        { key: { orgId: 1, dueDate: 1 }, name: "invoices_orgId_dueDate" },
+        { key: { orgId: 1, customerId: 1 }, name: "invoices_orgId_customerId" },
       ],
     },
-    // Support Tickets - STRICT v4.1: code unique per org
     {
       collection: "supporttickets",
       indexes: [
-        { key: { orgId: 1, code: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { status: 1 } },
-        { key: { priority: 1 } },
-        { key: { assigneeUserId: 1 } },
-        { key: { createdAt: -1 } },
+        { key: { orgId: 1, code: 1 }, unique: true, name: "supporttickets_orgId_code_unique" },
+        { key: { orgId: 1 }, name: "supporttickets_orgId" },
+        { key: { orgId: 1, status: 1 }, name: "supporttickets_orgId_status" },
+        { key: { orgId: 1, priority: 1 }, name: "supporttickets_orgId_priority" },
+        { key: { orgId: 1, assigneeUserId: 1 }, name: "supporttickets_orgId_assignee" },
+        { key: { orgId: 1, createdAt: -1 }, name: "supporttickets_orgId_createdAt" },
       ],
     },
-    // Help Articles - STRICT v4.1: slug unique per org
     {
       collection: "helparticles",
       indexes: [
-        { key: { orgId: 1, slug: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { category: 1 } },
-        { key: { published: 1 } },
+        { key: { orgId: 1, slug: 1 }, unique: true, name: "helparticles_orgId_slug_unique" },
+        { key: { orgId: 1 }, name: "helparticles_orgId" },
+        { key: { orgId: 1, category: 1 }, name: "helparticles_orgId_category" },
+        { key: { orgId: 1, published: 1 }, name: "helparticles_orgId_published" },
       ],
     },
-    // CMS Pages - STRICT v4.1: slug unique per org
     {
       collection: "cmspages",
       indexes: [
-        { key: { orgId: 1, slug: 1 }, unique: true },
-        { key: { orgId: 1 } },
-        { key: { published: 1 } },
+        { key: { orgId: 1, slug: 1 }, unique: true, name: "cmspages_orgId_slug_unique" },
+        { key: { orgId: 1 }, name: "cmspages_orgId" },
+        { key: { orgId: 1, published: 1 }, name: "cmspages_orgId_published" },
+      ],
+    },
+    {
+      collection: "qa_logs",
+      indexes: [
+        { key: { orgId: 1, timestamp: -1 }, sparse: true, name: "qa_logs_orgId_timestamp" },
+        { key: { orgId: 1, event: 1, timestamp: -1 }, sparse: true, name: "qa_logs_orgId_event_timestamp" },
+        { key: { timestamp: -1 }, name: "qa_logs_timestamp_desc" },
+        { key: { event: 1, timestamp: -1 }, name: "qa_logs_event_timestamp" },
+        { key: { timestamp: 1 }, expireAfterSeconds: 90 * 24 * 60 * 60, name: "qa_logs_ttl_90d" },
+      ],
+    },
+    {
+      collection: "qa_alerts",
+      indexes: [
+        { key: { orgId: 1, timestamp: -1 }, sparse: true, name: "qa_alerts_orgId_timestamp" },
+        { key: { orgId: 1, event: 1, timestamp: -1 }, sparse: true, name: "qa_alerts_orgId_event_timestamp" },
+        { key: { timestamp: -1 }, name: "qa_alerts_timestamp_desc" },
+        { key: { event: 1, timestamp: -1 }, name: "qa_alerts_event_timestamp" },
+        { key: { timestamp: 1 }, expireAfterSeconds: 30 * 24 * 60 * 60, name: "qa_alerts_ttl_30d" },
       ],
     },
   ];
@@ -139,66 +207,79 @@ export async function ensureCoreIndexes(): Promise<void> {
   const failures: Array<{ collection: string; error: Error }> = [];
 
   for (const { collection, indexes: collIndexes } of indexes) {
-    try {
-      const coll = db.collection(collection);
-
-      for (const indexSpec of collIndexes) {
-        try {
-          const isUnique =
-            "unique" in indexSpec && typeof indexSpec.unique === "boolean"
-              ? indexSpec.unique
-              : false;
-          await coll.createIndex(
-            indexSpec.key as unknown as Record<string, 1 | -1>,
-            {
-              unique: isUnique,
-              background: true,
-            },
-          );
-        } catch (_error: unknown) {
-          const error =
-            _error instanceof Error ? _error : new Error(String(_error));
-          void error;
-          const mongoError = error as { code?: number; message?: string };
-          // Skip if index already exists (codes 85, 86)
-          if (
-            mongoError.code === 85 ||
-            mongoError.code === 86 ||
-            mongoError.message?.includes("already exists")
-          ) {
-            // Index already exists - this is expected, skip silently
-            continue;
-          }
-          // Log all other errors for observability
-          logger.error(`Failed to create index on ${collection}:`, {
-            index: JSON.stringify(indexSpec.key),
-            error: mongoError.message || "Unknown error",
-            code: mongoError.code,
-          });
-          // Rethrow to propagate the error
-          throw error;
+    const coll = db.collection(collection);
+    for (const indexSpec of collIndexes) {
+      try {
+        const options: Record<string, unknown> = { background: true };
+        if (indexSpec.unique) options.unique = true;
+        if (indexSpec.sparse) options.sparse = true;
+        if (typeof indexSpec.expireAfterSeconds === "number") {
+          options.expireAfterSeconds = indexSpec.expireAfterSeconds;
         }
+        if (indexSpec.name) options.name = indexSpec.name;
+        if (indexSpec.partialFilterExpression) {
+          options.partialFilterExpression = indexSpec.partialFilterExpression;
+        }
+
+        await coll.createIndex(indexSpec.key, options);
+      } catch (err) {
+        const error = err as { code?: number; codeName?: string; message?: string };
+        const isDuplicate =
+          error?.code === 85 || error?.code === 86 || error?.message?.includes("already exists");
+        if (isDuplicate) continue;
+
+        failures.push({ collection, error: error as Error });
+        logger.error(`Failed to create index on ${collection}`, {
+          index: JSON.stringify(indexSpec.key),
+          name: indexSpec.name,
+          error: error?.message,
+          code: error?.code,
+        });
       }
-    } catch (err) {
-      // Log collection-level errors with context
-      const error = err as Error;
-      failures.push({ collection, error });
-      logger.error(`Failed to create indexes for collection ${collection}:`, {
-        message: error.message,
-        stack: error.stack,
-      });
-      // Don't throw - allow other collections to be processed
     }
   }
-  // Index creation process complete (check logs for any failures)
 
-  // If any collections failed, throw a summary error
   if (failures.length > 0) {
     const collectionList = failures.map((f) => f.collection).join(", ");
-    throw new Error(
-      `Index creation failed for ${failures.length} collection(s): ${collectionList}`,
-    );
+    throw new Error(`Index creation failed for ${failures.length} collection(s): ${collectionList}`);
   }
 
-  // Index creation complete
+  logger.info("Core indexes ensured successfully", {
+    collections: indexes.length,
+    totalIndexes: indexes.reduce((sum, c) => sum + c.indexes.length, 0),
+  });
+}
+
+async function dropLegacyGlobalUniqueIndexes(db: mongoose.mongo.Db) {
+  const targets: Array<{ collection: string; indexes: string[] }> = [
+    { collection: "users", indexes: ["email_1", "username_1", "code_1"] },
+    { collection: "properties", indexes: ["code_1"] },
+    { collection: "workOrders", indexes: ["code_1", "workOrderNumber_1"] },
+    { collection: "products", indexes: ["sku_1"] },
+    { collection: "orders", indexes: ["orderNumber_1"] },
+    { collection: "invoices", indexes: ["code_1", "invoiceNumber_1"] },
+    { collection: "supporttickets", indexes: ["code_1"] },
+    { collection: "helparticles", indexes: ["slug_1"] },
+    { collection: "cmspages", indexes: ["slug_1"] },
+  ];
+
+  for (const { collection, indexes } of targets) {
+    for (const indexName of indexes) {
+      try {
+        await db.collection(collection).dropIndex(indexName);
+      } catch (error) {
+        const err = error as { code?: number; codeName?: string; message?: string };
+        const isMissing =
+          err?.code === 27 ||
+          err?.codeName === "IndexNotFound" ||
+          err?.message?.includes("index not found");
+        if (isMissing) continue;
+        logger.warn("[indexes] Failed to drop legacy index", {
+          collection,
+          indexName,
+          error: err?.message,
+        });
+      }
+    }
+  }
 }
