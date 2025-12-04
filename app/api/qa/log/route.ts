@@ -2,12 +2,15 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
-import { getDatabase } from "@/lib/mongodb-unified";
+import { getDatabase, type ConnectionDb } from "@/lib/mongodb-unified";
 import { ensureQaIndexes } from "@/lib/db/collections";
+import { sanitizeQaPayload } from "@/lib/qa/sanitize";
 import { getClientIP, createSecureResponse } from "@/server/security/headers";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError, unauthorizedError } from "@/server/utils/errorResponses";
 import { requireSuperAdmin, type AuthContext } from "@/lib/authz";
+
+type GetDbFn = () => Promise<ConnectionDb>;
 
 // VALIDATION: Strict schema for QA log payloads
 const qaLogSchema = z.object({
@@ -17,6 +20,15 @@ const qaLogSchema = z.object({
 
 // SECURITY: Max payload size to prevent storage bloat (10KB)
 const MAX_PAYLOAD_SIZE = 10 * 1024;
+
+async function resolveDatabase() {
+  const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
+  const override = typeof mock === 'function' ? (mock as GetDbFn) : undefined;
+  if (typeof override === 'function') {
+    return override();
+  }
+  return getDatabase();
+}
 
 /**
  * @openapi
@@ -93,10 +105,12 @@ export async function POST(req: NextRequest) {
         ? createHash("sha256").update(rawSessionId).digest("hex").substring(0, 16)
         : undefined;
 
-      const native = await getDatabase();
+      const native = await resolveDatabase();
+      // SECURITY: Sanitize payload to redact PII/credentials before storage
+      const sanitizedData = sanitizeQaPayload(data);
       await native.collection("qa_logs").insertOne({
         event,
-        data: data ?? null,
+        data: sanitizedData,
         timestamp: new Date(),
         // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
         orgId,
@@ -171,7 +185,7 @@ export async function GET(req: NextRequest) {
       // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
       await ensureQaIndexes();
 
-      const native = await getDatabase();
+      const native = await resolveDatabase();
       // PERFORMANCE: Exclude large data field by default to keep responses small
       const projection = includeData ? {} : { data: 0 };
       const logs = await native

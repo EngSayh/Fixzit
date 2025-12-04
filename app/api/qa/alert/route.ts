@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { ensureQaIndexes } from '@/lib/db/collections';
+import { sanitizeQaPayload } from '@/lib/qa/sanitize';
 import { getClientIP } from '@/server/security/headers';
 
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
@@ -102,9 +103,11 @@ export async function POST(req: NextRequest) {
 
       // Log the alert to database with org/user attribution for multi-tenant auditing
       const native = await resolveDatabase();
+      // SECURITY: Sanitize payload to redact PII/credentials before storage
+      const sanitizedData = sanitizeQaPayload(data);
       await native.collection('qa_alerts').insertOne({
         event,
-        data: data ?? null,
+        data: sanitizedData,
         timestamp: new Date(),
         // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
         orgId,
@@ -155,27 +158,51 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
-    await ensureQaIndexes();
+    const { searchParams } = new URL(req.url);
+    const parsed = Number(searchParams.get('limit'));
+    // PERFORMANCE: Lower default limit (50) and cap at 200 to prevent large responses (parity with logs)
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 50,
+      200
+    );
+    const eventType = searchParams.get('event');
+    // PERFORMANCE: Optionally include data field (excluded by default to reduce payload size)
+    const includeData = searchParams.get('includeData') === 'true';
 
-    const native = await resolveDatabase();
-    
     // ORG SCOPING: Filter alerts by org to prevent cross-tenant data exposure
     // Super-admins without tenantId see all alerts (platform-level debugging)
-    const query = orgId ? { orgId } : {};
-    
-    const alerts = await native.collection('qa_alerts')
-      .find(query)
-      .sort({ timestamp: -1 })
-      .limit(50)
-      .toArray();
+    const query: Record<string, unknown> = orgId ? { orgId } : {};
+    if (eventType) {
+      query.event = eventType;
+    }
 
-    return createSecureResponse({ alerts }, 200, req);
-  } catch (dbError) {
-    // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
-    logger.error('[QA Alert] DB unavailable', {
-      error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
-    });
-    return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      const native = await resolveDatabase();
+      // PERFORMANCE: Exclude large data field by default to keep responses small
+      const projection = includeData ? {} : { data: 0 };
+      
+      const alerts = await native.collection('qa_alerts')
+        .find(query, { projection })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+
+      return createSecureResponse({ alerts }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      logger.error('[QA Alert] DB unavailable', {
+        error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+      });
+      return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
+    }
+  } catch (error) {
+    logger.error(
+      'Failed to fetch QA alerts:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

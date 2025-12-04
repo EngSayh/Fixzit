@@ -142,6 +142,14 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
       background: true, 
       sparse: true 
     });
+  // Event-specific org-scoped query index (parity with qa_logs for event filtering)
+  await db
+    .collection("qa_alerts")
+    .createIndex({ orgId: 1, event: 1, timestamp: -1 }, { 
+      name: "qa_alerts_orgId_event_timestamp", 
+      background: true, 
+      sparse: true 
+    });
   await db
     .collection("qa_alerts")
     .createIndex({ timestamp: -1 }, { 
