@@ -221,53 +221,71 @@ export async function verifyToken(token: string): Promise<AuthToken | null> {
  * Authenticates a user with email/employee number and password.
  *
  * Supports two login modes:
- * - **Personal**: Uses email address for authentication
- * - **Corporate**: Uses employee number (username field) for authentication
+ * - **Personal**: Uses email address for authentication (requires orgId)
+ * - **Corporate**: Uses employee number (username field) + companyCode for authentication
  *
  * @async
  * @function authenticateUser
  * @param {string} emailOrEmployeeNumber - Email (personal) or employee number (corporate)
  * @param {string} password - Plaintext password
  * @param {'personal' | 'corporate'} [loginType='personal'] - Login mode
+ * @param {string} [orgId] - Organization ID (required for personal login)
+ * @param {string} [companyCode] - Company code (required for corporate login)
  * @returns {Promise<{ token: string; user: object }>} Auth token and user data
  *
  * @throws {Error} 'Invalid credentials' - User not found or password mismatch
  * @throws {Error} 'Account is not active' - User account is deactivated
  * @throws {Error} 'AUTH-001: User {id} has no orgId' - Multi-tenant violation
+ * @throws {Error} 'orgId required for personal login' - Missing tenant context
+ * @throws {Error} 'companyCode required for corporate login' - Missing company context
  *
  * @security Validates orgId to ensure multi-tenant isolation.
  * @security Uses constant-time password comparison.
  * @security Returns generic error to prevent user enumeration.
  *
  * @example
- * // Personal login (email)
+ * // Personal login (email) - requires orgId
  * const { token, user } = await authenticateUser(
  *   'user@company.com',
- *   'password123'
+ *   'password123',
+ *   'personal',
+ *   'org-123'
  * );
  *
  * @example
- * // Corporate login (employee number)
+ * // Corporate login (employee number) - requires companyCode
  * const { token, user } = await authenticateUser(
  *   'EMP001',
  *   'password123',
- *   'corporate'
+ *   'corporate',
+ *   undefined,
+ *   'ACME-001'
  * );
  */
 export async function authenticateUser(
   emailOrEmployeeNumber: string,
   password: string,
   loginType: "personal" | "corporate" = "personal",
+  orgId?: string,
+  companyCode?: string,
 ) {
   // Ensure database connection is established
   await db;
 
   let user;
   if (loginType === "personal") {
-    user = await User.findOne({ email: emailOrEmployeeNumber });
+    // SECURITY: Require orgId for personal login to prevent cross-tenant auth
+    if (!orgId) {
+      throw new Error("orgId required for personal login");
+    }
+    user = await User.findOne({ email: emailOrEmployeeNumber, orgId });
   } else {
-    // For corporate login, search by employee number (username field)
-    user = await User.findOne({ username: emailOrEmployeeNumber });
+    // SECURITY: Require companyCode for corporate login
+    if (!companyCode) {
+      throw new Error("companyCode required for corporate login");
+    }
+    // For corporate login, search by employee number (username field) + company code
+    user = await User.findOne({ username: emailOrEmployeeNumber, code: companyCode });
   }
 
   if (!user) {

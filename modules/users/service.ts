@@ -194,11 +194,20 @@ export class UserService {
     }
   }
 
+  /**
+   * Verify user password with tenant isolation.
+   * SECURITY: Requires orgId to prevent cross-tenant authentication.
+   */
   static async verifyPassword(
     email: string,
     password: string,
+    orgId: string,
   ): Promise<Record<string, unknown> | null> {
-    const user = await User.findOne({ email }).select("+passwordHash").exec();
+    if (!orgId) {
+      throw new Error("orgId is required for password verification");
+    }
+    
+    const user = await User.findOne({ email, orgId }).select("+passwordHash").exec();
     if (!user || !user.isActive) return null;
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
