@@ -59,6 +59,7 @@
     "verify:mongo": "tsx scripts/mongo-check.ts",
     "verify:all": "npm run verify:prep && npm run build && concurrently -k -s first \"npm run start\" \"wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo\"",
     "doctor": "npm run lint && npm run typecheck && npm run verify:all",
+    "test:search": "vitest -c vitest.config.api.ts run tests/unit/app/api/search/search-scope.test.ts",
     "test": "npm run test:production",
     "test:production": "npm run test:models && npm run test:e2e",
     "test:fast": "npm run test:ci",

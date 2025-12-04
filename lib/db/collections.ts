@@ -49,6 +49,7 @@ export const COLLECTIONS: Record<string, string> = {
   CUSTOMERS: "customers",
   CONTRACTS: "contracts",
   ROLES: "roles",
+  PERMISSIONS: "permissions",
   API_KEYS: "api_keys",
   // Souq marketplace collections
   SOUQ_LISTINGS: "souq_listings",

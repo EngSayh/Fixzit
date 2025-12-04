@@ -25,6 +25,7 @@ import { isTruthy } from "@/lib/utils/env";
 
 interface UserDocument {
   _id?: { toString: () => string };
+  orgId?: { toString: () => string } | string; // Organization ID for tenant isolation
   email: string;
   username?: string;
   employeeId?: string;
@@ -423,8 +424,25 @@ export async function POST(request: NextRequest) {
           ? await User.findOne({ orgId: resolvedOrgId, email: loginIdentifier })
           : await User.findOne({ email: loginIdentifier });
       } else {
-        // Corporate login uses username + company code (already scoped by company)
+        // SECURITY FIX: Corporate login - resolve orgId from company code first (SEC-002)
+        // This prevents cross-tenant OTP delivery if company codes could collide
+        const { Organization } = await import("@/server/models/Organization");
+        const org = await Organization.findOne({ code: normalizedCompanyCode }).select("_id").lean();
+        
+        if (!org) {
+          logger.warn("[OTP] Invalid company code", {
+            identifier: redactIdentifier(loginIdentifier),
+            code: normalizedCompanyCode,
+          });
+          return NextResponse.json(
+            { success: false, error: "Invalid company code" },
+            { status: 400 },
+          );
+        }
+
+        // Scope user lookup by both orgId AND company code for defense in depth
         user = await User.findOne({
+          orgId: org._id,
           username: loginIdentifier,
           code: normalizedCompanyCode,
         });
@@ -613,7 +631,13 @@ export async function POST(request: NextRequest) {
     const smsResult = await sendOTP(userPhone, otp);
 
     if (!OFFLINE_MODE) {
+      // Extract orgId for tenant-scoped communication logging
+      const userOrgId = user.orgId 
+        ? (typeof user.orgId === "string" ? user.orgId : user.orgId.toString())
+        : undefined;
+
       const logResult = await logCommunication({
+        orgId: userOrgId, // SECURITY: Include orgId for tenant isolation (SEC-003)
         userId: user._id?.toString?.() || loginIdentifier,
         channel: "otp",
         type: "otp",
@@ -689,11 +713,25 @@ export async function POST(request: NextRequest) {
       data: responseData,
     });
   } catch (error) {
-    logger.error("[OTP] Send OTP error", error as Error);
+    // Enhanced error logging for production debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    
+    logger.error("[OTP] Send OTP error", {
+      errorName,
+      errorMessage,
+      errorStack: errorStack?.slice(0, 500), // Truncate for log size
+    });
+    
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
+        // In development, include error details for debugging
+        ...(process.env.NODE_ENV === "development" && { 
+          debug: { name: errorName, message: errorMessage }
+        }),
       },
       { status: 500 },
     );

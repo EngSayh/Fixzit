@@ -12,6 +12,7 @@
 
 import { MongoClient, ObjectId } from "mongodb";
 import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -32,8 +33,8 @@ async function main() {
   await client.connect();
   const db = client.db();
 
-  const notifications = db.collection("admin_notifications");
-  const users = db.collection("users");
+  const notifications = db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS);
+  const users = db.collection(COLLECTIONS.USERS);
 
   const missingCount = await notifications.countDocuments({ orgId: { $exists: false } });
   console.log(`Found ${missingCount} notifications without orgId`);

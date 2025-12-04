@@ -1,5 +1,8 @@
-const mongoose = require("mongoose");
-require("dotenv").config();
+require("dotenv/config");
+require("tsx/register");
+
+const { connectToDatabase, disconnectFromDatabase } = require("../lib/mongodb-unified.ts");
+const { COLLECTIONS, createIndexes } = require("../lib/db/collections.ts");
 
 /**
  * Fix null propertyCode values before creating unique index
@@ -7,15 +10,13 @@ require("dotenv").config();
 
 async function fixNullPropertyCodes() {
   try {
-    console.log("🔗 Connecting to MongoDB...");
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
-
+    console.log("🔗 Connecting to MongoDB (unified connector)...");
+    const mongoose = await connectToDatabase();
     const db = mongoose.connection.db;
 
     // Find properties with null propertyCode
     const nullProperties = await db
-      .collection("properties")
+      .collection(COLLECTIONS.PROPERTIES)
       .find({
         $or: [
           { propertyCode: null },
@@ -34,14 +35,15 @@ async function fixNullPropertyCodes() {
       for (let i = 0; i < nullProperties.length; i++) {
         const property = nullProperties[i];
 
+        const orgId = property.orgId || property.organization;
         // Get organization code or use property ID
-        const orgCode = property.organization
-          ? property.organization.toString().slice(-4).toUpperCase()
+        const orgCode = orgId
+          ? orgId.toString().slice(-4).toUpperCase()
           : "DFLT";
 
         // Generate sequential code
-        const count = await db.collection("properties").countDocuments({
-          organization: property.organization,
+        const count = await db.collection(COLLECTIONS.PROPERTIES).countDocuments({
+          $or: [{ orgId }, { organization: orgId }],
           propertyCode: { $ne: null },
         });
 
@@ -49,7 +51,7 @@ async function fixNullPropertyCodes() {
 
         // Update the property
         await db
-          .collection("properties")
+          .collection(COLLECTIONS.PROPERTIES)
           .updateOne(
             { _id: property._id },
             { $set: { propertyCode: newCode } },
@@ -61,30 +63,18 @@ async function fixNullPropertyCodes() {
       }
     }
 
-    console.log("\n🏢 Now creating property indexes with cleaned data...");
-
-    // Create property indexes
-    await db
-      .collection("properties")
-      .createIndex({ organization: 1, ownerId: 1 });
-    await db
-      .collection("properties")
-      .createIndex({ propertyCode: 1 }, { unique: true });
-    await db
-      .collection("properties")
-      .createIndex({ organization: 1, status: 1 });
-    await db.collection("properties").createIndex({ organization: 1, type: 1 });
-    await db
-      .collection("properties")
-      .createIndex({ "address.city": 1, "address.district": 1 });
-    await db.collection("properties").createIndex({ createdAt: -1 });
-
-    console.log("✅ Property indexes created successfully!");
+    console.log("\n🏢 Ensuring canonical indexes via createIndexes()...");
+    await createIndexes();
+    console.log("✅ Canonical indexes created successfully!");
   } catch (error) {
     console.error("❌ Error fixing property codes:", error);
     process.exit(1);
   } finally {
-    await mongoose.disconnect();
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
     console.log("🔚 Disconnected from MongoDB");
     process.exit(0);
   }

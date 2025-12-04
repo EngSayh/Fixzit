@@ -18,6 +18,7 @@
 
 import { MongoClient } from "mongodb";
 import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -48,7 +49,7 @@ async function runMigration(dryRun: boolean) {
   try {
     await client.connect();
     const db = client.db();
-    const collection = db.collection("properties");
+    const collection = db.collection(COLLECTIONS.PROPERTIES);
 
     console.log(`\n🔄 Migration: Backfill address.location on properties`);
     console.log(`📋 Mode: ${dryRun ? "DRY RUN (no writes)" : "LIVE"}\n`);

@@ -10,6 +10,7 @@ import {
   disconnectFromDatabase,
 } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "./utils/collections";
 
 const loadMongoose = async () => {
   const { default: mongoose } = await import("mongoose");
@@ -72,18 +73,18 @@ async function setupProductionIndexes() {
     // Create essential indexes for production performance
     const indexes = [
       // Users collection
-      { collection: "users", index: { email: 1 }, options: { unique: true } },
-      { collection: "users", index: { orgId: 1, role: 1 } },
+      { collection: COLLECTIONS.USERS, index: { email: 1 }, options: { unique: true } },
+      { collection: COLLECTIONS.USERS, index: { orgId: 1, role: 1 } },
 
       // Properties collection
-      { collection: "properties", index: { tenantId: 1, "address.city": 1 } },
-      { collection: "properties", index: { tenantId: 1, type: 1 } },
-      { collection: "properties", index: { tenantId: 1, createdAt: -1 } },
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, "address.city": 1 } },
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, type: 1 } },
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, createdAt: -1 } },
 
       // Work orders collection
-      { collection: "work_orders", index: { tenantId: 1, status: 1 } },
-      { collection: "work_orders", index: { tenantId: 1, priority: 1 } },
-      { collection: "work_orders", index: { tenantId: 1, createdAt: -1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, status: 1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, priority: 1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, createdAt: -1 } },
 
       // Multi-tenant indexes
       { collection: "tenancies", index: { tenantId: 1, unitId: 1 } },
@@ -138,14 +139,14 @@ async function createDefaultTenant() {
 
     // Check if default org already exists
     const existing = await db
-      .collection("organizations")
+      .collection(COLLECTIONS.ORGANIZATIONS)
       .findOne({ isDefault: true });
     if (existing) {
       console.log("⚠️  Default organization already exists:", existing.name);
       return;
     }
 
-    await db.collection("organizations").insertOne(defaultOrg);
+    await db.collection(COLLECTIONS.ORGANIZATIONS).insertOne(defaultOrg);
     console.log("✅ Default organization created:", orgId.toString());
 
     // Update environment with default tenant ID

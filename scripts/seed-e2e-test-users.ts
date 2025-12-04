@@ -181,7 +181,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'READ',
-      permissions: ['workorders.read', 'properties.read']
+      permissions: ['workorders:read', 'properties:read']
     },
     preferences: {
       notifications: {
@@ -340,7 +340,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'WRITE',
-      permissions: ['properties.*', 'tenants.*', 'workorders.*', 'finance.*']
+      permissions: ['properties:*', 'tenants:*', 'workorders:*', 'finance:*']
     },
     preferences: {
       notifications: {
@@ -414,7 +414,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'WRITE',
-      permissions: ['properties.*', 'tenants.*', 'workorders.*', 'crm.*']
+      permissions: ['properties:*', 'tenants:*', 'workorders:*', 'crm:*']
     },
     preferences: {
       notifications: {
@@ -488,7 +488,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'READ',
-      permissions: ['workorders.read', 'properties.read']
+      permissions: ['workorders:read', 'properties:read']
     },
     preferences: {
       notifications: {

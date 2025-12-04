@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import Subscription from "../models/Subscription";
 import { connectToDatabase } from "../../lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
 
 export interface SeatAllocation {
   userId: mongoose.Types.ObjectId;
@@ -20,7 +21,7 @@ export interface UsageSnapshot {
   users: number;
   properties: number;
   units: number;
-  work_orders: number;
+  [WORK_ORDERS_ENTITY_LEGACY]: number;
   active_users_by_module: Record<string, number>;
 }
 
@@ -353,7 +354,7 @@ export async function updateUsageSnapshot(
     users?: number;
     properties?: number;
     units?: number;
-    work_orders?: number;
+    [WORK_ORDERS_ENTITY_LEGACY]?: number;
   },
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
@@ -372,7 +373,7 @@ export async function updateUsageSnapshot(
     users: snapshot.users || 0,
     properties: snapshot.properties || 0,
     units: snapshot.units || 0,
-    work_orders: snapshot.work_orders || 0,
+    [WORK_ORDERS_ENTITY_LEGACY]: snapshot[WORK_ORDERS_ENTITY_LEGACY] || 0,
     active_users_by_module: {},
   };
   metadata.last_usage_sync = new Date();

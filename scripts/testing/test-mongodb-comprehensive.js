@@ -6,6 +6,7 @@
  */
 
 const mongoose = require("mongoose");
+const { COLLECTIONS } = require("../utils/collections");
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -27,11 +28,11 @@ async function testCollections(db) {
 async function testIndexes(db) {
   console.log("\n🔍 Testing Indexes...");
   const collections = [
-    "users",
-    "workorders",
-    "invoices",
-    "rfqs",
-    "customers",
+    COLLECTIONS.USERS,
+    COLLECTIONS.WORK_ORDERS,
+    COLLECTIONS.INVOICES,
+    COLLECTIONS.RFQS,
+    COLLECTIONS.CUSTOMERS,
     "jobs",
   ];
 
@@ -99,7 +100,14 @@ async function testCRUD(db) {
 async function testQueryPerformance(db) {
   console.log("\n⚡ Testing Query Performance...");
 
-  const collections = ["users", "workorders", "invoices"];
+  const collections = [
+    COLLECTIONS.USERS,
+    COLLECTIONS.WORK_ORDERS,
+    COLLECTIONS.INVOICES,
+    COLLECTIONS.RFQS,
+    COLLECTIONS.CUSTOMERS,
+    "jobs",
+  ];
 
   for (const collName of collections) {
     try {
@@ -125,7 +133,7 @@ async function testBusinessLogic(db) {
 
   // Test 1: Work Orders with duplicate detection
   try {
-    const workOrders = db.collection("workorders");
+    const workOrders = db.collection(COLLECTIONS.WORK_ORDERS);
     const duplicates = await workOrders
       .aggregate([
         { $group: { _id: "$workOrderNumber", count: { $sum: 1 } } },
@@ -149,7 +157,7 @@ async function testBusinessLogic(db) {
 
   // Test 2: Invoices with ZATCA validation
   try {
-    const invoices = db.collection("invoices");
+    const invoices = db.collection(COLLECTIONS.INVOICES);
     const sentWithoutZATCA = await invoices.countDocuments({
       status: "SENT",
       $or: [{ "zatca.status": { $exists: false } }, { "zatca.status": null }],
@@ -168,7 +176,7 @@ async function testBusinessLogic(db) {
 
   // Test 3: Users with proper roles
   try {
-    const users = db.collection("users");
+    const users = db.collection(COLLECTIONS.USERS);
     const usersWithoutRoles = await users.countDocuments({
       $or: [{ roles: { $exists: false } }, { roles: [] }, { roles: null }],
     });
@@ -188,8 +196,8 @@ async function testDataIntegrity(db) {
 
   // Test for orphaned references
   try {
-    const workOrders = db.collection("workorders");
-    const customers = db.collection("customers");
+    const workOrders = db.collection(COLLECTIONS.WORK_ORDERS);
+    const customers = db.collection(COLLECTIONS.CUSTOMERS);
 
     const woCursor = await workOrders
       .find({}, { projection: { customerId: 1 } })

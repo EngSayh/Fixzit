@@ -1,10 +1,11 @@
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 async function run() {
   try {
     const db = await getDatabase();
     if (!db) throw new Error("Database connection not available");
-    const col = db.collection("properties");
+    const col = db.collection(COLLECTIONS.PROPERTIES);
 
     const now = new Date();
     const docs = [

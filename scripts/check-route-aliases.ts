@@ -7,6 +7,23 @@ import {
   enrichRouteAliasMetrics,
 } from "@/lib/routes/aliasMetrics";
 import { loadRouteHealthData } from "@/lib/routes/routeHealth";
+import fs from "fs";
+
+const RAW_ALIAS = "work_orders";
+const RAW_ALIAS_PATTERN = /['"]work_orders['"]/g;
+const ENFORCED_DIRS = [
+  "app/api",
+  "server",
+  "lib",
+  "config/navigation",
+  "app/fm",
+  "components",
+  "app",
+];
+const ALLOWLIST_FILES = new Set<string>([
+  // Central canonical definition of the legacy alias
+  path.join("config", "topbar-modules.ts"),
+]);
 
 type CliOptions = {
   jsonPath: string | null;
@@ -71,6 +88,49 @@ function logSummary(metrics: RouteAliasMetrics) {
   }
 }
 
+function walkFiles(dir: string): string[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(fullPath));
+    } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function checkWorkOrderAliasLiterals() {
+  const offenders: string[] = [];
+  for (const dir of ENFORCED_DIRS) {
+    const base = path.join(process.cwd(), dir);
+    if (!fs.existsSync(base)) continue;
+    for (const file of walkFiles(base)) {
+      const relative = path.relative(process.cwd(), file);
+      if (ALLOWLIST_FILES.has(relative)) continue;
+      const content = fs.readFileSync(file, "utf8");
+      RAW_ALIAS_PATTERN.lastIndex = 0;
+      if (RAW_ALIAS_PATTERN.test(content)) {
+        offenders.push(relative);
+      }
+    }
+  }
+
+  if (offenders.length > 0) {
+    console.error(
+      `❌ Found raw '${RAW_ALIAS}' literals in enforced directories. Use WORK_ORDERS_ENTITY or WORK_ORDERS_ENTITY_LEGACY constants instead:\n - ${offenders.join(
+        "\n - ",
+      )}`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`✅ No raw '${RAW_ALIAS}' literals found in enforced directories.`);
+}
+
 const cliOptions = parseArgs();
 const HISTORY_LIMIT = Number(process.env.ROUTE_HISTORY_LIMIT ?? "120");
 
@@ -79,6 +139,7 @@ async function main() {
   const metrics = enrichRouteAliasMetrics(generateRouteAliasMetrics(), {
     routeHealth,
   });
+  checkWorkOrderAliasLiterals();
   logSummary(metrics);
 
   if (cliOptions.jsonPath) {

@@ -88,7 +88,7 @@ class ReviewService {
     const existingReview = await SouqReview.findOne({
       customerId: customerObjectId,
       productId: productObjectId,
-      org_id: orgObjectId,
+      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
     });
 
     if (existingReview) {
@@ -117,7 +117,7 @@ class ReviewService {
     // Create review
     const review = await SouqReview.create({
       reviewId: `REV-${nanoid(10)}`,
-      org_id: orgObjectId,
+      orgId: orgObjectId,
       productId: productObjectId,
       fsin: product.fsin,
       customerId: customerObjectId,

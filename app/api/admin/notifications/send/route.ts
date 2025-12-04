@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
       }
 
       const corps = await db
-        .collection("organizations")
+        .collection(COLLECTIONS.ORGANIZATIONS)
         .find(
           query ?? (!isSuperAdmin && orgFilter.orgId ? { _id: orgFilter.orgId } : {}),
         )
@@ -501,7 +501,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log notification in database
-    await db.collection("admin_notifications").insertOne({
+    await db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS).insertOne({
       _id: broadcastId,
       orgId,
       senderId: session.user.id,
