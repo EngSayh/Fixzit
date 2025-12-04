@@ -48,7 +48,15 @@ describe("search RBAC and tenancy scoping", () => {
     it("permits access when explicit permission is present even if role is not", () => {
       const session = makeSession({
         role: UserRole.FINANCE,
-        permissions: ["wo.read"],
+        permissions: ["workorders:read"],
+      });
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(true);
+    });
+
+    it("permits access via module wildcard permission", () => {
+      const session = makeSession({
+        role: UserRole.FINANCE,
+        permissions: ["workorders:*"],
       });
       expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(true);
     });
@@ -137,6 +145,52 @@ describe("search RBAC and tenancy scoping", () => {
       const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
       expect(scoped.allowed).toBe(true);
       expect(scoped.query["assignment.assignedTo.userId"]?.toString()).toBe(technicianId);
+    });
+
+    it("allows property manager to search properties with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope("properties", session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["_id"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("allows property manager to search units with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope("units", session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["propertyId"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("denies property manager properties access without assigned properties", () => {
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: [],
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      expect(applyEntityScope("properties", session, baseQuery()).allowed).toBe(false);
+      expect(applyEntityScope("units", session, baseQuery()).allowed).toBe(false);
+    });
+
+    it("allows property manager to search work orders with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["location.propertyId"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
     });
   });
 });

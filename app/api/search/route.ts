@@ -407,6 +407,9 @@ export function applyEntityScope(
       if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
         roleConditions.push({ _id: { $in: toObjectIds(session.assignedProperties) } });
       }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.assignedProperties) } });
+      }
       if (hasRole(session, UserRole.TENANT) && session.units?.length) {
         roleConditions.push({ "units.unitId": { $in: toObjectIds(session.units) } });
       }
@@ -426,6 +429,9 @@ export function applyEntityScope(
         roleConditions.push({ _id: { $in: toObjectIds(session.units) } });
       }
       if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
         roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
       }
       if (roleConditions.length === 0) {
