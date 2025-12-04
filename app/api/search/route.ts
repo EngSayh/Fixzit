@@ -453,76 +453,97 @@ export function applyEntityScope(
       return { allowed: true, query: scopedQuery };
     }
     case "tenants": {
-      if (hasRole(session, UserRole.TENANT)) {
-        if (!session.tenantId || !ObjectId.isValid(session.tenantId)) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["_id"] = new ObjectId(session.tenantId);
-      }
+      // SEC-002: Tenants entity - administrative roles have already passed canSearchEntity
+      // TENANT role is NOT in allowedRoles for "tenants" entity, so this case is for
+      // admin/manager roles only. They can see all tenants within their org (base query has orgId).
+      // No additional scoping needed for admin roles.
       return { allowed: true, query: scopedQuery };
     }
     case "vendors": {
+      // SEC-002: VENDOR role scoped to own vendor record
       if (hasRole(session, UserRole.VENDOR)) {
         if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
           return { allowed: false, query: scopedQuery };
         }
         scopedQuery["_id"] = new ObjectId(session.vendorId);
       }
+      // Other allowed roles (ADMIN, MANAGER, PROCUREMENT, etc.) see all vendors in org
       return { allowed: true, query: scopedQuery };
     }
     case "orders": {
+      // SEC-002: VENDOR sees only orders for their vendor
       if (hasRole(session, UserRole.VENDOR)) {
         if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
           return { allowed: false, query: scopedQuery };
         }
         scopedQuery["vendorId"] = new ObjectId(session.vendorId);
       }
+      // Other allowed roles see all orders in org
       return { allowed: true, query: scopedQuery };
     }
     case "rfqs": {
+      // SEC-002: VENDOR sees only RFQs they're invited to
       if (hasRole(session, UserRole.VENDOR)) {
         if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
           return { allowed: false, query: scopedQuery };
         }
         scopedQuery["invitedVendors.vendorId"] = new ObjectId(session.vendorId);
       }
+      // Other allowed roles see all RFQs in org
       return { allowed: true, query: scopedQuery };
     }
     case "products":
     case "services": {
+      // SEC-002: VENDOR sees only their own products/services
       if (hasRole(session, UserRole.VENDOR)) {
         if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
           return { allowed: false, query: scopedQuery };
         }
         scopedQuery["vendorId"] = new ObjectId(session.vendorId);
       }
+      // Other allowed roles see all products/services in org
       return { allowed: true, query: scopedQuery };
     }
     case "listings": {
-      if (hasRole(session, UserRole.VENDOR)) {
-        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
-          return { allowed: false, query: scopedQuery };
-        }
-        scopedQuery["vendorId"] = new ObjectId(session.vendorId);
-      }
+      // SEC-002: OWNER sees only their own listings (by listerId or propertyId)
+      // VENDOR role is also in allowedRoles for listings, they see all in org
       if (hasRole(session, UserRole.OWNER)) {
-        if (!session.assignedProperties?.length) {
+        const roleConditions: Record<string, unknown>[] = [];
+        // Owner can see listings they created (listerId matches their user ID)
+        if (ObjectId.isValid(session.id)) {
+          roleConditions.push({ listerId: new ObjectId(session.id) });
+        }
+        // Or listings for properties they own
+        if (session.assignedProperties?.length) {
+          roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+        }
+        if (roleConditions.length === 0) {
           return { allowed: false, query: scopedQuery };
         }
-        scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
+        if (roleConditions.length === 1) {
+          Object.assign(scopedQuery, roleConditions[0]);
+        } else {
+          scopedQuery.$or = roleConditions;
+        }
       }
+      // Other allowed roles (ADMIN, MANAGER, PROPERTY_MANAGER, VENDOR) see all listings in org
       return { allowed: true, query: scopedQuery };
     }
     case "projects": {
+      // SEC-002: OWNER sees only projects for their properties
       if (hasRole(session, UserRole.OWNER)) {
         if (!session.assignedProperties?.length) {
           return { allowed: false, query: scopedQuery };
         }
         scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
       }
+      // Other allowed roles see all projects in org
       return { allowed: true, query: scopedQuery };
     }
     case "agents": {
+      // SEC-002: Agents are org-level resources, not property-specific.
+      // All roles that pass canSearchEntity see all agents within their org.
+      // This differs from listings/projects which are property-scoped.
       return { allowed: true, query: scopedQuery };
     }
     default:
