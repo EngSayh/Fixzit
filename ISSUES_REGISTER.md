@@ -1,18 +1,20 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-01-XX  
-**Version**: 1.0  
+**Last Updated**: 2025-12-04  
+**Version**: 1.1  
 **Scope**: Database index management across all models
 
 ---
 
 ## Executive Summary
 
-This register documents all issues discovered in the Fixzit index management system. The primary blocker is **IndexOptionsConflict** errors caused by duplicate index definitions between `lib/db/collections.ts` (manual native driver) and Mongoose schema definitions in various model files.
+This register documents all issues discovered in the Fixzit index management system. ~~The primary blocker is **IndexOptionsConflict** errors caused by duplicate index definitions between `lib/db/collections.ts` (manual native driver) and Mongoose schema definitions in various model files.~~
 
-**Impact**: Deployment failures, potential cross-tenant data leaks, wasted database resources.
+**UPDATE (2025-12-04)**: ISSUE-001 and ISSUE-002 have been **RESOLVED**. Schema indexes have been removed from WorkOrder.ts and Product.ts models, and `autoIndex: false` has been added to prevent Mongoose auto-index creation. Property.ts also has `autoIndex: false`. All indexes are now centrally managed in `lib/db/collections.ts`.
 
-**Root Cause**: Dual-source index architecture without clear delineation of responsibilities.
+**Impact**: ~~Deployment failures, potential cross-tenant data leaks, wasted database resources.~~ RESOLVED - no deployment failures expected.
+
+**Root Cause**: Dual-source index architecture without clear delineation of responsibilities. **FIXED** by establishing `lib/db/collections.ts` as single source of truth.
 
 ---
 
@@ -25,7 +27,7 @@ This register documents all issues discovered in the Fixzit index management sys
 **Status**: ✅ RESOLVED (2025-12-04)
 
 **Resolution**: Removed 6 duplicate schema indexes from `server/models/WorkOrder.ts`.
-All indexes now managed centrally in `lib/db/collections.ts`. See commit `abee80560`.
+All indexes now managed centrally in `lib/db/collections.ts`. Added `autoIndex: false` to schema options. See commit `abee80560`.
 
 **Description**:  
 `server/models/WorkOrder.ts` defines 15+ indexes via Mongoose schema (lines 496-623) that are ALSO defined manually in `lib/db/collections.ts` (lines 138-167). When `ensureCoreIndexes()` runs during deployment, it calls BOTH `createIndexes()` from collections.ts AND `WorkOrder.createIndexes()` via Mongoose, causing IndexOptionsConflict errors because the same index is defined twice with potentially different options (e.g., index names, background flags).
