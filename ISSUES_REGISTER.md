@@ -22,7 +22,10 @@ This register documents all issues discovered in the Fixzit index management sys
 
 **Severity**: 🟥 CRITICAL  
 **Category**: Correctness, Deployment  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-04)
+
+**Resolution**: Removed 6 duplicate schema indexes from `server/models/WorkOrder.ts`.
+All indexes now managed centrally in `lib/db/collections.ts`. See commit `abee80560`.
 
 **Description**:  
 `server/models/WorkOrder.ts` defines 15+ indexes via Mongoose schema (lines 496-623) that are ALSO defined manually in `lib/db/collections.ts` (lines 138-167). When `ensureCoreIndexes()` runs during deployment, it calls BOTH `createIndexes()` from collections.ts AND `WorkOrder.createIndexes()` via Mongoose, causing IndexOptionsConflict errors because the same index is defined twice with potentially different options (e.g., index names, background flags).
@@ -72,7 +75,10 @@ Remove ALL index definitions from `server/models/WorkOrder.ts` (lines 496-623). 
 
 **Severity**: 🟥 CRITICAL  
 **Category**: Correctness, Deployment  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-04)
+
+**Resolution**: Removed 5 duplicate schema indexes from `server/models/marketplace/Product.ts`.
+All indexes now managed centrally in `lib/db/collections.ts`. See commit `abee80560`.
 
 **Description**:  
 `server/models/marketplace/Product.ts` defines 5 indexes via Mongoose schema (lines 129-166) that are ALSO defined manually in `lib/db/collections.ts` (lines 187-218). Same conflict as ISSUE-001.

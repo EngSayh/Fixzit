@@ -310,6 +310,7 @@ export async function POST(req: NextRequest) {
             });
           }
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "email",
             type: "broadcast",
@@ -335,6 +336,7 @@ export async function POST(req: NextRequest) {
           });
           results.email.failed++;
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "email",
             type: "broadcast",
@@ -370,6 +372,7 @@ export async function POST(req: NextRequest) {
             });
           }
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "sms",
             type: "broadcast",
@@ -394,6 +397,7 @@ export async function POST(req: NextRequest) {
           });
           results.sms.failed++;
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "sms",
             type: "broadcast",
@@ -427,6 +431,7 @@ export async function POST(req: NextRequest) {
             });
             results.whatsapp.failed++;
             enqueueLog({
+              orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
               userId: contact.id,
               channel: "whatsapp",
               type: "broadcast",
@@ -453,6 +458,7 @@ export async function POST(req: NextRequest) {
             if (result.success) {
               results.whatsapp.sent++;
               enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
                 userId: contact.id,
                 channel: "whatsapp",
                 type: "broadcast",
@@ -472,6 +478,7 @@ export async function POST(req: NextRequest) {
             } else {
               results.whatsapp.failed++;
               enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
                 userId: contact.id,
                 channel: "whatsapp",
                 type: "broadcast",

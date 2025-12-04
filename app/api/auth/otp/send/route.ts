@@ -22,6 +22,7 @@ import {
   redactIdentifier,
 } from "@/lib/otp-utils";
 import { isTruthy } from "@/lib/utils/env";
+import type { ObjectId } from "mongodb";
 
 interface UserDocument {
   _id?: { toString: () => string };
@@ -283,6 +284,24 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Resolve orgId from organization code to enforce tenant scoping for corporate logins
+async function resolveOrgIdFromCompanyCode(
+  companyCode: string,
+): Promise<string | null> {
+  const { Organization } = await import("@/server/models/Organization");
+  const org = await Organization.findOne({ code: companyCode })
+    .select({ _id: 1, orgId: 1 })
+    .lean<{
+      _id?: ObjectId;
+      orgId?: string;
+    }>()
+    .catch(() => null);
+
+  if (!org) return null;
+  const orgId = org.orgId || org._id?.toString();
+  return orgId ?? null;
+}
+
 // Check rate limit (ASYNC for multi-instance Redis support)
 async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
@@ -396,6 +415,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Resolve user (test users → skip DB, otherwise perform lookup)
     let user: UserDocument | null = null;
+    let orgScopeId: string | null = null;
     const testUser = smsDevMode
       ? resolveTestUser(
           loginIdentifier,
@@ -418,6 +438,9 @@ export async function POST(request: NextRequest) {
         process.env.TEST_ORG_ID ||
         process.env.DEFAULT_ORG_ID;
 
+      // Track the org scope for logging and downstream usage
+      orgScopeId = loginType === "personal" ? resolvedOrgId ?? null : null;
+
       if (loginType === "personal") {
         // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
         user = resolvedOrgId
@@ -426,23 +449,26 @@ export async function POST(request: NextRequest) {
       } else {
         // SECURITY FIX: Corporate login - resolve orgId from company code first (SEC-002)
         // This prevents cross-tenant OTP delivery if company codes could collide
-        const { Organization } = await import("@/server/models/Organization");
-        const org = await Organization.findOne({ code: normalizedCompanyCode }).select("_id").lean();
-        
-        if (!org) {
+        const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
+          normalizedCompanyCode!,
+        );
+
+        if (!resolvedCompanyOrgId) {
           logger.warn("[OTP] Invalid company code", {
             identifier: redactIdentifier(loginIdentifier),
             code: normalizedCompanyCode,
           });
           return NextResponse.json(
-            { success: false, error: "Invalid company code" },
-            { status: 400 },
+            { success: false, error: "Invalid credentials" },
+            { status: 401 },
           );
         }
 
+        orgScopeId = resolvedCompanyOrgId;
+
         // Scope user lookup by both orgId AND company code for defense in depth
         user = await User.findOne({
-          orgId: org._id,
+          orgId: resolvedCompanyOrgId,
           username: loginIdentifier,
           code: normalizedCompanyCode,
         });
@@ -519,6 +545,9 @@ export async function POST(request: NextRequest) {
     }
 
     const isDemoUser = Boolean(user.__isDemoUser);
+    const _userOrgId =
+      (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() ||
+      orgScopeId;
 
     // 7. Check if user is active
     const isUserActive =
@@ -631,13 +660,8 @@ export async function POST(request: NextRequest) {
     const smsResult = await sendOTP(userPhone, otp);
 
     if (!OFFLINE_MODE) {
-      // Extract orgId for tenant-scoped communication logging
-      const userOrgId = user.orgId 
-        ? (typeof user.orgId === "string" ? user.orgId : user.orgId.toString())
-        : undefined;
-
       const logResult = await logCommunication({
-        orgId: userOrgId, // SECURITY: Include orgId for tenant isolation (SEC-003)
+        orgId: userOrgId || undefined, // SECURITY: Include orgId for tenant isolation (SEC-003)
         userId: user._id?.toString?.() || loginIdentifier,
         channel: "otp",
         type: "otp",
