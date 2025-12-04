@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { WOStatus, WOPriority, type WorkOrder, WOCategory } from "@/types/fm";
 import { logger } from "@/lib/logger";
 import {
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
 
     // Connect to database
     const db = await getDatabase();
-    const collection = db.collection<WorkOrderDocument>("workorders");
+    const collection = db.collection<WorkOrderDocument>(COLLECTIONS.WORK_ORDERS);
 
     // Execute query with pagination
     const skip = (page - 1) * limit;
@@ -304,7 +305,7 @@ export async function POST(req: NextRequest) {
           : null;
         if (assigneeObjectId) {
           const assignee = await db
-            .collection("users")
+            .collection(COLLECTIONS.USERS)
             .findOne({ _id: assigneeObjectId, orgId: tenantId });
           if (assignee?.email) {
             recipients.push({

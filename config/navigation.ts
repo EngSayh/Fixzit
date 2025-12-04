@@ -140,6 +140,19 @@ export interface NavigationConfig {
   };
 }
 
+// Canonical module IDs (phase out snake_case)
+export const WORK_ORDERS_ID = 'workOrders';
+export const WORK_ORDERS_ID_LEGACY = 'work_orders'; // temporary alias during migration
+
+// Normalize module identifiers to canonical form
+export const normalizeModuleId = (id?: string | null): string | null => {
+  if (!id) return null;
+  const trimmed = id.trim();
+  if (!trimmed) return null;
+  if (trimmed === WORK_ORDERS_ID_LEGACY) return WORK_ORDERS_ID;
+  return trimmed;
+};
+
 const ROLE_EQUIVALENTS: Record<string, string[]> = {
   MANAGER: ['FM_MANAGER'],
   FM_MANAGER: ['MANAGER'],
@@ -317,7 +330,8 @@ export type ModuleCategory =
 
 export type ModuleId =
   | 'dashboard'
-  | 'work_orders'
+  | typeof WORK_ORDERS_ID
+  | typeof WORK_ORDERS_ID_LEGACY
   | 'properties'
   | 'tenants'
   | 'finance'
@@ -336,7 +350,8 @@ export type ModuleId =
 
 export const MODULE_PATHS = {
   dashboard: '/fm/dashboard',
-  work_orders: '/fm/work-orders',
+  [WORK_ORDERS_ID]: '/fm/work-orders',
+  [WORK_ORDERS_ID_LEGACY]: '/fm/work-orders', // legacy alias
   properties: '/fm/properties',
   tenants: '/fm/tenants',
   finance: '/fm/finance',
@@ -656,7 +671,7 @@ export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
 };
 
 const ALL_MODULE_IDS = MODULES.map((m) => m.id);
-const CORE_PLAN: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'support'];
+const CORE_PLAN: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'properties', 'support'];
 const PRO_PLAN: ModuleId[] = [...CORE_PLAN, 'finance', 'hr', 'crm', 'marketplace', 'reports'];
 const STANDARD_PLAN: ModuleId[] = CORE_PLAN;
 const PREMIUM_PLAN: ModuleId[] = PRO_PLAN;
@@ -687,12 +702,12 @@ const adminCore: ModuleId[] = [
   'reports',
   'system',
 ];
-const fmLeadership: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'hr', 'support', 'reports'];
-const propertyOps: ModuleId[] = ['dashboard', 'properties', 'work_orders', 'crm', 'support', 'reports'];
+const fmLeadership: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'properties', 'hr', 'support', 'reports'];
+const propertyOps: ModuleId[] = ['dashboard', 'properties', WORK_ORDERS_ID, 'crm', 'support', 'reports'];
 const financeOnly: ModuleId[] = ['dashboard', 'finance', 'reports', 'support'];
 const hrOnly: ModuleId[] = ['dashboard', 'hr', 'support', 'reports'];
 const procurementOnly: ModuleId[] = ['dashboard', 'marketplace', 'support', 'reports'];
-const technicianOnly: ModuleId[] = ['dashboard', 'work_orders', 'support'];
+const technicianOnly: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'support'];
 const ownerTenant: ModuleId[] = ['dashboard', 'properties', 'support', 'reports'];
 const vendorOnly: ModuleId[] = ['dashboard', 'marketplace', 'support'];
 const customerOnly: ModuleId[] = ['dashboard', 'support'];
@@ -706,7 +721,7 @@ export const ROLE_PERMISSIONS = {
   MANAGER: fmLeadership,
   FM_MANAGER: fmLeadership,
   PROPERTY_MANAGER: propertyOps,
-  TEAM_MEMBER: ['dashboard', 'work_orders', 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
+  TEAM_MEMBER: ['dashboard', WORK_ORDERS_ID, 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
   FINANCE: financeOnly,
   HR: hrOnly,
   PROCUREMENT: procurementOnly,
@@ -791,8 +806,8 @@ const moduleRoles = (...moduleIds: ModuleId[]): NavigationRole[] => {
 const DASHBOARD_ROLES = moduleRoles('dashboard');
 const REPORT_ROLES = moduleRoles('reports');
 const PROPERTIES_ROLES = moduleRoles('properties');
-const WORK_ORDER_ROLES = moduleRoles('work_orders');
-const FACILITY_ROLES = moduleRoles('properties', 'work_orders');
+const WORK_ORDER_ROLES = moduleRoles(WORK_ORDERS_ID);
+const FACILITY_ROLES = moduleRoles('properties', WORK_ORDERS_ID);
 const MARKETPLACE_ROLES = moduleRoles('marketplace');
 const REAL_ESTATE_ROLES = PROPERTIES_ROLES;
 const FINANCE_ROLES = moduleRoles('finance');

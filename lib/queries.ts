@@ -66,15 +66,28 @@ export async function getWorkOrderStats(orgId: string) {
   const collection = db.collection(COLLECTIONS.WORK_ORDERS);
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Open" }),
-    collection.countDocuments({ orgId: orgId, status: "In Progress" }),
+    collection.countDocuments({ orgId: orgId, isDeleted: { $ne: true } }),
     collection.countDocuments({
       orgId: orgId,
-      status: { $in: ["Open", "In Progress"] },
-      sla_due: { $lt: new Date() },
+      isDeleted: { $ne: true },
+      status: { $in: ["SUBMITTED", "ASSIGNED"] },
     }),
-    collection.countDocuments({ orgId: orgId, status: "Completed" }),
+    collection.countDocuments({
+      orgId: orgId,
+      isDeleted: { $ne: true },
+      status: "IN_PROGRESS",
+    }),
+    collection.countDocuments({
+      orgId: orgId,
+      isDeleted: { $ne: true },
+      status: { $in: ["ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL"] },
+      "sla.resolutionDeadline": { $lt: new Date() },
+    }),
+    collection.countDocuments({
+      orgId: orgId,
+      isDeleted: { $ne: true },
+      status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] },
+    }),
   ]);
 
   return {
@@ -99,13 +112,13 @@ export async function getInvoiceCounters(orgId: string) {
   const collection = db.collection(COLLECTIONS.INVOICES);
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ orgId: orgId, status: "Unpaid" }),
+    collection.countDocuments({ orgId: orgId, status: { $in: ["ISSUED", "OVERDUE"] } }),
     collection.countDocuments({
       orgId: orgId,
-      status: "Unpaid",
-      due_date: { $lt: new Date() },
+      status: { $in: ["ISSUED", "OVERDUE"] },
+      dueDate: { $lt: new Date() },
     }),
-    collection.countDocuments({ orgId: orgId, status: "Paid" }),
+    collection.countDocuments({ orgId: orgId, status: "PAID" }),
     collection.countDocuments({ orgId: orgId }),
   ]);
 
@@ -126,14 +139,14 @@ export async function getRevenueStats(orgId: string, days = 30) {
       {
         $match: {
           orgId: orgId,
-          status: "Paid",
-          paid_date: { $gte: startDate },
+          status: "PAID",
+          paidAt: { $gte: startDate },
         },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: "$total_amount" },
+          total: { $sum: { $ifNull: ["$total", "$total_amount"] } },
           count: { $sum: 1 },
         },
       },
@@ -288,18 +301,21 @@ export async function getSupportCounters(orgId: string) {
 /**
  * Get marketplace counters (for sellers)
  */
-export async function getMarketplaceCounters(sellerId: string) {
+export async function getMarketplaceCounters(orgId: string, sellerId: string) {
   const db = await getDb();
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ sellerId }),
-    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({ "items.sellerId": sellerId }),
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ orgId, sellerId }),
+    db
+      .collection(COLLECTIONS.SOUQ_ORDERS)
+      .countDocuments({ orgId, "items.sellerId": sellerId }),
     db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
-      productId: { $in: await getSellerProductIds(sellerId, db) },
+      orgId,
+      productId: { $in: await getSellerProductIds(orgId, sellerId, db) },
     }),
     db
       .collection(COLLECTIONS.SOUQ_LISTINGS)
-      .countDocuments({ sellerId, status: "active" }),
+      .countDocuments({ orgId, sellerId, status: "active" }),
   ]);
 
   return { listings, activeListings, orders, reviews };
@@ -322,15 +338,16 @@ export async function getMarketplaceCountersForOrg(orgId: string) {
 }
 
 async function getSellerProductIds(
+  orgId: string,
   sellerId: string,
   db: MongoDb,
-): Promise<string[]> {
+): Promise<unknown[]> {
   const listings = await db
     .collection(COLLECTIONS.SOUQ_LISTINGS)
-    .find({ sellerId })
+    .find({ orgId, sellerId })
     .project({ productId: 1 })
     .toArray();
-  return listings.map((l) => l.productId.toString());
+  return listings.map((l) => l.productId);
 }
 
 // ==========================================
@@ -402,7 +419,8 @@ export async function getAllCounters(orgId: string) {
 // ==========================================
 
 /**
- * Create indexes for performance (run once on setup)
+ * @deprecated Use createIndexes() from lib/db/collections instead.
+ * Backward-compatible shim to avoid IndexOptionsConflict drift.
  */
 export async function createPerformanceIndexes() {
   // Delegates to centralized index management to prevent drift and IndexOptionsConflict.
