@@ -196,9 +196,9 @@ export async function POST(
     }
 
     // LEGACY-003 FIX: Use orgId for timeline entry
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId: workOrder._id?.toString?.() ?? id,
-      tenantId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
+      orgId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
       action: "status_changed",
       description: `Status changed from ${currentStatus} to ${toStatus}`,
       metadata: {

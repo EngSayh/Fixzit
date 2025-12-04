@@ -31,6 +31,9 @@ vi.mock('@/lib/authz', () => ({
 vi.mock('@/lib/db/collections', () => ({
   ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('@/lib/qa/telemetry', () => ({
+  recordQaStorageFailure: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
@@ -42,6 +45,7 @@ let GET: typeof import('@/app/api/qa/log/route').GET;
 import { logger } from '@/lib/logger';
 import { requireSuperAdmin } from '@/lib/authz';
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 import { ensureQaIndexes } from '@/lib/db/collections';
 
 // Type helper for building minimal NextRequest-like object
@@ -279,6 +283,7 @@ describe('api/qa/log route', () => {
       const body = await res.json();
       expect(body).toEqual({ error: 'Log storage unavailable' });
       expect(logger.error).toHaveBeenCalled();
+      expect(recordQaStorageFailure).toHaveBeenCalledWith("log", "write", expect.any(Error));
     });
 
     it('returns 429 when rate limited', async () => {
@@ -426,6 +431,7 @@ describe('api/qa/log route', () => {
       const body = await res.json();
       expect(body).toEqual({ error: 'Log retrieval unavailable' });
       expect(logger.error).toHaveBeenCalled();
+      expect(recordQaStorageFailure).toHaveBeenCalledWith("log", "read", expect.any(Error));
     });
 
     it('returns 429 when rate limited', async () => {

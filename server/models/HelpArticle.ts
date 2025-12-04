@@ -27,7 +27,10 @@ HelpArticleSchema.plugin(tenantIsolationPlugin);
 HelpArticleSchema.plugin(auditPlugin);
 
 // Tenant-scoped indexes (orgId from plugin)
-HelpArticleSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+HelpArticleSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 HelpArticleSchema.index({
   orgId: 1,
   title: "text",

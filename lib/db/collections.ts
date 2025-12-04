@@ -80,6 +80,12 @@ export async function createIndexes() {
       },
     );
   await db.collection(COLLECTIONS.USERS).createIndex({ orgId: 1 }, { background: true, name: "users_orgId" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, role: 1 }, { background: true, name: "users_orgId_role" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, "personal.phone": 1 }, { background: true, name: "users_orgId_phone" });
 
   // Properties - STRICT v4.1: code unique per org
   await db
@@ -94,22 +100,52 @@ export async function createIndexes() {
       },
     );
   await db.collection(COLLECTIONS.PROPERTIES).createIndex({ orgId: 1 }, { background: true, name: "properties_orgId" });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ orgId: 1, type: 1 }, { background: true, name: "properties_orgId_type" });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "properties_orgId_status" });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ orgId: 1, "address.city": 1 }, { background: true, name: "properties_orgId_city" });
 
-  // Work Orders - STRICT v4.1: code unique per org
+  // Work Orders - STRICT v4.1: workOrderNumber unique per org
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex(
-      { orgId: 1, code: 1 },
+      { orgId: 1, workOrderNumber: 1 },
       {
         unique: true,
         background: true,
-        name: "workorders_orgId_code_unique",
+        name: "workorders_orgId_workOrderNumber_unique",
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex({ orgId: 1, status: 1 }, { background: true, name: "workorders_orgId_status" });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex({ orgId: 1, priority: 1 }, { background: true, name: "workorders_orgId_priority" });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex({ orgId: 1, "location.propertyId": 1 }, { background: true, name: "workorders_orgId_propertyId" });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { orgId: 1, "assignment.assignedTo.userId": 1 },
+      { background: true, name: "workorders_orgId_assignedUser" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { orgId: 1, "assignment.assignedTo.vendorId": 1 },
+      { background: true, name: "workorders_orgId_assignedVendor" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex({ createdAt: -1 }, { background: true, name: "workorders_createdAt_desc" });
 
   // Products - STRICT v4.1: sku unique per org
   await db
@@ -126,6 +162,9 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.PRODUCTS)
     .createIndex({ orgId: 1, categoryId: 1 }, { background: true, name: "products_orgId_categoryId" });
+  await db
+    .collection(COLLECTIONS.PRODUCTS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "products_orgId_status" });
   await db
     .collection(COLLECTIONS.PRODUCTS)
     .createIndex({ title: "text", description: "text" }, { background: true, name: "products_text_search" });
@@ -145,20 +184,100 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.ORDERS)
     .createIndex({ orgId: 1, userId: 1 }, { background: true, name: "orders_orgId_userId" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "orders_orgId_status" });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "orders_orgId_createdAt_desc" });
 
-  // Invoices - STRICT v4.1: invoiceNumber unique per org
+  // Invoices - STRICT v4.1: number unique per org
   await db
     .collection(COLLECTIONS.INVOICES)
     .createIndex(
-      { orgId: 1, invoiceNumber: 1 },
+      { orgId: 1, number: 1 },
       {
         unique: true,
         background: true,
-        name: "invoices_orgId_invoiceNumber_unique",
+        name: "invoices_orgId_number_unique",
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
   await db.collection(COLLECTIONS.INVOICES).createIndex({ orgId: 1 }, { background: true, name: "invoices_orgId" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "invoices_orgId_status" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, dueDate: 1 }, { background: true, name: "invoices_orgId_dueDate" });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ orgId: 1, customerId: 1 }, { background: true, name: "invoices_orgId_customerId" });
+
+  // Support Tickets - STRICT v4.1: code unique per org
+  await db
+    .collection("supporttickets")
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "supporttickets_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection("supporttickets")
+    .createIndex({ orgId: 1 }, { background: true, name: "supporttickets_orgId" });
+  await db
+    .collection("supporttickets")
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "supporttickets_orgId_status" });
+  await db
+    .collection("supporttickets")
+    .createIndex({ orgId: 1, priority: 1 }, { background: true, name: "supporttickets_orgId_priority" });
+  await db
+    .collection("supporttickets")
+    .createIndex({ orgId: 1, "assignment.assignedTo.userId": 1 }, { background: true, name: "supporttickets_orgId_assignee" });
+  await db
+    .collection("supporttickets")
+    .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "supporttickets_orgId_createdAt_desc" });
+
+  // Help Articles - STRICT v4.1: slug unique per org
+  await db
+    .collection("helparticles")
+    .createIndex(
+      { orgId: 1, slug: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "helparticles_orgId_slug_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db.collection("helparticles").createIndex({ orgId: 1 }, { background: true, name: "helparticles_orgId" });
+  await db
+    .collection("helparticles")
+    .createIndex({ orgId: 1, category: 1 }, { background: true, name: "helparticles_orgId_category" });
+  await db
+    .collection("helparticles")
+    .createIndex({ orgId: 1, published: 1 }, { background: true, name: "helparticles_orgId_published" });
+
+  // CMS Pages - STRICT v4.1: slug unique per org
+  await db
+    .collection("cmspages")
+    .createIndex(
+      { orgId: 1, slug: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "cmspages_orgId_slug_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db.collection("cmspages").createIndex({ orgId: 1 }, { background: true, name: "cmspages_orgId" });
+  await db
+    .collection("cmspages")
+    .createIndex({ orgId: 1, published: 1 }, { background: true, name: "cmspages_orgId_published" });
 }
 
 async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
@@ -262,10 +381,10 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
     { collection: COLLECTIONS.PROPERTIES, indexes: ["code_1"] },
-    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1"] },
+    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1", "workOrderNumber_1"] },
     { collection: COLLECTIONS.PRODUCTS, indexes: ["sku_1"] },
     { collection: COLLECTIONS.ORDERS, indexes: ["orderNumber_1"] },
-    { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1"] },
+    { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1", "number_1", "code_1"] },
   ];
 
   for (const { collection, indexes } of targets) {

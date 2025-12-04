@@ -336,9 +336,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId: result.insertedId.toString(),
-      tenantId: tenantId, // FIX: Use scoped tenantId (has fallback)
+      orgId: tenantId, // FIX: Use scoped tenantId (has fallback)
       action: "created",
       description: "Work order created",
       metadata: { status: WOStatus.NEW },

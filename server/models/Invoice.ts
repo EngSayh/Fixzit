@@ -255,7 +255,10 @@ InvoiceSchema.plugin(encryptionPlugin, {
 });
 
 // Tenant-scoped indexes for performance and data isolation
-InvoiceSchema.index({ orgId: 1, number: 1 }, { unique: true });
+InvoiceSchema.index(
+  { orgId: 1, number: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 InvoiceSchema.index({ orgId: 1, status: 1 });
 InvoiceSchema.index({ orgId: 1, "recipient.customerId": 1 });
 InvoiceSchema.index({ orgId: 1, issueDate: -1 });

@@ -24,7 +24,10 @@ CmsPageSchema.plugin(tenantIsolationPlugin);
 CmsPageSchema.plugin(auditPlugin);
 
 // Ensure slug uniqueness is scoped to tenant
-CmsPageSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+CmsPageSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema> & {
   createdBy?: Types.ObjectId | string;

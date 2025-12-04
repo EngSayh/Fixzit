@@ -247,7 +247,10 @@ PropertySchema.index({ orgId: 1, "address.city": 1 });
 PropertySchema.index({ orgId: 1, "units.status": 1 });
 PropertySchema.index({ "address.coordinates": "2dsphere" });
 // Compound tenant-scoped unique index for code
-PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
+PropertySchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 

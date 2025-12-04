@@ -1,7 +1,9 @@
 import type { DefaultSession } from "next-auth";
 import type { WorkOrder, WorkOrderUser } from "@/types/fm";
-import type { getDatabase } from "@/lib/mongodb-unified";
 import type { ObjectId } from "mongodb";
+import { WorkOrderComment } from "@/server/models/workorder/WorkOrderComment";
+import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
+import { WorkOrderTimeline } from "@/server/models/workorder/WorkOrderTimeline";
 
 export type WorkOrderDocument = Partial<WorkOrder> & {
   _id?: ObjectId;
@@ -141,18 +143,20 @@ export const WORK_ORDER_COMMENT_LIMIT = 500;
 export const WORK_ORDER_ATTACHMENT_LIMIT = 200;
 export const WORK_ORDER_TIMELINE_LIMIT = 1000;
 
-type MongoDatabase = Awaited<ReturnType<typeof getDatabase>>;
-
 export async function assertWorkOrderQuota(
-  db: MongoDatabase,
   collectionName: string,
-  tenantId: string,
+  orgId: string,
   workOrderId: string,
   limit: number,
 ): Promise<void> {
-  const existingCount = await db
-    .collection(collectionName)
-    .countDocuments({ tenantId, workOrderId });
+  const model =
+    collectionName === "workorder_comments"
+      ? WorkOrderComment
+      : collectionName === "workorder_attachments"
+        ? WorkOrderAttachment
+        : WorkOrderTimeline;
+
+  const existingCount = await model.countDocuments({ orgId, workOrderId });
   if (existingCount >= limit) {
     throw new WorkOrderQuotaError(
       `Maximum ${collectionName.replace("workorder_", "").replace("_", " ")} reached for this work order`,
@@ -163,7 +167,7 @@ export async function assertWorkOrderQuota(
 
 type TimelineEntry = {
   workOrderId: string;
-  tenantId: string;
+  orgId: string;
   action: string;
   description?: string;
   metadata?: Record<string, unknown>;
@@ -173,12 +177,21 @@ type TimelineEntry = {
 };
 
 export async function recordTimelineEntry(
-  db: MongoDatabase,
   entry: TimelineEntry,
   limit: number = WORK_ORDER_TIMELINE_LIMIT,
 ) {
-  await db.collection("workorder_timeline").insertOne(entry);
-  await trimTimelineEntries(db, entry.tenantId, entry.workOrderId, limit);
+  await WorkOrderTimeline.create({
+    orgId: entry.orgId,
+    workOrderId: entry.workOrderId,
+    performedAt: entry.performedAt,
+    action: entry.action,
+    description: entry.description,
+    metadata: entry.metadata,
+    performedBy: entry.performedBy
+      ? { id: entry.performedBy }
+      : undefined,
+  });
+  await trimTimelineEntries(entry.orgId, entry.workOrderId, limit);
 }
 
 type CanonicalUser = { id?: string | null } | null | undefined;
@@ -193,27 +206,24 @@ export function getCanonicalUserId(user: CanonicalUser): string | null {
 }
 
 async function trimTimelineEntries(
-  db: MongoDatabase,
-  tenantId: string,
+  orgId: string,
   workOrderId: string,
   limit: number,
 ) {
-  const collection = db.collection("workorder_timeline");
-  const total = await collection.countDocuments({ tenantId, workOrderId });
+  const total = await WorkOrderTimeline.countDocuments({ orgId, workOrderId });
   const excess = total - limit;
   if (excess <= 0) {
     return;
   }
 
-  const oldest = await collection
-    .find({ tenantId, workOrderId })
+  const oldest = await WorkOrderTimeline.find({ orgId, workOrderId })
     .sort({ performedAt: 1, _id: 1 })
     .limit(excess)
-    .project({ _id: 1 })
-    .toArray();
+    .select({ _id: 1 })
+    .lean();
 
   const ids = oldest.map((doc) => doc._id).filter(Boolean);
   if (ids.length) {
-    await collection.deleteMany({ _id: { $in: ids } });
+    await WorkOrderTimeline.deleteMany({ _id: { $in: ids } });
   }
 }

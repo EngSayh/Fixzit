@@ -4,28 +4,31 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import type { WorkOrderPhoto } from "@/types/fm";
+import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
 import {
   assertWorkOrderQuota,
   getCanonicalUserId,
   recordTimelineEntry,
   WORK_ORDER_ATTACHMENT_LIMIT,
   WorkOrderQuotaError,
+  WORK_ORDER_TIMELINE_LIMIT,
 } from "../../utils";
 import { resolveTenantId } from "../../../utils/tenant";
 import { requireFmAbility } from "../../../utils/auth";
 import { FMErrors } from "../../../errors";
 
-interface AttachmentDocument {
-  _id?: { toString?: () => string };
-  id?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  type?: string;
-  caption?: string;
-  fileName?: string;
-  uploadedAt?: Date | string | number;
-  [key: string]: unknown;
-}
+type AttachmentDocument = Partial<{
+  _id: { toString?: () => string };
+  id: string;
+  workOrderId: string | ObjectId;
+  url: string;
+  thumbnailUrl: string | null | undefined;
+  type: string | null;
+  caption: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: Date | string | number;
+}> & Record<string, unknown>;
 
 export async function GET(
   req: NextRequest,
@@ -61,7 +64,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: attachments.map(mapAttachmentDocument),
+      data: attachments.map((doc) => mapAttachmentDocument(doc as AttachmentDocument)),
     });
   } catch (error) {
     logger.error("FM Work Order Attachments GET error", error as Error);
@@ -103,9 +106,8 @@ export async function POST(
 
     const type: WorkOrderPhoto["type"] = body?.type ?? "attachment";
     const now = new Date();
-    const db = await getDatabase();
+    await getDatabase();
     await assertWorkOrderQuota(
-      db,
       "workorder_attachments",
       orgId,
       workOrderId,
@@ -121,36 +123,34 @@ export async function POST(
       fileName: body?.fileName,
       fileSize: body?.fileSize,
       uploadedAt: now,
+      metadata: body?.metadata,
       uploadedBy: {
         id: actorId,
         name: actor.name ?? undefined,
         email: actor.email ?? undefined,
       },
-      metadata: body?.metadata,
     };
 
-    const result = await db
-      .collection("workorder_attachments")
-      .insertOne(attachmentDoc);
+    const result = await WorkOrderAttachment.create(attachmentDoc);
 
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId,
-      tenantId: orgId,  // STRICT v4.1: Use orgId for timeline
+      orgId,  // STRICT v4.1: Use orgId for timeline
       action: "photo_uploaded",
       description: body?.caption || body?.fileName || "Attachment uploaded",
       metadata: {
-        attachmentId: result.insertedId.toString(),
+        attachmentId: result._id.toString(),
         type,
       },
       performedBy: actorId,
       performedAt: now,
-    });
+    }, WORK_ORDER_TIMELINE_LIMIT);
 
     return NextResponse.json(
       {
         success: true,
         data: mapAttachmentDocument({
-          _id: result.insertedId,
+          _id: result._id,
           ...attachmentDoc,
         }),
       },
@@ -205,22 +205,22 @@ export async function DELETE(
       return FMErrors.invalidId("attachment");
     }
 
-    const db = await getDatabase();
+    await getDatabase();
     const result = unwrapFindOneResult(
-      await db.collection("workorder_attachments").findOneAndDelete({
+      await WorkOrderAttachment.findOneAndDelete({
         _id: new ObjectId(attachmentId),
         orgId,
         workOrderId,
-      }),
+      }).lean(),
     );
 
     if (!result) {
       return FMErrors.notFound("Attachment");
     }
 
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId,
-      tenantId: orgId,  // STRICT v4.1: Use orgId for timeline
+      orgId,  // STRICT v4.1: Use orgId for timeline
       action: "photo_removed",
       description: `Attachment removed: ${result.caption || result.fileName || result.url}`,
       metadata: {
@@ -228,7 +228,7 @@ export async function DELETE(
       },
       performedBy: actorId,
       performedAt: new Date(),
-    });
+    }, WORK_ORDER_TIMELINE_LIMIT);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -246,7 +246,7 @@ function mapAttachmentDocument(doc: AttachmentDocument): WorkOrderPhoto {
   return {
     id: doc._id?.toString?.() ?? doc.id ?? "",
     url: doc.url ?? "",
-    thumbnailUrl: doc.thumbnailUrl ?? "",
+    thumbnailUrl: doc.thumbnailUrl ?? undefined,
     type:
       (doc.type as "before" | "after" | "attachment" | undefined) ??
       "attachment",

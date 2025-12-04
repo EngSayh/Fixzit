@@ -233,10 +233,20 @@ UserSchema.plugin(tenantIsolationPlugin, {
 UserSchema.plugin(auditPlugin);
 
 // Indexes for performance (orgId is already indexed by tenantIsolationPlugin)
-// CRITICAL FIX: Tenant-scoped unique indexes
-UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
-UserSchema.index({ orgId: 1, username: 1 }, { unique: true });
-UserSchema.index({ orgId: 1, code: 1 }, { unique: true });
+// CRITICAL FIX: Tenant-scoped unique indexes (partial filter guards legacy docs without orgId)
+const UNIQUE_TENANT_FILTER = { orgId: { $exists: true } };
+UserSchema.index(
+  { orgId: 1, email: 1 },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+);
+UserSchema.index(
+  { orgId: 1, username: 1 },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+);
+UserSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+);
 
 // FIXED: Tenant-scoped query indexes
 UserSchema.index({ orgId: 1, "professional.role": 1 });

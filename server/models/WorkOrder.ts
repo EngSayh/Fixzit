@@ -493,7 +493,10 @@ WorkOrderSchema.plugin(auditPlugin);
 
 // Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)
 // CRITICAL FIX: Tenant-scoped unique index for workOrderNumber
-WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
+WorkOrderSchema.index(
+  { orgId: 1, workOrderNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // FIXED: Tenant-scoped indexes
 WorkOrderSchema.index({ orgId: 1, status: 1 });

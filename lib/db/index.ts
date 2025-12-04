@@ -10,6 +10,9 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
+import { WorkOrderComment } from "@/server/models/workorder/WorkOrderComment";
+import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
+import { WorkOrderTimeline } from "@/server/models/workorder/WorkOrderTimeline";
 
 type IndexSpec = {
   key: Record<string, 1 | -1 | "text">;
@@ -30,6 +33,12 @@ type CollectionIndexes = {
  * Should be run during deployment to optimize query performance.
  */
 export async function ensureCoreIndexes(): Promise<void> {
+  // Skip index creation in offline mode (local dev without MongoDB)
+  if (process.env.ALLOW_OFFLINE_MONGODB === "true" && !mongoose.connection.db) {
+    logger.info("[indexes] Skipped ensureCoreIndexes – offline mode active");
+    return;
+  }
+
   await connectToDatabase();
 
   const db = mongoose.connection.db;
@@ -68,16 +77,16 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1 }, name: "properties_orgId" },
         { key: { orgId: 1, type: 1 }, name: "properties_orgId_type" },
         { key: { orgId: 1, status: 1 }, name: "properties_orgId_status" },
-        { key: { orgId: 1, "location.city": 1 }, name: "properties_orgId_city" },
+        { key: { orgId: 1, "address.city": 1 }, name: "properties_orgId_city" },
       ],
     },
     {
       collection: "workOrders",
       indexes: [
         {
-          key: { orgId: 1, code: 1 },
+          key: { orgId: 1, workOrderNumber: 1 },
           unique: true,
-          name: "workorders_orgId_code_unique",
+          name: "workorders_orgId_workOrderNumber_unique",
           partialFilterExpression: { orgId: { $exists: true } },
         },
         { key: { orgId: 1 }, name: "workorders_orgId" },
@@ -89,27 +98,6 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1, createdAt: -1 }, name: "workorders_orgId_createdAt" },
         { key: { orgId: 1, "sla.resolutionDeadline": 1 }, name: "workorders_orgId_slaDeadline" },
         { key: { orgId: 1, status: 1, createdAt: -1 }, name: "workorders_orgId_status_createdAt" },
-      ],
-    },
-    {
-      collection: "workorder_comments",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, createdAt: -1 }, name: "wo_comments_orgId_woId_createdAt" },
-        { key: { orgId: 1, createdAt: -1 }, name: "wo_comments_orgId_createdAt" },
-      ],
-    },
-    {
-      collection: "workorder_attachments",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, uploadedAt: -1 }, name: "wo_attachments_orgId_woId_uploadedAt" },
-        { key: { orgId: 1, uploadedAt: -1 }, name: "wo_attachments_orgId_uploadedAt" },
-      ],
-    },
-    {
-      collection: "workorder_timeline",
-      indexes: [
-        { key: { orgId: 1, workOrderId: 1, performedAt: -1 }, name: "wo_timeline_orgId_woId_performedAt" },
-        { key: { orgId: 1, performedAt: -1 }, name: "wo_timeline_orgId_performedAt" },
       ],
     },
     {
@@ -143,9 +131,9 @@ export async function ensureCoreIndexes(): Promise<void> {
       collection: "invoices",
       indexes: [
         {
-          key: { orgId: 1, invoiceNumber: 1 },
+          key: { orgId: 1, number: 1 },
           unique: true,
-          name: "invoices_orgId_invoiceNumber_unique",
+          name: "invoices_orgId_number_unique",
           partialFilterExpression: { orgId: { $exists: true } },
         },
         { key: { orgId: 1 }, name: "invoices_orgId" },
@@ -157,18 +145,28 @@ export async function ensureCoreIndexes(): Promise<void> {
     {
       collection: "supporttickets",
       indexes: [
-        { key: { orgId: 1, code: 1 }, unique: true, name: "supporttickets_orgId_code_unique" },
+        {
+          key: { orgId: 1, code: 1 },
+          unique: true,
+          name: "supporttickets_orgId_code_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
         { key: { orgId: 1 }, name: "supporttickets_orgId" },
         { key: { orgId: 1, status: 1 }, name: "supporttickets_orgId_status" },
         { key: { orgId: 1, priority: 1 }, name: "supporttickets_orgId_priority" },
-        { key: { orgId: 1, assigneeUserId: 1 }, name: "supporttickets_orgId_assignee" },
+        { key: { orgId: 1, "assignment.assignedTo.userId": 1 }, name: "supporttickets_orgId_assignee" },
         { key: { orgId: 1, createdAt: -1 }, name: "supporttickets_orgId_createdAt" },
       ],
     },
     {
       collection: "helparticles",
       indexes: [
-        { key: { orgId: 1, slug: 1 }, unique: true, name: "helparticles_orgId_slug_unique" },
+        {
+          key: { orgId: 1, slug: 1 },
+          unique: true,
+          name: "helparticles_orgId_slug_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
         { key: { orgId: 1 }, name: "helparticles_orgId" },
         { key: { orgId: 1, category: 1 }, name: "helparticles_orgId_category" },
         { key: { orgId: 1, published: 1 }, name: "helparticles_orgId_published" },
@@ -177,7 +175,12 @@ export async function ensureCoreIndexes(): Promise<void> {
     {
       collection: "cmspages",
       indexes: [
-        { key: { orgId: 1, slug: 1 }, unique: true, name: "cmspages_orgId_slug_unique" },
+        {
+          key: { orgId: 1, slug: 1 },
+          unique: true,
+          name: "cmspages_orgId_slug_unique",
+          partialFilterExpression: { orgId: { $exists: true } },
+        },
         { key: { orgId: 1 }, name: "cmspages_orgId" },
         { key: { orgId: 1, published: 1 }, name: "cmspages_orgId_published" },
       ],
@@ -236,6 +239,26 @@ export async function ensureCoreIndexes(): Promise<void> {
           code: error?.code,
         });
       }
+    }
+  }
+
+  // Schema-driven indexes for work order subdocuments to avoid drift.
+  const modelIndexTargets = [
+    { name: "WorkOrderComment", model: WorkOrderComment },
+    { name: "WorkOrderAttachment", model: WorkOrderAttachment },
+    { name: "WorkOrderTimeline", model: WorkOrderTimeline },
+  ];
+
+  for (const { name, model } of modelIndexTargets) {
+    try {
+      await model.createIndexes();
+    } catch (err) {
+      const error = err as Error;
+      failures.push({ collection: name, error });
+      logger.error(`Failed to create indexes for model ${name}`, {
+        error: error.message,
+        stack: error.stack,
+      });
     }
   }
 

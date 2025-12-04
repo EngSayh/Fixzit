@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { getDatabase, type ConnectionDb } from "@/lib/mongodb-unified";
 import { ensureQaIndexes } from "@/lib/db/collections";
 import { sanitizeQaPayload } from "@/lib/qa/sanitize";
+import { recordQaStorageFailure } from "@/lib/qa/telemetry";
 import { getClientIP, createSecureResponse } from "@/server/security/headers";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError, unauthorizedError } from "@/server/utils/errorResponses";
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
       // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure("log", "write", dbError);
       logger.error("[QA Log] DB unavailable", {
         error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
       });
@@ -198,6 +200,7 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ logs }, 200, req);
     } catch (dbError) {
       // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure("log", "read", dbError);
       logger.error("[QA Log] DB unavailable", {
         error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
       });

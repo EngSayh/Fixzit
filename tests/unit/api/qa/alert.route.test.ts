@@ -29,6 +29,9 @@ vi.mock('@/lib/authz', () => ({
 vi.mock('@/lib/db/collections', () => ({
   ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('@/lib/qa/telemetry', () => ({
+  recordQaStorageFailure: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
@@ -41,6 +44,7 @@ import { logger } from '@/lib/logger';
 import { requireSuperAdmin } from '@/lib/authz';
 import { ensureQaIndexes } from '@/lib/db/collections';
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 
 // Type helper for building minimal NextRequest-like object
 
@@ -324,6 +328,7 @@ describe('QA Alert Route', () => {
         '[QA Alert] DB unavailable',
         expect.anything()
       );
+      expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'write', expect.any(Error));
     });
 
     it('returns 401 when not authenticated', async () => {
@@ -511,6 +516,7 @@ describe('QA Alert Route', () => {
         '[QA Alert] DB unavailable',
         expect.anything()
       );
+      expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'read', expect.any(Error));
     });
 
     it('returns 401 when not authenticated', async () => {

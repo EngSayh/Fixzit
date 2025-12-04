@@ -74,9 +74,9 @@ export async function POST(
     }
 
     // RBAC-001 FIX: Use tenantId variable (has fallback) for timeline entry
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId,
-      tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+      orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
       action: "assigned",
       description: notes
         ? `Assigned with note: ${notes}`

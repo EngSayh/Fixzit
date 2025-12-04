@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { ensureQaIndexes } from '@/lib/db/collections';
 import { sanitizeQaPayload } from '@/lib/qa/sanitize';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 import { getClientIP } from '@/server/security/headers';
 
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
       // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure('alert', 'write', dbError);
       logger.error('[QA Alert] DB unavailable', {
         error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
       });
@@ -191,13 +193,14 @@ export async function GET(req: NextRequest) {
         .toArray();
 
       return createSecureResponse({ alerts }, 200, req);
-    } catch (dbError) {
-      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
-      logger.error('[QA Alert] DB unavailable', {
-        error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
-      });
-      return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
-    }
+  } catch (dbError) {
+    // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+    void recordQaStorageFailure('alert', 'read', dbError);
+    logger.error('[QA Alert] DB unavailable', {
+      error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+    });
+    return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
+  }
   } catch (error) {
     logger.error(
       'Failed to fetch QA alerts:',
