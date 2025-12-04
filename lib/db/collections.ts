@@ -48,6 +48,13 @@ export const COLLECTIONS = {
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
+  // Search-related collections (used in app/api/search/route.ts)
+  UNITS: "units",
+  SERVICES: "services",
+  PROJECTS: "projects",
+  AGENTS: "agents",
+  LISTINGS: "listings",
+  RFQ_RESPONSES: "rfq_responses",
 } as const;
 
 // Get typed collections
@@ -103,6 +110,63 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.USERS)
     .createIndex({ orgId: 1, "personal.phone": 1 }, { background: true, name: "users_orgId_phone" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex(
+      { orgId: 1, username: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "users_orgId_username_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "users_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex(
+      { orgId: 1, employeeId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "users_orgId_employeeId_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, "professional.role": 1 }, { background: true, name: "users_orgId_professional_role" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex(
+      { orgId: 1, "professional.subRole": 1 },
+      { background: true, name: "users_orgId_professional_subRole" },
+    );
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex(
+      { orgId: 1, "professional.skills.category": 1 },
+      { background: true, name: "users_orgId_skills_category" },
+    );
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, "workload.available": 1 }, { background: true, name: "users_orgId_workload_available" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, "performance.rating": -1 }, { background: true, name: "users_orgId_performance_rating" });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ orgId: 1, isSuperAdmin: 1 }, { background: true, name: "users_orgId_isSuperAdmin" });
 
   // Properties - STRICT v4.1: code unique per org
   await db
@@ -126,6 +190,12 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.PROPERTIES)
     .createIndex({ orgId: 1, "address.city": 1 }, { background: true, name: "properties_orgId_city" });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ orgId: 1, "units.status": 1 }, { background: true, name: "properties_orgId_unitStatus" });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ "address.location": "2dsphere" }, { background: true, name: "properties_location_2dsphere" });
 
   // Work Orders - STRICT v4.1: workOrderNumber unique per org
   await db
@@ -147,7 +217,19 @@ export async function createIndexes() {
     .createIndex({ orgId: 1, priority: 1 }, { background: true, name: "workorders_orgId_priority" });
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { orgId: 1, priority: 1, "sla.status": 1 },
+      { background: true, name: "workorders_orgId_priority_slaStatus" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex({ orgId: 1, "location.propertyId": 1 }, { background: true, name: "workorders_orgId_propertyId" });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { orgId: 1, "location.propertyId": 1, status: 1 },
+      { background: true, name: "workorders_orgId_propertyId_status" },
+    );
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex(
@@ -163,6 +245,12 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex(
+      { orgId: 1, "assignment.assignedTo.userId": 1, status: 1 },
+      { background: true, name: "workorders_orgId_assignedUser_status" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
       { orgId: 1, "assignment.assignedTo.vendorId": 1 },
       { background: true, name: "workorders_orgId_assignedVendor" },
     );
@@ -172,8 +260,20 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex(
+      { orgId: 1, status: 1, createdAt: -1 },
+      { background: true, name: "workorders_orgId_status_createdAt_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
       { orgId: 1, title: "text", description: "text", "work.solutionDescription": "text" },
       { background: true, name: "workorders_text_search" },
+    );
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex(
+      { "sla.resolutionDeadline": 1 },
+      { background: true, name: "workorders_sla_resolutionDeadline", sparse: true },
     );
 
   // Products - STRICT v4.1: sku unique per org
@@ -375,6 +475,143 @@ export async function createIndexes() {
   await db
     .collection("cmspages")
     .createIndex({ orgId: 1, published: 1 }, { background: true, name: "cmspages_orgId_published" });
+
+  // ============================================================================
+  // TEXT INDEXES FOR GLOBAL SEARCH (app/api/search/route.ts)
+  // STRICT v4.1: All text indexes must be org-scoped
+  // ============================================================================
+
+  // Properties text search
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex(
+      { orgId: 1, name: "text", "address.street": "text", "address.city": "text" },
+      {
+        background: true,
+        name: "properties_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Invoices text search
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex(
+      { orgId: 1, number: "text", "customer.name": "text" },
+      {
+        background: true,
+        name: "invoices_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Vendors text search
+  await db
+    .collection(COLLECTIONS.VENDORS)
+    .createIndex(
+      { orgId: 1, name: "text", email: "text", company: "text" },
+      {
+        background: true,
+        name: "vendors_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Tenants text search
+  await db
+    .collection(COLLECTIONS.TENANTS)
+    .createIndex(
+      { orgId: 1, name: "text", email: "text", phone: "text" },
+      {
+        background: true,
+        name: "tenants_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Units text search
+  await db
+    .collection(COLLECTIONS.UNITS)
+    .createIndex(
+      { orgId: 1, unitNumber: "text", type: "text" },
+      {
+        background: true,
+        name: "units_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Services text search
+  await db
+    .collection(COLLECTIONS.SERVICES)
+    .createIndex(
+      { orgId: 1, name: "text", description: "text", category: "text" },
+      {
+        background: true,
+        name: "services_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Projects text search (Aqar)
+  await db
+    .collection(COLLECTIONS.PROJECTS)
+    .createIndex(
+      { orgId: 1, name: "text", description: "text", location: "text" },
+      {
+        background: true,
+        name: "projects_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Agents text search (Aqar)
+  await db
+    .collection(COLLECTIONS.AGENTS)
+    .createIndex(
+      { orgId: 1, name: "text", email: "text", phone: "text" },
+      {
+        background: true,
+        name: "agents_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // RFQs text search
+  await db
+    .collection(COLLECTIONS.RFQS)
+    .createIndex(
+      { orgId: 1, title: "text", description: "text" },
+      {
+        background: true,
+        name: "rfqs_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Orders text search
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex(
+      { orgId: 1, orderNumber: "text", "customer.name": "text" },
+      {
+        background: true,
+        name: "orders_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+
+  // Souq Listings text search
+  await db
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
+    .createIndex(
+      { orgId: 1, title: "text", description: "text" },
+      {
+        background: true,
+        name: "souq_listings_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
 }
 
 async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
