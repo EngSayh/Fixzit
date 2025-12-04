@@ -726,5 +726,71 @@ describe('QA Alert Route', () => {
       // password key should be redacted
       expect(insertedDoc.data.request.body.user.password).toBe('[REDACTED]');
     });
+
+    it('sanitizes camelCase token fields (authToken, bearerToken, jwtToken)', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = {
+        authToken: 'secret-auth-token',
+        bearerToken: 'secret-bearer-token',
+        jwtToken: 'secret-jwt-token',
+        accessToken: 'secret-access-token',
+        authorName: 'John Doe', // Should NOT be redacted
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'token_test', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // All camelCase token fields should be redacted
+      expect(insertedDoc.data.authToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.bearerToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.jwtToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.accessToken).toBe('[REDACTED]');
+      // authorName should NOT be redacted
+      expect(insertedDoc.data.authorName).toBe('John Doe');
+    });
+
+    it('sanitizes Bearer tokens with base64 characters (+/=)', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      // Real OAuth2/API tokens often contain base64 characters
+      const data = {
+        error: 'Auth failed: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9+abc/def=',
+        apiLog: 'api_key=sk_live_abc123+xyz/456=='
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'base64_token_test', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // Bearer token with base64 chars should be fully redacted
+      expect(insertedDoc.data.error).toBe('Auth failed: [REDACTED_BEARER_TOKEN]');
+      expect(insertedDoc.data.error).not.toContain('+');
+      expect(insertedDoc.data.error).not.toContain('/');
+      expect(insertedDoc.data.error).not.toContain('=');
+      // API key with base64 chars should be redacted
+      expect(insertedDoc.data.apiLog).toBe('[REDACTED_API_KEY]');
+    });
   });
 });

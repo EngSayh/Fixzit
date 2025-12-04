@@ -121,6 +121,55 @@ describe('sanitizeQaPayload', () => {
       expect(result.sessionDetails).toEqual({ userId: '123' });
       expect(result.sessionState).toBe('active');
     });
+
+    it('redacts camelCase token fields (authToken, bearerToken, jwtToken)', () => {
+      const input = {
+        authToken: 'secret-auth-token-value',
+        bearerToken: 'secret-bearer-token-value',
+        jwtToken: 'secret-jwt-token-value',
+        accessToken: 'secret-access-token-value',
+        refreshToken: 'secret-refresh-token-value',
+        idToken: 'secret-id-token-value',
+        apiToken: 'secret-api-token-value',
+        userToken: 'secret-user-token-value',
+        clientToken: 'secret-client-token-value',
+        // These should NOT be redacted
+        authorName: 'John Doe',
+        tokenCount: 5,
+      };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      // All camelCase token fields should be redacted
+      expect(result.authToken).toBe('[REDACTED]');
+      expect(result.bearerToken).toBe('[REDACTED]');
+      expect(result.jwtToken).toBe('[REDACTED]');
+      expect(result.accessToken).toBe('[REDACTED]');
+      expect(result.refreshToken).toBe('[REDACTED]');
+      expect(result.idToken).toBe('[REDACTED]');
+      expect(result.apiToken).toBe('[REDACTED]');
+      expect(result.userToken).toBe('[REDACTED]');
+      expect(result.clientToken).toBe('[REDACTED]');
+      // These should NOT be redacted
+      expect(result.authorName).toBe('John Doe');
+      expect(result.tokenCount).toBe(5);
+    });
+
+    it('redacts nested camelCase token fields', () => {
+      const input = {
+        auth: {
+          authToken: 'nested-auth-token',
+          bearerToken: 'nested-bearer-token',
+        },
+        user: {
+          id: '123',
+          jwtToken: 'nested-jwt-token',
+        },
+      };
+      const result = sanitizeQaPayload(input) as Record<string, Record<string, unknown>>;
+      expect(result.auth.authToken).toBe('[REDACTED]');
+      expect(result.auth.bearerToken).toBe('[REDACTED]');
+      expect(result.user.id).toBe('123');
+      expect(result.user.jwtToken).toBe('[REDACTED]');
+    });
   });
 
   describe('value-based sensitive pattern redaction', () => {
@@ -196,6 +245,43 @@ describe('sanitizeQaPayload', () => {
       const result = sanitizeQaPayload(input) as Record<string, Array<Record<string, string>>>;
       expect(result.logs[0].message).toBe('[REDACTED_BEARER_TOKEN] used');
       expect(result.logs[1].message).toBe('Normal log entry');
+    });
+
+    it('redacts Bearer tokens containing base64 characters (+/=)', () => {
+      // Real OAuth2 tokens often contain base64 characters
+      const input = { message: 'Auth failed: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9+abc/def=' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.message).toBe('Auth failed: [REDACTED_BEARER_TOKEN]');
+      expect(result.message).not.toContain('+');
+      expect(result.message).not.toContain('/');
+      expect(result.message).not.toContain('=');
+    });
+
+    it('redacts Bearer tokens with URL-safe base64 variants (~_)', () => {
+      const input = 'Authorization: Bearer abc123~def_456';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Authorization: [REDACTED_BEARER_TOKEN]');
+    });
+
+    it('redacts API keys containing base64 characters', () => {
+      // Many API keys use base64 encoding
+      const input = { log: 'api_key=sk_live_abc123+xyz/456==' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.log).toBe('[REDACTED_API_KEY]');
+      expect(result.log).not.toContain('+');
+      expect(result.log).not.toContain('/');
+    });
+
+    it('redacts x-api-key header with base64 value', () => {
+      const input = { header: 'x-api-key: abc123+def/ghi==' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.header).toBe('[REDACTED_API_KEY]');
+    });
+
+    it('redacts session values with base64 characters', () => {
+      const input = 'session=abc123+def/ghi==jklmnopqrstuvwxyz';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('[REDACTED_SESSION]');
     });
   });
 

@@ -17,6 +17,9 @@
 /**
  * Patterns that indicate sensitive field names.
  * Uses word boundaries (\b) to avoid matching substrings like "author" or "authority".
+ * 
+ * IMPORTANT: camelCase patterns (authToken, bearerToken, jwtToken) need explicit
+ * matching because \btoken\b won't match "authToken" (no word boundary before T).
  */
 const SENSITIVE_KEY_PATTERNS = [
   /\bpassword\b/i,
@@ -45,6 +48,18 @@ const SENSITIVE_KEY_PATTERNS = [
   /\bclient[_-]?secret\b/i,
   /\bsigning[_-]?key\b/i,
   /\bencryption[_-]?key\b/i,
+  // camelCase token fields (authToken, bearerToken, jwtToken, accessToken, etc.)
+  // These don't have word boundaries between prefix and "Token", so need explicit patterns
+  /authToken/i,
+  /bearerToken/i,
+  /jwtToken/i,
+  /accessToken/i,
+  /refreshToken/i,
+  /idToken/i,
+  /sessionToken/i,
+  /apiToken/i,
+  /userToken/i,
+  /clientToken/i,
 ];
 
 // ============================================================================
@@ -55,15 +70,21 @@ const SENSITIVE_KEY_PATTERNS = [
  * Patterns to detect sensitive data IN VALUES (not just key names).
  * These catch bearer tokens, API keys, JWTs, etc. that might appear
  * in generic fields like "message", "error", "details".
+ * 
+ * IMPORTANT: Character classes include base64 alphabet (+, /, =) and URL-safe
+ * variants (~, _) to catch real-world OAuth2/API tokens.
  */
 const SENSITIVE_VALUE_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   // Bearer tokens: "Bearer abc123..." or "bearer abc123..."
-  { pattern: /\bbearer\s+[A-Za-z0-9._-]+/gi, replacement: '[REDACTED_BEARER_TOKEN]' },
+  // Includes base64 chars (+/=) and URL-safe variants (~_) for OAuth2 tokens
+  { pattern: /\bbearer\s+[A-Za-z0-9._~+/=-]+/gi, replacement: '[REDACTED_BEARER_TOKEN]' },
   
   // API key patterns: "api_key=xxx", "apiKey: xxx", "x-api-key: xxx"
-  { pattern: /\b(api[_-]?key|x-api-key)\s*[:=]\s*["']?[A-Za-z0-9._-]+["']?/gi, replacement: '[REDACTED_API_KEY]' },
+  // Includes base64 chars for API keys that use base64 encoding
+  { pattern: /\b(api[_-]?key|x-api-key)\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]+["']?/gi, replacement: '[REDACTED_API_KEY]' },
   
   // JWT tokens (header.payload.signature format)
+  // JWT uses base64url encoding (A-Za-z0-9_-) without padding
   { pattern: /\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, replacement: '[REDACTED_JWT]' },
   
   // Basic auth header: "Basic base64string"
@@ -82,7 +103,8 @@ const SENSITIVE_VALUE_PATTERNS: Array<{ pattern: RegExp; replacement: string }> 
   { pattern: /\b(password|passwd|pwd)\s*[:=]\s*["']?[^\s"',}]+["']?/gi, replacement: '[REDACTED_PASSWORD]' },
   
   // Session/cookie values that look like tokens (20+ chars)
-  { pattern: /\b(session|sess|sid)\s*[:=]\s*["']?[A-Za-z0-9._-]{20,}["']?/gi, replacement: '[REDACTED_SESSION]' },
+  // Includes base64 chars for session tokens
+  { pattern: /\b(session|sess|sid)\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{20,}["']?/gi, replacement: '[REDACTED_SESSION]' },
 ];
 
 // Email pattern for redaction
