@@ -157,6 +157,8 @@ export async function createIndexes() {
   await dropLegacySubscriptionInvoiceIndexes(db);
   // Clean up legacy asset indexes that clash with named variants
   await dropLegacyAssetIndexes(db);
+  // Clean up legacy SLA indexes that clash with named variants
+  await dropLegacySLAIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1227,6 +1229,39 @@ async function dropLegacyAssetIndexes(db: Awaited<ReturnType<typeof getDatabase>
         continue;
       }
       logger.warn("[indexes] Failed to drop legacy asset index", {
+        indexName,
+        error: err?.message,
+      });
+    }
+  }
+}
+
+/**
+ * Drop legacy SLA indexes that use default names and conflict with canonical named indexes.
+ * This allows the canonical indexes (e.g., slas_orgId_type) to be created idempotently.
+ */
+async function dropLegacySLAIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const slaIndexes = [
+    // Default-named orgId-prefixed compound indexes that conflict with canonical named versions
+    "orgId_1_type_1",
+    "orgId_1_status_1",
+    "orgId_1_code_1", // conflicts with slas_orgId_code_unique
+    "orgId_1_isActive_1",
+  ];
+
+  for (const indexName of slaIndexes) {
+    try {
+      await db.collection(COLLECTIONS.SLAS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) {
+        continue;
+      }
+      logger.warn("[indexes] Failed to drop legacy SLA index", {
         indexName,
         error: err?.message,
       });
