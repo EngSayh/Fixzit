@@ -23,6 +23,7 @@ export const WORK_ORDERS_ENTITY_LEGACY = "work_orders" as const;
 
 export type ModuleScope =
   | "dashboard"
+  | "work_orders" // legacy alias for routing/search
   | "workOrders"
   | "properties"
   | "finance"
@@ -231,6 +232,50 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     quickActions: [],
   },
   workOrders: {
+    id: WORK_ORDERS_ENTITY,
+    app: "fm",
+    navKey: WORK_ORDERS_ENTITY,
+    labelKey: "nav.workOrders",
+    fallbackLabel: "Work Orders",
+    searchPlaceholderKey: "search.placeholders.workOrders",
+    placeholderFallback: "Search work orders, technicians, assets…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
+    savedSearches: [
+      {
+        id: "urgent-wo",
+        labelKey: "search.saved.workOrdersUrgent",
+        fallbackLabel: "Urgent & overdue work orders",
+        query: "status:urgent OR status:overdue",
+        scope: "module",
+      },
+      {
+        id: "preventive-wo",
+        labelKey: "search.saved.workOrdersPreventive",
+        fallbackLabel: "Upcoming preventive maintenance",
+        query: "type:preventive due:<14d",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_wo",
+        labelKey: "dashboard.newWorkOrder",
+        fallbackLabel: "New Work Order",
+        href: "/fm/work-orders/new",
+        permission: "wo.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+      {
+        id: "assign_wo",
+        labelKey: "dashboard.assignWorkOrder",
+        fallbackLabel: "Assign Work Order",
+        href: "/fm/work-orders/board",
+        permission: "wo.assign",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+    ],
+  },
+  work_orders: {
     id: WORK_ORDERS_ENTITY,
     app: "fm",
     navKey: WORK_ORDERS_ENTITY,

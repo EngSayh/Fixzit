@@ -970,7 +970,7 @@ const rawNavigationConfig: NavigationConfig = {
           id: WORK_ORDERS_MODULE_ID,
           label: 'Work Orders',
           labelAr: 'أوامر العمل',
-          href: MODULE_PATHS.work_orders,
+          href: MODULE_PATHS.workOrders,
           iconName: 'Wrench',
           roles: WORK_ORDER_ROLES,
           badge: {
@@ -984,13 +984,13 @@ const rawNavigationConfig: NavigationConfig = {
               id: 'all_work_orders',
               label: 'All Work Orders',
               labelAr: 'جميع أوامر العمل',
-              href: MODULE_PATHS.work_orders,
+              href: MODULE_PATHS.workOrders,
             },
             {
               id: 'pending_work_orders',
               label: 'Pending',
               labelAr: 'قيد الانتظار',
-              href: `${MODULE_PATHS.work_orders}?status=pending`,
+              href: `${MODULE_PATHS.workOrders}?status=pending`,
               badge: {
                 key: 'pending_work_orders',
                 color: 'yellow',
@@ -1001,7 +1001,7 @@ const rawNavigationConfig: NavigationConfig = {
               id: 'in_progress_work_orders',
               label: 'In Progress',
               labelAr: 'قيد التنفيذ',
-              href: `${MODULE_PATHS.work_orders}?status=in_progress`,
+              href: `${MODULE_PATHS.workOrders}?status=in_progress`,
               badge: {
                 key: 'in_progress_work_orders',
                 color: 'blue',
@@ -1012,7 +1012,7 @@ const rawNavigationConfig: NavigationConfig = {
               id: 'create_work_order',
               label: 'Create Work Order',
               labelAr: 'إنشاء أمر عمل',
-              href: `${MODULE_PATHS.work_orders}/new`,
+              href: `${MODULE_PATHS.workOrders}/new`,
               roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT'],
             },
           ],
