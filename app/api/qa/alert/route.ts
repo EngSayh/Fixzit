@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
@@ -6,11 +7,18 @@ import { getClientIP } from '@/server/security/headers';
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 import { rateLimitError, unauthorizedError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { requireSuperAdmin } from '@/lib/authz';
-import { ensureQaIndexes } from '@/lib/db/collections';
+import { requireSuperAdmin, type AuthContext } from '@/lib/authz';
 
 type GetDbFn = () => Promise<ConnectionDb>;
-type QaAlertPayload = { event: string; data: unknown };
+
+// VALIDATION: Strict schema for QA alert payloads
+const qaAlertSchema = z.object({
+  event: z.string().min(1, 'Event name is required').max(128, 'Event name too long'),
+  data: z.unknown().optional(),
+});
+
+// SECURITY: Max payload size to prevent storage bloat (10KB)
+const MAX_PAYLOAD_SIZE = 10 * 1024;
 
 async function resolveDatabase() {
   const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
@@ -40,7 +48,7 @@ async function resolveDatabase() {
  */
 export async function POST(req: NextRequest) {
   // SECURITY: Require SUPER_ADMIN to write QA alerts - prevents abuse and spam
-  let authContext: { id: string; tenantId: string } | null = null;
+  let authContext: AuthContext;
   try {
     authContext = await requireSuperAdmin(req);
   } catch (error) {
@@ -51,82 +59,72 @@ export async function POST(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // SECURITY: Require tenant context for writes to prevent unscoped telemetry
-  if (!authContext?.tenantId) {
-    return createSecureResponse({ error: 'Missing organization context' }, 400, req);
-  }
-  const orgId = authContext.tenantId;
+  // SECURITY: Extract org/user context for attribution and rate limiting
+  const orgId = authContext.tenantId || null;
   const userId = authContext.id;
 
-  // Rate limiting - SECURITY: Use distributed rate limiting with org isolation
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
   const key = buildOrgAwareRateLimitKey(req, orgId, userId);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
 
-  // RELIABILITY: Ensure indexes exist before writes (idempotent, process-level singleton)
   try {
-    await ensureQaIndexes();
-  } catch (indexError) {
-    logger.error('[QA alert] DB unavailable during index bootstrap', {
-      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
-    });
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
-  }
+    // VALIDATION: Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
+    }
 
-  // Parse and validate request body
-  let body: QaAlertPayload;
-  try {
-    body = await req.json() as QaAlertPayload;
-  } catch {
-    return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
-  }
-  const { event, data } = body;
+    // VALIDATION: Check payload size before processing
+    const bodyStr = JSON.stringify(rawBody);
+    if (bodyStr.length > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
+    }
 
-  // VALIDATION: Ensure event is a non-empty string (max 128 chars)
-  if (!event || typeof event !== 'string' || event.trim().length === 0) {
-    return createSecureResponse({ error: 'Event name is required' }, 400, req);
-  }
-  const sanitizedEvent = event.trim().slice(0, 128);
+    // VALIDATION: Validate against schema
+    const parsed = qaAlertSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const errorMessage = parsed.error.issues[0]?.message || 'Invalid alert payload';
+      return createSecureResponse({ error: errorMessage }, 400, req);
+    }
 
-  // VALIDATION: Cap payload size to prevent storage bloat (10KB max)
-  const MAX_PAYLOAD_SIZE = 10 * 1024;
-  const dataStr = JSON.stringify(data ?? null);
-  if (dataStr.length > MAX_PAYLOAD_SIZE) {
-    return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
-  }
+    const { event, data } = parsed.data;
 
-  // Log the alert to database with org tagging for multi-tenant isolation
-  try {
+    // Log the alert to database with org/user attribution for multi-tenant auditing
     const native = await resolveDatabase();
     await native.collection('qa_alerts').insertOne({
-      event: sanitizedEvent,
-      data,
+      event,
+      data: data ?? null,
       timestamp: new Date(),
-      // ORG TAGGING: Include tenant context for multi-tenant isolation
+      // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
       orgId,
       userId,
       ip: getClientIP(req),
       userAgent: req.headers.get('user-agent'),
     });
-  } catch (dbError) {
-    logger.error('[QA alert] DB unavailable, cannot persist alert', {
-      error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
-    });
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
+
+    // Log event for observability (redact data to prevent PII leakage)
+    logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadSize: bodyStr.length });
+
+    const successBody = { success: true };
+    return createSecureResponse(successBody, 200, req);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'test') {
+      logger.error('[QA alert debug]', error);
+    }
+    logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
+    const errorBody = { error: 'Failed to process alert' };
+    return createSecureResponse(errorBody, 500, req);
   }
-
-  // Log alert event with redacted payload for observability (no PII leakage)
-  const payloadSize = dataStr.length;
-  logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId, payloadSize });
-
-  return createSecureResponse({ success: true }, 200, req);
 }
 
 export async function GET(req: NextRequest) {
   // SECURITY: Require SUPER_ADMIN to read QA alerts - contains sensitive debugging info
-  let authContext: { id: string; tenantId: string } | null = null;
+  let authContext: AuthContext;
   try {
     authContext = await requireSuperAdmin(req);
   } catch (error) {
@@ -137,38 +135,26 @@ export async function GET(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // SECURITY: Require tenant context for reads BEFORE rate limiting
-  // This ensures we have verified orgId for the rate limit key
-  if (!authContext?.tenantId) {
-    return createSecureResponse({ error: 'Missing organization context' }, 400, req);
-  }
-  const orgId = authContext.tenantId;
+  // SECURITY: Extract org/user context for filtering and rate limiting
+  const orgId = authContext.tenantId || null;
   const userId = authContext.id;
 
-  // Rate limiting - SECURITY: Use verified orgId for tenant-isolated rate limiting
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
   const key = buildOrgAwareRateLimitKey(req, orgId, userId);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
 
-  // RELIABILITY: Ensure indexes exist before reads (guarantees TTL and query perf on cold starts)
-  try {
-    await ensureQaIndexes();
-  } catch (indexError) {
-    logger.error('[QA alert] DB unavailable during index bootstrap', {
-      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
-    });
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
-  }
-
   try {
     const native = await resolveDatabase();
-    // SECURITY: Scope QA alerts to caller's org to prevent cross-tenant data exposure
-    // Uses the { orgId: 1, timestamp: -1 } index created by ensureQaIndexes
-    const orgFilter = { orgId };
+    
+    // ORG SCOPING: Filter alerts by org to prevent cross-tenant data exposure
+    // Super-admins without tenantId see all alerts (platform-level debugging)
+    const query = orgId ? { orgId } : {};
+    
     const alerts = await native.collection('qa_alerts')
-      .find(orgFilter)
+      .find(query)
       .sort({ timestamp: -1 })
       .limit(50)
       .toArray();
@@ -176,6 +162,6 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
     logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
+    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

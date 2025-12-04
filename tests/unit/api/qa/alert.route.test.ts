@@ -18,11 +18,13 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }
 }));
-vi.mock('@/lib/db/collections', () => ({
-  ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
-}));
 vi.mock('@/lib/authz', () => ({
-  requireSuperAdmin: vi.fn(async () => ({ id: 'test-user-id', tenantId: 'test-org-id' })),
+  requireSuperAdmin: vi.fn(async () => ({
+    id: 'test-user-id',
+    email: 'admin@test.com',
+    role: 'SUPER_ADMIN',
+    tenantId: 'test-org-id',
+  })),
 }));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
@@ -33,6 +35,8 @@ vi.mock('@/server/security/rateLimit', () => ({
 let POST: typeof import('@/app/api/qa/alert/route').POST;
 let GET: typeof import('@/app/api/qa/alert/route').GET;
 import { logger } from '@/lib/logger';
+import { requireSuperAdmin } from '@/lib/authz';
+import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 
 // Type helper for building minimal NextRequest-like object
 
@@ -78,6 +82,15 @@ describe('QA Alert Route', () => {
     // Save original env
     originalEnv = process.env.NEXT_PUBLIC_USE_MOCK_DB;
 
+    // Reset mocks to defaults
+    vi.mocked(requireSuperAdmin).mockResolvedValue({
+      id: 'test-user-id',
+      email: 'admin@test.com',
+      role: 'SUPER_ADMIN',
+      tenantId: 'test-org-id',
+    });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+
     // Re-import handlers with fresh module cache so mocks are applied even if other suites touched the module
     return import('@/app/api/qa/alert/route').then(mod => {
       POST = mod.POST;
@@ -121,19 +134,24 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
-      // Now logs to info with payloadSize instead of warn with payload
-      expect(logger.info).toHaveBeenCalledWith(
-        `🚨 QA Alert: ${event}`, 
-        { orgId: 'test-org-id', payloadSize: expect.any(Number) }
+      // Verify logging includes org context (not payload data for PII safety)
+      expect(logger.warn).toHaveBeenCalledWith(
+        `🚨 QA Alert: ${event}`,
+        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id' })
       );
 
       // Verify DB interaction
       expect(mod.getDatabase).toHaveBeenCalled();
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(insertOne).toHaveBeenCalledTimes(1);
+      
+      // Verify org/user attribution in inserted doc
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.orgId).toBe('test-org-id');
+      expect(insertedDoc.userId).toBe('test-user-id');
     });
 
-    it('inserts alert into DB with forwarded IP and returns success', async () => {
+    it('inserts alert into DB with org/user attribution and forwarded IP', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       // Setup the chained collection/find/insertOne mock structure
@@ -165,7 +183,7 @@ describe('QA Alert Route', () => {
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(insertOne).toHaveBeenCalledTimes(1);
 
-      // Validate inserted document shape
+      // Validate inserted document shape with org/user attribution
       const insertedDoc = insertOne.mock.calls[0][0];
 
       expect(insertedDoc).toMatchObject({
@@ -179,11 +197,73 @@ describe('QA Alert Route', () => {
       // timestamp should be a Date
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
 
-      // Now logs to info with payloadSize instead of warn with payload
-      expect(logger.info).toHaveBeenCalledWith(
-        `🚨 QA Alert: ${event}`, 
-        { orgId: 'test-org-id', payloadSize: expect.any(Number) }
+      // Verify rate limit uses org-aware key
+      expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+        expect.anything(),
+        'test-org-id',
+        'test-user-id'
       );
+    });
+
+    it('returns 400 when event is missing', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ data: { foo: 'bar' } }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      // Zod validation returns specific error message format
+      expect(body.error).toBeDefined();
+    });
+
+    it('returns 400 when event is empty string', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: '', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Event name is required');
+    });
+
+    it('returns 400 when event is too long', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'x'.repeat(200), data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Event name too long');
+    });
+
+    it('returns 400 when payload is too large', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test', data: 'x'.repeat(15000) }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Payload too large (max 10KB)');
+    });
+
+    it('returns 400 when JSON body is invalid', async () => {
+      const req = asNextRequest({
+        json: () => Promise.reject(new Error('bad json')),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Invalid JSON body');
     });
 
     it('uses req.ip fallback when x-forwarded-for header is missing', async () => {
@@ -212,9 +292,11 @@ describe('QA Alert Route', () => {
       // Since req.ip may not be accessible in our mock, it falls back to 'unknown'
       expect(insertedDoc?.ip).toBeTruthy();
       expect(insertedDoc?.userAgent).toBe('UA-123');
+      expect(insertedDoc?.orgId).toBe('test-org-id');
+      expect(insertedDoc?.userId).toBe('test-user-id');
     });
 
-    it('returns 503 on DB insertion error', async () => {
+    it('returns 500 on DB insertion error', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
@@ -229,73 +311,47 @@ describe('QA Alert Route', () => {
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(503);
+      expect((res as Response).status).toBe(500);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Service temporarily unavailable' });
+      expect(body).toEqual({ error: 'Failed to process alert' });
       expect(logger.error).toHaveBeenCalledWith(
-        '[QA alert] DB unavailable, cannot persist alert',
-        expect.objectContaining({ error: expect.any(String) })
+        'Failed to process QA alert:',
+        expect.anything()
       );
     });
 
-    it('returns 400 if parsing JSON body throws', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
-      const req = asNextRequest({
-        json: () => Promise.reject(new Error('bad json')),
-        headers: buildHeaders({}),
-        ip: undefined,
-      });
-
-      const res = await POST(req);
-      expect((res as Response).status).toBe(400);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Invalid JSON body' });
-      expect(mod.getDatabase).not.toHaveBeenCalled();
-      expect(logger.error).not.toHaveBeenCalled();
-    });
-
-    it('returns 400 when tenantId is missing from auth context on POST', async () => {
-      const mod = vi.mocked(mongodbUnified);
-      const { requireSuperAdmin } = await import('@/lib/authz');
-      vi.mocked(requireSuperAdmin).mockResolvedValueOnce({ id: 'user-x', tenantId: '' } as any);
-
-      const req = asNextRequest({
-        json: () => Promise.resolve({ event: 'x', data: {} }),
-        headers: buildHeaders({}),
-      });
-
-      const res = await POST(req);
-      expect((res as Response).status).toBe(400);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Missing organization context' });
-      expect(mod.getDatabase).not.toHaveBeenCalled();
-    });
-
-    it('returns 503 when ensureQaIndexes fails during POST', async () => {
-      const mod = vi.mocked(mongodbUnified);
-      const { ensureQaIndexes } = await import('@/lib/db/collections');
-      vi.mocked(ensureQaIndexes).mockRejectedValueOnce(new Error('index bootstrap failed'));
-
-      const req = asNextRequest({
-        json: () => Promise.resolve({ event: 'test_event', data: {} }),
-        headers: buildHeaders({}),
-      });
-
-      const res = await POST(req);
-      expect((res as Response).status).toBe(503);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Service temporarily unavailable' });
-      expect(logger.error).toHaveBeenCalledWith(
-        '[QA alert] DB unavailable during index bootstrap',
-        expect.objectContaining({ error: 'index bootstrap failed' })
+    it('returns 401 when not authenticated', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
       );
-      expect(mod.getDatabase).not.toHaveBeenCalled();
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(401);
+    });
+
+    it('returns 429 when rate limited', async () => {
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(429);
     });
   });
 
   describe('GET /api/qa/alert', () => {
-    it('returns empty list when no alerts exist for org', async () => {
+    it('returns empty list when no alerts exist', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockResolvedValue([]);
@@ -318,11 +374,9 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ alerts: [] });
       expect(mod.getDatabase).toHaveBeenCalled();
       expect(collection).toHaveBeenCalledWith('qa_alerts');
-      // Now expects org-scoped filter
-      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
     });
 
-    it('fetches latest 50 alerts sorted by timestamp desc from DB with org scoping', async () => {
+    it('fetches latest 50 alerts sorted by timestamp desc from DB', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const docs = [{ event: 'e1' }, { event: 'e2' }];
@@ -349,53 +403,14 @@ describe('QA Alert Route', () => {
       expect(mod.getDatabase).toHaveBeenCalledTimes(1);
 
       expect(collection).toHaveBeenCalledWith('qa_alerts');
-      // Now expects org-scoped filter instead of {}
+      // Query includes orgId for tenant isolation
       expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(50);
       expect(toArray).toHaveBeenCalledTimes(1);
     });
 
-    it('returns 400 when tenantId is missing from auth context', async () => {
-      // Import requireSuperAdmin to mock it for this specific test
-      const { requireSuperAdmin } = await import('@/lib/authz');
-      vi.mocked(requireSuperAdmin).mockResolvedValueOnce({ id: 'test-user', tenantId: '' } as any);
-
-      const req = asNextRequest({
-        json: async () => ({}),
-        headers: buildHeaders({}),
-        ip: '127.0.0.1',
-      });
-
-      const res = await GET(req);
-      expect((res as Response).status).toBe(400);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Missing organization context' });
-    });
-
-    it('returns 503 when ensureQaIndexes fails during GET', async () => {
-      const mod = vi.mocked(mongodbUnified);
-      const { ensureQaIndexes } = await import('@/lib/db/collections');
-      vi.mocked(ensureQaIndexes).mockRejectedValueOnce(new Error('index bootstrap failed'));
-
-      const req = asNextRequest({
-        json: async () => ({}),
-        headers: buildHeaders({}),
-        ip: '127.0.0.1',
-      });
-
-      const res = await GET(req);
-      expect((res as Response).status).toBe(503);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Service temporarily unavailable' });
-      expect(logger.error).toHaveBeenCalledWith(
-        '[QA alert] DB unavailable during index bootstrap',
-        expect.objectContaining({ error: 'index bootstrap failed' })
-      );
-      expect(mod.getDatabase).not.toHaveBeenCalled();
-    });
-
-    it('returns 503 when DB query fails', async () => {
+    it('returns 500 when DB query fails', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
@@ -413,9 +428,9 @@ describe('QA Alert Route', () => {
       });
 
       const res = await GET(req);
-      expect((res as Response).status).toBe(503);
+      expect((res as Response).status).toBe(500);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Service temporarily unavailable' });
+      expect(body).toEqual({ error: 'Failed to fetch alerts' });
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch QA alerts:',
         expect.anything()

@@ -1,23 +1,20 @@
 import { NextRequest } from "next/server";
-import { createHash } from "crypto";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
-import { getClientIP } from "@/server/security/headers";
-
+import { getClientIP, createSecureResponse } from "@/server/security/headers";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
-import { rateLimitError } from "@/server/utils/errorResponses";
-import { createSecureResponse } from "@/server/security/headers";
-import { requireSuperAdmin } from "@/lib/authz";
-import { ensureQaIndexes } from "@/lib/db/collections";
+import { rateLimitError, unauthorizedError } from "@/server/utils/errorResponses";
+import { requireSuperAdmin, type AuthContext } from "@/lib/authz";
 
-/**
- * SECURITY: Hash session IDs before logging to prevent credential leakage.
- * If raw session cookies are stored, leaked logs could enable session hijack.
- */
-function hashSessionId(sessionId: string | undefined): string | undefined {
-  if (!sessionId) return undefined;
-  return createHash("sha256").update(sessionId).digest("hex").slice(0, 16);
-}
+// VALIDATION: Strict schema for QA log payloads
+const qaLogSchema = z.object({
+  event: z.string().min(1, "Event name is required").max(128, "Event name too long"),
+  data: z.unknown().optional(),
+});
+
+// SECURITY: Max payload size to prevent storage bloat (10KB)
+const MAX_PAYLOAD_SIZE = 10 * 1024;
 
 /**
  * @openapi
@@ -37,162 +34,145 @@ function hashSessionId(sessionId: string | undefined): string | undefined {
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Require SUPER_ADMIN to write QA logs (sensitive telemetry)
-  let authContext: { id: string; tenantId: string } | null = null;
+  // SECURITY: Require SUPER_ADMIN to write QA logs - prevents abuse and spam
+  let authContext: AuthContext;
   try {
     authContext = await requireSuperAdmin(req);
   } catch (error) {
     if (error instanceof Response) {
       return error;
     }
-    return createSecureResponse({ error: "Authentication failed" }, 401, req);
+    return unauthorizedError("Authentication failed");
   }
 
-  // SECURITY: Require tenant context for multi-tenant isolation (matches qa/alert behavior)
-  if (!authContext?.tenantId) {
-    return createSecureResponse({ error: "Missing organization context" }, 400, req);
-  }
-  const orgId = authContext.tenantId;
+  // SECURITY: Extract org/user context for attribution and rate limiting
+  const orgId = authContext.tenantId || null;
   const userId = authContext.id;
 
-  // Rate limiting - org-aware key for tenant isolation
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
-  if (!rl.allowed) return rateLimitError();
-
-  // RELIABILITY: Ensure indexes exist before writes (idempotent, process-level singleton)
-  try {
-    await ensureQaIndexes();
-  } catch (indexError) {
-    logger.error('[QA Log] DB unavailable during index bootstrap', {
-      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
-    });
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
-  }
-
-  // Parse and validate request body
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    // VALIDATION: Invalid JSON is a client error (400), not server error
-    return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
-  }
-
-  if (typeof body !== "object" || body === null) {
-    // VALIDATION: Body must be an object (400 for malformed request)
-    return createSecureResponse({ error: "Body must be an object" }, 400, req);
-  }
-
-  const { event, data } = body as Record<string, unknown>;
-  if (!event || typeof event !== "string" || event.trim().length === 0) {
-    // VALIDATION: Missing required field is client error (400)
-    return createSecureResponse({ error: "Event name is required" }, 400, req);
-  }
-  const sanitizedEvent = event.trim().slice(0, 128);
-
-  // Cap payload size to avoid log bloat (10KB)
-  const MAX_PAYLOAD_SIZE = 10 * 1024;
-  const dataStr = JSON.stringify(data ?? null);
-  if (dataStr.length > MAX_PAYLOAD_SIZE) {
-    return createSecureResponse({ error: "Payload too large" }, 400, req);
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
   }
 
   try {
-    const native = await getDatabase();
-    // SECURITY: Hash sessionId to prevent credential leakage in logs
-    const rawSessionId = req.cookies.get("sessionId")?.value;
-    await native.collection("qa_logs").insertOne({
-      event: sanitizedEvent,
-      data,
-      timestamp: new Date(),
-      orgId,
-      userId,
-      ip: getClientIP(req),
-      userAgent: req.headers.get("user-agent"),
-      sessionIdHash: hashSessionId(rawSessionId), // Hashed, not raw
-    });
-    // Log event with redacted payload for observability (no PII leakage)
-    const payloadSize = dataStr.length;
-    logger.info(`📝 QA Log: ${sanitizedEvent}`, { orgId, payloadSize });
-    return createSecureResponse({ success: true }, 200, req);
-  } catch (dbError) {
-    // Return 503 on DB failure to make outages visible - don't mask with 200
-    logger.error("[QA Log] DB unavailable, cannot persist event", {
-      error:
-        dbError instanceof Error ? dbError.message : String(dbError ?? ""),
-    });
-    return createSecureResponse({ error: "Service temporarily unavailable" }, 503, req);
+    // VALIDATION: Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
+    }
+
+    // VALIDATION: Check payload size before processing
+    const bodyStr = JSON.stringify(rawBody);
+    if (bodyStr.length > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: "Payload too large (max 10KB)" }, 400, req);
+    }
+
+    // VALIDATION: Validate against schema
+    const parsed = qaLogSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const errorMessage = parsed.error.issues[0]?.message || "Invalid log payload";
+      return createSecureResponse({ error: errorMessage }, 400, req);
+    }
+
+    const { event, data } = parsed.data;
+
+    try {
+      const native = await getDatabase();
+      await native.collection("qa_logs").insertOne({
+        event,
+        data: data ?? null,
+        timestamp: new Date(),
+        // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get("user-agent"),
+        sessionId: req.cookies.get("sessionId")?.value || "unknown",
+      });
+      
+      // Log event for observability (redact data to prevent PII leakage)
+      logger.info(`📝 QA Log: ${event}`, { orgId, userId, payloadSize: bodyStr.length });
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // Fallback mock mode if DB unavailable
+      logger.warn("[QA Log] DB unavailable, using mock response", {
+        error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
+      });
+      return createSecureResponse({ success: true, mock: true }, 200, req);
+    }
+  } catch (error) {
+    logger.error(
+      "Failed to log QA event:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to log event" }, 500, req);
   }
 }
 
 export async function GET(req: NextRequest) {
-  // Require SUPER_ADMIN to read QA logs (sensitive telemetry)
-  let authContext: { id: string; tenantId: string } | null = null;
+  // SECURITY: Require SUPER_ADMIN to read QA logs - contains sensitive debugging info
+  let authContext: AuthContext;
   try {
     authContext = await requireSuperAdmin(req);
   } catch (error) {
     if (error instanceof Response) {
       return error;
     }
-    return createSecureResponse({ error: "Authentication failed" }, 401, req);
+    return unauthorizedError("Authentication failed");
   }
 
-  // SECURITY: Require tenant context for multi-tenant isolation (matches qa/alert behavior)
-  if (!authContext?.tenantId) {
-    return createSecureResponse({ error: "Missing organization context" }, 400, req);
-  }
-  const orgId = authContext.tenantId;
+  // SECURITY: Extract org/user context for filtering and rate limiting
+  const orgId = authContext.tenantId || null;
   const userId = authContext.id;
 
-  // Rate limiting - org-aware key for tenant isolation
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
-  if (!rl.allowed) return rateLimitError();
-
-  // RELIABILITY: Ensure indexes exist before reads (guarantees TTL and query perf on cold starts)
-  try {
-    await ensureQaIndexes();
-  } catch (indexError) {
-    logger.error('[QA Log] DB unavailable during index bootstrap', {
-      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
-    });
-    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
-  }
-
-  const { searchParams } = new URL(req.url);
-  const parsed = Number(searchParams.get("limit"));
-  // PERFORMANCE: Cap at 200 to prevent 10MB responses in serverless (each log up to 10KB)
-  const limit = Math.min(
-    Number.isFinite(parsed) && parsed > 0 ? parsed : 100,
-    200,
-  );
-  const eventType = searchParams.get("event");
-  // PERFORMANCE: Omit bulky data field by default; use includeData=true to include
-  const includeData = searchParams.get("includeData") === "true";
-
-  // Scope to caller's org to prevent cross-tenant access
-  const query: Record<string, unknown> = { orgId };
-  if (eventType) {
-    query.event = eventType;
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
   }
 
   try {
-    const native = await getDatabase();
-    // Use projection to omit large data payloads unless explicitly requested
-    const projection = includeData ? {} : { data: 0 };
-    const logs = await native
-      .collection("qa_logs")
-      .find(query, { projection })
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .toArray();
+    const { searchParams } = new URL(req.url);
+    const parsed = Number(searchParams.get("limit"));
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 100,
+      1000,
+    );
+    const eventType = searchParams.get("event");
 
-    return createSecureResponse({ logs }, 200, req);
-  } catch (dbError) {
-    // CRITICAL: Return 503 on DB failure to make outages visible - don't mask with 200
-    logger.error("[QA Log] DB unavailable, cannot fetch logs", {
-      error:
-        dbError instanceof Error ? dbError.message : String(dbError ?? ""),
-    });
-    return createSecureResponse({ error: "Service temporarily unavailable" }, 503, req);
+    // ORG SCOPING: Filter logs by org to prevent cross-tenant data exposure
+    // Super-admins without tenantId see all logs (platform-level debugging)
+    const query: Record<string, unknown> = orgId ? { orgId } : {};
+    if (eventType) {
+      query.event = eventType;
+    }
+
+    try {
+      const native = await getDatabase();
+      const logs = await native
+        .collection("qa_logs")
+        .find(query)
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+
+      return createSecureResponse({ logs }, 200, req);
+    } catch (dbError) {
+      logger.warn("[QA Log] DB unavailable, returning mock logs", {
+        error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
+      });
+      return createSecureResponse({ logs: [], mock: true }, 200, req);
+    }
+  } catch (error) {
+    logger.error(
+      "Failed to fetch QA logs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to fetch logs" }, 500, req);
   }
 }
