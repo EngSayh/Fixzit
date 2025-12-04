@@ -28,6 +28,9 @@ vi.mock('@/lib/authz', () => ({
     tenantId: 'test-org-id',
   })),
 }));
+vi.mock('@/lib/db/collections', () => ({
+  ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
@@ -165,7 +168,7 @@ describe('api/qa/log route', () => {
       expect(insertOne).toHaveBeenCalledTimes(1);
     });
 
-    it('inserts log into DB with correct fields including orgId and userId', async () => {
+    it('inserts log into DB with correct fields including orgId, userId, and hashed sessionId', async () => {
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection } as any;
@@ -188,7 +191,7 @@ describe('api/qa/log route', () => {
 
       expect(body).toEqual({ success: true });
 
-      // Validate inserted document includes org-scoped fields
+      // Validate inserted document includes org-scoped fields and hashed sessionId
       const insertedDoc = insertOne.mock.calls[0][0];
       expect(insertedDoc).toMatchObject({
         event,
@@ -196,6 +199,11 @@ describe('api/qa/log route', () => {
         orgId: 'test-org-id',
         userId: 'test-user-id',
       });
+      // Session ID should be hashed (16 char hex), not raw
+      expect(insertedDoc.sessionIdHash).toBeDefined();
+      expect(insertedDoc.sessionIdHash).toHaveLength(16);
+      expect(insertedDoc.sessionIdHash).not.toBe('sess-123'); // Not raw value
+      expect(insertedDoc.sessionId).toBeUndefined(); // No raw sessionId
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
     });
 
@@ -248,14 +256,14 @@ describe('api/qa/log route', () => {
       expect(body.error).toBe('Invalid JSON body');
     });
 
-    it('returns mock success when DB is unavailable', async () => {
+    it('returns 503 when DB is unavailable', async () => {
       vi.mocked(getDatabase).mockRejectedValue(new Error('DB connection failed'));
 
       const res = await POST(createPostRequest({ event: 'test', data: {} }));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(503);
       const body = await res.json();
-      expect(body).toEqual({ success: true, mock: true });
-      expect(logger.warn).toHaveBeenCalled();
+      expect(body).toEqual({ error: 'Log storage unavailable' });
+      expect(logger.error).toHaveBeenCalled();
     });
 
     it('returns 429 when rate limited', async () => {
@@ -298,8 +306,8 @@ describe('api/qa/log route', () => {
 
       expect(body.logs).toHaveLength(2);
       expect(body.logs[0].event).toBe('event1');
-      // Verify org-scoped query
-      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
+      // Verify org-scoped query with projection (excludes data field by default)
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' }, { projection: { data: 0 } });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(100); // Default limit
     });
@@ -316,11 +324,11 @@ describe('api/qa/log route', () => {
       const res = await GET(createGetRequest({ event: 'button_click' }));
       expect(res.status).toBe(200);
 
-      // Verify both org filter and event filter are applied
-      expect(find).toHaveBeenCalledWith({ 
-        orgId: 'test-org-id',
-        event: 'button_click' 
-      });
+      // Verify both org filter and event filter are applied with projection
+      expect(find).toHaveBeenCalledWith(
+        { orgId: 'test-org-id', event: 'button_click' },
+        { projection: { data: 0 } }
+      );
     });
 
     it('returns all logs when platform admin has no tenantId', async () => {
@@ -344,8 +352,8 @@ describe('api/qa/log route', () => {
       const body = await res.json();
 
       expect(body).toEqual({ logs });
-      // Empty query = all logs (platform-level access)
-      expect(find).toHaveBeenCalledWith({});
+      // Empty query = all logs (platform-level access) with projection
+      expect(find).toHaveBeenCalledWith({}, { projection: { data: 0 } });
     });
 
     it('respects custom limit parameter', async () => {
@@ -361,7 +369,7 @@ describe('api/qa/log route', () => {
       expect(limit).toHaveBeenCalledWith(50);
     });
 
-    it('caps limit at 1000', async () => {
+    it('caps limit at 200', async () => {
       const toArray = vi.fn().mockResolvedValue([]);
       const limit = vi.fn().mockReturnValue({ toArray });
       const sort = vi.fn().mockReturnValue({ limit });
@@ -371,17 +379,17 @@ describe('api/qa/log route', () => {
       vi.mocked(getDatabase).mockResolvedValue(nativeDb);
 
       await GET(createGetRequest({ limit: '5000' }));
-      expect(limit).toHaveBeenCalledWith(1000);
+      expect(limit).toHaveBeenCalledWith(200);
     });
 
-    it('returns mock logs when DB is unavailable', async () => {
+    it('returns 503 when DB is unavailable', async () => {
       vi.mocked(getDatabase).mockRejectedValue(new Error('DB connection failed'));
 
       const res = await GET(createGetRequest());
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(503);
       const body = await res.json();
-      expect(body).toEqual({ logs: [], mock: true });
-      expect(logger.warn).toHaveBeenCalled();
+      expect(body).toEqual({ error: 'Log retrieval unavailable' });
+      expect(logger.error).toHaveBeenCalled();
     });
 
     it('returns 429 when rate limited', async () => {

@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { ensureQaIndexes } from "@/lib/db/collections";
 import { getClientIP, createSecureResponse } from "@/server/security/headers";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError, unauthorizedError } from "@/server/utils/errorResponses";
@@ -82,6 +84,15 @@ export async function POST(req: NextRequest) {
     const { event, data } = parsed.data;
 
     try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      // SECURITY: Hash session ID to enable correlation without storing raw credential
+      const rawSessionId = req.cookies.get("sessionId")?.value;
+      const sessionIdHash = rawSessionId 
+        ? createHash("sha256").update(rawSessionId).digest("hex").substring(0, 16)
+        : undefined;
+
       const native = await getDatabase();
       await native.collection("qa_logs").insertOne({
         event,
@@ -92,18 +103,18 @@ export async function POST(req: NextRequest) {
         userId,
         ip: getClientIP(req),
         userAgent: req.headers.get("user-agent"),
-        sessionId: req.cookies.get("sessionId")?.value || "unknown",
+        sessionIdHash, // Hashed for correlation, not raw credential
       });
       
       // Log event for observability (redact data to prevent PII leakage)
       logger.info(`📝 QA Log: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
-      // Fallback mock mode if DB unavailable
-      logger.warn("[QA Log] DB unavailable, using mock response", {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      logger.error("[QA Log] DB unavailable", {
         error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
       });
-      return createSecureResponse({ success: true, mock: true }, 200, req);
+      return createSecureResponse({ error: "Log storage unavailable" }, 503, req);
     }
   } catch (error) {
     logger.error(
@@ -140,11 +151,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const parsed = Number(searchParams.get("limit"));
+    // PERFORMANCE: Lower default limit (100) and cap at 200 to prevent large responses
     const limit = Math.min(
       Number.isFinite(parsed) && parsed > 0 ? parsed : 100,
-      1000,
+      200,
     );
     const eventType = searchParams.get("event");
+    // PERFORMANCE: Optionally exclude data field to reduce payload size
+    const includeData = searchParams.get("includeData") === "true";
 
     // ORG SCOPING: Filter logs by org to prevent cross-tenant data exposure
     // Super-admins without tenantId see all logs (platform-level debugging)
@@ -154,20 +168,26 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
       const native = await getDatabase();
+      // PERFORMANCE: Exclude large data field by default to keep responses small
+      const projection = includeData ? {} : { data: 0 };
       const logs = await native
         .collection("qa_logs")
-        .find(query)
+        .find(query, { projection })
         .sort({ timestamp: -1 })
         .limit(limit)
         .toArray();
 
       return createSecureResponse({ logs }, 200, req);
     } catch (dbError) {
-      logger.warn("[QA Log] DB unavailable, returning mock logs", {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      logger.error("[QA Log] DB unavailable", {
         error: dbError instanceof Error ? dbError.message : String(dbError ?? ""),
       });
-      return createSecureResponse({ logs: [], mock: true }, 200, req);
+      return createSecureResponse({ error: "Log retrieval unavailable" }, 503, req);
     }
   } catch (error) {
     logger.error(

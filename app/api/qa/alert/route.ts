@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
+import { ensureQaIndexes } from '@/lib/db/collections';
 import { getClientIP } from '@/server/security/headers';
 
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
@@ -95,31 +96,37 @@ export async function POST(req: NextRequest) {
 
     const { event, data } = parsed.data;
 
-    // Log the alert to database with org/user attribution for multi-tenant auditing
-    const native = await resolveDatabase();
-    await native.collection('qa_alerts').insertOne({
-      event,
-      data: data ?? null,
-      timestamp: new Date(),
-      // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
-      orgId,
-      userId,
-      ip: getClientIP(req),
-      userAgent: req.headers.get('user-agent'),
-    });
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
 
-    // Log event for observability (redact data to prevent PII leakage)
-    logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
+      // Log the alert to database with org/user attribution for multi-tenant auditing
+      const native = await resolveDatabase();
+      await native.collection('qa_alerts').insertOne({
+        event,
+        data: data ?? null,
+        timestamp: new Date(),
+        // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get('user-agent'),
+      });
 
-    const successBody = { success: true };
-    return createSecureResponse(successBody, 200, req);
-  } catch (error) {
-    if (process.env.NODE_ENV === 'test') {
-      logger.error('[QA alert debug]', error);
+      // Log event for observability (redact data to prevent PII leakage)
+      logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
+
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      logger.error('[QA Alert] DB unavailable', {
+        error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+      });
+      return createSecureResponse({ error: 'Alert storage unavailable' }, 503, req);
     }
+  } catch (error) {
     logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
-    const errorBody = { error: 'Failed to process alert' };
-    return createSecureResponse(errorBody, 500, req);
+    return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
   }
 }
 
@@ -148,6 +155,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+    await ensureQaIndexes();
+
     const native = await resolveDatabase();
     
     // ORG SCOPING: Filter alerts by org to prevent cross-tenant data exposure
@@ -161,8 +171,11 @@ export async function GET(req: NextRequest) {
       .toArray();
 
     return createSecureResponse({ alerts }, 200, req);
-  } catch (error) {
-    logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
+  } catch (dbError) {
+    // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+    logger.error('[QA Alert] DB unavailable', {
+      error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+    });
+    return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
   }
 }

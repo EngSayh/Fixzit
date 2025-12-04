@@ -26,6 +26,9 @@ vi.mock('@/lib/authz', () => ({
     tenantId: 'test-org-id',
   })),
 }));
+vi.mock('@/lib/db/collections', () => ({
+  ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
@@ -36,6 +39,7 @@ let POST: typeof import('@/app/api/qa/alert/route').POST;
 let GET: typeof import('@/app/api/qa/alert/route').GET;
 import { logger } from '@/lib/logger';
 import { requireSuperAdmin } from '@/lib/authz';
+import { ensureQaIndexes } from '@/lib/db/collections';
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 
 // Type helper for building minimal NextRequest-like object
@@ -134,6 +138,8 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
+      // Verify ensureQaIndexes is called for index/TTL enforcement
+      expect(ensureQaIndexes).toHaveBeenCalled();
       // Verify logging includes org context (not payload data for PII safety)
       expect(logger.warn).toHaveBeenCalledWith(
         `🚨 QA Alert: ${event}`,
@@ -296,7 +302,7 @@ describe('QA Alert Route', () => {
       expect(insertedDoc?.userId).toBe('test-user-id');
     });
 
-    it('returns 500 on DB insertion error', async () => {
+    it('returns 503 on DB insertion error', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
@@ -311,11 +317,11 @@ describe('QA Alert Route', () => {
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(503);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to process alert' });
+      expect(body).toEqual({ error: 'Alert storage unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to process QA alert:',
+        '[QA Alert] DB unavailable',
         expect.anything()
       );
     });
@@ -410,7 +416,7 @@ describe('QA Alert Route', () => {
       expect(toArray).toHaveBeenCalledTimes(1);
     });
 
-    it('returns 500 when DB query fails', async () => {
+    it('returns 503 when DB query fails', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
@@ -428,11 +434,11 @@ describe('QA Alert Route', () => {
       });
 
       const res = await GET(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(503);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to fetch alerts' });
+      expect(body).toEqual({ error: 'Alert retrieval unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to fetch QA alerts:',
+        '[QA Alert] DB unavailable',
         expect.anything()
       );
     });
