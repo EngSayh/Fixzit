@@ -147,10 +147,12 @@ ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categor
 
 // ⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)
 // This was previously a global text index that would search ALL organizations
+// Note: title.en and title.ar indexed separately due to nested object structure
 ProductSchema.index(
   {
     orgId: 1,
-    title: "text",
+    "title.en": "text",
+    "title.ar": "text",
     summary: "text",
     brand: "text",
     standards: "text",

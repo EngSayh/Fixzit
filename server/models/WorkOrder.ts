@@ -606,14 +606,14 @@ WorkOrderSchema.virtual("code").get(function (this: WorkOrderDoc) {
 });
 
 // DB-001: Critical Database Indexes for Performance
-// Fix applied: 2025-11-25T11:00:00+03:00
+// Fix applied: Q4 2024
 WorkOrderSchema.index({ orgId: 1, status: 1, createdAt: -1 }); // List queries
 // FIXED: assignedTo was never a valid field - correct path is assignment.assignedTo.userId
 WorkOrderSchema.index({ orgId: 1, "assignment.assignedTo.userId": 1, status: 1 }); // Assigned WOs
 WorkOrderSchema.index({ orgId: 1, "location.propertyId": 1, status: 1 }); // Property WOs
 // FIXED: unit_id was never defined in schema - actual field is location.unitNumber (String)
 WorkOrderSchema.index({ orgId: 1, "location.unitNumber": 1, status: 1 }); // TENANT unit filtering
-// REMOVED: Global unique index on workOrderNumber - use tenant-scoped index at line 496 instead
+// REMOVED: Global unique index on workOrderNumber - use tenant-scoped index via tenantIsolationPlugin (line 492-494)
 // WorkOrderSchema.index({ workOrderNumber: 1 }, { unique: true }); // Bug: breaks multi-tenant isolation
 WorkOrderSchema.index({ orgId: 1, priority: 1, "sla.status": 1 }); // SLA tracking
 WorkOrderSchema.index({ "sla.resolutionDeadline": 1 }, { sparse: true }); // Overdue queries

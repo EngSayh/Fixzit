@@ -8,7 +8,8 @@ export async function getDb(): Promise<Db> {
   if (!mongoose.connection.db) {
     throw new Error('Database connection not established');
   }
-  return mongoose.connection.db;
+  // Cast needed due to mongoose bundling its own mongodb types
+  return mongoose.connection.db as unknown as Db;
 }
 
 export function ensureMongoConnection(): void {
