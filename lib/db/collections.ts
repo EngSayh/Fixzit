@@ -1081,6 +1081,7 @@ async function dropLegacyWorkOrderIndexes(db: Awaited<ReturnType<typeof getDatab
     "orgId_1_status_1",
     "orgId_1_priority_1",
     "orgId_1_priority_1_sla.status_1", // conflicts with workorders_orgId_priority_slaStatus
+    "orgId_1_status_1_createdAt_-1", // conflicts with workorders_orgId_status_createdAt_desc
     "orgId_1_location.propertyId_1",
     "orgId_1_location.propertyId_1_status_1",
     "orgId_1_location.unitNumber_1_status_1",
