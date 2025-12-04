@@ -181,19 +181,8 @@ export async function createIndexes() {
 
   await createQaIndexes(db);
 
-  // Error telemetry - ensure org-scoped dedupe for incidents
-  await db.collection(COLLECTIONS.ERROR_EVENTS).createIndex(
-    { orgId: 1, incidentKey: 1 },
-    {
-      name: "error_events_org_incidentKey",
-      unique: true,
-      background: true,
-      partialFilterExpression: {
-        orgId: { $exists: true },
-        incidentKey: { $exists: true },
-      },
-    },
-  );
+  // Note: Error Events indexes are defined below in the ERROR_EVENTS section (lines ~760+)
+  // with the canonical name: error_events_orgId_incidentKey_unique
 
   // Users - STRICT v4.1: email unique per org, not globally
   await db
