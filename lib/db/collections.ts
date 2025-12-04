@@ -1094,8 +1094,9 @@ async function dropLegacyWorkOrderIndexes(db: Awaited<ReturnType<typeof getDatab
     "orgId_1_category_1",
     "orgId_1_subCategory_1",
     "orgId_1_type_1",
-    // Text index that may have default name
+    // Text indexes - MongoDB only allows one text index per collection
     "orgId_1_title_text_description_text_work.solutionDescription_text",
+    "title_text_description_text_work.solutionDescription_text", // non-org-scoped legacy text index
   ];
 
   for (const indexName of workOrderIndexes) {
