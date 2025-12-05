@@ -11,15 +11,13 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import { z } from "zod";
-import { isValidObjectId } from "@/lib/utils/object-id";
 
 const ApproveSchema = z
   .object({
     rmaId: z
       .string()
       .trim()
-      .min(1)
-      .refine((val) => isValidObjectId(val), { message: "Invalid rmaId" }),
+      .min(1),
     approve: z.coerce.boolean(),
     approvalNotes: z.string().trim().optional(),
     rejectionReason: z.string().trim().optional(),

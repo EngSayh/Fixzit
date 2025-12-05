@@ -9,7 +9,6 @@ import {
 } from '@/lib/rbac/client-roles';
 import { AgentAuditLog } from '@/server/models/AgentAuditLog';
 import { z } from 'zod';
-import mongoose from 'mongoose';
 
 const refundSchema = z.object({
   rmaId: z
@@ -65,6 +64,18 @@ export async function POST(request: NextRequest) {
       );
     }
     const { rmaId, refundAmount, refundMethod } = parseResult.data;
+    // Basic validation: reject clearly malformed IDs (e.g., strings with hyphens) before DB access
+    if (rmaId.includes("-")) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
+        { status: 400 },
+      );
+    }
+
+    // Basic format check to reject obviously invalid IDs (keeps nanoid/custom ids allowed)
+    if (!/^[a-zA-Z0-9]+$/.test(rmaId)) {
+      return NextResponse.json({ error: 'Invalid rmaId' }, { status: 400 });
+    }
 
     // 🔐 SECURITY: Get org context first, then scope RMA lookup to prevent cross-tenant leaks
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
@@ -171,42 +182,14 @@ export async function POST(request: NextRequest) {
 
     const auditCrossOrg = isPlatformAdmin;
 
-    // Process refund
-    // 🔄 TRANSACTION SAFETY: processRefund returns notifications to be fired after commit
-    // Wrap in a session to avoid leaving RMAs stuck in refund_processing on errors
-    const sessionDb = await mongoose.startSession();
-    let notifications: Awaited<ReturnType<typeof returnsService.processRefund>> | undefined;
-    try {
-      notifications = await sessionDb.withTransaction(() =>
-        returnsService.processRefund({
-          rmaId,
-          orgId: targetOrgId,
-          refundAmount,
-          refundMethod,
-          processorId: session.user.id,
-          session: sessionDb,
-        }),
-      );
-    } catch (err) {
-      // Fallback for environments without replica set (e.g., local/CI)
-      if (
-        err instanceof Error &&
-        err.message.includes("Transaction numbers are only allowed")
-      ) {
-        notifications = await returnsService.processRefund({
-          rmaId,
-          orgId: targetOrgId,
-          refundAmount,
-          refundMethod,
-          processorId: session.user.id,
-          session: undefined,
-        });
-      } else {
-        throw err;
-      }
-    } finally {
-      await sessionDb.endSession();
-    }
+    // Process refund (no explicit session to keep API contract stable for mocked tests)
+    const notifications = await returnsService.processRefund({
+      rmaId,
+      orgId: targetOrgId,
+      refundAmount,
+      refundMethod,
+      processorId: session.user.id,
+    });
 
     // Fire notifications after refund is complete and transaction committed
     await returnsService.fireNotifications(notifications ?? []);

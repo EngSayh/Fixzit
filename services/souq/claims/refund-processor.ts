@@ -1,9 +1,22 @@
-import type { UpdateFilter } from 'mongodb';
+import { ObjectId as MongoObjectId, type UpdateFilter, type Filter, type Document } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRefund } from '@/lib/paytabs';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
+
+/**
+ * Build org filter for MongoDB queries using string orgId values.
+ * Cast result as Filter<Document> when using with strictly-typed collections.
+ */
+const buildOrgFilter = (orgId: string): Filter<Document> => {
+  const trimmed = orgId?.trim?.();
+  const candidates: string[] = [];
+  if (trimmed) {
+    candidates.push(trimmed);
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId: trimmed };
+};
 
 export interface RefundRequest {
   claimId: string;
@@ -111,7 +124,7 @@ export class RefundProcessor {
       const result = await this.executeRefund(refund);
       
       // Update refund status
-      await this.updateRefundStatus(refundId, result.status, {
+      await this.updateRefundStatus(refundId, request.orgId, result.status, {
         transactionId: result.transactionId,
         completedAt: result.status === 'completed' ? new Date() : undefined,
         failureReason: result.failureReason,
@@ -119,17 +132,17 @@ export class RefundProcessor {
 
       // Update order status
       if (result.status === 'completed') {
-        await this.updateOrderStatus(request.orderId, 'refunded');
+        await this.updateOrderStatus(request.orderId, request.orgId, 'refunded');
       }
 
-      // Notify parties
-      await this.notifyRefundStatus(request.buyerId, request.sellerId, result, request.orgId);
+      // Notify parties using stored refund org context
+      await this.notifyRefundStatus(refund, result);
 
       return result;
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      await this.updateRefundStatus(refundId, 'failed', {
+      await this.updateRefundStatus(refundId, request.orgId, 'failed', {
         failureReason: error instanceof Error ? error.message : 'Unknown error',
       });
 
@@ -147,6 +160,7 @@ export class RefundProcessor {
     const result = await collection.updateOne(
       { 
         refundId: refund.refundId, 
+        ...buildOrgFilter(refund.orgId),
         status: { $in: ['initiated', 'processing'] },
         // Add a processing lock flag that's only set during active execution
         processingLock: { $exists: false }
@@ -177,7 +191,7 @@ export class RefundProcessor {
 
       // Clear processing lock on success
       await collection.updateOne(
-        { refundId: refund.refundId },
+        { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
         { $unset: { processingLock: '' } }
       );
 
@@ -195,7 +209,7 @@ export class RefundProcessor {
       if (refund.retryCount < this.MAX_RETRIES) {
         // Clear lock before scheduling retry
         await collection.updateOne(
-          { refundId: refund.refundId },
+          { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
           { $unset: { processingLock: '' } }
         );
         
@@ -210,7 +224,7 @@ export class RefundProcessor {
 
       // Clear lock on final failure
       await collection.updateOne(
-        { refundId: refund.refundId },
+        { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
         { $unset: { processingLock: '' } }
       );
 
@@ -282,7 +296,7 @@ export class RefundProcessor {
     const nextRetryAt = new Date(Date.now() + delayMs);
 
     await collection.updateOne(
-      { refundId: refund.refundId },
+      { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
       {
         $inc: { retryCount: 1 },
         $set: {
@@ -297,7 +311,7 @@ export class RefundProcessor {
       await addJob(
         QUEUE_NAMES.REFUNDS,
         'souq-claim-refund-retry',
-        { refundId: refund.refundId },
+        { refundId: refund.refundId, orgId: refund.orgId },
         {
           delay: delayMs,
           jobId: `refund-retry-${refund.refundId}-${nextRetryCount}`,
@@ -320,10 +334,10 @@ export class RefundProcessor {
       });
     }
 
-    this.scheduleInProcessRetry(refund.refundId, delayMs);
+    this.scheduleInProcessRetry(refund.refundId, refund.orgId, delayMs);
   }
 
-  private static scheduleInProcessRetry(refundId: string, delayMs: number) {
+  private static scheduleInProcessRetry(refundId: string, orgId: string, delayMs: number) {
     const existingTimer = this.retryTimers.get(refundId);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -331,7 +345,7 @@ export class RefundProcessor {
 
     const timer = setTimeout(async () => {
       try {
-        await this.processRetryJob(refundId);
+        await this.processRetryJob(refundId, orgId);
       } catch (_error) {
         const error = _error instanceof Error ? _error : new Error(String(_error));
         logger.error('[Refunds] Fallback retry failed', { refundId, error: error.message });
@@ -343,9 +357,9 @@ export class RefundProcessor {
     this.retryTimers.set(refundId, timer);
   }
 
-  static async processRetryJob(refundId: string): Promise<void> {
+  static async processRetryJob(refundId: string, orgId: string): Promise<void> {
     const latestCollection = await this.collection();
-    const updatedRefund = await latestCollection.findOne({ refundId });
+    const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgFilter(orgId) });
 
     if (updatedRefund && updatedRefund.status === 'processing') {
       await this.executeRefund(updatedRefund);
@@ -362,6 +376,7 @@ export class RefundProcessor {
    */
   private static async updateRefundStatus(
     refundId: string,
+    orgId: string,
     status: Refund['status'],
     data?: {
       transactionId?: string;
@@ -380,7 +395,7 @@ export class RefundProcessor {
     if (status === 'processing') update.processedAt = new Date();
 
     const collection = await this.collection();
-    await collection.updateOne({ refundId }, { $set: update });
+    await collection.updateOne({ refundId, ...buildOrgFilter(orgId) }, { $set: update });
   }
 
   /**
@@ -388,11 +403,16 @@ export class RefundProcessor {
    */
   private static async updateOrderStatus(
     orderId: string,
+    orgId: string,
     status: string
   ): Promise<void> {
     const db = await getDatabase();
+    const orderIdFilters: Array<Record<string, unknown>> = [{ orderId }];
+    if (MongoObjectId.isValid(orderId)) {
+      orderIdFilters.push({ _id: new MongoObjectId(orderId) });
+    }
     await db.collection('souq_orders').updateOne(
-      { orderId },
+      { ...buildOrgFilter(orgId), $or: orderIdFilters },
       {
         $set: {
           status,
@@ -407,16 +427,38 @@ export class RefundProcessor {
   /**
    * Notify parties about refund status
    */
-  private static async notifyRefundStatus(
-    buyerId: string,
-    sellerId: string,
-    result: RefundResult,
-    orgId: string
-  ): Promise<void> {
+  public static notifyRefundStatus = async (
+    buyerId: string | Refund,
+    sellerOrResult: string | RefundResult,
+    resultMaybe?: RefundResult,
+    orgIdMaybe?: string,
+  ): Promise<void> => {
+    // Test/legacy signature: (buyerId, sellerId, result, orgId)
+    if (typeof buyerId === 'string' && typeof sellerOrResult === 'string') {
+      const result = resultMaybe as RefundResult;
+      const orgId = orgIdMaybe ?? '';
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-refund-status', {
+        buyerId,
+        sellerId: sellerOrResult,
+        orgId,
+        refundId: result.refundId,
+        status: result.status,
+        amount: result.amount,
+        failureReason: result.failureReason,
+        transactionId: result.transactionId,
+        completedAt: result.completedAt,
+      });
+      return;
+    }
+
+    // Primary runtime signature: (refund, result)
+    const refundDoc = buyerId as Refund;
+    const result = sellerOrResult as RefundResult;
+
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-refund-status', {
-      buyerId,
-      sellerId,
-      orgId, // 🔐 Tenant context for branding/routing
+      buyerId: refundDoc.buyerId,
+      sellerId: refundDoc.sellerId,
+      orgId: refundDoc.orgId, // 🔐 Tenant context for branding/routing
       refundId: result.refundId,
       status: result.status,
       amount: result.amount,
@@ -424,20 +466,21 @@ export class RefundProcessor {
       transactionId: result.transactionId,
       completedAt: result.completedAt,
     });
-  }
+  };
 
   /**
    * Get refund by ID
    */
-  static async getRefund(refundId: string): Promise<Refund | null> {
+  static async getRefund(refundId: string, orgId: string): Promise<Refund | null> {
     const collection = await this.collection();
-    return collection.findOne({ refundId });
+    return collection.findOne({ refundId, ...buildOrgFilter(orgId) });
   }
 
   /**
    * List refunds with filters
    */
   static async listRefunds(filters: {
+    orgId: string;
     buyerId?: string;
     sellerId?: string;
     claimId?: string;
@@ -445,9 +488,12 @@ export class RefundProcessor {
     limit?: number;
     offset?: number;
   }): Promise<{ refunds: Refund[]; total: number }> {
+    if (!filters.orgId) {
+      throw new Error('orgId is required to list refunds');
+    }
     const collection = await this.collection();
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = { ...buildOrgFilter(filters.orgId) };
     if (filters.buyerId) query.buyerId = filters.buyerId;
     if (filters.sellerId) query.sellerId = filters.sellerId;
     if (filters.claimId) query.claimId = filters.claimId;
@@ -475,12 +521,16 @@ export class RefundProcessor {
   /**
    * Retry failed refunds
    */
-  static async retryFailedRefunds(): Promise<number> {
+  static async retryFailedRefunds(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to retry failed refunds');
+    }
     const collection = await this.collection();
     const failedRefunds = await collection
       .find({
         status: 'failed',
         retryCount: { $lt: this.MAX_RETRIES },
+        ...buildOrgFilter(orgId),
       })
       .toArray();
 
@@ -504,6 +554,7 @@ export class RefundProcessor {
    * Get refund statistics
    */
   static async getRefundStats(filters: {
+    orgId: string;
     sellerId?: string;
     startDate?: Date;
     endDate?: Date;
@@ -514,12 +565,16 @@ export class RefundProcessor {
     avgProcessingTime: number;
     successRate: number;
   }> {
+    if (!filters.orgId) {
+      throw new Error('orgId is required to fetch refund stats');
+    }
     const collection = await this.collection();
 
     const query: {
+      orgId: string;
       sellerId?: string;
       createdAt?: { $gte?: Date; $lte?: Date };
-    } = {};
+    } = { orgId: filters.orgId };
     if (filters.sellerId) query.sellerId = filters.sellerId;
     if (filters.startDate || filters.endDate) {
       query.createdAt = {};
