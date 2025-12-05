@@ -44,12 +44,12 @@ async function seedOrder({
   price = 100,
   quantity = 1,
   reason = "changed_mind" as const,
+  sellerId = new Types.ObjectId(),
+  orgId = new Types.ObjectId(),
+  buyerId = new Types.ObjectId(),
+  productId = new Types.ObjectId(),
+  listingId = new Types.ObjectId(),
 } = {}) {
-  const buyerId = new Types.ObjectId();
-  const sellerId = new Types.ObjectId();
-  const productId = new Types.ObjectId();
-  const listingId = new Types.ObjectId();
-  const orgId = new Types.ObjectId();
 
   await SouqListing.create({
     _id: listingId,
@@ -281,6 +281,101 @@ describe("returnsService", () => {
       expect(history).toHaveLength(1);
       expect(history[0]?.orderId).toBe(rmaA.orderId);
       expect(history[0]?.status).toBe("initiated");
+    });
+  });
+
+  describe("getSellerReturnStats", () => {
+    it("rejects when orgId is missing", async () => {
+      const sellerId = new Types.ObjectId().toString();
+      await expect(
+        returnsService.getSellerReturnStats(sellerId, "", "month"),
+      ).rejects.toThrow("orgId is required to fetch seller return stats");
+    });
+
+    it("scopes stats to the provided orgId (excludes other tenants)", async () => {
+      const sellerId = new Types.ObjectId();
+      const buyerId = new Types.ObjectId();
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+
+      const { order: orderA } = await seedOrder({
+        sellerId,
+        orgId: orgA,
+        buyerId,
+        price: 50,
+        quantity: 1,
+      });
+
+      const lineItem = orderA.items[0];
+      if (!lineItem) {
+        throw new Error("Seeded order missing line item");
+      }
+
+      await SouqRMA.create({
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgA.toString(),
+        orderId: orderA._id.toString(),
+        orderNumber: orderA.orderId,
+        buyerId: buyerId.toString(),
+        sellerId: sellerId.toString(),
+        items: [
+          {
+            orderItemId: lineItem.listingId.toString(),
+            listingId: lineItem.listingId.toString(),
+            productId: lineItem.productId.toString(),
+            productName: lineItem.title || "Product",
+            quantity: 1,
+            unitPrice: 50,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "completed",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" },
+        refund: { amount: 50, method: "original_payment", status: "completed" },
+        timeline: [{ status: "completed", timestamp: new Date(), performedBy: buyerId.toString() }],
+      });
+
+      // Noise RMA in another org
+      await SouqRMA.create({
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgB.toString(),
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-NOISE",
+        buyerId: buyerId.toString(),
+        sellerId: sellerId.toString(),
+        items: [
+          {
+            orderItemId: "NOISE-OI",
+            listingId: "NOISE-L",
+            productId: "NOISE-P",
+            productName: "Noise",
+            quantity: 1,
+            unitPrice: 10,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "completed",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" },
+        refund: { amount: 10, method: "original_payment", status: "completed" },
+        timeline: [{ status: "completed", timestamp: new Date(), performedBy: buyerId.toString() }],
+      });
+
+      const stats = await returnsService.getSellerReturnStats(
+        sellerId.toString(),
+        orgA.toString(),
+        "month",
+      );
+
+      expect(stats.totalReturns).toBe(1);
+      expect(stats.returnRate).toBe(100); // one return / one delivered order in orgA
+      expect(stats.topReasons[0]?.reason).toBe("defective");
+      expect(stats.avgRefundAmount).toBeCloseTo(50);
     });
   });
 });

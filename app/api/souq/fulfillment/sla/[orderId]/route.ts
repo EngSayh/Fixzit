@@ -3,6 +3,7 @@ import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { logger } from "@/lib/logger";
+import { Role, normalizeRole } from "@/lib/rbac/client-roles";
 
 /**
  * GET /api/souq/fulfillment/sla/[orderId]
@@ -36,7 +37,15 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "MANAGEMENT", "OPS", "SUPPORT"].includes(session.user.role);
+    // 🔐 SECURITY: Use canonical Role enum for role checks
+    const userRole = normalizeRole(session.user.role);
+    const adminRoles: Role[] = [
+      Role.SUPER_ADMIN,
+      Role.ADMIN,
+      Role.CORPORATE_OWNER,
+      Role.TEAM_MEMBER,
+    ];
+    const isAdmin = userRole !== null && adminRoles.includes(userRole);
     const isSeller = order.items.some(
       (item) => item.sellerId?.toString() === session.user.id,
     );

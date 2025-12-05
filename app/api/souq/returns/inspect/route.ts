@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { rmaId, condition, restockable, inspectionNotes, inspectionPhotos } =
       body;
@@ -53,6 +61,7 @@ export async function POST(request: NextRequest) {
     // Complete inspection
     await returnsService.inspectReturn({
       rmaId,
+      orgId,
       inspectorId: session.user.id,
       condition,
       restockable,

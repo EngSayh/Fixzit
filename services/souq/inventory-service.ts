@@ -539,10 +539,11 @@ class InventoryService {
         const count = inventory.cleanExpiredReservations();
         if (count > 0) {
           await inventory.save();
+          const effectiveOrgId = orgId ?? (inventory.orgId ? String(inventory.orgId) : undefined);
           await this.updateListingStockStatus(
             inventory.listingId,
             inventory.availableQuantity,
-            orgId ?? inventory.orgId,
+            effectiveOrgId,
           );
           cleaned++;
           released += count;

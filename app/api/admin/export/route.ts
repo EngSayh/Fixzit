@@ -15,7 +15,6 @@ const ExportSchema = z.object({
  * STRICT v4.1: Uses orgId (camelCase) consistently per schema conventions.
  */
 const COLLECTION_CONFIG: Record<string, { scopeField: "orgId" | "org_id"; maxDocs: number }> = {
-  work_orders: { scopeField: "orgId", maxDocs: 10000 },
   workorders: { scopeField: "orgId", maxDocs: 10000 },
   properties: { scopeField: "orgId", maxDocs: 5000 },
   vendors: { scopeField: "orgId", maxDocs: 5000 },
@@ -48,6 +47,13 @@ export async function GET(request: NextRequest) {
     if (!orgId) {
       return NextResponse.json({ error: "Organization not found" }, { status: 400 });
     }
+
+    // 🔐 SECURITY: Validate orgId is a valid ObjectId to prevent injection
+    if (!mongoose.Types.ObjectId.isValid(orgId)) {
+      logger.warn("[Export] Invalid orgId format", { orgId, userId: session.user.id });
+      return NextResponse.json({ error: "Invalid organization ID format" }, { status: 400 });
+    }
+    const orgObjectId = new mongoose.Types.ObjectId(orgId);
 
     const searchParams = request.nextUrl.searchParams;
     const format = searchParams.get("format") || "json";
@@ -88,7 +94,6 @@ export async function GET(request: NextRequest) {
     }
 
     const exportData: Record<string, unknown[]> = {};
-    const orgObjectId = new mongoose.Types.ObjectId(orgId);
 
     for (const collectionName of validCollections) {
       const config = COLLECTION_CONFIG[collectionName];

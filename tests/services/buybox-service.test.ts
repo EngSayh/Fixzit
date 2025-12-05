@@ -29,6 +29,9 @@ import { SouqSeller } from "@/server/models/souq/Seller";
 // Deferred service import
 let BuyBoxService: typeof import("@/services/souq/buybox-service").BuyBoxService;
 
+// Test fixture org for listings
+const testOrgId = new Types.ObjectId();
+
 // Test fixture ObjectId for consistent test data
 const testOrgId = new Types.ObjectId();
 
@@ -82,7 +85,8 @@ async function seedListing({
     customerRating: 4.5,
     priceCompetitiveness: 60,
   },
-} = { sellerId: "", fsin: "" }) {
+  orgId = testOrgId,
+} = { sellerId: "", fsin: "", orgId: testOrgId }) {
   const productId = new Types.ObjectId();
   const listingId = `LST-${nanoid(8)}`;
 
@@ -91,6 +95,7 @@ async function seedListing({
     productId,
     fsin,
     sellerId: new Types.ObjectId(sellerId),
+    orgId,
     price,
     currency: "SAR",
     stockQuantity: quantity,

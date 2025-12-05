@@ -146,6 +146,8 @@ const OrderSchema = new Schema<IOrder>(
     orgId: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
+      required: true,
+      index: true,
     },
     customerEmail: {
       type: String,
@@ -381,6 +383,10 @@ const OrderSchema = new Schema<IOrder>(
     autoIndex: false,
   },
 );
+
+// Tenant-scoped access patterns
+OrderSchema.index({ orgId: 1, orderId: 1 });
+OrderSchema.index({ orgId: 1, trackingNumber: 1 });
 
 export const SouqOrder = getModel<IOrder>("SouqOrder", OrderSchema);
 

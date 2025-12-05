@@ -16,7 +16,7 @@ export interface IListing extends Document {
   sku?: string;
 
   sellerId: mongoose.Types.ObjectId;
-  orgId?: string;
+  orgId?: mongoose.Types.ObjectId;
 
   price: number;
   compareAtPrice?: number;
@@ -113,7 +113,9 @@ const ListingSchema = new Schema<IListing>(
       index: true,
     },
     orgId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
       index: true,
     },
     price: {
@@ -292,6 +294,9 @@ ListingSchema.index({ fsin: 1, status: 1, buyBoxEligible: 1 });
 ListingSchema.index({ productId: 1, sellerId: 1 }, { unique: true });
 ListingSchema.index({ sellerId: 1, status: 1 });
 ListingSchema.index({ price: 1, status: 1 });
+ListingSchema.index({ orgId: 1, listingId: 1 });
+ListingSchema.index({ orgId: 1, sellerId: 1 });
+ListingSchema.index({ orgId: 1, status: 1 });
 
 // Pre-save: Calculate available quantity
 ListingSchema.pre("save", function (next) {

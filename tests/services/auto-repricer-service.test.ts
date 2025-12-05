@@ -85,7 +85,8 @@ async function seedListing({
   fsin,
   price = 100,
   quantity = 50,
-} = { sellerId: "", fsin: "" }) {
+  orgId = testOrgId,
+} = { sellerId: "", fsin: "", orgId: testOrgId }) {
   const productId = new Types.ObjectId();
   const listingId = `LST-${nanoid(8)}`;
 
@@ -94,6 +95,7 @@ async function seedListing({
     productId,
     fsin,
     sellerId: new Types.ObjectId(sellerId),
+    orgId,
     price,
     currency: "SAR",
     stockQuantity: quantity,

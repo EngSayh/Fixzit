@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization context required' },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { rmaId, refundAmount, refundMethod } = body;
 
@@ -32,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Org boundary enforcement: Verify RMA belongs to admin's organization
     // SUPER_ADMIN can process refunds across all organizations
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.orgId) {
+    if (session.user.role !== 'SUPER_ADMIN') {
       const { SouqRMA } = await import('@/server/models/souq/RMA');
       const rma = await SouqRMA.findById(rmaId).lean();
       if (!rma) {
@@ -41,10 +49,10 @@ export async function POST(request: NextRequest) {
         }, { status: 404 });
       }
       // Verify organization match - sellerId should match orgId for tenant isolation
-      if (rma.sellerId?.toString() !== session.user.orgId) {
+      if (rma.sellerId?.toString() !== orgId) {
         logger.warn('Org boundary violation attempt in refund processing', { 
           userId: session.user.id, 
-          userOrg: session.user.orgId,
+          userOrg: orgId,
           rmaSeller: rma.sellerId,
           rmaId 
         });
@@ -70,6 +78,7 @@ export async function POST(request: NextRequest) {
     // Process refund
     await returnsService.processRefund({
       rmaId,
+      orgId,
       refundAmount,
       refundMethod,
       processorId: session.user.id

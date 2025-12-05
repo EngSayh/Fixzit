@@ -34,6 +34,7 @@ let inventoryService: typeof import("@/services/souq/inventory-service").invento
  */
 // Test fixture ObjectId for consistent test data
 const testOrgId = new Types.ObjectId();
+const otherOrgId = new Types.ObjectId();
 
 async function seedInventory({
   quantity = 100,
@@ -53,6 +54,7 @@ async function seedInventory({
     productId,
     fsin: `FSIN-${nanoid(6)}`,
     sellerId,
+    orgId,
     price: 100,
     currency: "SAR",
     stockQuantity: quantity,
@@ -169,14 +171,14 @@ describe("inventoryService", () => {
     });
 
     it("should return false when org scope does not match", async () => {
-      const { listingId } = await seedInventory({ quantity: 10, orgId: "org-a" });
+      const { listingId } = await seedInventory({ quantity: 10, orgId: otherOrgId });
       const reservationId = `RES-${nanoid(8)}`;
 
       const result = await inventoryService.reserveInventory({
         listingId,
         quantity: 2,
         reservationId,
-        orgId: "org-b",
+        orgId: testOrgId.toString(),
       });
 
       expect(result).toBe(false);
@@ -222,7 +224,7 @@ describe("inventoryService", () => {
 
   describe("convertReservationToSale", () => {
     it("should convert reservation and reduce total/available quantity", async () => {
-      const { listingId } = await seedInventory({ quantity: 20, orgId: "org-a" });
+      const { listingId } = await seedInventory({ quantity: 20, orgId: otherOrgId });
       const reservationId = `RES-${nanoid(8)}`;
       const orderId = `ORD-${nanoid(8)}`;
 
@@ -230,14 +232,14 @@ describe("inventoryService", () => {
         listingId,
         quantity: 5,
         reservationId,
-        orgId: "org-a",
+        orgId: otherOrgId.toString(),
       });
 
       const converted = await inventoryService.convertReservationToSale({
         listingId,
         reservationId,
         orderId,
-        orgId: "org-a",
+        orgId: otherOrgId.toString(),
       });
 
       expect(converted).toBe(true);

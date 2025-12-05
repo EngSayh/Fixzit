@@ -37,7 +37,7 @@ export async function GET(
     // Authorization: Can only view own inventory unless admin
     const sellerMatches =
       inventory.sellerId?.toString() === session.user.id ||
-      (orgId && inventory.orgId && inventory.orgId === orgId);
+      (orgId && inventory.orgId && inventory.orgId.toString() === orgId);
     const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
       session.user.role,
     );
