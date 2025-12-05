@@ -70,6 +70,11 @@ export const COLLECTIONS: Record<string, string> = {
   SOUQ_REVIEWS: "souq_reviews",
   SOUQ_SETTLEMENTS: "souq_settlements",
   CLAIMS: "claims",
+  SOUQ_CAMPAIGNS: "souq_campaigns",
+  SOUQ_AD_GROUPS: "souq_ad_groups",
+  SOUQ_ADS: "souq_ads",
+  SOUQ_AD_TARGETS: "souq_ad_targets",
+  SOUQ_FEE_SCHEDULES: "souq_fee_schedules",
   SOUQ_RMAS: "souq_rmas",
   // QA collections
   QA_LOGS: "qa_logs",
@@ -168,6 +173,9 @@ export async function createIndexes() {
   await dropLegacyEmployeeIndexes(db);
   // Clean up legacy error event indexes that clash with named variants
   await dropLegacyErrorEventIndexes(db);
+  // Clean up legacy advertising/fee schedule indexes that clash with org-scoped variants
+  await dropLegacyAdvertisingIndexes(db);
+  await dropLegacyFeeScheduleIndexes(db);
   // Clean up legacy claims/RMA indexes that clash with org-scoped variants
   await dropLegacyClaimIndexes(db);
   await dropLegacyRmaIndexes(db);
@@ -678,6 +686,106 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_REVIEWS)
     .createIndex({ orgId: 1, productId: 1 }, { background: true, name: "souq_reviews_orgId_productId" });
+  await db
+    .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
+    .createIndex(
+      { orgId: 1, campaignId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_campaigns_orgId_campaignId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, campaignId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_campaigns_orgId_seller_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
+    .createIndex({ orgId: 1, startAt: 1, endAt: 1 }, { background: true, name: "souq_campaigns_orgId_start_end" });
+  await db
+    .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
+    .createIndex({ orgId: 1, "stats.spend": -1 }, { background: true, name: "souq_campaigns_orgId_spend_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_GROUPS)
+    .createIndex(
+      { orgId: 1, adGroupId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ad_groups_orgId_adGroupId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, adGroupId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_GROUPS)
+    .createIndex({ orgId: 1, campaignId: 1, status: 1 }, { background: true, name: "souq_ad_groups_orgId_campaign_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_GROUPS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_ad_groups_orgId_seller_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_ADS)
+    .createIndex(
+      { orgId: 1, adId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ads_orgId_adId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, adId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ADS)
+    .createIndex({ orgId: 1, adGroupId: 1, status: 1 }, { background: true, name: "souq_ads_orgId_adGroup_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_ADS)
+    .createIndex({ orgId: 1, productId: 1, status: 1 }, { background: true, name: "souq_ads_orgId_product_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_ADS)
+    .createIndex({ orgId: 1, qualityScore: -1 }, { background: true, name: "souq_ads_orgId_qualityScore_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_TARGETS)
+    .createIndex(
+      { orgId: 1, targetId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ad_targets_orgId_targetId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, targetId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_TARGETS)
+    .createIndex(
+      { orgId: 1, adGroupId: 1, status: 1, isNegative: 1 },
+      { background: true, name: "souq_ad_targets_orgId_adGroup_status_negative" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_TARGETS)
+    .createIndex({ orgId: 1, targetType: 1, status: 1 }, { background: true, name: "souq_ad_targets_orgId_targetType_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_TARGETS)
+    .createIndex(
+      { orgId: 1, keyword: 1, matchType: 1 },
+      { background: true, name: "souq_ad_targets_orgId_keyword_matchType", sparse: true },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_FEE_SCHEDULES)
+    .createIndex(
+      { orgId: 1, feeScheduleId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_fee_schedules_orgId_feeScheduleId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, feeScheduleId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_FEE_SCHEDULES)
+    .createIndex({ orgId: 1, isActive: 1, effectiveFrom: -1 }, { background: true, name: "souq_fee_schedules_orgId_active_effectiveFrom_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_FEE_SCHEDULES)
+    .createIndex({ orgId: 1, version: 1 }, { background: true, name: "souq_fee_schedules_orgId_version" });
   await db
     .collection(COLLECTIONS.CLAIMS)
     .createIndex(
@@ -1488,6 +1596,84 @@ async function dropLegacyRmaIndexes(db: Awaited<ReturnType<typeof getDatabase>>)
         err?.message?.includes("index not found");
       if (isMissing) continue;
       logger.warn("[indexes] Failed to drop legacy RMA index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy advertising indexes to allow org-scoped named indexes.
+ */
+async function dropLegacyAdvertisingIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const targets: Array<{ collection: string; indexes: string[] }> = [
+    {
+      collection: COLLECTIONS.SOUQ_CAMPAIGNS,
+      indexes: [
+        "campaignId_1",
+        "sellerId_1_status_1",
+        "startAt_1_endAt_1",
+        "stats.spend_-1",
+        "orgId_1_campaignId_1",
+      ],
+    },
+    {
+      collection: COLLECTIONS.SOUQ_AD_GROUPS,
+      indexes: ["adGroupId_1", "campaignId_1_status_1", "orgId_1_adGroupId_1"],
+    },
+    {
+      collection: COLLECTIONS.SOUQ_ADS,
+      indexes: ["adId_1", "adGroupId_1_status_1", "productId_1_status_1", "qualityScore_-1", "orgId_1_adId_1"],
+    },
+    {
+      collection: COLLECTIONS.SOUQ_AD_TARGETS,
+      indexes: [
+        "targetId_1",
+        "adGroupId_1_status_1_isNegative_1",
+        "targetType_1_status_1",
+        "keyword_1_matchType_1",
+        "orgId_1_targetId_1",
+      ],
+    },
+  ];
+
+  for (const { collection, indexes } of targets) {
+    for (const indexName of indexes) {
+      try {
+        await db.collection(collection).dropIndex(indexName);
+      } catch (error) {
+        const err = error as { code?: number; codeName?: string; message?: string };
+        const isMissing =
+          err?.code === 27 ||
+          err?.codeName === "IndexNotFound" ||
+          err?.message?.includes("index not found");
+        if (isMissing) continue;
+        logger.warn("[indexes] Failed to drop legacy advertising index", { collection, indexName, error: err?.message });
+      }
+    }
+  }
+}
+
+/**
+ * Drop legacy fee schedule indexes to allow org-scoped named indexes.
+ */
+async function dropLegacyFeeScheduleIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const feeIndexes = [
+    "feeScheduleId_1",
+    "version_1",
+    "isActive_1_effectiveFrom_-1",
+    "orgId_1_feeScheduleId_1",
+  ];
+
+  for (const indexName of feeIndexes) {
+    try {
+      await db.collection(COLLECTIONS.SOUQ_FEE_SCHEDULES).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy fee schedule index", { indexName, error: err?.message });
     }
   }
 }

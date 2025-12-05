@@ -47,6 +47,7 @@ export interface IHighVolumeDiscount {
 
 export interface IFeeSchedule extends Document {
   feeScheduleId: string;
+  orgId: string;
   version: string; // e.g., "2025-Q1"
   effectiveFrom: Date;
   effectiveTo?: Date;
@@ -151,6 +152,7 @@ const HighVolumeDiscountSchema = new Schema<IHighVolumeDiscount>(
 const FeeScheduleSchema = new Schema<IFeeSchedule>(
   {
     feeScheduleId: { type: String, required: true, unique: true, index: true },
+    orgId: { type: String, required: true, index: true },
     version: { type: String, required: true, index: true },
     effectiveFrom: { type: Date, required: true, index: true },
     effectiveTo: Date,
@@ -173,12 +175,9 @@ const FeeScheduleSchema = new Schema<IFeeSchedule>(
   {
     timestamps: true,
     collection: "souq_fee_schedules",
+    autoIndex: false,
   },
 );
-
-// Indexes
-FeeScheduleSchema.index({ isActive: 1, effectiveFrom: -1 });
-FeeScheduleSchema.index({ version: 1 });
 
 // Methods
 
