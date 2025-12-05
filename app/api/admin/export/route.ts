@@ -35,6 +35,25 @@ const BATCH_SIZE = 500;
  * Even for SUPER_ADMIN, we don't export password hashes, tokens, or raw PII
  * Each collection has explicit field exclusions for compliance
  */
+const DEFAULT_PROJECTION: Record<string, 0> = {
+  password: 0,
+  refreshToken: 0,
+  accessToken: 0,
+  apiKey: 0,
+  apiSecret: 0,
+  token: 0,
+  phone: 0,
+  email: 0,
+  attachments: 0,
+  attachmentUrls: 0,
+  documents: 0,
+  files: 0,
+  bankAccount: 0,
+  iban: 0,
+  paymentIntentSecret: 0,
+  idDocument: 0,
+};
+
 const COLLECTION_PROJECTIONS: Record<string, Record<string, 0>> = {
   users: {
     password: 0,
@@ -178,17 +197,17 @@ export async function GET(request: NextRequest) {
       const scopeQuery = { [config.scopeField]: orgFilter };
       
       // 🔐 SECURITY: Apply projection to exclude sensitive fields
-      const projection =
-        COLLECTION_PROJECTIONS[
-          collectionName as keyof typeof COLLECTION_CONFIG
-        ];
+      const projection = {
+        ...DEFAULT_PROJECTION,
+        ...(COLLECTION_PROJECTIONS[collectionName] || {}),
+      };
       
       // 🔒 SECURITY: Use batched cursor with limit to prevent memory exhaustion
       const documents: unknown[] = [];
-      const cursor = (projection
-        ? collection.find(scopeQuery, { projection })
-        : collection.find(scopeQuery)
-      ).batchSize(BATCH_SIZE).limit(config.maxDocs);
+      const cursor = collection
+        .find(scopeQuery, { projection })
+        .batchSize(BATCH_SIZE)
+        .limit(config.maxDocs);
       
       for await (const doc of cursor) {
         documents.push(doc);

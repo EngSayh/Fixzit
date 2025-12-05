@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
     userId = session.user.id;
 
     const body = await request.json();
-    const { listingId, reservationId, orderId } = body;
+    const { listingId, reservationId, orderId } = body as {
+      listingId?: string;
+      reservationId?: string;
+      orderId?: string;
+    };
 
     // Validation
     if (!listingId || !reservationId || !orderId) {
@@ -39,9 +43,9 @@ export async function POST(request: NextRequest) {
     }
 
     const converted = await inventoryService.convertReservationToSale({
-      listingId,
-      reservationId,
-      orderId,
+      listingId: listingId as string,
+      reservationId: reservationId as string,
+      orderId: orderId as string,
       orgId,
     });
 

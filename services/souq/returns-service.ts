@@ -73,6 +73,7 @@ interface InspectReturnParams {
   inspectionNotes?: string;
   inspectionPhotos?: string[];
   orgId: string; // 🔒 Required for tenant isolation
+  session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
 }
 
 interface ProcessRefundParams {
@@ -624,6 +625,23 @@ class ReturnsService {
           session,
         });
       });
+    } catch (error) {
+      // Fallback for environments without replica set (e.g., unit tests using standalone Mongo)
+      if (error instanceof Error && error.message.includes('Transaction numbers are only allowed')) {
+        await this.executeInspection({
+          rmaId,
+          inspectorId,
+          condition,
+          restockable,
+          inspectionNotes,
+          inspectionPhotos,
+          orgId,
+          now,
+          session: undefined,
+        });
+      } else {
+        throw error;
+      }
     } finally {
       await session.endSession();
     }
@@ -641,7 +659,7 @@ class ReturnsService {
     inspectionPhotos?: string[];
     orgId: string;
     now: Date;
-    session: mongoose.ClientSession;
+    session?: mongoose.ClientSession;
   }): Promise<void> {
     const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session } = params;
 
@@ -667,11 +685,12 @@ class ReturnsService {
           }
         }
       },
-      { new: true, session }
+      session ? { new: true, session } : { new: true }
     );
 
     if (!rma) {
-      const existing = await RMA.findOne({ _id: rmaId, orgId }).session(session).lean();
+      const existingQuery = RMA.findOne({ _id: rmaId, orgId });
+      const existing = session ? await existingQuery.session(session).lean() : await existingQuery.lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -727,7 +746,7 @@ class ReturnsService {
       }
     }
     // Save the updated RMA document
-    await rma.save();
+    await rma.save(session ? { session } : undefined);
 
     // Always adjust inventory so unsellable units are tracked correctly.
     // 🔐 SECURITY: Pass orgId for tenant-scoped inventory lookup/update
@@ -738,11 +757,12 @@ class ReturnsService {
         quantity: item.quantity,
         condition: restockable ? 'sellable' : 'unsellable',
         orgId,  // Ensures tenant isolation in inventory updates
+        session,
       });
     }
 
     // Calculate refund amount
-    const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable, orgId);
+    const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable, orgId, session);
 
     // If nothing is refundable, close the RMA to avoid stuck "inspected" states
     if (refundAmount <= 0) {
@@ -766,7 +786,7 @@ class ReturnsService {
         transactionId,
         status: 'completed',
       };
-      await rma.save();
+      await rma.save(session ? { session } : undefined);
       return;
     }
     
@@ -778,6 +798,7 @@ class ReturnsService {
         refundMethod: 'original_payment',
         processorId: inspectorId,
         orgId,
+        session,
       });
     }
   }
@@ -785,12 +806,19 @@ class ReturnsService {
   /**
    * Calculate refund amount based on inspection
    */
-  private async calculateRefundAmount(rmaId: string, condition: string, restockable: boolean, orgId: string): Promise<number> {
+  private async calculateRefundAmount(
+    rmaId: string,
+    condition: string,
+    restockable: boolean,
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
     if (!orgId) {
       return 0;
     }
 
-    const rma = await RMA.findOne({ _id: rmaId, orgId });
+    const rmaQuery = RMA.findOne({ _id: rmaId, orgId });
+    const rma = session ? await rmaQuery.session(session) : await rmaQuery;
     if (!rma) return 0;
 
     // 🔒 SECURITY: Use RMA's orgId for tenant-scoped order lookup
@@ -1074,7 +1102,7 @@ class ReturnsService {
    * Find order with mandatory org scoping.
    * 🔒 SECURITY: orgId is required to prevent cross-tenant reads.
    */
-  private async findOrder(orderId: string, orgId: string): Promise<IOrder | null> {
+  private async findOrder(orderId: string, orgId: string, session?: mongoose.ClientSession): Promise<IOrder | null> {
     if (!orgId) {
       throw new Error('orgId is required to find order');
     }
@@ -1084,12 +1112,14 @@ class ReturnsService {
     const baseQuery: Record<string, unknown> = { ...orgFilter };
     
     if (mongoose.Types.ObjectId.isValid(orderId)) {
-      const matchByObjectId = await Order.findOne({ _id: orderId, ...baseQuery });
+      const matchByObjectIdQuery = Order.findOne({ _id: orderId, ...baseQuery });
+      const matchByObjectId = session ? await matchByObjectIdQuery.session(session) : await matchByObjectIdQuery;
       if (matchByObjectId) {
         return matchByObjectId;
       }
     }
-    return Order.findOne({ orderId, ...baseQuery });
+    const matchByOrderIdQuery = Order.findOne({ orderId, ...baseQuery });
+    return session ? matchByOrderIdQuery.session(session) : matchByOrderIdQuery;
   }
 
   private mapReturnReason(

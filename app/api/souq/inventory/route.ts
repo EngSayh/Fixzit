@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       );
     }
     const orgIdStr = orgId;
-    const orgIdStr = orgId;
 
     const searchParams = request.nextUrl.searchParams;
     const sellerId = searchParams.get("sellerId") || session.user.id;
@@ -85,6 +84,7 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
+    const orgIdStr = orgId;
 
     const body = await request.json();
     const {
@@ -96,7 +96,16 @@ export async function POST(request: NextRequest) {
       warehouseId,
       binLocation,
       reason,
-    } = body;
+    } = body as {
+      action?: "initialize" | "receive";
+      listingId?: string;
+      productId?: string;
+      quantity?: number;
+      fulfillmentType?: string;
+      warehouseId?: string;
+      binLocation?: string;
+      reason?: string;
+    };
 
     // Validation
     if (!listingId || !quantity || quantity <= 0) {
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
         sellerId: session.user.id,
         orgId: orgIdStr,
         quantity,
-        fulfillmentType,
+        fulfillmentType: fulfillmentType as "FBM" | "FBF",
         warehouseId,
         binLocation,
         performedBy: session.user.id,

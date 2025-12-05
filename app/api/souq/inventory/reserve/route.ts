@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, quantity, reservationId, expirationMinutes } = body;
+    const { listingId, quantity, reservationId, expirationMinutes } = body as {
+      listingId?: string;
+      quantity?: number;
+      reservationId?: string;
+      expirationMinutes?: number;
+    };
 
     // Validation
     if (!listingId || !quantity || !reservationId) {
@@ -46,9 +51,9 @@ export async function POST(request: NextRequest) {
     }
 
     const reserved = await inventoryService.reserveInventory({
-      listingId,
-      quantity,
-      reservationId,
+      listingId: listingId as string,
+      quantity: quantity as number,
+      reservationId: reservationId as string,
       expirationMinutes,
       orgId,
     });

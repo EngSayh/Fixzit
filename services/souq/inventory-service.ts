@@ -2,6 +2,7 @@ import { SouqInventory, IInventory } from "@/server/models/souq/Inventory";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
+import type { ClientSession } from "mongoose";
 
 /**
  * Inventory Service
@@ -48,7 +49,7 @@ export interface IReturnInventoryParams {
   quantity: number;
   condition: "sellable" | "unsellable";
   orgId: string;
-  session?: import("mongodb").ClientSession;
+  session?: ClientSession;
 }
 
 export interface IAdjustInventoryParams {
@@ -693,16 +694,19 @@ class InventoryService {
     listingId: string,
     availableQuantity: number,
     orgId?: string,
+    session?: ClientSession,
   ): Promise<void> {
     try {
       const query: Record<string, unknown> = { listingId };
       if (orgId) query.orgId = orgId;
 
-      let listing = await SouqListing.findOne(query);
+      const listingQuery = SouqListing.findOne(query);
+      let listing = session ? await listingQuery.session(session) : await listingQuery;
 
       // Backward compatibility: if orgId is set but listing schema/data lacks it
       if (!listing && orgId) {
-        listing = await SouqListing.findOne({ listingId });
+        const fallbackQuery = SouqListing.findOne({ listingId });
+        listing = session ? await fallbackQuery.session(session) : await fallbackQuery;
       }
 
       if (!listing) {
@@ -711,7 +715,7 @@ class InventoryService {
       }
 
       listing.stockQuantity = availableQuantity;
-      await listing.save();
+      await listing.save(session ? { session } : undefined);
     } catch (_error) {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));

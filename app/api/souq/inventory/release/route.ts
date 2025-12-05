@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, reservationId } = body;
+    const { listingId, reservationId } = body as { listingId?: string; reservationId?: string };
 
     // Validation
     if (!listingId || !reservationId) {
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     }
 
     const released = await inventoryService.releaseReservation({
-      listingId,
-      reservationId,
+      listingId: listingId as string,
+      reservationId: reservationId as string,
       orgId,
     });
 

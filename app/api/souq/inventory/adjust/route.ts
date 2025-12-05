@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, quantity, type, reason } = body;
+    const { listingId, quantity, type, reason } = body as {
+      listingId?: string;
+      quantity?: number;
+      type?: string;
+      reason?: string;
+    };
 
     // Validation
     if (!listingId || !quantity || !type || !reason) {
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
     const inventory = await inventoryService.adjustInventory({
       listingId,
       quantity,
-      type,
+      type: type as "damage" | "lost",
       reason,
       performedBy: session.user.id,
       orgId,
