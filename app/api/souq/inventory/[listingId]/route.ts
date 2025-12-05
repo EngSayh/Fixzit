@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * GET /api/souq/inventory/[listingId]
@@ -45,11 +52,25 @@ export async function GET(
     const sellerMatches =
       inventory.sellerId?.toString() === session.user.id ||
       (orgIdStr && inventory.orgId && inventory.orgId.toString() === orgIdStr);
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
-      session.user.role,
-    );
 
-    if (!sellerMatches && !isAdmin) {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    if (!sellerMatches && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

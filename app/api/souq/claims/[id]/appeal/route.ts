@@ -108,7 +108,7 @@ export async function POST(
       appeal: appealRecord,
     });
   } catch (error) {
-    logger.error("[Claims API] File appeal failed", { error });
+    logger.error("[Claims API] File appeal failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to file appeal",

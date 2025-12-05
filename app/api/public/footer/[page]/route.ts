@@ -53,7 +53,7 @@ export async function GET(
       updatedAt: footerContent.updatedAt,
     });
   } catch (error) {
-    logger.error(`[GET /api/public/footer/${params.page}] Error`, { error });
+    logger.error(`[GET /api/public/footer/${params.page}] Error`, error as Error);
     return NextResponse.json(
       { error: "Failed to fetch footer content" },
       { status: 500 },

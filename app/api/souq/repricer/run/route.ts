@@ -21,7 +21,7 @@ export async function POST(_request: NextRequest) {
       result,
     });
   } catch (error) {
-    logger.error("Manual reprice error", { error });
+    logger.error("Manual reprice error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to run repricing",

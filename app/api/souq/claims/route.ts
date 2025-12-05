@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    logger.error("[Claims API] Create claim failed", { error });
+    logger.error("[Claims API] Create claim failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to create claim",
@@ -291,7 +291,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[Claims API] List claims failed", { error });
+    logger.error("[Claims API] List claims failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to list claims",

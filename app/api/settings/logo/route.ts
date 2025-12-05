@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       brandColor: settings.brandColor || "#3b82f6",
     });
   } catch (error) {
-    logger.error("[GET /api/settings/logo] Error", { error });
+    logger.error("[GET /api/settings/logo] Error", error as Error);
     // Return defaults on error (don't break the UI)
     return NextResponse.json({
       logoUrl: null,

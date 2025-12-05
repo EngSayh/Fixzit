@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
 
     return createSecureResponse(health, statusCode, request);
   } catch (error) {
-    logger.error("[SMS Health Check] Error", { error });
+    logger.error("[SMS Health Check] Error", error as Error);
     return createSecureResponse(
       {
         status: "error",

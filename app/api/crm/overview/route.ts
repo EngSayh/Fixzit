@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[crm/overview] Failed to load dashboard data", { error });
+    logger.error("[crm/overview] Failed to load dashboard data", error as Error);
     return NextResponse.json(
       { error: "Failed to load CRM overview" },
       { status: 500 },

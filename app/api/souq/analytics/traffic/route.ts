@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       ...traffic,
     });
   } catch (error) {
-    logger.error("Get traffic analytics error", { error });
+    logger.error("Get traffic analytics error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get traffic analytics",

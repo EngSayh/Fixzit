@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       total: offers.length,
     });
   } catch (error) {
-    logger.error("Get product offers error", { error });
+    logger.error("Get product offers error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get product offers",

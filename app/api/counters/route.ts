@@ -38,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json(counters);
   } catch (error) {
-    logger.error("GET /api/counters error", { error });
+    logger.error("GET /api/counters error", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch counters" },
       { status: 500 },

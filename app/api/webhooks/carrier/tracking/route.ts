@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       trackingNumber,
     });
   } catch (error) {
-    logger.error("Webhook tracking update error", { error });
+    logger.error("Webhook tracking update error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

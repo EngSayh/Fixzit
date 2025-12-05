@@ -135,7 +135,7 @@ export async function POST(
       sellerProtected,
     });
   } catch (error) {
-    logger.error("[Claims API] Make decision failed", { error });
+    logger.error("[Claims API] Make decision failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to make decision",

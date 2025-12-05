@@ -78,7 +78,7 @@ export async function POST(
 
     return NextResponse.json({ docId: doc._id, status: doc.status }, { status: 200 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to confirm upload', { error });
+    logger.error('[Onboarding] Failed to confirm upload', error as Error);
     return NextResponse.json({ error: 'Failed to confirm upload' }, { status: 500 });
   }
 }

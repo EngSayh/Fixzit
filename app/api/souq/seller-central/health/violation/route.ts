@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       message: "Policy violation recorded successfully",
     });
   } catch (error) {
-    logger.error("Record violation error", { error });
+    logger.error("Record violation error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to record violation",

@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[Metrics] Failed to render /api/metrics payload", { error });
+    logger.error("[Metrics] Failed to render /api/metrics payload", error as Error);
     return new NextResponse("metrics_unavailable", { status: 500 });
   }
 }

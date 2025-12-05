@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest) {
       settings,
     });
   } catch (error) {
-    logger.error("Get repricer settings error", { error });
+    logger.error("Get repricer settings error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get repricer settings",
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       message: "Auto-repricer settings updated successfully",
     });
   } catch (error) {
-    logger.error("Update repricer settings error", { error });
+    logger.error("Update repricer settings error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to update repricer settings",
@@ -91,7 +91,7 @@ export async function DELETE(_request: NextRequest) {
       message: "Auto-repricer disabled successfully",
     });
   } catch (error) {
-    logger.error("Disable repricer error", { error });
+    logger.error("Disable repricer error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to disable repricer",

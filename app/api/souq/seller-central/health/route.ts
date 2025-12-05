@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       ...metrics,
     });
   } catch (error) {
-    logger.error("Get account health error", { error });
+    logger.error("Get account health error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get account health",

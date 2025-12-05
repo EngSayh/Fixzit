@@ -120,7 +120,7 @@ export async function POST(
       evidence: updated?.evidence ?? [],
     });
   } catch (error) {
-    logger.error("[Claims API] Upload evidence failed", { error });
+    logger.error("[Claims API] Upload evidence failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to upload evidence",

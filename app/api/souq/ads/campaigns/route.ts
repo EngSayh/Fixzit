@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       data: campaign,
     });
   } catch (error) {
-    logger.error("[Ad API] Create campaign failed", { error });
+    logger.error("[Ad API] Create campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       data: campaigns,
     });
   } catch (error) {
-    logger.error("[Ad API] List campaigns failed", { error });
+    logger.error("[Ad API] List campaigns failed", error as Error);
 
     return NextResponse.json(
       {

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       analysis,
     });
   } catch (error) {
-    logger.error("Get competitor analysis error", { error });
+    logger.error("Get competitor analysis error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get competitor analysis",

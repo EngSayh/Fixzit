@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       ...products,
     });
   } catch (error) {
-    logger.error("Get product performance error", { error });
+    logger.error("Get product performance error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get product performance",

@@ -43,7 +43,7 @@ export async function GET(
       data: campaign,
     });
   } catch (error) {
-    logger.error("[Ad API] Get campaign failed", { error });
+    logger.error("[Ad API] Get campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -122,7 +122,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error) {
-    logger.error("[Ad API] Update campaign failed", { error });
+    logger.error("[Ad API] Update campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -177,7 +177,7 @@ export async function DELETE(
       message: "Campaign deleted successfully",
     });
   } catch (error) {
-    logger.error("[Ad API] Delete campaign failed", { error });
+    logger.error("[Ad API] Delete campaign failed", error as Error);
 
     return NextResponse.json(
       {

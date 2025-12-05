@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       data: report,
     });
   } catch (error) {
-    logger.error("[Ad API] Get performance report failed", { error });
+    logger.error("[Ad API] Get performance report failed", error as Error);
 
     return NextResponse.json(
       {

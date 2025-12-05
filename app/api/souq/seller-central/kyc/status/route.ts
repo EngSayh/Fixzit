@@ -22,7 +22,7 @@ export async function GET(_request: NextRequest) {
       ...status,
     });
   } catch (error) {
-    logger.error("Get KYC status error", { error });
+    logger.error("Get KYC status error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get KYC status",

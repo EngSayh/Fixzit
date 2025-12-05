@@ -215,7 +215,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    logger.error("[Souq Search] Search failed", { error });
+    logger.error("[Souq Search] Search failed", error as Error);
 
     return NextResponse.json(
       {

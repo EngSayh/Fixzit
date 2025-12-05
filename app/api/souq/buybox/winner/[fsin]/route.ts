@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       winner,
     });
   } catch (error) {
-    logger.error("Get Buy Box winner error", { error });
+    logger.error("Get Buy Box winner error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get Buy Box winner",

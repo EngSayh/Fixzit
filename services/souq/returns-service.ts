@@ -280,6 +280,7 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: sellerId.toString(),
+      orgId,
       template: 'return_initiated',
       data: { rmaId: rma._id.toString(), orderId, items }
     });
@@ -360,6 +361,7 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: rma.buyerId.toString(),
+      orgId,
       template: 'return_approved',
       data: { rmaId, returnLabel: rma.shipping?.labelUrl }
     });
@@ -416,6 +418,7 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: rma.buyerId.toString(),
+      orgId,
       template: 'return_rejected',
       data: { rmaId, reason: rejectionReason }
     });
@@ -463,8 +466,14 @@ class ReturnsService {
     // Get buyer's address from order
     const _destination = order.shippingAddress;
     
-    // Get seller's address (or warehouse for FBF)
-    const listing = await Listing.findById(rma.items[0].listingId);
+    // Get seller's address (or warehouse for FBF) with tenant isolation
+    const listing = await Listing.findOne({
+      _id: rma.items[0].listingId,
+      orgId: rmaOrgId,
+    });
+    if (!listing) {
+      throw new Error("Listing not found for org; cannot generate return label");
+    }
     // warehouseLocation is a string field, not an address object
     const origin = {
       name: 'Fixzit Returns Center',
@@ -847,8 +856,11 @@ class ReturnsService {
 
   /**
    * Calculate refund amount based on inspection
+   * 
+   * Public to allow server-side validation in refund routes.
+   * Prevents over-refunds by computing max allowed amount from inspection results.
    */
-  private async calculateRefundAmount(
+  public async calculateRefundAmount(
     rmaId: string,
     condition: string,
     restockable: boolean,
@@ -871,10 +883,46 @@ class ReturnsService {
     // 🔄 TRANSACTION: Pass session for consistent snapshot within transaction
     const order = await this.findOrder(rma.orderId, rmaOrgId, session);
     if (!order) return 0;
-    
+
+    return this.computeRefundAmount(order, rma.items, condition, restockable);
+  }
+
+  /**
+   * Derive refundable amount directly from an RMA document (uses recorded inspection data).
+   */
+  private async calculateRefundAmountFromRmaDoc(
+    rma: {
+      orderId: mongoose.Types.ObjectId | string;
+      items: Array<{ listingId: mongoose.Types.ObjectId | string; quantity: number }>;
+      inspection?: { condition?: string; restockable?: boolean };
+      orgId?: string | mongoose.Types.ObjectId;
+    },
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
+    if (!orgId) {
+      return 0;
+    }
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : orgId;
+    const condition = rma.inspection?.condition || 'good';
+    const restockable = rma.inspection?.restockable ?? true;
+    const order = await this.findOrder(rma.orderId.toString(), rmaOrgId, session);
+    if (!order) return 0;
+    return this.computeRefundAmount(order, rma.items, condition, restockable);
+  }
+
+  /**
+   * Pure calculation for refund amount based on order + RMA items.
+   */
+  private computeRefundAmount(
+    order: IOrder,
+    rmaItems: Array<{ listingId: mongoose.Types.ObjectId | string; quantity: number }>,
+    condition: string,
+    restockable: boolean
+  ): number {
     // Base refund: original item price
     let refundAmount = 0;
-    for (const item of rma.items) {
+    for (const item of rmaItems) {
       const orderItem = order.items.find((oi) =>
         oi.listingId.toString() === item.listingId.toString()
       );
@@ -901,6 +949,25 @@ class ReturnsService {
     refundAmount *= (1 - deduction);
 
     return Math.round(refundAmount * 100) / 100; // Round to 2 decimals
+  }
+
+  /**
+   * Public helper to fetch the refundable amount for an RMA with org scoping.
+   */
+  async getRefundableAmount(
+    rmaId: string,
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch refundable amount');
+    }
+    const rmaQuery = RMA.findOne({ _id: rmaId, orgId });
+    const rma = session ? await rmaQuery.session(session) : await rmaQuery;
+    if (!rma) {
+      throw new Error('RMA not found');
+    }
+    return this.calculateRefundAmountFromRmaDoc(rma, orgId, session);
   }
 
   /**
@@ -966,8 +1033,18 @@ class ReturnsService {
       throw new Error(`Cannot refund RMA: already in status '${existing.status}' (expected 'inspected')`);
     }
 
+    // Validate/cap refund amount against computed maximum based on inspection + order
+    const allowedRefundAmount = await this.calculateRefundAmountFromRmaDoc(rma, orgId, session);
+    if (allowedRefundAmount <= 0) {
+      throw new Error('No refundable amount available for this RMA');
+    }
+    if (refundAmount > allowedRefundAmount) {
+      throw new Error(`Refund amount exceeds allowed maximum (${allowedRefundAmount})`);
+    }
+    const finalRefundAmount = refundAmount;
+
     const refundData = {
-      amount: refundAmount,
+      amount: finalRefundAmount,
       method: refundMethod,
       processedBy: processorId,
       processedAt: now,
@@ -1004,10 +1081,11 @@ class ReturnsService {
       payload: { 
         type: 'email',
         to: rma.buyerId.toString(),
+        orgId,
         template: 'refund_processed',
         data: { 
           rmaId, 
-          amount: refundAmount, 
+          amount: finalRefundAmount, 
           method: refundMethod,
           estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
         }
@@ -1024,8 +1102,9 @@ class ReturnsService {
         payload: {
           type: 'email',
           to: rma.sellerId.toString(),
+          orgId,
           template: 'return_completed',
-          data: { rmaId, restockingFee: refundAmount * 0.25 }
+          data: { rmaId, restockingFee: finalRefundAmount * 0.25 }
         }
       };
 

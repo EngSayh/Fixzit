@@ -7,6 +7,7 @@ import {
   SubRole,
   normalizeRole,
 } from '@/lib/rbac/client-roles';
+import mongoose from 'mongoose';
 
 /**
  * POST /api/souq/returns/refund
@@ -50,6 +51,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Missing required fields: rmaId, refundAmount, refundMethod' 
       }, { status: 400 });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+      return NextResponse.json(
+        { error: 'Invalid rmaId' },
+        { status: 400 },
+      );
     }
 
     // 🔐 SECURITY: Get org context first, then scope RMA lookup to prevent cross-tenant leaks
@@ -129,18 +137,43 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // 🔒 SECURITY: Server-side refund amount validation
+    // Compute the maximum allowed refund based on inspection results to prevent over-refunds
+    const maxAllowedRefund = await returnsService.getRefundableAmount(rmaId, targetOrgId);
+
+    if (refundAmount > maxAllowedRefund) {
+      logger.warn('Refund amount exceeds maximum allowed', {
+        userId: session.user.id,
+        rmaId,
+        requestedAmount: refundAmount,
+        maxAllowedAmount: maxAllowedRefund,
+      });
+      return NextResponse.json({
+        error: `Refund amount (${refundAmount}) exceeds maximum allowed (${maxAllowedRefund})`,
+      }, { status: 400 });
+    }
+
     // Process refund
     // 🔄 TRANSACTION SAFETY: processRefund returns notifications to be fired after commit
-    // Since this route is called outside a transaction, we fire them immediately
-    const notifications = await returnsService.processRefund({
-      rmaId,
-      orgId: targetOrgId,
-      refundAmount,
-      refundMethod,
-      processorId: session.user.id
-    });
-    
-    // Fire notifications after refund is complete
+    // Wrap in a session to avoid leaving RMAs stuck in refund_processing on errors
+    const sessionDb = await mongoose.startSession();
+    let notifications: Awaited<ReturnType<typeof returnsService.processRefund>>;
+    try {
+      notifications = await sessionDb.withTransaction(() =>
+        returnsService.processRefund({
+          rmaId,
+          orgId: targetOrgId,
+          refundAmount,
+          refundMethod,
+          processorId: session.user.id,
+          session: sessionDb,
+        }),
+      );
+    } finally {
+      await sessionDb.endSession();
+    }
+
+    // Fire notifications after refund is complete and transaction committed
     await returnsService.fireNotifications(notifications);
 
     return NextResponse.json({ 

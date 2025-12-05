@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    logger.error("Error fetching ATS settings", { error });
+    logger.error("Error fetching ATS settings", error as Error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: "Internal server error", message },
@@ -184,7 +184,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    logger.error("Error updating ATS settings", { error });
+    logger.error("Error updating ATS settings", error as Error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: "Internal server error", message },

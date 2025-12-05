@@ -77,7 +77,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error("[NotificationConfig] Error retrieving config", { error });
+    logger.error("[NotificationConfig] Error retrieving config", error as Error);
     return NextResponse.json(
       { error: "Failed to retrieve configuration" },
       { status: 500 },

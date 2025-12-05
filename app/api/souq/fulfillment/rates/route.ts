@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       ),
     });
   } catch (error) {
-    logger.error("Get rates error", { error });
+    logger.error("Get rates error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get rates",

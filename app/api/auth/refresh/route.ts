@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     });
     return res;
   } catch (error) {
-    logger.error("[auth/refresh] Error", { error });
+    logger.error("[auth/refresh] Error", error as Error);
     return NextResponse.json({ error: "Refresh failed" }, { status: 500 });
   }
 }

@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       charged: cpc,
     });
   } catch (error) {
-    logger.error("[Ad API] Record click failed", { error });
+    logger.error("[Ad API] Record click failed", error as Error);
 
     return NextResponse.json(
       {

@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       }).lean();
       facetCategories = categoryDocs.map((doc) => serializeCategory(doc));
     } catch (error) {
-      logger.error("Error fetching marketplace categories", { error });
+      logger.error("Error fetching marketplace categories", error as Error);
       // Continue with empty categories rather than failing entire request
       facetCategories = [];
     }

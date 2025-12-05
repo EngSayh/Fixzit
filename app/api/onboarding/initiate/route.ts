@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id: onboarding._id, step: onboarding.current_step }, { status: 201 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to initiate case', { error });
+    logger.error('[Onboarding] Failed to initiate case', error as Error);
     return NextResponse.json({ error: 'Failed to initiate onboarding' }, { status: 500 });
   }
 }

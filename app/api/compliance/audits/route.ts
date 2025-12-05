@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[compliance/audits] Failed to fetch audits", { error });
+    logger.error("[compliance/audits] Failed to fetch audits", error as Error);
     return NextResponse.json(
       { error: "Failed to load audits" },
       { status: 500 },
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ audit }, { status: 201 });
   } catch (error) {
-    logger.error("[compliance/audits] Failed to create audit", { error });
+    logger.error("[compliance/audits] Failed to create audit", error as Error);
     return NextResponse.json(
       { error: "Failed to create audit plan" },
       { status: 500 },

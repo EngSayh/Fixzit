@@ -99,7 +99,7 @@ export async function PATCH(
     await onboarding.save();
     return NextResponse.json({ id: onboarding._id, status: onboarding.status, current_step: onboarding.current_step });
   } catch (error) {
-    logger.error('[Onboarding] Failed to update case', { error });
+    logger.error('[Onboarding] Failed to update case', error as Error);
     return NextResponse.json({ error: 'Failed to update onboarding' }, { status: 500 });
   } finally {
     clearTenantContext();

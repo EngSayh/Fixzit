@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    logger.error("[Dev Demo Login] Error:", { error });
+    logger.error("[Dev Demo Login] Error:", error as Error);
     return withNoStore(
       NextResponse.json(
         {

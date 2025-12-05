@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[Admin Notification] History fetch failed", { error });
+    logger.error("[Admin Notification] History fetch failed", error as Error);
     return NextResponse.json(
       {
         success: false,

@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error("Logging endpoint error", { error });
+    logger.error("Logging endpoint error", error as Error);
     return NextResponse.json(
       { error: "Failed to process log" },
       { status: 500 },

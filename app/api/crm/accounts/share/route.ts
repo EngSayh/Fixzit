@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.error("[crm/accounts/share] Failed to share account", { error });
+    logger.error("[crm/accounts/share] Failed to share account", error as Error);
     return NextResponse.json(
       { error: "Failed to share account" },
       { status: 500 },

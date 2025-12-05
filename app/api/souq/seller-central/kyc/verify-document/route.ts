@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       message: `Document ${approved ? "approved" : "rejected"} successfully`,
     });
   } catch (error) {
-    logger.error("Verify document error", { error });
+    logger.error("Verify document error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to verify document",

@@ -60,7 +60,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json(review);
   } catch (error) {
-    logger.error("[GET /api/souq/reviews/[id]]", { error });
+    logger.error("[GET /api/souq/reviews/[id]]", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch review" },
       { status: 500 },
@@ -96,7 +96,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       );
     }
 
-    logger.error("[PUT /api/souq/reviews/[id]]", { error });
+    logger.error("[PUT /api/souq/reviews/[id]]", error as Error);
     return NextResponse.json(
       {
         error:
@@ -121,7 +121,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error("[DELETE /api/souq/reviews/[id]]", { error });
+    logger.error("[DELETE /api/souq/reviews/[id]]", error as Error);
     return NextResponse.json(
       {
         error:

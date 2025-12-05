@@ -78,7 +78,7 @@ export async function GET(
       seller: sellerDoc,
     });
   } catch (error) {
-    logger.error("[Claims API] Get claim failed", { error });
+    logger.error("[Claims API] Get claim failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get claim",
@@ -137,7 +137,7 @@ export async function PUT(
       message: "Claim status updated",
     });
   } catch (error) {
-    logger.error("[Claims API] Update claim failed", { error });
+    logger.error("[Claims API] Update claim failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to update claim",

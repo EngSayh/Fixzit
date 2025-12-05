@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       message: "Password has been reset successfully. You can now log in with your new password.",
     });
   } catch (error) {
-    logger.error("[reset-password] Unexpected error", { error });
+    logger.error("[reset-password] Unexpected error", error as Error);
     return NextResponse.json(
       { error: "Failed to reset password. Please try again." },
       { status: 500 }
@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
       email: tokenResult.email.replace(/(.{2})(.*)(@.*)/, "$1***$3"), // Mask email
     });
   } catch (error) {
-    logger.error("[reset-password/validate] Error", { error });
+    logger.error("[reset-password/validate] Error", error as Error);
     return NextResponse.json(
       { valid: false, error: "Validation failed" },
       { status: 500 }

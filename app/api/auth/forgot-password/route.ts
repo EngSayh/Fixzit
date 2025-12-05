@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(successResponse);
   } catch (error) {
-    logger.error("[forgot-password] Unexpected error", { error });
+    logger.error("[forgot-password] Unexpected error", error as Error);
     return NextResponse.json(
       { error: "Failed to process password reset request" },
       { status: 500 }

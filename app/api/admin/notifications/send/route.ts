@@ -545,7 +545,7 @@ export async function POST(req: NextRequest) {
       results,
     });
   } catch (error) {
-    logger.error("[Admin Notification] Send failed", { error });
+    logger.error("[Admin Notification] Send failed", error as Error);
     await flushLogs();
     return NextResponse.json(
       {

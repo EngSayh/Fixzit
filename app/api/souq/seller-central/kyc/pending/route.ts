@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
       total: pending.length,
     });
   } catch (error) {
-    logger.error("Get pending KYC error", { error });
+    logger.error("Get pending KYC error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get pending KYC submissions",

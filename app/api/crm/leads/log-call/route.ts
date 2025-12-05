@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.error("[crm/leads/log-call] Failed to log call", { error });
+    logger.error("[crm/leads/log-call] Failed to log call", error as Error);
     return NextResponse.json({ error: "Failed to log call" }, { status: 500 });
   } finally {
     clearTenantContext();

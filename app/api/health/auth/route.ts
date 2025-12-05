@@ -180,7 +180,7 @@ export async function GET(_request: NextRequest) {
       _request,
     );
   } catch (error) {
-    logger.error("[Health/Auth] Error checking auth config", { error });
+    logger.error("[Health/Auth] Error checking auth config", error as Error);
     const isAuthorized = isAuthorizedHealthRequest(_request);
     
     // Only expose error details to authorized callers to prevent recon

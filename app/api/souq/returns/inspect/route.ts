@@ -9,6 +9,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
 
 /**
  * POST /api/souq/returns/inspect
@@ -68,6 +69,13 @@ export async function POST(request: NextRequest) {
         {
           error: "Missing required fields: rmaId, condition, restockable",
         },
+        { status: 400 },
+      );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
         { status: 400 },
       );
     }

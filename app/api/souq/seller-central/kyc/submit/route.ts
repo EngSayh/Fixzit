@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
             : "verification",
     });
   } catch (error) {
-    logger.error("Submit KYC error", { error });
+    logger.error("Submit KYC error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to submit KYC",

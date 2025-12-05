@@ -357,7 +357,7 @@ export async function GET(
       clearTenantContext();
     }
   } catch (error) {
-    logger.error("Error fetching unit history", { error });
+    logger.error("Error fetching unit history", error as Error);
     return NextResponse.json(
       {
         success: false,

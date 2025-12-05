@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[compliance/policies] Failed to fetch policies", { error });
+    logger.error("[compliance/policies] Failed to fetch policies", error as Error);
     return NextResponse.json(
       { error: "Failed to load policies" },
       { status: 500 },
@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       );
     }
-    logger.error("[compliance/policies] Failed to create policy", { error });
+    logger.error("[compliance/policies] Failed to create policy", error as Error);
     return NextResponse.json(
       { error: "Failed to create policy" },
       { status: 500 },

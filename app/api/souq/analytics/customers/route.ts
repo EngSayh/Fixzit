@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       ...customers,
     });
   } catch (error) {
-    logger.error("Get customer insights error", { error });
+    logger.error("Get customer insights error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get customer insights",

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       message: `KYC ${approved ? "approved" : "rejected"} successfully`,
     });
   } catch (error) {
-    logger.error("Approve/reject KYC error", { error });
+    logger.error("Approve/reject KYC error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to process KYC approval",

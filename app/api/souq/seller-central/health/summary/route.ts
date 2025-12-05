@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       ...summary,
     });
   } catch (error) {
-    logger.error("Get health summary error", { error });
+    logger.error("Get health summary error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get health summary",
