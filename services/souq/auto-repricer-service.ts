@@ -118,12 +118,19 @@ export class AutoRepricerService {
   /**
    * Run auto-repricer for a single seller
    * This is called by the background worker every 15 minutes
+   * @param sellerId - The seller ID to reprice
+   * @param orgId - 🔐 Required tenant context - prevents cross-tenant repricing
    */
-  static async repriceSeller(sellerId: string): Promise<{
+  static async repriceSeller(sellerId: string, orgId: string): Promise<{
     repriced: number;
     errors: number;
     listings: Array<{ listingId: string; oldPrice: number; newPrice: number }>;
   }> {
+    // 🔐 Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for auto-repricer to ensure tenant isolation");
+    }
+
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : null;
@@ -132,42 +139,17 @@ export class AutoRepricerService {
       { sellerId },
     ].filter(Boolean) as Array<Record<string, unknown>>;
 
-    let seller =
-      (await SouqSeller.findOne({ $or: sellerQuery })) ||
-      (await SouqSeller.findOne());
+    // 🔐 Always scope seller query by orgId to prevent cross-tenant access
+    const seller = await SouqSeller.findOne({ 
+      $or: sellerQuery,
+      orgId, // 🔐 Tenant isolation
+    });
+    
+    // 🔐 REMOVED: Dangerous fallback `findOne()` that could pick any tenant's seller
+    // 🔐 REMOVED: Stub seller creation without orgId that violated multi-tenancy
     if (!seller) {
-      const stubId = sellerObjectId ?? new Types.ObjectId();
-      seller = await SouqSeller.findOneAndUpdate(
-        { _id: stubId },
-        {
-          $setOnInsert: {
-            sellerId: sellerId || `TEMP-${stubId.toString()}`,
-            legalName: "Temp Seller",
-            contactEmail: "temp@fixzit.test",
-            contactPhone: "+0000000000",
-            registrationType: "company",
-            city: "Riyadh",
-            address: "Temp Address",
-            accountHealth: { status: "good", score: 80 },
-            status: "active",
-            kycStatus: {
-              status: "approved",
-              step: "verification",
-              companyInfoComplete: true,
-              documentsComplete: true,
-              bankDetailsComplete: true,
-            },
-            tier: "professional",
-            autoRepricerSettings: { enabled: false, rules: {} },
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
-    }
-
-    // seller is guaranteed to exist after upsert
-    if (!seller) {
-      throw new Error("Seller not found after upsert");
+      logger.warn("[AutoRepricer] Seller not found in tenant", { sellerId, orgId });
+      return { repriced: 0, errors: 0, listings: [] };
     }
 
     // Check if seller has repricer enabled
@@ -183,8 +165,10 @@ export class AutoRepricerService {
     const settings = rawSettings;
 
     // Get all active listings for this seller
+    // 🔐 Scope by orgId to prevent cross-tenant listing access
     const listings = await SouqListing.find({
       sellerId,
+      orgId, // 🔐 Tenant isolation
       status: "active",
       availableQuantity: { $gt: 0 },
     });
@@ -213,12 +197,14 @@ export class AutoRepricerService {
         // Get current Buy Box winner
         const rawWinner = await BuyBoxService.calculateBuyBoxWinner(
           listing.fsin,
+          seller.orgId?.toString?.() ?? orgId,
         );
         const winner = toOfferIdentifier(rawWinner);
 
         // Get all competing offers
         const rawOffers = await BuyBoxService.getProductOffers(listing.fsin, {
           condition: listing.condition,
+          orgId: seller.orgId?.toString?.() ?? orgId,
         });
         const offers = Array.isArray(rawOffers)
           ? this.normalizeOffers(rawOffers)
@@ -241,7 +227,10 @@ export class AutoRepricerService {
           await listing.save();
 
           // Trigger Buy Box recalculation
-          await BuyBoxService.recalculateBuyBoxForProduct(listing.fsin);
+          await BuyBoxService.recalculateBuyBoxForProduct(
+            listing.fsin,
+            seller.orgId?.toString?.() ?? orgId,
+          );
 
           // Track price history
           const PriceHistory = (
@@ -256,15 +245,19 @@ export class AutoRepricerService {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+          // 🔐 SECURITY FIX: Scope order count by orgId
           const recentOrders = await SouqOrder.countDocuments({
             listingId: listing._id.toString(),
+            orgId,
             createdAt: { $gte: sevenDaysAgo },
             status: { $in: ["completed", "shipped", "delivered"] },
           });
 
+          // 🔐 SECURITY FIX: Include orgId in price history
           await PriceHistory.create({
             listingId: listing._id.toString(),
             sellerId,
+            orgId,
             productId: listing.fsin,
             oldPrice,
             newPrice,
@@ -281,7 +274,7 @@ export class AutoRepricerService {
           // Log price change
           await addJob(QUEUE_NAMES.NOTIFICATIONS, "price_change_notification", {
             sellerId,
-            orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped notification routing
+            orgId, // 🔐 Use the validated orgId parameter
             listingId: listing._id.toString(),
             fsin: listing.fsin,
             oldPrice,
@@ -369,14 +362,23 @@ export class AutoRepricerService {
 
   /**
    * Enable auto-repricer for a seller
+   * @param sellerId - The seller ID
+   * @param settings - Repricer settings
+   * @param orgId - 🔐 Required tenant context
    */
   static async enableAutoRepricer(
     sellerId: string,
     settings: RepricerSettings,
+    orgId: string,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to enable auto-repricer");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
     if (!seller) {
-      throw new Error("Seller not found");
+      throw new Error("Seller not found in tenant");
     }
 
     if (!isRepricerSettings(settings)) {
@@ -386,17 +388,24 @@ export class AutoRepricerService {
     seller.autoRepricerSettings = settings;
     await seller.save();
 
-    // Trigger immediate repricing
-    await this.repriceSeller(sellerId);
+    // Trigger immediate repricing with orgId
+    await this.repriceSeller(sellerId, orgId);
   }
 
   /**
    * Disable auto-repricer for a seller
+   * @param sellerId - The seller ID
+   * @param orgId - 🔐 Required tenant context
    */
-  static async disableAutoRepricer(sellerId: string): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+  static async disableAutoRepricer(sellerId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to disable auto-repricer");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
     if (!seller) {
-      throw new Error("Seller not found");
+      throw new Error("Seller not found in tenant");
     }
 
     const settings = isRepricerSettings(seller.autoRepricerSettings)
@@ -412,15 +421,25 @@ export class AutoRepricerService {
 
   /**
    * Update repricer rule for a specific listing
+   * @param sellerId - The seller ID
+   * @param listingId - The listing ID
+   * @param rule - The repricer rule
+   * @param orgId - 🔐 Required tenant context
    */
   static async updateListingRule(
     sellerId: string,
     listingId: string,
     rule: RepricerRule,
+    orgId: string,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to update listing rule");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
     if (!seller) {
-      throw new Error("Seller not found");
+      throw new Error("Seller not found in tenant");
     }
 
     const settings = isRepricerSettings(seller.autoRepricerSettings)
@@ -437,11 +456,19 @@ export class AutoRepricerService {
 
   /**
    * Get repricer settings for a seller
+   * @param sellerId - The seller ID
+   * @param orgId - 🔐 Required tenant context
    */
   static async getRepricerSettings(
     sellerId: string,
+    orgId: string,
   ): Promise<RepricerSettings | null> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to get repricer settings");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant access
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
     if (!seller) {
       return null;
     }
@@ -452,19 +479,28 @@ export class AutoRepricerService {
   }
 
   /**
-   * Background job: Reprice all sellers with auto-repricer enabled
+   * Background job: Reprice all sellers with auto-repricer enabled for a specific tenant
    * Called every 15 minutes by BullMQ worker
+   * @param orgId - 🔐 Required tenant context - if not provided, will process each tenant separately
    */
-  static async repriceAllSellers(): Promise<{
+  static async repriceAllSellers(orgId?: string): Promise<{
     total: number;
     processed: number;
     totalRepriced: number;
     totalErrors: number;
   }> {
-    const sellers = await SouqSeller.find({
+    // 🔐 If orgId provided, only process that tenant
+    // 🔐 If not provided, iterate per-tenant to maintain isolation
+    const baseFilter: Record<string, unknown> = {
       "autoRepricerSettings.enabled": true,
       status: "active",
-    });
+    };
+    
+    if (orgId) {
+      baseFilter.orgId = orgId;
+    }
+
+    const sellers = await SouqSeller.find(baseFilter);
 
     let processed = 0;
     let totalRepriced = 0;
@@ -472,7 +508,17 @@ export class AutoRepricerService {
 
     for (const seller of sellers) {
       try {
-        const result = await this.repriceSeller(seller._id.toString());
+        // 🔐 Pass seller's orgId to maintain tenant isolation per-seller
+        const sellerOrgId = seller.orgId?.toString();
+        if (!sellerOrgId) {
+          logger.warn("[AutoRepricer] Skipping seller without orgId", {
+            sellerId: seller._id.toString(),
+          });
+          totalErrors++;
+          continue;
+        }
+        
+        const result = await this.repriceSeller(seller._id.toString(), sellerOrgId);
         totalRepriced += result.repriced;
         totalErrors += result.errors;
         processed++;
@@ -497,19 +543,27 @@ export class AutoRepricerService {
 
   /**
    * Get price history for a listing
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
   static async getPriceHistory(
     listingId: string,
+    orgId: string,
     days: number = 30,
   ): Promise<Array<{ date: Date; price: number; reason: string }>> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
     const PriceHistory = (await import("@/server/models/souq/PriceHistory"))
       .default;
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    // 🔐 SECURITY FIX: Scope price history by orgId
     const history = await PriceHistory.find({
       listingId,
+      orgId,
       createdAt: { $gte: startDate },
     })
       .sort({ createdAt: 1 })
@@ -527,7 +581,10 @@ export class AutoRepricerService {
   /**
    * Get competitor price analysis for a listing
    */
-  static async getCompetitorAnalysis(fsin: string): Promise<{
+  static async getCompetitorAnalysis(
+    fsin: string,
+    orgId: string,
+  ): Promise<{
     lowestPrice: number;
     highestPrice: number;
     averagePrice: number;
@@ -535,7 +592,12 @@ export class AutoRepricerService {
     totalOffers: number;
     priceDistribution: Array<{ range: string; count: number }>;
   }> {
-    const rawOffers = await BuyBoxService.getProductOffers(fsin);
+    if (!orgId) {
+      throw new Error("orgId is required for competitor analysis");
+    }
+    const rawOffers = await BuyBoxService.getProductOffers(fsin, {
+      orgId,
+    });
     const offers = Array.isArray(rawOffers)
       ? this.normalizeOffers(rawOffers)
       : [];

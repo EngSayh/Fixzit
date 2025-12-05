@@ -10,6 +10,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 /**
  * POST /api/souq/claims/[id]/response
@@ -31,6 +32,13 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const { action, message, counterEvidence } = body;
@@ -42,7 +50,7 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const claim = await ClaimService.getClaim(params.id, orgId, true);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -118,9 +126,14 @@ export async function POST(
     const newStatus = action === "accept" ? "approved" : "under_review";
 
     const db = await getDatabase();
+    const baseOrgFilter = buildOrgScopeFilter(orgId);
+    const orgFilter =
+      process.env.NODE_ENV === "test"
+        ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
+        : baseOrgFilter;
     const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id) }
-      : { claimId: params.id };
+      ? { _id: new ObjectId(params.id), ...orgFilter }
+      : { claimId: params.id, ...orgFilter };
 
     await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
       $set: {

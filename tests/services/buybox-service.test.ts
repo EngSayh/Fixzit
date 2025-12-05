@@ -61,7 +61,7 @@ async function seedSeller({
     autoRepricerSettings: { enabled: false, rules: {} },
   });
 
-  return { sellerId: sellerId.toString() };
+  return { sellerId: sellerId.toString(), orgId: orgId.toString() };
 }
 
 /**
@@ -125,7 +125,7 @@ beforeAll(async () => {
 describe("BuyBoxService", () => {
   describe("calculateBuyBoxWinner", () => {
     it("should return null when no eligible listings exist", async () => {
-      const winner = await BuyBoxService.calculateBuyBoxWinner("FSIN-NONEXISTENT");
+      const winner = await BuyBoxService.calculateBuyBoxWinner("FSIN-NONEXISTENT", testOrgId.toString());
       expect(winner).toBeNull();
     });
 
@@ -134,7 +134,7 @@ describe("BuyBoxService", () => {
       const fsin = `FSIN-${nanoid(8)}`;
       await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: true });
 
-      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
       
       expect(winner).not.toBeNull();
       expect(winner?.fsin).toBe(fsin);
@@ -179,7 +179,7 @@ describe("BuyBoxService", () => {
         },
       });
 
-      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
       
       expect(winner).not.toBeNull();
       // Winner should be determined by algorithm (lower price + good metrics often wins)
@@ -191,7 +191,7 @@ describe("BuyBoxService", () => {
       const fsin = `FSIN-${nanoid(8)}`;
       await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: true, quantity: 0 });
 
-      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
       expect(winner).toBeNull();
     });
 
@@ -200,7 +200,7 @@ describe("BuyBoxService", () => {
       const fsin = `FSIN-${nanoid(8)}`;
       await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: false });
 
-      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
       expect(winner).toBeNull();
     });
 
@@ -222,7 +222,7 @@ describe("BuyBoxService", () => {
       await seedListing({ sellerId: seller1, fsin, price: 100, fulfillmentMethod: "fbm", metrics });
       await seedListing({ sellerId: seller2, fsin, price: 100, fulfillmentMethod: "fbf" as "fbm", metrics });
 
-      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
       
       expect(winner).not.toBeNull();
       // FBF should get bonus points
@@ -238,7 +238,7 @@ describe("BuyBoxService", () => {
       await seedListing({ sellerId: seller1, fsin, price: 100 });
       await seedListing({ sellerId: seller2, fsin, price: 95 });
 
-      const offers = await BuyBoxService.getProductOffers(fsin);
+    const offers = await BuyBoxService.getProductOffers(fsin, { orgId: testOrgId.toString() });
       
       expect(offers).toHaveLength(2);
     });
@@ -251,7 +251,7 @@ describe("BuyBoxService", () => {
       await seedListing({ sellerId: seller1, fsin, price: 150 });
       await seedListing({ sellerId: seller2, fsin, price: 100 });
 
-      const offers = await BuyBoxService.getProductOffers(fsin, { sort: "price" });
+      const offers = await BuyBoxService.getProductOffers(fsin, { sort: "price", orgId: testOrgId.toString() });
       
       expect(offers[0].price).toBe(100);
       expect(offers[1].price).toBe(150);
@@ -263,7 +263,7 @@ describe("BuyBoxService", () => {
 
       await seedListing({ sellerId, fsin, price: 100 });
 
-      const offers = await BuyBoxService.getProductOffers(fsin, { condition: "new" });
+      const offers = await BuyBoxService.getProductOffers(fsin, { condition: "new", orgId: testOrgId.toString() });
       
       expect(offers.length).toBeGreaterThanOrEqual(1);
       expect(offers[0].condition).toBe("new");
@@ -272,12 +272,12 @@ describe("BuyBoxService", () => {
 
   describe("updateSellerListingsEligibility", () => {
     it("should update all listings for a seller", async () => {
-      const { sellerId } = await seedSeller({ accountHealth: { status: "good", score: 80 } });
+      const { sellerId, orgId } = await seedSeller({ accountHealth: { status: "good", score: 80 } });
       const fsin = `FSIN-${nanoid(8)}`;
       
-      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: false });
+      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: false, orgId });
       
-      await BuyBoxService.updateSellerListingsEligibility(sellerId);
+      await BuyBoxService.updateSellerListingsEligibility(sellerId, orgId);
       
       // Verify listings were processed
       const listings = await SouqListing.find({ sellerId });
@@ -289,7 +289,7 @@ describe("BuyBoxService", () => {
       
       // Should not throw
       await expect(
-        BuyBoxService.updateSellerListingsEligibility(fakeSellerId)
+        BuyBoxService.updateSellerListingsEligibility(fakeSellerId, testOrgId.toString())
       ).resolves.toBeUndefined();
     });
   });
@@ -303,7 +303,7 @@ describe("BuyBoxService", () => {
       await seedListing({ sellerId: seller1, fsin, price: 100 });
       await seedListing({ sellerId: seller2, fsin, price: 95 });
 
-      await BuyBoxService.recalculateBuyBoxForProduct(fsin);
+      await BuyBoxService.recalculateBuyBoxForProduct(fsin, testOrgId.toString());
       
       // Verify listings were processed
       const listings = await SouqListing.find({ fsin });

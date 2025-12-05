@@ -10,28 +10,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
-import { z } from "zod";
-
-const ApproveSchema = z
-  .object({
-    rmaId: z
-      .string()
-      .trim()
-      .min(1),
-    approve: z.coerce.boolean(),
-    approvalNotes: z.string().trim().optional(),
-    rejectionReason: z.string().trim().optional(),
-    targetOrgId: z.string().trim().min(1).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.approve && !data.rejectionReason) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "rejectionReason is required when approve is false",
-        path: ["rejectionReason"],
-      });
-    }
-  });
+import { approveSchema, parseJsonBody, formatZodError } from "../validation";
 
 /**
  * POST /api/souq/returns/approve
@@ -70,19 +49,11 @@ export async function POST(request: NextRequest) {
 
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
-    let payload: z.infer<typeof ApproveSchema>;
-    try {
-      payload = ApproveSchema.parse(await request.json());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const message =
-          error.issues.map((issue) => issue.message).join("; ") ||
-          "Invalid request payload";
-        return NextResponse.json({ error: message }, { status: 400 });
-      }
-      throw error;
+    const parsed = await parseJsonBody(request, approveSchema);
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
     }
-    const { rmaId, approve, approvalNotes, rejectionReason, targetOrgId } = payload;
+    const { rmaId, approve, approvalNotes, rejectionReason, targetOrgId } = parsed.data;
 
     // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
     if (isPlatformAdmin && !sessionOrgId && !targetOrgId) {

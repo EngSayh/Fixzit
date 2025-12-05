@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+import { SouqSeller } from "@/server/models/souq/Seller";
 
 /**
  * POST /api/souq/repricer/run
@@ -14,7 +15,30 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await AutoRepricerService.repriceSeller(session.user.id);
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    const result = await AutoRepricerService.repriceSeller(
+      seller._id.toString(),
+      orgId,
+    );
 
     return NextResponse.json({
       success: true,

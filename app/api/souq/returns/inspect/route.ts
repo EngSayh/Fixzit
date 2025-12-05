@@ -10,19 +10,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import { AgentAuditLog } from "@/server/models/AgentAuditLog";
-import { z } from "zod";
-import mongoose from "mongoose";
-
-const inspectSchema = z.object({
-  rmaId: z.string().trim().min(1),
-  condition: z.enum(["like_new", "good", "acceptable", "damaged", "defective"]),
-  restockable: z.preprocess(
-    (v) => (v === "true" ? true : v === "false" ? false : v),
-    z.boolean(),
-  ),
-  inspectionNotes: z.string().trim().optional(),
-  inspectionPhotos: z.array(z.string().trim()).optional(),
-});
+import { inspectSchema, parseJsonBody, formatZodError, ensureValidObjectId } from "../validation";
 
 /**
  * POST /api/souq/returns/inspect
@@ -72,17 +60,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parsed = inspectSchema.safeParse(await request.json());
+    const parsed = await parseJsonBody(request, inspectSchema);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid payload", details: parsed.error.flatten() },
+        formatZodError(parsed.error),
         { status: 400 },
       );
     }
     const { rmaId, condition, restockable, inspectionNotes, inspectionPhotos } =
       parsed.data;
 
-    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+    if (!ensureValidObjectId(rmaId)) {
       return NextResponse.json(
         { error: "Invalid rmaId" },
         { status: 400 },

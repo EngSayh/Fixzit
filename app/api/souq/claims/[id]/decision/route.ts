@@ -6,6 +6,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { isValidObjectId } from "@/lib/utils/object-id";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 interface CounterEvidenceEntry {
   type?: string;
@@ -62,7 +63,7 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const claim = await ClaimService.getClaim(params.id, userOrgId);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -80,9 +81,10 @@ export async function POST(
       );
     }
 
+    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
     const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id) }
-      : { claimId: params.id };
+      ? { _id: new ObjectId(params.id), ...orgFilter }
+      : { claimId: params.id, ...orgFilter };
 
     let status: string;
     let refundAmountNumber: number;

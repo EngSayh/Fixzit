@@ -75,8 +75,10 @@ class ReviewService {
     const productObjectId = this.ensureObjectId(data.productId, "productId");
     const customerObjectId = this.ensureObjectId(data.customerId, "customerId");
 
-    const product =
-      await SouqProduct.findById(productObjectId).select("fsin isActive");
+    const product = await SouqProduct.findOne({
+      _id: productObjectId,
+      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+    }).select("fsin isActive");
     if (!product) {
       throw new Error("Product not found");
     }
@@ -272,9 +274,22 @@ class ReviewService {
       throw new Error("Can only respond to published reviews");
     }
 
-    const product = await SouqProduct.findById(review.productId).select(
-      "createdBy",
+    const reviewOrgId =
+      (review as { orgId?: mongoose.Types.ObjectId | string })?.orgId ||
+      (review as { org_id?: mongoose.Types.ObjectId | string })?.org_id;
+    if (!reviewOrgId) {
+      throw new Error("Review missing orgId");
+    }
+    const productObjectId = this.ensureObjectId(
+      String(review.productId),
+      "productId",
     );
+    const orgObjectId = this.ensureObjectId(String(reviewOrgId), "orgId");
+
+    const product = await SouqProduct.findOne({
+      _id: productObjectId,
+      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+    }).select("createdBy");
     if (!Types.ObjectId.isValid(sellerId)) {
       throw new Error("Invalid seller id");
     }

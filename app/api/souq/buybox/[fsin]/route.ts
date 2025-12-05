@@ -40,8 +40,8 @@ export async function GET(
     }
 
     const [buyBoxWinner, allOffers] = await Promise.all([
-      BuyBoxService.calculateBuyBoxWinner(fsin),
-      BuyBoxService.getProductOffers(fsin, { condition: "new", sort: "price" }),
+      BuyBoxService.calculateBuyBoxWinner(fsin, session.user.orgId),
+      BuyBoxService.getProductOffers(fsin, { condition: "new", sort: "price", orgId: session.user.orgId }),
     ]);
 
     return NextResponse.json({

@@ -14,9 +14,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { fsin } = await context.params;
     const { searchParams } = new URL(request.url);
+    const orgId = searchParams.get("orgId") || "";
 
     if (!fsin) {
       return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
+    }
+    if (!orgId) {
+      return NextResponse.json({ error: "orgId is required" }, { status: 400 });
     }
 
     const condition = searchParams.get("condition") || "new";
@@ -25,6 +29,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const offers = await BuyBoxService.getProductOffers(fsin, {
       condition,
       sort,
+      orgId,
     });
 
     return NextResponse.json({

@@ -9,8 +9,8 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
-import { z } from "zod";
 import mongoose from "mongoose";
+import { listQuerySchema, parseQueryParams, formatZodError } from "./validation";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -24,34 +24,6 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   }
   return candidates.length ? { orgId: { $in: candidates } } : { orgId };
 };
-
-const querySchema = z.object({
-  type: z.enum(["buyer", "seller", "admin"]).default("buyer"),
-  status: z
-    .enum([
-      "initiated",
-      "approved",
-      "rejected",
-      "label_generated",
-      "in_transit",
-      "received",
-      "inspecting",
-      "inspected",
-      "refund_processing",
-      "completed",
-      "cancelled",
-    ])
-    .optional(),
-  targetOrgId: z.string().trim().min(1).optional(),
-  page: z
-    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
-    .default(1),
-  limit: z
-    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
-    .default(100),
-  sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
-  sortDir: z.enum(["asc", "desc"]).default("desc"),
-});
 
 /**
  * GET /api/souq/returns
@@ -74,18 +46,10 @@ export async function GET(request: NextRequest) {
     const tenantOrgId = orgId;
 
     const { searchParams } = new URL(request.url);
-    const parsedQuery = querySchema.safeParse({
-      type: searchParams.get("type") ?? undefined,
-      status: searchParams.get("status") ?? undefined,
-      targetOrgId: searchParams.get("targetOrgId") ?? undefined,
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-      sortBy: searchParams.get("sortBy") ?? undefined,
-      sortDir: searchParams.get("sortDir") ?? undefined,
-    });
+    const parsedQuery = parseQueryParams(searchParams, listQuerySchema);
     if (!parsedQuery.success) {
       return NextResponse.json(
-        { error: "Invalid query params", details: parsedQuery.error.flatten() },
+        formatZodError(parsedQuery.error),
         { status: 400 },
       );
     }

@@ -9,6 +9,8 @@ import { Types } from "mongoose";
 import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { isValidObjectId } from "@/lib/utils/object-id";
+import { Role } from "@/lib/rbac/client-roles";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 const ELIGIBLE_STATUSES = [
   "submitted",
@@ -43,8 +45,11 @@ export async function POST(request: NextRequest) {
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
 
-    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
-    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
+    // 🔐 RBAC: Use canonical Role enum per STRICT v4.1
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isAuthorizedAdmin = isSuperAdmin || adminRoles.includes(userRole as Role);
+    
+    if (!isAuthorizedAdmin) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
         { status: 403 },
@@ -98,15 +103,15 @@ export async function POST(request: NextRequest) {
       .filter((id: string) => Types.ObjectId.isValid(id))
       .map((id: string) => new Types.ObjectId(id));
 
-    // 🔒 SECURITY FIX: CORPORATE_ADMIN can only process claims involving their org's users
-    const isPlatformAdmin = isSuperAdmin || userRole === "ADMIN";
+    // 🔒 SECURITY FIX: CORPORATE_OWNER can only process claims involving their org's users
+    const isPlatformAdmin = isSuperAdmin || userRole === Role.SUPER_ADMIN || userRole === Role.ADMIN;
     let orgUserFilter: Record<string, unknown> | null = null;
     const orgId = (session.user as { orgId?: string }).orgId;
     
-    if (!isPlatformAdmin && userRole === "CORPORATE_ADMIN") {
+    if (!isPlatformAdmin && userRole === Role.CORPORATE_OWNER) {
       if (!orgId) {
         return NextResponse.json(
-          { error: "Organization context required for CORPORATE_ADMIN" },
+          { error: "Organization context required for CORPORATE_OWNER" },
           { status: 403 },
         );
       }
@@ -123,7 +128,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch all claims to validate they exist and can be bulk processed
-    const baseOrgScope = isPlatformAdmin ? {} : { orgId };
+    // 🔐 Use centralized org scope helper for consistent string/ObjectId handling
+    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildOrgScopeFilter(orgId) : {});
     const claimQuery = {
       ...baseOrgScope,
       $and: [
@@ -141,10 +147,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ PERF FIX: Batch load all orders to avoid N+1 queries
-    const orderIds = claims.map((c) => c.orderId).filter(Boolean);
-    const orders = await SouqOrder.find({ _id: { $in: orderIds }, ...baseOrgScope }).lean();
-    const orderMap = new Map(orders.map((o) => [String(o._id), o as unknown as IOrder]));
+    // ✅ FIX: Fetch orders using BOTH orderId string AND _id ObjectId (claims store orderId as string)
+    // Claims store orderId as a string field, not necessarily matching _id
+    const orderIdStrings = claims.map((c) => c.orderId).filter(Boolean) as string[];
+    const validObjectIds = orderIdStrings
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    
+    const orders = await SouqOrder.find({
+      ...baseOrgScope,
+      $or: [
+        { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
+        ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
+      ],
+    }).lean();
+    
+    // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
+    const orderMap = new Map<string, IOrder>();
+    for (const o of orders) {
+      // Index by orderId field (primary key for claim.orderId lookup)
+      if (o.orderId) {
+        orderMap.set(String(o.orderId), o as unknown as IOrder);
+      }
+      // Also index by _id string for fallback
+      orderMap.set(String(o._id), o as unknown as IOrder);
+    }
 
     const results = {
       success: 0,

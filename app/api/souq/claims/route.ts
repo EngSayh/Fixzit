@@ -10,6 +10,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter as buildOrgScope } from "@/app/api/souq/claims/org-scope";
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -28,18 +29,6 @@ function mapReasonToType(reason: string): ClaimType {
   if (normalized.includes("counterfeit")) return "counterfeit";
   return "item_not_received";
 }
-
-const buildOrgFilter = (orgId: string | ObjectId) => {
-  const candidates: Array<string | ObjectId> = [];
-  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
-  if (orgString) {
-    candidates.push(orgString);
-    if (ObjectId.isValid(orgString)) {
-      candidates.push(new ObjectId(orgString));
-    }
-  }
-  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
-};
 
 /**
  * POST /api/souq/claims
@@ -93,7 +82,7 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase();
     const order = await db
       .collection(COLLECTIONS.ORDERS)
-      .findOne({ _id: orderObjectId, ...buildOrgFilter(orgId) });
+      .findOne({ _id: orderObjectId, ...buildOrgScope(orgId) });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }
@@ -116,7 +105,7 @@ export async function POST(request: NextRequest) {
     const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
     const existingClaim = await claimsCollection.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
-      $or: [buildOrgFilter(orgId), { orgId: { $exists: false } }],
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       status: {
         $nin: [
           "withdrawn",
@@ -169,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     const recentClaimsCount = await claimsCollection.countDocuments({
       buyerId: { $in: buyerIdFilter },
-      $or: [buildOrgFilter(orgId), { orgId: { $exists: false } }],
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
     });
 

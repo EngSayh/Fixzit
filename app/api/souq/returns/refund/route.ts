@@ -8,19 +8,7 @@ import {
   normalizeRole,
 } from '@/lib/rbac/client-roles';
 import { AgentAuditLog } from '@/server/models/AgentAuditLog';
-import { z } from 'zod';
-
-const refundSchema = z.object({
-  rmaId: z
-    .string()
-    .trim()
-    .min(1),
-  refundAmount: z.preprocess(
-    (v) => (typeof v === 'string' || typeof v === 'number' ? Number(v) : v),
-    z.number().positive().finite(),
-  ),
-  refundMethod: z.enum(['original_payment', 'wallet', 'bank_transfer']),
-});
+import { refundSchema, parseJsonBody, formatZodError } from '../validation';
 
 /**
  * POST /api/souq/returns/refund
@@ -56,24 +44,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const parseResult = refundSchema.safeParse(await request.json());
+    const parseResult = await parseJsonBody(request, refundSchema);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid payload', details: parseResult.error.flatten() },
-        { status: 400 },
-      );
+      return NextResponse.json(formatZodError(parseResult.error), { status: 400 });
     }
     const { rmaId, refundAmount, refundMethod } = parseResult.data;
-    // Basic validation: reject clearly malformed IDs (e.g., strings with hyphens) before DB access
-    if (rmaId.includes("-")) {
-      return NextResponse.json(
-        { error: "Invalid rmaId" },
-        { status: 400 },
-      );
-    }
-
-    // Basic format check to reject obviously invalid IDs (keeps nanoid/custom ids allowed)
-    if (!/^[a-zA-Z0-9]+$/.test(rmaId)) {
+    const isHexObjectId = typeof rmaId === 'string' && /^[a-fA-F0-9]{24}$/.test(rmaId);
+    const isFriendlyId = typeof rmaId === 'string' && /^r/i.test(rmaId);
+    if (!isHexObjectId && !isFriendlyId) {
       return NextResponse.json({ error: 'Invalid rmaId' }, { status: 400 });
     }
 
@@ -106,8 +84,7 @@ export async function POST(request: NextRequest) {
     const rma = await SouqRMA.findOne(rmaQuery).lean();
     if (!rma) {
       // For non-platform admins, avoid leaking existence across tenants
-      const status = isPlatformAdmin ? 404 : 403;
-      return NextResponse.json({ error: 'RMA not found' }, { status });
+      return NextResponse.json({ error: 'RMA not found' }, { status: 404 });
     }
 
     const rmaOrgId = rma.orgId?.toString();

@@ -5,6 +5,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 /**
  * GET /api/souq/claims/[id]
@@ -21,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const claim = await ClaimService.getClaim(params.id, userOrgId);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -36,18 +37,19 @@ export async function GET(
     }
 
     const db = await getDatabase();
+    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
     const orderIdValue = String(claim.orderId);
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) })
+        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter })
         .catch(() => null);
     }
     if (!order) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ orderId: orderIdValue, orgId: new ObjectId(userOrgId) })
+        .findOne({ orderId: orderIdValue, ...orgFilter })
         .catch(() => null);
     }
     if (!order) {
@@ -60,13 +62,13 @@ export async function GET(
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
       ? await db
           .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(String(claim.buyerId)), orgId: new ObjectId(userOrgId) })
+          .findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter })
           .catch(() => null)
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
       ? await db
           .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(String(claim.sellerId)), orgId: new ObjectId(userOrgId) })
+          .findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter })
           .catch(() => null)
       : null;
 
@@ -103,11 +105,12 @@ export async function PUT(
     if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
 
     const body = await request.json();
     const { status } = body;
 
-    const claim = await ClaimService.getClaim(params.id);
+    const claim = await ClaimService.getClaim(params.id, userOrgId);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -115,8 +118,8 @@ export async function PUT(
     const db = await getDatabase();
     const orderIdValue = String(claim.orderId);
     const orderFilter = ObjectId.isValid(orderIdValue)
-      ? { _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) }
-      : { orderId: orderIdValue, orgId: new ObjectId(userOrgId) };
+      ? { _id: new ObjectId(orderIdValue), ...orgFilter }
+      : { orderId: orderIdValue, ...orgFilter };
     const order = await db.collection(COLLECTIONS.ORDERS).findOne(orderFilter);
     if (!order) {
       return NextResponse.json(
@@ -130,7 +133,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await ClaimService.updateStatus(params.id, status);
+    await ClaimService.updateStatus(params.id, userOrgId, status);
 
     return NextResponse.json({
       success: true,

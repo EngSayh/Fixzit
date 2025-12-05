@@ -17,6 +17,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 },
+      );
+    }
 
     const { fsin } = await context.params;
 
@@ -24,7 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
     }
 
-    const analysis = await AutoRepricerService.getCompetitorAnalysis(fsin);
+    const analysis = await AutoRepricerService.getCompetitorAnalysis(fsin, orgId);
 
     return NextResponse.json({
       success: true,
