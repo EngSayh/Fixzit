@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
     // 🔒 SECURITY FIX: CORPORATE_ADMIN can only process claims involving their org's users
     const isPlatformAdmin = isSuperAdmin || userRole === "ADMIN";
     let orgUserFilter: Record<string, unknown> | null = null;
+    const orgId = (session.user as { orgId?: string }).orgId;
     
     if (!isPlatformAdmin && userRole === "CORPORATE_ADMIN") {
-      const orgId = session.user.orgId;
       if (!orgId) {
         return NextResponse.json(
           { error: "Organization context required for CORPORATE_ADMIN" },
@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch all claims to validate they exist and can be bulk processed
+    const baseOrgScope = isPlatformAdmin ? {} : { orgId };
     const claimQuery = {
+      ...baseOrgScope,
       $and: [
         { status: { $in: ELIGIBLE_STATUSES } },
         { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ PERF FIX: Batch load all orders to avoid N+1 queries
     const orderIds = claims.map((c) => c.orderId).filter(Boolean);
-    const orders = await SouqOrder.find({ _id: { $in: orderIds } }).lean();
+    const orders = await SouqOrder.find({ _id: { $in: orderIds }, ...baseOrgScope }).lean();
     const orderMap = new Map(orders.map((o) => [String(o._id), o as unknown as IOrder]));
 
     const results = {

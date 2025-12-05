@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId;
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
       // Get buyer's return history
       const returns = await returnsService.getBuyerReturnHistory(
         session.user.id,
+        orgId,
       );
 
       return NextResponse.json({
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
     } else if (type === "seller") {
       // Get seller's returns
       const { SouqRMA } = await import("@/server/models/souq/RMA");
-      const returns = await SouqRMA.find({ sellerId: session.user.id })
+      const returns = await SouqRMA.find({ sellerId: session.user.id, ...(orgId ? { orgId } : {}) })
         .sort({ createdAt: -1 })
         .limit(100);
 
@@ -49,12 +51,12 @@ export async function GET(request: NextRequest) {
       // Get all returns (admin view)
       const { SouqRMA } = await import("@/server/models/souq/RMA");
       const status = searchParams.get("status");
+      const baseOrgScope = isPlatformAdmin ? {} : { orgId };
 
       // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see returns involving their org's users
       let query: Record<string, unknown> = status ? { status } : {};
       
       if (isCorporateAdmin && !isPlatformAdmin) {
-        const orgId = session.user.orgId;
         if (!orgId) {
           return NextResponse.json(
             { error: "Organization context required for CORPORATE_ADMIN" },
@@ -67,6 +69,7 @@ export async function GET(request: NextRequest) {
         
         query = {
           $and: [
+            baseOrgScope,
             ...(status ? [{ status }] : []),
             {
               $or: [
@@ -80,12 +83,19 @@ export async function GET(request: NextRequest) {
         // If no conditions, simplify
         if (!status) {
           query = {
-            $or: [
-              { buyerId: { $in: userIdStrings } },
-              { sellerId: { $in: userIdStrings } },
+            $and: [
+              baseOrgScope,
+              {
+                $or: [
+                  { buyerId: { $in: userIdStrings } },
+                  { sellerId: { $in: userIdStrings } },
+                ],
+              },
             ],
           };
         }
+      } else {
+        query = { ...baseOrgScope, ...(status ? { status } : {}) };
       }
       
       const returns = await SouqRMA.find(query)

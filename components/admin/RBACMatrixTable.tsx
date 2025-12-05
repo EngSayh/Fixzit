@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Save, RotateCcw, Shield, Eye, Edit, Trash2 } from "lucide-react";
+import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react";
 
 export interface RolePermission {
   role: string;
@@ -126,18 +126,18 @@ export default function RBACMatrixTable({
       case "view":
         return <Eye className="h-3 w-3" />;
       case "create":
-        return <Edit className="h-3 w-3" />;
+        return <Plus className="h-3 w-3" />;
       case "edit":
-        return <Edit className="h-3 w-3" />;
+        return <Pencil className="h-3 w-3" />;
       case "delete":
         return <Trash2 className="h-3 w-3" />;
     }
   };
 
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (role.includes("SUPER") || role.includes("ADMIN")) return "destructive";
-    if (role.includes("MANAGER")) return "default";
-    return "secondary";
+    if (role.includes("SUPER")) return "destructive";
+    if (role.includes("ADMIN") || role.includes("MANAGEMENT")) return "default";
+    return "secondary"; // corporate/staff/owner/tenant
   };
 
   return (
@@ -161,7 +161,7 @@ export default function RBACMatrixTable({
                 onClick={handleReset}
                 disabled={!isDirty || isSaving}
               >
-                <RotateCcw className="mr-2 h-4 w-4" />
+                <RotateCcw className="me-2 h-4 w-4" />
                 Reset
               </Button>
               <Button
@@ -169,7 +169,7 @@ export default function RBACMatrixTable({
                 onClick={handleSave}
                 disabled={!isDirty || isSaving}
               >
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
@@ -267,17 +267,21 @@ export default function RBACMatrixTable({
 
 // Export default permissions for use in pages
 export const DEFAULT_MODULES: Module[] = [
-  { id: "dashboard", label: "Dashboard", description: "Main dashboard and overview" },
-  { id: "work_orders", label: "Work Orders", description: "Maintenance and service requests" },
-  { id: "properties", label: "Properties", description: "Property management" },
+  { id: "dashboard", label: "Dashboard", description: "Org overview and insights" },
+  { id: "properties", label: "Properties", description: "Property and portfolio management" },
   { id: "units", label: "Units", description: "Unit management within properties" },
   { id: "tenants", label: "Tenants", description: "Tenant management and profiles" },
   { id: "vendors", label: "Vendors", description: "Vendor and contractor management" },
-  { id: "finance", label: "Finance", description: "Invoices, payments, and budgets" },
-  { id: "reports", label: "Reports", description: "Analytics and reporting" },
+  { id: "work_orders", label: "Work Orders", description: "Maintenance and service requests" },
+  { id: "approvals", label: "Approvals", description: "Approval workflows and SLA decisions" },
+  { id: "assets_sla", label: "Assets & SLA", description: "Assets, PM schedules, SLA tracking" },
+  { id: "finance", label: "Finance", description: "Invoices, payments, ZATCA compliance, budgets" },
+  { id: "marketplace", label: "Marketplace (Souq)", description: "Listings, orders, claims/returns, settlements" },
+  { id: "crm_notifications", label: "CRM & Notifications", description: "Customers, communication, templates, alerts" },
   { id: "hr", label: "HR", description: "Human resources management" },
-  { id: "settings", label: "Settings", description: "System configuration" },
-  { id: "admin", label: "Admin", description: "Administrative functions" },
+  { id: "reports", label: "Reports", description: "Analytics and reporting" },
+  { id: "admin", label: "Admin", description: "Administrative functions and configuration" },
+  { id: "qa", label: "QA & Telemetry", description: "QA alerts/logs and platform telemetry" },
 ];
 
 export const DEFAULT_ROLES: RolePermission[] = [
@@ -292,11 +296,110 @@ export const DEFAULT_ROLES: RolePermission[] = [
     role: "ADMIN",
     roleLabel: "Admin",
     permissions: Object.fromEntries(
-      DEFAULT_MODULES.filter((m) => m.id !== "admin").map((m) => [
+      DEFAULT_MODULES.map((m) => [
         m.id,
-        { view: true, create: true, edit: true, delete: m.id !== "settings" },
-      ])
+        { view: true, create: true, edit: true, delete: m.id !== "qa" },
+      ]),
     ),
+  },
+  {
+    role: "CORPORATE_ADMIN",
+    roleLabel: "Corporate Admin",
+    permissions: Object.fromEntries(
+      DEFAULT_MODULES.map((m) => [
+        m.id,
+        {
+          view: true,
+          create: true,
+          edit: true,
+          delete: ["admin", "qa"].includes(m.id) ? false : true,
+        },
+      ]),
+    ),
+  },
+  {
+    role: "MANAGEMENT",
+    roleLabel: "Management",
+    permissions: {
+      dashboard: { view: true, create: false, edit: false, delete: false },
+      properties: { view: true, create: true, edit: true, delete: false },
+      units: { view: true, create: true, edit: true, delete: false },
+      work_orders: { view: true, create: true, edit: true, delete: false },
+      approvals: { view: true, create: true, edit: true, delete: false },
+      finance: { view: true, create: true, edit: true, delete: false },
+      reports: { view: true, create: false, edit: false, delete: false },
+      marketplace: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "FINANCE",
+    roleLabel: "Finance",
+    permissions: {
+      finance: { view: true, create: true, edit: true, delete: false },
+      approvals: { view: true, create: false, edit: false, delete: false },
+      reports: { view: true, create: false, edit: false, delete: false },
+      marketplace: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "FINANCE_OFFICER",
+    roleLabel: "Finance Officer",
+    permissions: {
+      finance: { view: true, create: true, edit: true, delete: false },
+      reports: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "HR",
+    roleLabel: "HR",
+    permissions: {
+      hr: { view: true, create: true, edit: true, delete: false },
+      approvals: { view: true, create: false, edit: false, delete: false },
+      reports: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "HR_OFFICER",
+    roleLabel: "HR Officer",
+    permissions: {
+      hr: { view: true, create: true, edit: false, delete: false },
+      approvals: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "SUPPORT",
+    roleLabel: "Support",
+    permissions: {
+      dashboard: { view: true, create: false, edit: false, delete: false },
+      work_orders: { view: true, create: true, edit: true, delete: false },
+      crm_notifications: { view: true, create: true, edit: true, delete: false },
+      marketplace: { view: true, create: false, edit: false, delete: false },
+      qa: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "OPS",
+    roleLabel: "Ops",
+    permissions: {
+      dashboard: { view: true, create: false, edit: false, delete: false },
+      work_orders: { view: true, create: true, edit: true, delete: false },
+      properties: { view: true, create: true, edit: true, delete: false },
+      units: { view: true, create: true, edit: true, delete: false },
+      approvals: { view: true, create: true, edit: true, delete: false },
+      assets_sla: { view: true, create: true, edit: true, delete: false },
+      crm_notifications: { view: true, create: true, edit: true, delete: false },
+    },
+  },
+  {
+    role: "CORPORATE_EMPLOYEE",
+    roleLabel: "Corporate Employee",
+    permissions: {
+      dashboard: { view: true, create: false, edit: false, delete: false },
+      work_orders: { view: true, create: true, edit: false, delete: false },
+      properties: { view: true, create: false, edit: false, delete: false },
+      units: { view: true, create: false, edit: false, delete: false },
+      crm_notifications: { view: true, create: true, edit: false, delete: false },
+    },
   },
   {
     role: "PROPERTY_MANAGER",
@@ -309,6 +412,18 @@ export const DEFAULT_ROLES: RolePermission[] = [
       tenants: { view: true, create: true, edit: true, delete: false },
       vendors: { view: true, create: false, edit: false, delete: false },
       finance: { view: true, create: true, edit: true, delete: false },
+      reports: { view: true, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    role: "PROPERTY_OWNER",
+    roleLabel: "Property Owner",
+    permissions: {
+      dashboard: { view: true, create: false, edit: false, delete: false },
+      properties: { view: true, create: false, edit: false, delete: false },
+      units: { view: true, create: false, edit: false, delete: false },
+      work_orders: { view: true, create: true, edit: false, delete: false },
+      finance: { view: true, create: false, edit: false, delete: false },
       reports: { view: true, create: false, edit: false, delete: false },
     },
   },

@@ -95,6 +95,7 @@ class ReturnsService {
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
+    const orgId = order.orgId ? order.orgId.toString() : undefined;
 
     if (order.status !== 'delivered') {
       return { eligible: false, reason: 'Order not yet delivered' };
@@ -117,7 +118,8 @@ class ReturnsService {
     const existingRMA = await RMA.findOne({ 
       orderId: order._id.toString(), 
       'items.listingId': listingId,
-      status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] }
+      status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] },
+      ...(orgId ? { orgId } : {}),
     }).lean();
 
     if (existingRMA) {
@@ -141,6 +143,7 @@ class ReturnsService {
     if (!order) {
       throw new Error('Order not found');
     }
+    const orgId = order.orgId ? order.orgId.toString() : undefined;
 
     if (order.customerId.toString() !== buyerId) {
       throw new Error('Unauthorized: Not your order');
@@ -189,6 +192,7 @@ class ReturnsService {
     // Create RMA
     const rma = await RMA.create({
       rmaId: `RMA-${nanoid(10)}`,
+      ...(orgId ? { orgId } : {}),
       orderId: order._id.toString(),
       orderNumber: order.orderId,
       buyerId,
@@ -865,7 +869,7 @@ class ReturnsService {
   /**
    * Get buyer's return history
    */
-  async getBuyerReturnHistory(buyerId: string): Promise<Array<{
+  async getBuyerReturnHistory(buyerId: string, orgId?: string): Promise<Array<{
     rmaId: string;
     orderId: string;
     status: string;
@@ -874,7 +878,8 @@ class ReturnsService {
     refundAmount?: number;
   }>> {
     const returns = await RMA.find({ 
-      buyerId: new mongoose.Types.ObjectId(buyerId) 
+      buyerId: new mongoose.Types.ObjectId(buyerId),
+      ...(orgId ? { orgId } : {}),
     })
       .sort({ createdAt: -1 })
       .limit(50);
