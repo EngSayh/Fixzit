@@ -179,10 +179,11 @@ describe("returnsService", () => {
       quantity: 1,
     });
 
+    const testOrgId = order.orgId.toString();
     const rmaId = await returnsService.initiateReturn({
       orderId: order._id.toString(),
       buyerId,
-      orgId: order.orgId.toString(),
+      orgId: testOrgId,
       items: [
         {
           listingId,
@@ -192,7 +193,7 @@ describe("returnsService", () => {
       ],
     });
 
-    const label = await returnsService.generateReturnLabel(rmaId);
+    const label = await returnsService.generateReturnLabel(rmaId, testOrgId);
     expect(label.carrier).toBe("SPL");
     expect(mockGetRates).toHaveBeenCalled();
 
@@ -206,6 +207,7 @@ describe("returnsService", () => {
 
     await returnsService.inspectReturn({
       rmaId,
+      orgId: testOrgId,
       inspectorId: "SYSTEM",
       condition: "good",
       restockable: true,
@@ -218,5 +220,67 @@ describe("returnsService", () => {
     expect(updated?.refund.amount).toBeCloseTo(price * quantity * 0.95, 5); // 5% deduction for "good"
     expect(mockProcessReturn).toHaveBeenCalledTimes(1);
     expect(mockAddJob).toHaveBeenCalled();
+  });
+
+  describe("getBuyerReturnHistory", () => {
+    it("rejects when orgId is missing", async () => {
+      const buyerId = new Types.ObjectId().toString();
+      await expect(
+        returnsService.getBuyerReturnHistory(buyerId, ""),
+      ).rejects.toThrow("orgId is required to fetch buyer return history");
+    });
+
+    it("returns only RMAs within the tenant org scope", async () => {
+      const buyerId = new Types.ObjectId().toString();
+      const orgA = new Types.ObjectId().toString();
+      const orgB = new Types.ObjectId().toString();
+
+      const baseRma = {
+        items: [
+          {
+            orderItemId: "OI-1",
+            listingId: "L-1",
+            productId: "P-1",
+            productName: "Test Product",
+            quantity: 1,
+            unitPrice: 50,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "initiated",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" as const },
+        refund: { amount: 50, method: "original_payment" as const, status: "pending" as const },
+        timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+      };
+
+      const rmaA = await SouqRMA.create({
+        ...baseRma,
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgA,
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-ORG-A",
+        buyerId,
+        sellerId: new Types.ObjectId().toString(),
+      });
+
+      await SouqRMA.create({
+        ...baseRma,
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgB,
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-ORG-B",
+        buyerId,
+        sellerId: new Types.ObjectId().toString(),
+      });
+
+      const history = await returnsService.getBuyerReturnHistory(buyerId, orgA);
+
+      expect(history).toHaveLength(1);
+      expect(history[0]?.orderId).toBe(rmaA.orderId);
+      expect(history[0]?.status).toBe("initiated");
+    });
   });
 });

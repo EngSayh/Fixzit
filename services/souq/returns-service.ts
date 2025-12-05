@@ -42,6 +42,7 @@ interface ApproveReturnParams {
   rmaId: string;
   adminId: string;
   approvalNotes?: string;
+  orgId: string; // 🔒 Required for tenant isolation
 }
 
 interface InspectReturnParams {
@@ -51,6 +52,7 @@ interface InspectReturnParams {
   restockable: boolean;
   inspectionNotes?: string;
   inspectionPhotos?: string[];
+  orgId?: string; // 🔒 Required for tenant isolation (optional for SYSTEM calls)
 }
 
 interface ProcessRefundParams {
@@ -58,6 +60,7 @@ interface ProcessRefundParams {
   refundAmount: number;
   refundMethod: 'original_payment' | 'wallet' | 'bank_transfer';
   processorId: string;
+  orgId?: string; // 🔒 Required for tenant isolation (optional for internal calls)
 }
 
 class ReturnsService {
@@ -253,31 +256,42 @@ class ReturnsService {
 
   /**
    * Auto-approve return (for defective/damaged items)
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  private async autoApprove(rmaId: string): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  private async autoApprove(rmaId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for auto-approve');
+    }
+    const rma = await RMA.findOne({ _id: rmaId, orgId });
     if (!rma) return;
 
     await rma.approve('SYSTEM', 'Auto-approved: Defective or damaged item');
     
     // Generate return label
-    await this.generateReturnLabel(rmaId);
+    await this.generateReturnLabel(rmaId, orgId);
   }
 
   /**
    * Manually approve return (admin action)
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-approval.
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
   async approveReturn(params: ApproveReturnParams): Promise<void> {
-    const { rmaId, adminId, approvalNotes } = params;
+    const { rmaId, adminId, approvalNotes, orgId } = params;
+
+    if (!orgId) {
+      throw new Error('orgId is required for approve return');
+    }
 
     const now = new Date();
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔒 SECURITY: Always scope by orgId for tenant isolation
     const rma = await RMA.findOneAndUpdate(
       { 
-        _id: rmaId, 
+        _id: rmaId,
+        orgId,  // 🔒 Tenant isolation
         status: 'initiated'  // Atomic condition - prevents double-approval
       },
       { 
@@ -297,7 +311,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findById(rmaId).lean();
+      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -307,7 +321,7 @@ class ReturnsService {
     await rma.approve(adminId, approvalNotes);
     
     // Generate return label
-    await this.generateReturnLabel(rmaId);
+    await this.generateReturnLabel(rmaId, orgId);
 
     // Notify buyer
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
@@ -322,14 +336,21 @@ class ReturnsService {
    * Reject return request
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-rejection.
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async rejectReturn(rmaId: string, adminId: string, rejectionReason: string): Promise<void> {
+  async rejectReturn(rmaId: string, adminId: string, rejectionReason: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for reject return');
+    }
+
     const now = new Date();
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔒 SECURITY: Always scope by orgId for tenant isolation
     const rma = await RMA.findOneAndUpdate(
       { 
-        _id: rmaId, 
+        _id: rmaId,
+        orgId,  // 🔒 Tenant isolation
         status: 'initiated'  // Atomic condition - prevents double-rejection
       },
       { 
@@ -349,7 +370,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findById(rmaId).lean();
+      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -369,13 +390,18 @@ class ReturnsService {
 
   /**
    * Generate return shipping label
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async generateReturnLabel(rmaId: string): Promise<{
+  async generateReturnLabel(rmaId: string, orgId: string): Promise<{
     trackingNumber: string;
     labelUrl: string;
     carrier: string;
   }> {
-    const rma = await RMA.findById(rmaId);
+    if (!orgId) {
+      throw new Error('orgId is required for generate return label');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, orgId });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -463,9 +489,14 @@ class ReturnsService {
 
   /**
    * Schedule pickup for return
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async schedulePickup(rmaId: string, pickupDate: Date, timeSlot: 'morning' | 'afternoon' | 'evening'): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  async schedulePickup(rmaId: string, pickupDate: Date, timeSlot: 'morning' | 'afternoon' | 'evening', orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for schedule pickup');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, orgId });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -493,9 +524,14 @@ class ReturnsService {
 
   /**
    * Update return tracking (called by carrier webhook)
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async updateTracking(rmaId: string, status: string, location?: string): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  async updateTracking(rmaId: string, status: string, location: string | undefined, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for update tracking');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, orgId });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -536,16 +572,23 @@ class ReturnsService {
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent concurrent inspections.
    * Only one inspection can succeed for an RMA in 'received' status.
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
-    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos } = params;
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId } = params;
+
+    if (!orgId) {
+      throw new Error('orgId is required for inspect return');
+    }
 
     const now = new Date();
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔐 SECURITY: orgId scoping ensures tenant isolation
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId, 
+        orgId,  // 🔐 Tenant isolation
         status: 'received'  // Atomic condition - prevents double-inspection
       },
       { 
@@ -986,14 +1029,29 @@ class ReturnsService {
   /**
    * Background job: Auto-escalate pending returns
    * Escalate returns that haven't been reviewed within 48 hours
+   * 
+   * 🔐 SECURITY: orgId parameter enforces tenant isolation.
+   * Pass undefined orgId only for SUPER_ADMIN system jobs that process all tenants.
+   * Logs processing per-org for audit trail.
    */
-  async autoEscalatePendingReturns(): Promise<number> {
+  async autoEscalatePendingReturns(orgId?: string): Promise<number> {
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
     
-    const pendingReturns = await RMA.find({
+    const query: Record<string, unknown> = {
       status: 'initiated',
       createdAt: { $lt: twoDaysAgo }
-    });
+    };
+    
+    // 🔐 Scope by orgId if provided (tenant-scoped operation)
+    if (orgId) {
+      query.orgId = orgId;
+      logger.info(`[ReturnsService] Auto-escalating pending returns for org ${orgId}`);
+    } else {
+      // System-wide operation - log for audit
+      logger.warn('[ReturnsService] Auto-escalating pending returns SYSTEM-WIDE (no orgId filter)');
+    }
+    
+    const pendingReturns = await RMA.find(query);
 
     let escalated = 0;
     for (const rma of pendingReturns) {

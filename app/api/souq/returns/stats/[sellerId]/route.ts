@@ -17,13 +17,8 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const orgId = (session.user as { orgId?: string }).orgId;
-    if (!orgId) {
-      return NextResponse.json(
-        { error: "Organization context required" },
-        { status: 403 },
-      );
-    }
+    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
     const { sellerId } = params;
     const { searchParams } = new URL(request.url);
@@ -31,6 +26,7 @@ export async function GET(
       | "week"
       | "month"
       | "year";
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
 
     // Check access
     const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
@@ -40,8 +36,34 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly choose targetOrgId
+    if (isPlatformAdmin) {
+      if (!targetOrgId) {
+        return NextResponse.json(
+          { error: "targetOrgId is required for platform admins" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const resolvedOrgId = isPlatformAdmin ? targetOrgId : sessionOrgId;
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     // Get stats
-    const stats = await returnsService.getSellerReturnStats(sellerId, orgId, period);
+    const stats = await returnsService.getSellerReturnStats(sellerId, resolvedOrgId, period);
+
+    logger.info("Return stats fetched", {
+      actorUserId: session.user.id,
+      actorRole: session.user.role,
+      sellerId,
+      period,
+      targetOrgId: resolvedOrgId,
+    });
 
     return NextResponse.json({
       success: true,
