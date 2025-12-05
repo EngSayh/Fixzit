@@ -281,6 +281,7 @@ export class AutoRepricerService {
           // Log price change
           await addJob(QUEUE_NAMES.NOTIFICATIONS, "price_change_notification", {
             sellerId,
+            orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped notification routing
             listingId: listing._id.toString(),
             fsin: listing.fsin,
             oldPrice,

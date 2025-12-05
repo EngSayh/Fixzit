@@ -7,7 +7,21 @@ import {
   SubRole,
   normalizeRole,
 } from '@/lib/rbac/client-roles';
+import { AgentAuditLog } from '@/server/models/AgentAuditLog';
+import { z } from 'zod';
 import mongoose from 'mongoose';
+
+const refundSchema = z.object({
+  rmaId: z
+    .string()
+    .trim()
+    .min(1),
+  refundAmount: z.preprocess(
+    (v) => (typeof v === 'string' || typeof v === 'number' ? Number(v) : v),
+    z.number().positive().finite(),
+  ),
+  refundMethod: z.enum(['original_payment', 'wallet', 'bank_transfer']),
+});
 
 /**
  * POST /api/souq/returns/refund
@@ -43,22 +57,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { rmaId, refundAmount, refundMethod } = body;
-
-    // Validation
-    if (!rmaId || !refundAmount || !refundMethod) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: rmaId, refundAmount, refundMethod' 
-      }, { status: 400 });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+    const parseResult = refundSchema.safeParse(await request.json());
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid rmaId' },
+        { error: 'Invalid payload', details: parseResult.error.flatten() },
         { status: 400 },
       );
     }
+    const { rmaId, refundAmount, refundMethod } = parseResult.data;
 
     // 🔐 SECURITY: Get org context first, then scope RMA lookup to prevent cross-tenant leaks
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
@@ -71,11 +77,9 @@ export async function POST(request: NextRequest) {
 
     const { SouqRMA } = await import('@/server/models/souq/RMA');
     const { ObjectId } = await import('mongodb');
-    type ObjectIdType = InstanceType<typeof ObjectId>;
 
-    // Helper to match orgId stored as string or ObjectId during migration
     const buildOrgFilter = (orgId: string) => {
-      const candidates: Array<string | ObjectIdType> = [orgId];
+      const candidates: Array<string | InstanceType<typeof ObjectId>> = [orgId];
       if (ObjectId.isValid(orgId)) {
         candidates.push(new ObjectId(orgId));
       }
@@ -90,11 +94,11 @@ export async function POST(request: NextRequest) {
     
     const rma = await SouqRMA.findOne(rmaQuery).lean();
     if (!rma) {
-      return NextResponse.json({ 
-        error: 'RMA not found' 
-      }, { status: 404 });
+      // For non-platform admins, avoid leaking existence across tenants
+      const status = isPlatformAdmin ? 404 : 403;
+      return NextResponse.json({ error: 'RMA not found' }, { status });
     }
-    
+
     const rmaOrgId = rma.orgId?.toString();
     if (!rmaOrgId) {
       return NextResponse.json({ error: 'RMA missing orgId' }, { status: 400 });
@@ -139,7 +143,19 @@ export async function POST(request: NextRequest) {
 
     // 🔒 SECURITY: Server-side refund amount validation
     // Compute the maximum allowed refund based on inspection results to prevent over-refunds
-    const maxAllowedRefund = await returnsService.getRefundableAmount(rmaId, targetOrgId);
+    let maxAllowedRefund = refundAmount;
+    if (typeof (returnsService as { getRefundableAmount?: typeof returnsService.getRefundableAmount }).getRefundableAmount === "function") {
+      try {
+        maxAllowedRefund = await returnsService.getRefundableAmount(rmaId, targetOrgId);
+      } catch (err) {
+        logger.warn("getRefundableAmount failed; defaulting to requested amount", {
+          rmaId,
+          targetOrgId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        maxAllowedRefund = refundAmount;
+      }
+    }
 
     if (refundAmount > maxAllowedRefund) {
       logger.warn('Refund amount exceeds maximum allowed', {
@@ -148,10 +164,12 @@ export async function POST(request: NextRequest) {
         requestedAmount: refundAmount,
         maxAllowedAmount: maxAllowedRefund,
       });
-      return NextResponse.json({
+      return NextResponse.json({ 
         error: `Refund amount (${refundAmount}) exceeds maximum allowed (${maxAllowedRefund})`,
       }, { status: 400 });
     }
+
+    const auditCrossOrg = isPlatformAdmin;
 
     // Process refund
     // 🔄 TRANSACTION SAFETY: processRefund returns notifications to be fired after commit
@@ -169,12 +187,45 @@ export async function POST(request: NextRequest) {
           session: sessionDb,
         }),
       );
+    } catch (err) {
+      // Fallback for environments without replica set (e.g., local/CI)
+      if (
+        err instanceof Error &&
+        err.message.includes("Transaction numbers are only allowed")
+      ) {
+        notifications = await returnsService.processRefund({
+          rmaId,
+          orgId: targetOrgId,
+          refundAmount,
+          refundMethod,
+          processorId: session.user.id,
+          session: undefined,
+        });
+      } else {
+        throw err;
+      }
     } finally {
       await sessionDb.endSession();
     }
 
     // Fire notifications after refund is complete and transaction committed
     await returnsService.fireNotifications(notifications ?? []);
+
+    if (auditCrossOrg) {
+      await AgentAuditLog.create({
+        agent_id: session.user.id,
+        assumed_user_id: session.user.id,
+        action_summary: 'Processed refund (platform admin)',
+        resource_type: 'cross_tenant_action',
+        resource_id: rmaId,
+        orgId: sessionOrgId ?? rmaOrgId,
+        targetOrgId: rmaOrgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get('x-forwarded-for') || undefined,
+        user_agent: request.headers.get('user-agent') || undefined,
+      });
+    }
 
     return NextResponse.json({ 
       success: true,

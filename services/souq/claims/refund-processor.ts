@@ -10,6 +10,7 @@ export interface RefundRequest {
   orderId: string;
   buyerId: string;
   sellerId: string;
+  orgId: string; // 🔐 Tenant context for notifications
   amount: number;
   reason: string;
   originalPaymentMethod: string;
@@ -46,6 +47,7 @@ export interface Refund {
   orderId: string;
   buyerId: string;
   sellerId: string;
+  orgId: string; // 🔐 Tenant context for notifications
   amount: number;
   reason: string;
   paymentMethod: string;
@@ -77,6 +79,9 @@ export class RefundProcessor {
    * Process refund for approved claim
    */
   static async processRefund(request: RefundRequest): Promise<RefundResult> {
+    if (!request.orgId) {
+      throw new Error("orgId is required to process claim refund");
+    }
     const collection = await this.collection();
 
     // Create refund record
@@ -88,6 +93,7 @@ export class RefundProcessor {
       orderId: request.orderId,
       buyerId: request.buyerId,
       sellerId: request.sellerId,
+      orgId: request.orgId, // 🔐 Tenant context for notifications
       amount: request.amount,
       reason: request.reason,
       paymentMethod: request.originalPaymentMethod,
@@ -117,7 +123,7 @@ export class RefundProcessor {
       }
 
       // Notify parties
-      await this.notifyRefundStatus(request.buyerId, request.sellerId, result);
+      await this.notifyRefundStatus(request.buyerId, request.sellerId, result, request.orgId);
 
       return result;
     } catch (_error) {
@@ -404,11 +410,13 @@ export class RefundProcessor {
   private static async notifyRefundStatus(
     buyerId: string,
     sellerId: string,
-    result: RefundResult
+    result: RefundResult,
+    orgId: string
   ): Promise<void> {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-refund-status', {
       buyerId,
       sellerId,
+      orgId, // 🔐 Tenant context for branding/routing
       refundId: result.refundId,
       status: result.status,
       amount: result.amount,

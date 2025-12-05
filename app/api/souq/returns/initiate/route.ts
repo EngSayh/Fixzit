@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import { z } from "zod";
+
+const InitiateSchema = z.object({
+  orderId: z.string().trim().min(1),
+  items: z
+    .array(
+      z.object({
+        listingId: z.string().trim().min(1),
+        quantity: z.coerce.number().int().positive(),
+        reason: z.enum([
+          "damaged",
+          "defective",
+          "wrong_item",
+          "not_as_described",
+          "changed_mind",
+          "better_price",
+          "other",
+        ]),
+        comments: z.string().trim().min(1).optional(),
+      }),
+    )
+    .min(1, "At least one item is required"),
+  buyerPhotos: z.array(z.string().trim().min(1)).optional(),
+});
 
 /**
  * POST /api/souq/returns/initiate
@@ -23,31 +47,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { orderId, items, buyerPhotos } = body;
-
-    // Validation
-    if (!orderId || !items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Missing required fields: orderId, items (must be non-empty array)",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate item structure
-    for (const item of items) {
-      if (!item.listingId || !item.quantity || !item.reason) {
-        return NextResponse.json(
-          {
-            error: "Each item must have: listingId, quantity, reason",
-          },
-          { status: 400 },
-        );
+    let payload: z.infer<typeof InitiateSchema>;
+    try {
+      payload = InitiateSchema.parse(await request.json());
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const message =
+          error.issues.map((issue) => issue.message).join("; ") ||
+          "Invalid request payload";
+        return NextResponse.json({ error: message }, { status: 400 });
       }
+      throw error;
     }
+
+    const { orderId, items, buyerPhotos } = payload;
 
     // Initiate return
     const rmaId = await returnsService.initiateReturn({

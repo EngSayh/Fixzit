@@ -205,14 +205,15 @@ describe("returnsService", () => {
       },
     );
 
-    await returnsService.inspectReturn({
-      rmaId,
-      orgId: testOrgId,
-      inspectorId: "SYSTEM",
-      condition: "good",
-      restockable: true,
-      inspectionNotes: "Looks fine",
-    });
+  await returnsService.inspectReturn({
+    rmaId,
+    orgId: testOrgId,
+    inspectorId: "SYSTEM",
+    condition: "good",
+    restockable: true,
+    inspectionNotes: "Looks fine",
+    allowAutoRefund: true,
+  });
 
     const updated = await SouqRMA.findById(rmaId).lean();
     expect(updated?.status).toBe("completed");
@@ -376,6 +377,89 @@ describe("returnsService", () => {
       expect(stats.returnRate).toBe(100); // one return / one delivered order in orgA
       expect(stats.topReasons[0]?.reason).toBe("defective");
       expect(stats.avgRefundAmount).toBeCloseTo(50);
+    });
+  });
+
+  describe("refund safeguards and tenant isolation", () => {
+    it("rejects getRefundableAmount for cross-tenant access", async () => {
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+      const { order, listingId, buyerId } = await seedOrder({
+        orgId: orgA,
+        sellerId: new Types.ObjectId(),
+        buyerId: new Types.ObjectId(),
+        quantity: 1,
+        price: 75,
+      });
+
+      const rmaId = await returnsService.initiateReturn({
+        orderId: order._id.toString(),
+        buyerId: buyerId,
+        orgId: orgA.toString(),
+        items: [
+          {
+            listingId,
+            quantity: 1,
+            reason: "defective",
+          },
+        ],
+      });
+
+      await SouqRMA.updateOne(
+        { _id: rmaId },
+        {
+          status: "inspected",
+          inspection: { condition: "good", restockable: true },
+        },
+      );
+
+      await expect(
+        returnsService.getRefundableAmount(rmaId, orgB.toString()),
+      ).rejects.toThrow("RMA not found");
+    });
+
+    it("rejects processRefund when orgId does not match the RMA tenant", async () => {
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+      const { order, listingId, buyerId, price } = await seedOrder({
+        orgId: orgA,
+        sellerId: new Types.ObjectId(),
+        buyerId: new Types.ObjectId(),
+        quantity: 1,
+        price: 80,
+      });
+
+      const rmaId = await returnsService.initiateReturn({
+        orderId: order._id.toString(),
+        buyerId,
+        orgId: orgA.toString(),
+        items: [
+          {
+            listingId,
+            quantity: 1,
+            reason: "not_as_described",
+          },
+        ],
+      });
+
+      await SouqRMA.updateOne(
+        { _id: rmaId },
+        {
+          status: "inspected",
+          inspection: { condition: "good", restockable: true },
+          refund: { amount: price, method: "original_payment", status: "pending" },
+        },
+      );
+
+      await expect(
+        returnsService.processRefund({
+          rmaId,
+          refundAmount: price,
+          refundMethod: "original_payment",
+          processorId: "admin-1",
+          orgId: orgB.toString(),
+        }),
+      ).rejects.toThrow();
     });
   });
 });

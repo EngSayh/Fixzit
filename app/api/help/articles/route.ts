@@ -17,6 +17,7 @@ interface UserWithAuth {
   permissions?: string[];
   roles?: string[];
   role?: string;
+  subRole?: string | null;
 }
 
 interface MongoTextFilter extends Document {
@@ -111,12 +112,7 @@ export async function GET(req: NextRequest) {
     const canModerate =
       (Array.isArray(userWithAuth?.permissions) &&
         userWithAuth.permissions.includes("help:moderate")) ||
-      (Array.isArray(userWithAuth?.roles) &&
-        userWithAuth.roles.includes("ADMIN")) ||
-      (userWithAuth?.role &&
-        ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(
-          userWithAuth.role,
-        ));
+      ["SUPER_ADMIN", "ADMIN"].includes(userWithAuth.role ?? "");
     const status =
       canModerate && requestedStatus ? requestedStatus : "PUBLISHED";
     const rawPage = Number(sp.get("page"));

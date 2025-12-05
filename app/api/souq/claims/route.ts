@@ -29,6 +29,18 @@ function mapReasonToType(reason: string): ClaimType {
   return "item_not_received";
 }
 
+const buildOrgFilter = (orgId: string | ObjectId) => {
+  const candidates: Array<string | ObjectId> = [];
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  if (orgString) {
+    candidates.push(orgString);
+    if (ObjectId.isValid(orgString)) {
+      candidates.push(new ObjectId(orgString));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
 /**
  * POST /api/souq/claims
  * File a new A-to-Z claim
@@ -45,6 +57,13 @@ export async function POST(request: NextRequest) {
     const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -74,7 +93,7 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase();
     const order = await db
       .collection(COLLECTIONS.ORDERS)
-      .findOne({ _id: orderObjectId });
+      .findOne({ _id: orderObjectId, ...buildOrgFilter(orgId) });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }
@@ -97,6 +116,7 @@ export async function POST(request: NextRequest) {
     const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
     const existingClaim = await claimsCollection.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
+      $or: [buildOrgFilter(orgId), { orgId: { $exists: false } }],
       status: {
         $nin: [
           "withdrawn",
@@ -149,6 +169,7 @@ export async function POST(request: NextRequest) {
 
     const recentClaimsCount = await claimsCollection.countDocuments({
       buyerId: { $in: buyerIdFilter },
+      $or: [buildOrgFilter(orgId), { orgId: { $exists: false } }],
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
     });
 
@@ -168,6 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     const claim = await ClaimService.createClaim({
+      orgId,
       orderId: orderObjectId.toString(),
       buyerId: session.user.id,
       sellerId,

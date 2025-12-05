@@ -10,6 +10,30 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { z } from "zod";
+import { isValidObjectId } from "@/lib/utils/object-id";
+
+const ApproveSchema = z
+  .object({
+    rmaId: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((val) => isValidObjectId(val), { message: "Invalid rmaId" }),
+    approve: z.coerce.boolean(),
+    approvalNotes: z.string().trim().optional(),
+    rejectionReason: z.string().trim().optional(),
+    targetOrgId: z.string().trim().min(1).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.approve && !data.rejectionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "rejectionReason is required when approve is false",
+        path: ["rejectionReason"],
+      });
+    }
+  });
 
 /**
  * POST /api/souq/returns/approve
@@ -48,15 +72,19 @@ export async function POST(request: NextRequest) {
 
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
-    const body = await request.json();
-    const { rmaId, approve, approvalNotes, rejectionReason, targetOrgId } = body;
-
-    if (!rmaId) {
-      return NextResponse.json(
-        { error: "Missing required field: rmaId" },
-        { status: 400 },
-      );
+    let payload: z.infer<typeof ApproveSchema>;
+    try {
+      payload = ApproveSchema.parse(await request.json());
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const message =
+          error.issues.map((issue) => issue.message).join("; ") ||
+          "Invalid request payload";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+      throw error;
     }
+    const { rmaId, approve, approvalNotes, rejectionReason, targetOrgId } = payload;
 
     // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
     if (isPlatformAdmin && !sessionOrgId && !targetOrgId) {
@@ -72,6 +100,7 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
+    const scopedOrgId = orgId as string;
 
     const actorId = session.user.id;
     const actorRole = session.user.role;
@@ -85,7 +114,7 @@ export async function POST(request: NextRequest) {
         action_summary: action,
         resource_type: "cross_tenant_action",
         resource_id: rmaId,
-        orgId,
+        orgId: scopedOrgId,
         targetOrgId: targetOrgId ?? sessionOrgId,
         request_path: request.nextUrl.pathname,
         success: true,
@@ -97,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (approve) {
       await returnsService.approveReturn({
         rmaId,
-        orgId,
+        orgId: scopedOrgId,
         adminId: actorId,
         approvalNotes,
       });
@@ -108,7 +137,7 @@ export async function POST(request: NextRequest) {
         actorUserId: actorId,
         actorRole,
         rmaId,
-        targetOrgId: orgId,
+        targetOrgId: scopedOrgId,
         crossOrg: auditCrossOrg,
       });
 
@@ -118,9 +147,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Schema validation guarantees rejectionReason is present when approve is false
+    // Adding explicit guard for TypeScript type narrowing
     if (!rejectionReason) {
       return NextResponse.json(
-        { error: "Missing required field: rejectionReason" },
+        { error: "Rejection reason is required when rejecting a return" },
         { status: 400 },
       );
     }
@@ -129,7 +160,7 @@ export async function POST(request: NextRequest) {
       rmaId,
       actorId,
       rejectionReason,
-      orgId,
+      scopedOrgId,
     );
 
     await logCrossOrgAudit("Rejected return across org boundary");
@@ -138,7 +169,7 @@ export async function POST(request: NextRequest) {
       actorUserId: actorId,
       actorRole,
       rmaId,
-      targetOrgId: orgId,
+      targetOrgId: scopedOrgId,
       crossOrg: auditCrossOrg,
     });
 

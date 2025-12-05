@@ -14,6 +14,7 @@ import type { IOrder } from "@/server/models/souq/Order";
 import { SouqListing as Listing } from "@/server/models/souq/Listing";
 import { inventoryService } from "./inventory-service";
 import { fulfillmentService } from "./fulfillment-service";
+import { Config } from "@/lib/config/constants";
 import { addJob, QUEUE_NAMES, type QueueName } from "@/lib/queues/setup";
 import { nanoid } from "nanoid";
 import mongoose from "mongoose";
@@ -74,6 +75,7 @@ interface InspectReturnParams {
   inspectionPhotos?: string[];
   orgId: string; // 🔒 Required for tenant isolation
   session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
+  allowAutoRefund?: boolean; // 🔐 Optional: only true for system/finance flows
 }
 
 interface ProcessRefundParams {
@@ -157,11 +159,12 @@ class ReturnsService {
     }
 
     // Check if already returned
+    const orgScope = orderOrgId ? buildOrgFilter(orderOrgId) : buildOrgFilter(orgId);
     const existingRMA = await RMA.findOne({ 
       orderId: order._id.toString(), 
       'items.listingId': listingId,
       status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] },
-      ...(orderOrgId ? { orgId: orderOrgId } : {}),
+      ...orgScope,
     }).lean();
 
     if (existingRMA) {
@@ -463,25 +466,27 @@ class ReturnsService {
       throw new Error(`Order not found for RMA ${rma.orderId}`);
     }
     
-    // Get buyer's address from order
-    const _destination = order.shippingAddress;
-    
+    const firstItem = Array.isArray(rma.items) ? rma.items[0] : undefined;
+    if (!firstItem?.listingId) {
+      throw new Error('RMA missing items; cannot generate return label');
+    }
+
     // Get seller's address (or warehouse for FBF) with tenant isolation
     const listing = await Listing.findOne({
-      _id: rma.items[0].listingId,
-      orgId: rmaOrgId,
+      _id: firstItem.listingId,
+      ...buildOrgFilter(rmaOrgId),
     });
     if (!listing) {
       throw new Error("Listing not found for org; cannot generate return label");
     }
     // warehouseLocation is a string field, not an address object
     const origin = {
-      name: 'Fixzit Returns Center',
-      street: '123 Warehouse St',
-      city: listing?.warehouseLocation || 'Riyadh',
-      state: 'Riyadh Province',
-      postalCode: '11564',
-      country: 'SA'
+      name: Config.returns.originName,
+      street: Config.returns.originStreet,
+      city: listing?.warehouseLocation || Config.returns.originCity,
+      state: Config.returns.originState,
+      postalCode: Config.returns.originPostalCode,
+      country: Config.returns.originCountry,
     };
 
     // Calculate total weight
@@ -510,15 +515,18 @@ class ReturnsService {
       : 0;
 
     // In production, this would call the actual carrier API
+    const baseLabelUrl =
+      (Config.returns.labelBaseUrl || Config.app.url || "http://localhost:3000").replace(/\/+$/, "");
     const label = {
       trackingNumber: `RET-${Date.now()}-${rma._id.toString().slice(-6).toUpperCase()}`,
-      labelUrl: `https://returns.fixzit.sa/labels/${rma._id}.pdf`,
+      labelUrl: `${baseLabelUrl}/returns/labels/${rma._id}.pdf`,
       carrier: splRate.carrier
     };
 
-    // Update RMA with label info
+    // Update RMA status + timeline using model helper, then persist shipping cost
+    rma.generateLabel(label.carrier, label.trackingNumber, label.labelUrl);
     rma.shipping = {
-      ...(rma.shipping || { shippingCost, paidBy: 'seller' }),
+      ...(rma.shipping || { paidBy: "seller" }),
       shippingCost,
       carrier: label.carrier,
       trackingNumber: label.trackingNumber,
@@ -625,7 +633,7 @@ class ReturnsService {
    * This prevents duplicate/phantom notifications on transaction retries or aborts.
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
-    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId } = params;
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, allowAutoRefund = false } = params;
 
     if (!orgId) {
       throw new Error('orgId is required for inspect return');
@@ -651,6 +659,7 @@ class ReturnsService {
           orgId,
           now,
           session,
+          allowAutoRefund,
         });
       });
       
@@ -668,6 +677,7 @@ class ReturnsService {
           inspectionPhotos,
           orgId,
           now,
+          allowAutoRefund,
           session: undefined,
         });
         // Fire notifications after non-transactional execution
@@ -705,8 +715,9 @@ class ReturnsService {
     orgId: string;
     now: Date;
     session?: mongoose.ClientSession;
+    allowAutoRefund?: boolean;
   }): Promise<PendingNotification[]> {
-    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session } = params;
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session, allowAutoRefund } = params;
 
     // 🔄 TRANSACTION SAFETY: Collect notifications to return (not fire directly)
     const pendingNotifications: PendingNotification[] = [];
@@ -717,7 +728,7 @@ class ReturnsService {
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId, 
-        orgId,  // 🔐 Tenant isolation
+        ...buildOrgFilter(orgId),  // 🔐 Tenant isolation (string/ObjectId safe)
         status: 'received'  // Atomic condition - prevents double-inspection
       },
       { 
@@ -783,11 +794,12 @@ class ReturnsService {
         photosUrls: inspectionPhotos,
       };
       rmaDoc.status = 'inspected';
+      const inspectionRefundStatus = allowAutoRefund ? 'processing' : 'pending';
       if (rmaDoc.refund) {
-        rmaDoc.refund.status = 'processing';
+        rmaDoc.refund.status = inspectionRefundStatus;
       } else {
         rmaDoc.refund = {
-          status: 'processing',
+          status: inspectionRefundStatus,
           amount: 0,
           method: 'original_payment',
         };
@@ -840,7 +852,7 @@ class ReturnsService {
     
     // Auto-process refund for approved returns (within transaction)
     // 🔄 TRANSACTION SAFETY: Collect refund notifications to merge with inspection notifications
-    if (refundAmount > 0) {
+    if (refundAmount > 0 && allowAutoRefund) {
       const refundNotifications = await this.processRefund({
         rmaId,
         refundAmount,
@@ -1000,7 +1012,7 @@ class ReturnsService {
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId,
-        orgId,
+        ...buildOrgFilter(orgId),
         status: 'inspected'  // Atomic condition - prevents double-processing
       },
       { 
@@ -1025,8 +1037,8 @@ class ReturnsService {
     if (!rma) {
       // Either RMA doesn't exist or it's not in 'inspected' status (already processing/completed)
       const existing = session 
-        ? await RMA.findOne({ _id: rmaId, orgId }).session(session).lean()
-        : await RMA.findOne({ _id: rmaId, orgId }).lean();
+        ? await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).session(session).lean()
+        : await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -1145,8 +1157,8 @@ class ReturnsService {
     // 💡 OPTIMIZATION: Use .lean() for read-only stats query
     const returns = await RMA.find({
       sellerId: sellerId.toString(),
-      orgId,
-      createdAt: { $gte: startDate }
+      createdAt: { $gte: startDate },
+      ...buildOrgFilter(orgId),
     }).lean();
 
     const totalReturns = returns.length;
@@ -1154,9 +1166,9 @@ class ReturnsService {
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
       'items.sellerId': sellerObjectId,
-      orgId,
       status: 'delivered',
-      deliveredAt: { $gte: startDate }
+      deliveredAt: { $gte: startDate },
+      ...buildOrgFilter(orgId),
     });
 
     const returnRate = totalOrders > 0 ? (totalReturns / totalOrders) * 100 : 0;
@@ -1201,7 +1213,11 @@ class ReturnsService {
   /**
    * Get buyer's return history
    */
-  async getBuyerReturnHistory(buyerId: string, orgId: string): Promise<Array<{
+  async getBuyerReturnHistory(
+    buyerId: string,
+    orgId: string,
+    options?: { page?: number; limit?: number },
+  ): Promise<Array<{
     rmaId: string;
     orderId: string;
     status: string;
@@ -1213,15 +1229,20 @@ class ReturnsService {
       throw new Error('orgId is required to fetch buyer return history');
     }
 
+    const page = options?.page && options.page > 0 ? options.page : 1;
+    const limit = options?.limit && options.limit > 0 ? Math.min(options.limit, 200) : 50;
+    const skip = (page - 1) * limit;
+
     // 🔐 NOTE: buyerId is stored as string in RMA schema, not ObjectId
     // 💡 OPTIMIZATION: Use .lean() and projection for read-only query
     const returns = await RMA.find({
       buyerId: buyerId.toString(),
-      orgId,
+      ...buildOrgFilter(orgId),
     })
       .select({ orderId: 1, status: 1, createdAt: 1, items: 1, refund: 1 })
       .sort({ createdAt: -1 })
-      .limit(50)
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     return returns.map((rma: unknown) => {
@@ -1302,8 +1323,8 @@ class ReturnsService {
     
     const query: Record<string, unknown> = {
       status: 'initiated',
-      orgId,
-      createdAt: { $lt: twoDaysAgo }
+      createdAt: { $lt: twoDaysAgo },
+      ...buildOrgFilter(orgId),
     };
 
     logger.info(`[ReturnsService] Auto-escalating pending returns for org ${orgId}`);
@@ -1343,12 +1364,13 @@ class ReturnsService {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const jobId = `auto-complete-${Date.now()}`;  // Unique job identifier for tracking
 
-    // Build query with optional orgId scoping
+    // Build query with optional orgId scoping (string/ObjectId safe)
+    const baseOrgFilter = buildOrgFilter(orgId);
     const baseQuery: Record<string, unknown> = {
       status: 'received',
-      orgId,
       updatedAt: { $lt: sevenDaysAgo },
-      autoProcessingJobId: { $exists: false }  // Not already claimed by another job
+      autoProcessingJobId: { $exists: false },  // Not already claimed by another job
+      ...baseOrgFilter,
     };
     
     logger.info(`[ReturnsService] Auto-completing received returns for org ${orgId}`);
@@ -1369,7 +1391,7 @@ class ReturnsService {
     // Now fetch only the RMAs claimed by this job instance
     const receivedReturns = await RMA.find({
       autoProcessingJobId: jobId,
-      orgId,
+      ...baseOrgFilter,
     });
 
     let completed = 0;
@@ -1389,8 +1411,9 @@ class ReturnsService {
           }, { priority: 3 });
           
           // Clear the job claim so it can be picked up by manual review
+          const resetOrgFilter = buildOrgFilter(orgId);
           await RMA.updateOne(
-            { _id: rma._id, orgId },
+            { _id: rma._id, ...resetOrgFilter },
             { $unset: { autoProcessingJobId: 1 } }
           );
           continue;
@@ -1398,11 +1421,12 @@ class ReturnsService {
 
         // Auto-inspect as "good" condition, restockable
         // 🔐 Pass orgId from the RMA record for tenant isolation
-        const rmaOrgId = (rma as { orgId?: string }).orgId || orgId;
+        const rmaOrgIdRaw = (rma as { orgId?: string | mongoose.Types.ObjectId }).orgId || orgId;
+        const rmaOrgId = rmaOrgIdRaw ? rmaOrgIdRaw.toString() : undefined;
         if (!rmaOrgId) {
           logger.error(`[ReturnsService] Cannot auto-inspect RMA ${rma._id}: missing orgId`);
           await RMA.updateOne(
-            { _id: rma._id, orgId },
+            { _id: rma._id, ...baseOrgFilter },
             { $unset: { autoProcessingJobId: 1 } }
           );
           continue;
@@ -1414,19 +1438,33 @@ class ReturnsService {
           condition: 'good',
           restockable: true,
           inspectionNotes: 'Auto-inspected after 7 days - assumed good condition',
-          orgId: rmaOrgId
+          orgId: rmaOrgId,
         });
+
+        // Queue finance review task to ensure manual refund processing after auto-inspection
+        await addJob(QUEUE_NAMES.REFUNDS, 'finance-review', {
+          rmaId: rma._id.toString(),
+          orgId: rmaOrgId,
+        });
+
+        // Notify finance/internal to process refund manually (no auto-refund in auto-complete flow)
+        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+          type: 'internal',
+          to: 'finance-team',
+          orgId: rmaOrgId,
+          message: `RMA ${rma._id} auto-inspected; refund requires finance review`,
+        }, { priority: 2 });
         
         // Clear the job claim on success
         await RMA.updateOne(
-          { _id: rma._id, orgId },
+          { _id: rma._id, ...baseOrgFilter },
           { $unset: { autoProcessingJobId: 1 } }
         );
         completed++;
       } catch (error) {
         // Clear the job claim on error so it can be retried
         await RMA.updateOne(
-          { _id: rma._id, orgId },
+          { _id: rma._id, ...baseOrgFilter },
           { $unset: { autoProcessingJobId: 1 } }
         );
         // Log but continue processing other RMAs

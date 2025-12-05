@@ -8,6 +8,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
 
 /**
  * GET /api/souq/returns/[rmaId]
@@ -25,6 +26,13 @@ export async function GET(
     }
 
     const { rmaId } = params;
+
+    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
+        { status: 400 },
+      );
+    }
 
     // 🔐 STRICT v4.1: Use canonical Role enum with subRole enforcement
     const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;

@@ -39,6 +39,7 @@ export type DecisionOutcome =
 
 export interface Claim {
   _id?: ObjectId;
+  orgId: string; // 🔐 Required for tenant isolation
   claimId: string;
   orderId: string;
   buyerId: string;
@@ -141,6 +142,7 @@ export interface Appeal {
 }
 
 export interface CreateClaimInput {
+  orgId: string; // 🔐 Required for tenant isolation
   orderId: string;
   buyerId: string;
   sellerId: string;
@@ -237,6 +239,7 @@ export class ClaimService {
 
     const claim: Claim = {
       _id,
+      orgId: input.orgId,
       claimId,
       orderId: input.orderId,
       buyerId: input.buyerId,
@@ -267,6 +270,7 @@ export class ClaimService {
       buyerId: input.buyerId,
       orderId: input.orderId,
       priority,
+      orgId: input.orgId, // 🔐 Tenant-scoped notification routing
     });
 
     return claim;
@@ -468,6 +472,7 @@ export class ClaimService {
       claimId: input.claimId,
       buyerId: claim.buyerId,
       sellerId: claim.sellerId,
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
       outcome: input.outcome,
       refundAmount: input.refundAmount,
     });
@@ -522,6 +527,7 @@ export class ClaimService {
     // Notify admin team for manual review
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
       to: "souq-claims-admins",
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
       priority: "high",
       message: `Claim ${claimId} was appealed by the ${appealedBy}.`,
       metadata: {

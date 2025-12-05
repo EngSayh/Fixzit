@@ -18,6 +18,27 @@ import { SouqTransaction } from "@/server/models/souq/Transaction";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import mongoose from "mongoose";
 
+// Helper to match orgId stored as string or ObjectId
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+const parseSellerObjectId = (sellerId: string): mongoose.Types.ObjectId => {
+  if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+    throw new Error("Invalid sellerId");
+  }
+  return new mongoose.Types.ObjectId(sellerId);
+};
+
 export interface IAccountHealthMetrics {
   // Performance Metrics
   odr: number; // Order Defect Rate (%)
@@ -71,17 +92,22 @@ class AccountHealthService {
    */
   async calculateAccountHealth(
     sellerId: string,
+    orgId: string,
     period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
   ): Promise<IAccountHealthMetrics> {
+    if (!orgId) {
+      throw new Error("orgId is required to calculate account health");
+    }
+
+    const sellerObjectId = parseSellerObjectId(sellerId);
     const periodDays =
       period === "last_7_days" ? 7 : period === "last_30_days" ? 30 : 90;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
     // Get orders in period
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
-
     const orders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: { $nin: ["pending", "payment_failed"] }, // Exclude incomplete orders
     });
@@ -109,16 +135,18 @@ class AccountHealthService {
     }
 
     // Calculate metrics
-    const odr = await this.calculateODR(sellerId, startDate);
+    const odr = await this.calculateODR(sellerId, orgId, startDate);
     const lateShipmentRate = await this.calculateLateShipmentRate(
       sellerId,
+      orgId,
       startDate,
     );
     const cancellationRate = await this.calculateCancellationRate(
       sellerId,
+      orgId,
       startDate,
     );
-    const returnRate = await this.calculateReturnRate(sellerId, startDate);
+    const returnRate = await this.calculateReturnRate(sellerId, orgId, startDate);
 
     // Counts
     const totalDefects = Math.floor((odr / 100) * totalOrders);
@@ -165,12 +193,18 @@ class AccountHealthService {
    */
   private async calculateODR(
     sellerId: string,
+    orgId: string,
     startDate: Date,
   ): Promise<number> {
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to calculate ODR");
+    }
+
+    const sellerObjectId = parseSellerObjectId(sellerId);
 
     const totalOrders = await SouqOrder.countDocuments({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: { $nin: ["pending", "payment_failed"] },
     });
@@ -180,6 +214,7 @@ class AccountHealthService {
     // Count negative feedback (1-2 stars)
     const sellerProductIds = (await SouqListing.distinct("productId", {
       sellerId: sellerObjectId,
+      ...buildOrgFilter(orgId),
     })) as mongoose.Types.ObjectId[];
 
     const negativeFeedback =
@@ -187,6 +222,7 @@ class AccountHealthService {
         ? 0
         : await SouqReview.countDocuments({
             productId: { $in: sellerProductIds },
+            ...buildOrgFilter(orgId),
             createdAt: { $gte: startDate },
             rating: { $lte: 2 },
           });
@@ -195,6 +231,7 @@ class AccountHealthService {
     const { SouqClaim } = await import("@/server/models/souq/Claim");
     const approvedClaims = await SouqClaim.countDocuments({
       sellerId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: "resolved",
       "decision.outcome": { $in: ["approved", "partial_refund"] },
@@ -203,6 +240,7 @@ class AccountHealthService {
     // Count chargebacks (if tracked in orders)
     const chargebacks = await SouqTransaction.countDocuments({
       sellerId: sellerObjectId,
+      ...buildOrgFilter(orgId),
       type: "chargeback",
       createdAt: { $gte: startDate },
     });
@@ -220,12 +258,14 @@ class AccountHealthService {
    */
   private async calculateLateShipmentRate(
     sellerId: string,
+    orgId: string,
     startDate: Date,
   ): Promise<number> {
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+    const sellerObjectId = parseSellerObjectId(sellerId);
 
     const shippedOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: { $in: ["shipped", "delivered"] },
     });
@@ -264,12 +304,14 @@ class AccountHealthService {
    */
   private async calculateCancellationRate(
     sellerId: string,
+    orgId: string,
     startDate: Date,
   ): Promise<number> {
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+    const sellerObjectId = parseSellerObjectId(sellerId);
 
     const totalOrders = await SouqOrder.countDocuments({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: { $nin: ["pending", "payment_failed"] },
     });
@@ -278,6 +320,7 @@ class AccountHealthService {
 
     const cancelledOrders = await SouqOrder.countDocuments({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: "cancelled",
     });
@@ -293,12 +336,14 @@ class AccountHealthService {
    */
   private async calculateReturnRate(
     sellerId: string,
+    orgId: string,
     startDate: Date,
   ): Promise<number> {
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+    const sellerObjectId = parseSellerObjectId(sellerId);
 
     const deliveredOrders = await SouqOrder.countDocuments({
       "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
       status: "delivered",
     });
@@ -307,6 +352,7 @@ class AccountHealthService {
 
     const returns = await SouqRMA.countDocuments({
       sellerId,
+      ...buildOrgFilter(orgId),
       createdAt: { $gte: startDate },
     });
 
@@ -386,9 +432,17 @@ class AccountHealthService {
    */
   async recordViolation(
     sellerId: string,
+    orgId: string,
     violation: Omit<IPolicyViolation, "occurredAt" | "resolved">,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to record violation");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) {
       throw new Error("Seller not found");
     }
@@ -408,7 +462,7 @@ class AccountHealthService {
 
     // Auto-enforce if critical
     if (violation.severity === "critical") {
-      await this.enforceViolation(sellerId, violation);
+      await this.enforceViolation(sellerId, orgId, violation);
     }
 
     // Notify seller
@@ -431,9 +485,17 @@ class AccountHealthService {
    */
   private async enforceViolation(
     sellerId: string,
+    orgId: string,
     violation: Omit<IPolicyViolation, "occurredAt" | "resolved">,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to enforce violation");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) return;
 
     switch (violation.action) {
@@ -441,7 +503,7 @@ class AccountHealthService {
         // Suppress all active listings
         const { SouqListing } = await import("@/server/models/souq/Listing");
         await SouqListing.updateMany(
-          { sellerId: new mongoose.Types.ObjectId(sellerId), status: "active" },
+          { sellerId: parseSellerObjectId(sellerId), status: "active" },
           {
             $set: {
               status: "suppressed",
@@ -478,6 +540,7 @@ class AccountHealthService {
       "internal-notification",
       {
         to: "seller-compliance-team",
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing for compliance alerts
         priority: "high",
         message: `Policy enforcement: ${violation.action} for ${seller.tradeName || seller.legalName} (${sellerId})`,
       },
@@ -490,6 +553,7 @@ class AccountHealthService {
    */
   async getHealthSummary(
     sellerId: string,
+    orgId: string,
     period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
   ): Promise<{
     current: IAccountHealthMetrics;
@@ -497,14 +561,21 @@ class AccountHealthService {
     recentViolations: IPolicyViolation[];
     recommendations: string[];
   }> {
+    if (!orgId) {
+      throw new Error("orgId is required to get health summary");
+    }
+
     // Current metrics for specified period
-    const current = await this.calculateAccountHealth(sellerId, period);
+    const current = await this.calculateAccountHealth(sellerId, orgId, period);
 
     // Simplified trend calculation
-    const trend = await this.calculateTrend(sellerId, current.odr);
+    const trend = await this.calculateTrend(sellerId, orgId, current.odr);
 
     // Recent violations
-    const seller = await SouqSeller.findById(sellerId);
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     const recentViolations =
       seller?.policyViolations
         ?.filter((v) => !v.resolved)
@@ -527,12 +598,16 @@ class AccountHealthService {
    */
   private async calculateTrend(
     sellerId: string,
+    orgId: string,
     currentODR: number,
   ): Promise<"improving" | "stable" | "declining"> {
+    if (!orgId) {
+      throw new Error("orgId is required to calculate trend");
+    }
     // Compare with 60-day period
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
-    const previousODR = await this.calculateODR(sellerId, sixtyDaysAgo);
+    const previousODR = await this.calculateODR(sellerId, orgId, sixtyDaysAgo);
 
     if (currentODR < previousODR - 0.2) return "improving";
     if (currentODR > previousODR + 0.2) return "declining";
@@ -602,8 +677,14 @@ class AccountHealthService {
     let actionsTaken = 0;
 
     for (const seller of activeSellers) {
+      const sellerOrgId = (seller as { orgId?: mongoose.Types.ObjectId | string })
+        .orgId?.toString();
+      if (!sellerOrgId) {
+        continue;
+      }
       const health = await this.calculateAccountHealth(
         seller._id.toString(),
+        sellerOrgId,
         "last_30_days",
       );
 
@@ -614,7 +695,7 @@ class AccountHealthService {
 
         // Auto-suspend if ODR > 2%
         if (health.odr > 2) {
-          await this.recordViolation(seller._id.toString(), {
+          await this.recordViolation(seller._id.toString(), sellerOrgId, {
             type: "high_odr",
             severity: "critical",
             description: `ODR ${health.odr}% exceeds maximum threshold of 2%`,
@@ -624,7 +705,7 @@ class AccountHealthService {
         }
         // Warn if approaching threshold
         else if (health.odr > 1.5) {
-          await this.recordViolation(seller._id.toString(), {
+          await this.recordViolation(seller._id.toString(), sellerOrgId, {
             type: "high_odr",
             severity: "major",
             description: `ODR ${health.odr}% approaching suspension threshold`,

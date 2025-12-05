@@ -184,6 +184,22 @@ export const Config = {
   },
 
   /**
+   * Returns / RMA configuration
+   */
+  returns: {
+    labelBaseUrl: getOptional(
+      "RETURN_LABEL_BASE_URL",
+      getOptional("APP_URL", "http://localhost:3000"),
+    ),
+    originName: getOptional("RETURN_ORIGIN_NAME", "Fixzit Returns Center"),
+    originStreet: getOptional("RETURN_ORIGIN_STREET", "123 Warehouse St"),
+    originCity: getOptional("RETURN_ORIGIN_CITY", "Riyadh"),
+    originState: getOptional("RETURN_ORIGIN_STATE", "Riyadh Province"),
+    originPostalCode: getOptional("RETURN_ORIGIN_POSTAL_CODE", "11564"),
+    originCountry: getOptional("RETURN_ORIGIN_COUNTRY", "SA"),
+  },
+
+  /**
    * NextAuth / Authentication
    */
   auth: {

@@ -9,7 +9,20 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { AgentAuditLog } from "@/server/models/AgentAuditLog";
+import { z } from "zod";
 import mongoose from "mongoose";
+
+const inspectSchema = z.object({
+  rmaId: z.string().trim().min(1),
+  condition: z.enum(["like_new", "good", "acceptable", "damaged", "defective"]),
+  restockable: z.preprocess(
+    (v) => (v === "true" ? true : v === "false" ? false : v),
+    z.boolean(),
+  ),
+  inspectionNotes: z.string().trim().optional(),
+  inspectionPhotos: z.array(z.string().trim()).optional(),
+});
 
 /**
  * POST /api/souq/returns/inspect
@@ -59,39 +72,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { rmaId, condition, restockable, inspectionNotes, inspectionPhotos } =
-      body;
-
-    // Validation
-    if (!rmaId || !condition || restockable === undefined) {
+    const parsed = inspectSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Missing required fields: rmaId, condition, restockable",
-        },
+        { error: "Invalid payload", details: parsed.error.flatten() },
         { status: 400 },
       );
     }
+    const { rmaId, condition, restockable, inspectionNotes, inspectionPhotos } =
+      parsed.data;
 
     if (!mongoose.Types.ObjectId.isValid(rmaId)) {
       return NextResponse.json(
         { error: "Invalid rmaId" },
-        { status: 400 },
-      );
-    }
-
-    const validConditions = [
-      "like_new",
-      "good",
-      "acceptable",
-      "damaged",
-      "defective",
-    ];
-    if (!validConditions.includes(condition)) {
-      return NextResponse.json(
-        {
-          error: `Invalid condition. Must be one of: ${validConditions.join(", ")}`,
-        },
         { status: 400 },
       );
     }
@@ -106,6 +99,22 @@ export async function POST(request: NextRequest) {
       inspectionNotes,
       inspectionPhotos,
     });
+
+    if (isPlatformAdmin) {
+      await AgentAuditLog.create({
+        agent_id: session.user.id,
+        assumed_user_id: session.user.id,
+        action_summary: "Inspected return (platform admin)",
+        resource_type: "souq_rma",
+        resource_id: rmaId,
+        orgId,
+        targetOrgId: orgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    }
 
     return NextResponse.json({
       success: true,

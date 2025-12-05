@@ -5,6 +5,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { isValidObjectId } from "@/lib/utils/object-id";
 
 interface CounterEvidenceEntry {
   type?: string;
@@ -54,6 +55,13 @@ export async function POST(
       );
     }
 
+    if (!isValidObjectId(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid claim id" },
+        { status: 400 },
+      );
+    }
+
     const claim = await ClaimService.getClaim(params.id);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
@@ -89,6 +97,28 @@ export async function POST(
           ? refundAmountInput
           : Number(refundAmountInput ?? fallbackAmount);
       status = "approved";
+
+      // 🔒 SAFETY: Cap refund to the order total to prevent over-refunds
+      const maxAllowedRefund = Number(
+        (orderForScope as { pricing?: { total?: number } })?.pricing?.total ??
+          fallbackAmount ??
+          0,
+      );
+      if (refundAmountNumber > maxAllowedRefund) {
+        return NextResponse.json(
+          {
+            error: `Refund amount (${refundAmountNumber}) exceeds order total (${maxAllowedRefund})`,
+          },
+          { status: 400 },
+        );
+      }
+      if (refundAmountNumber < 0) {
+        return NextResponse.json(
+          { error: "Refund amount must be non-negative" },
+          { status: 400 },
+        );
+      }
+      refundAmountNumber = Math.min(refundAmountNumber, maxAllowedRefund);
     } else if (decisionRaw === "reject") {
       status = "rejected";
       refundAmountNumber = 0;

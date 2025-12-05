@@ -9,6 +9,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { z } from "zod";
 import mongoose from "mongoose";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
@@ -23,6 +24,34 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   }
   return candidates.length ? { orgId: { $in: candidates } } : { orgId };
 };
+
+const querySchema = z.object({
+  type: z.enum(["buyer", "seller", "admin"]).default("buyer"),
+  status: z
+    .enum([
+      "initiated",
+      "approved",
+      "rejected",
+      "label_generated",
+      "in_transit",
+      "received",
+      "inspecting",
+      "inspected",
+      "refund_processing",
+      "completed",
+      "cancelled",
+    ])
+    .optional(),
+  targetOrgId: z.string().trim().min(1).optional(),
+  page: z
+    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
+    .default(1),
+  limit: z
+    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
+    .default(100),
+  sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
+  sortDir: z.enum(["asc", "desc"]).default("desc"),
+});
 
 /**
  * GET /api/souq/returns
@@ -45,7 +74,25 @@ export async function GET(request: NextRequest) {
     const tenantOrgId = orgId;
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
+    const parsedQuery = querySchema.safeParse({
+      type: searchParams.get("type") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+      targetOrgId: searchParams.get("targetOrgId") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+      sortDir: searchParams.get("sortDir") ?? undefined,
+    });
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        { error: "Invalid query params", details: parsedQuery.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const { type, status, targetOrgId, page, limit, sortBy, sortDir } = parsedQuery.data;
+    const safeLimit = Math.min(limit, 200);
+    const skip = (page - 1) * safeLimit;
+    const sort = { [sortBy]: sortDir === "asc" ? 1 : -1 } as const;
 
     const rawSubRole = ((session.user as { subRole?: string | null }).subRole ??
       undefined) as string | undefined;
@@ -75,6 +122,7 @@ export async function GET(request: NextRequest) {
       const returns = await returnsService.getBuyerReturnHistory(
         session.user.id,
         tenantOrgId,
+        { page, limit: safeLimit },
       );
 
       return NextResponse.json({
@@ -89,8 +137,9 @@ export async function GET(request: NextRequest) {
         sellerId: session.user.id,
         ...buildOrgFilter(tenantOrgId),
       })
-        .sort({ createdAt: -1 })
-        .limit(100);
+        .sort(sort)
+        .skip(skip)
+        .limit(safeLimit);
 
       return NextResponse.json({
         success: true,
@@ -100,9 +149,7 @@ export async function GET(request: NextRequest) {
     } else if (type === "admin" && isAdmin) {
       // Get all returns (admin view)
       const { SouqRMA } = await import("@/server/models/souq/RMA");
-      const status = searchParams.get("status");
 
-      const targetOrgId = searchParams.get("targetOrgId") || undefined;
       const scopedOrgId = isPlatformAdmin ? targetOrgId : tenantOrgId;
 
       if (isPlatformAdmin && !targetOrgId) {
@@ -130,8 +177,9 @@ export async function GET(request: NextRequest) {
       // Additional per-user scoping can be added here if we later allow finer-grained permissions.
       
       const returns = await SouqRMA.find(query)
-        .sort({ createdAt: -1 })
-        .limit(100)
+        .sort(sort)
+        .skip(skip)
+        .limit(safeLimit)
         .populate("buyerId", "email name")
         .populate("sellerId", "email businessName");
 

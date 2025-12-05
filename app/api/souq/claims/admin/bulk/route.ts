@@ -8,6 +8,7 @@ import { User } from "@/server/models/User";
 import { Types } from "mongoose";
 import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { isValidObjectId } from "@/lib/utils/object-id";
 
 const ELIGIBLE_STATUSES = [
   "submitted",
@@ -71,6 +72,14 @@ export async function POST(request: NextRequest) {
     if (claimIds.length > 50) {
       return NextResponse.json(
         { error: "Maximum 50 claims can be processed at once" },
+        { status: 400 },
+      );
+    }
+
+    const invalidIds = claimIds.filter((id: unknown) => !isValidObjectId(id));
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid claimIds: ${invalidIds.join(",")}` },
         { status: 400 },
       );
     }
@@ -153,7 +162,38 @@ export async function POST(request: NextRequest) {
 
       try {
         const newStatus = action === "approve" ? "resolved" : "closed";
-        const refundAmount = action === "approve" ? claim.requestedAmount : 0;
+
+        // Fetch order early for validation and payment details (required for refund)
+        let order: IOrder | null = null;
+        if (action === "approve") {
+          order = orderMap.get(String(claim.orderId)) || null;
+          if (!order) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order not found - cannot process refund",
+              stage: "order_lookup",
+            });
+            continue;
+          }
+        }
+
+        // 🔒 SAFETY: Cap refund to order total to prevent over-refund
+        const rawRefundAmount = action === "approve" ? claim.requestedAmount : 0;
+        const maxAllowedRefund =
+          action === "approve" && order?.pricing?.total != null
+            ? order.pricing.total
+            : rawRefundAmount;
+        if (action === "approve" && rawRefundAmount > maxAllowedRefund) {
+          results.failed++;
+          results.errors.push({
+            claimId: claimIdStr,
+            error: `Requested refund (${rawRefundAmount}) exceeds order total (${maxAllowedRefund})`,
+            stage: "validation",
+          });
+          continue;
+        }
+        const refundAmount = Math.min(rawRefundAmount, maxAllowedRefund);
 
         // Validate refund amount
         if (action === "approve" && refundAmount <= 0) {
@@ -166,21 +206,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch order for payment details (required for refund) from pre-loaded map
-        let order: IOrder | null = null;
-        if (action === "approve" && refundAmount > 0) {
-          order = orderMap.get(String(claim.orderId)) || null;
-
-          if (!order) {
-            results.failed++;
-            results.errors.push({
-              claimId: claimIdStr,
-              error: "Order not found - cannot process refund",
-              stage: "order_lookup",
-            });
-            continue;
-          }
-
+        if (action === "approve" && refundAmount > 0 && order) {
           if (!order.payment?.transactionId) {
             results.failed++;
             results.errors.push({
@@ -231,10 +257,15 @@ export async function POST(request: NextRequest) {
 
         // Send notification to buyer and seller
         try {
+          const claimOrgId =
+            (claim as { orgId?: string | Types.ObjectId }).orgId?.toString() ||
+            orgId ||
+            (order as { orgId?: string | Types.ObjectId } | null | undefined)?.orgId?.toString();
           await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
             claimId: claimIdStr,
             buyerId: String(claim.buyerId),
             sellerId: String(claim.sellerId),
+            orgId: claimOrgId, // 🔐 Tenant-scoped notification routing
             decision: action === "approve" ? "approved" : "denied",
             reasoning: reason.trim(),
             refundAmount,
@@ -256,12 +287,24 @@ export async function POST(request: NextRequest) {
 
         // Process refund if approved
         if (action === "approve" && refundAmount > 0 && order) {
+          const orderOrgId = order.orgId?.toString();
+          if (!orderOrgId) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order missing orgId - cannot scope refund",
+              stage: "validation",
+            });
+            continue;
+          }
           try {
+            // 🔐 Get orgId from order for tenant-scoped notifications
             await RefundProcessor.processRefund({
               claimId: claimIdStr,
               orderId: String(claim.orderId),
               buyerId: String(claim.buyerId),
               sellerId: String(claim.sellerId),
+              orgId: orderOrgId, // 🔐 Tenant context for notifications
               amount: refundAmount,
               reason: reason.trim(),
               originalPaymentMethod: order.payment.method,
