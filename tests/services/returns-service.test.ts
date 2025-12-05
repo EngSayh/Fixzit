@@ -151,6 +151,7 @@ describe("returnsService", () => {
     const rmaId = await returnsService.initiateReturn({
       orderId: order._id.toString(),
       buyerId,
+      orgId: order.orgId.toString(),
       items: [
         {
           listingId,
@@ -181,6 +182,7 @@ describe("returnsService", () => {
     const rmaId = await returnsService.initiateReturn({
       orderId: order._id.toString(),
       buyerId,
+      orgId: order.orgId.toString(),
       items: [
         {
           listingId,

@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { orderId, items, buyerPhotos } = body;
 
@@ -45,6 +53,7 @@ export async function POST(request: NextRequest) {
     const rmaId = await returnsService.initiateReturn({
       orderId,
       buyerId: session.user.id,
+      orgId,
       items,
       buyerPhotos,
     });

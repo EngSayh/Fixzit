@@ -18,11 +18,20 @@ export async function GET(
     }
 
     const { orderId, listingId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     // Check eligibility
     const eligibility = await returnsService.checkEligibility(
       orderId,
       listingId,
+      orgId,
     );
 
     return NextResponse.json({
