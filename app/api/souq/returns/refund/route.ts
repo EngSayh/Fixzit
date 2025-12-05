@@ -6,8 +6,6 @@ import {
   Role,
   SubRole,
   normalizeRole,
-  normalizeSubRole,
-  inferSubRoleFromRole,
 } from '@/lib/rbac/client-roles';
 
 /**
@@ -16,11 +14,13 @@ import {
  * Admin-only endpoint
  */
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    userId = session.user.id;
 
     const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
     const normalizedSubRole =
@@ -28,19 +28,17 @@ export async function POST(request: NextRequest) {
         ? (rawSubRole as SubRole)
         : undefined;
     const userRole = normalizeRole(session.user.role, normalizedSubRole as SubRole | undefined);
-    const userSubRole =
-      normalizeSubRole(normalizedSubRole as SubRole | undefined) ??
-      inferSubRoleFromRole(session.user.role);
+    // Note: subRole not needed for refund authorization - finance/admin only
 
-    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
-    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
-    const isOrgAdmin = userRole !== null && adminRoles.includes(userRole) && !isPlatformAdmin;
-    const isOpsOrSupport =
+    // 🔐 STRICT v4.1: Refunds are finance/admin actions only - no ops/support access
+    const financeAdminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isFinanceOfficer =
       userRole === Role.TEAM_MEMBER &&
-      !!userSubRole &&
-      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isFinanceOrAdmin = userRole !== null && financeAdminRoles.includes(userRole);
 
-    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
+    if (!isPlatformAdmin && !isFinanceOrAdmin && !isFinanceOfficer) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -54,42 +52,48 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Org boundary enforcement: Verify RMA belongs to the caller's organization (SUPER_ADMIN may cross-org)
-    const { SouqRMA } = await import('@/server/models/souq/RMA');
-    const rma = await SouqRMA.findById(rmaId).lean();
-    if (!rma) {
-      return NextResponse.json({ 
-        error: 'RMA not found' 
-      }, { status: 404 });
-    }
-    const rmaOrgId = rma.orgId?.toString();
-    if (!rmaOrgId) {
-      return NextResponse.json({ error: 'RMA missing orgId' }, { status: 400 });
-    }
-
+    // 🔐 SECURITY: Get org context first, then scope RMA lookup to prevent cross-tenant leaks
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
-    const targetOrgId = isPlatformAdmin
-      ? (sessionOrgId || rmaOrgId)
-      : sessionOrgId;
-
-    if (!targetOrgId) {
+    if (!isPlatformAdmin && !sessionOrgId) {
       return NextResponse.json(
         { error: 'Organization context required' },
         { status: 403 },
       );
     }
 
-    if (!isPlatformAdmin && rmaOrgId !== targetOrgId) {
-      logger.warn('Org boundary violation attempt in refund processing', { 
-        userId: session.user.id, 
-        userOrg: targetOrgId,
-        rmaOrg: rmaOrgId,
-        rmaId 
-      });
+    const { SouqRMA } = await import('@/server/models/souq/RMA');
+    const { ObjectId } = await import('mongodb');
+    type ObjectIdType = InstanceType<typeof ObjectId>;
+
+    // Helper to match orgId stored as string or ObjectId during migration
+    const buildOrgFilter = (orgId: string) => {
+      const candidates: Array<string | ObjectIdType> = [orgId];
+      if (ObjectId.isValid(orgId)) {
+        candidates.push(new ObjectId(orgId));
+      }
+      return { orgId: { $in: candidates } };
+    };
+
+    // 🔐 SECURITY: Org-scoped RMA lookup prevents cross-tenant metadata leaks
+    // SUPER_ADMIN can access any org's RMA; others must scope to their org
+    const rmaQuery = isPlatformAdmin
+      ? { _id: rmaId }
+      : { _id: rmaId, ...buildOrgFilter(sessionOrgId!) };
+    
+    const rma = await SouqRMA.findOne(rmaQuery).lean();
+    if (!rma) {
       return NextResponse.json({ 
-        error: 'Access denied: RMA belongs to different organization' 
-      }, { status: 403 });
+        error: 'RMA not found' 
+      }, { status: 404 });
     }
+    
+    const rmaOrgId = rma.orgId?.toString();
+    if (!rmaOrgId) {
+      return NextResponse.json({ error: 'RMA missing orgId' }, { status: 400 });
+    }
+
+    // Determine target org for downstream operations
+    const targetOrgId = isPlatformAdmin ? rmaOrgId : sessionOrgId!;
 
     const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
     if (!validMethods.includes(refundMethod)) {
@@ -105,13 +109,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Process refund
-    await returnsService.processRefund({
+    // 🔄 TRANSACTION SAFETY: processRefund returns notifications to be fired after commit
+    // Since this route is called outside a transaction, we fire them immediately
+    const notifications = await returnsService.processRefund({
       rmaId,
       orgId: targetOrgId,
       refundAmount,
       refundMethod,
       processorId: session.user.id
     });
+    
+    // Fire notifications after refund is complete
+    await returnsService.fireNotifications(notifications);
 
     return NextResponse.json({ 
       success: true,
@@ -119,7 +128,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Process refund error', { error });
+    logger.error('Process refund error', error as Error, { userId });
     return NextResponse.json({ 
       error: 'Failed to process refund',
       message: error instanceof Error ? error.message : 'Unknown error'

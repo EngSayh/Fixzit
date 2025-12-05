@@ -14,7 +14,7 @@ import type { IOrder } from "@/server/models/souq/Order";
 import { SouqListing as Listing } from "@/server/models/souq/Listing";
 import { inventoryService } from "./inventory-service";
 import { fulfillmentService } from "./fulfillment-service";
-import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { addJob, QUEUE_NAMES, type QueueName } from "@/lib/queues/setup";
 import { nanoid } from "nanoid";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
@@ -83,6 +83,17 @@ interface ProcessRefundParams {
   processorId: string;
   orgId: string; // 🔒 Required for tenant isolation
   session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
+}
+
+/**
+ * 🔄 TRANSACTION SAFETY: Notification payloads to be fired AFTER transaction commits.
+ * Prevents duplicate/phantom notifications on transaction retries.
+ */
+interface PendingNotification {
+  queue: QueueName;
+  jobType: string;
+  payload: Record<string, unknown>;
+  options?: { priority?: number };
 }
 
 class ReturnsService {
@@ -583,6 +594,7 @@ class ReturnsService {
         await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
           type: 'internal',
           to: 'inspection-team',
+          orgId: rma.orgId?.toString(), // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
           message: `RMA ${rmaId} received and ready for inspection`
         });
       }
@@ -598,6 +610,9 @@ class ReturnsService {
    * 
    * TRANSACTION: Wraps RMA update, inventory adjustment, and refund in a MongoDB session
    * to ensure atomic rollback if any step fails. Prevents stuck "inspected/processing" states.
+   * 
+   * 🔄 TRANSACTION SAFETY: Notifications are collected during transaction and fired ONLY after commit.
+   * This prevents duplicate/phantom notifications on transaction retries or aborts.
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
     const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId } = params;
@@ -611,9 +626,12 @@ class ReturnsService {
     // Start a MongoDB session for transactional consistency
     const session = await mongoose.startSession();
     
+    // 🔄 TRANSACTION SAFETY: Collect notifications to fire after successful commit
+    let pendingNotifications: PendingNotification[] = [];
+    
     try {
       await session.withTransaction(async () => {
-        await this.executeInspection({
+        pendingNotifications = await this.executeInspection({
           rmaId,
           inspectorId,
           condition,
@@ -625,10 +643,13 @@ class ReturnsService {
           session,
         });
       });
+      
+      // 🔄 TRANSACTION SAFETY: Fire notifications ONLY after successful commit
+      await this.fireNotifications(pendingNotifications);
     } catch (error) {
       // Fallback for environments without replica set (e.g., unit tests using standalone Mongo)
       if (error instanceof Error && error.message.includes('Transaction numbers are only allowed')) {
-        await this.executeInspection({
+        pendingNotifications = await this.executeInspection({
           rmaId,
           inspectorId,
           condition,
@@ -639,6 +660,8 @@ class ReturnsService {
           now,
           session: undefined,
         });
+        // Fire notifications after non-transactional execution
+        await this.fireNotifications(pendingNotifications);
       } else {
         throw error;
       }
@@ -648,7 +671,19 @@ class ReturnsService {
   }
   
   /**
+   * 🔄 TRANSACTION SAFETY: Fire collected notifications after transaction commits.
+   * Makes notification delivery idempotent-safe with respect to transaction retries.
+   * Public so routes can call this after getting notifications from processRefund.
+   */
+  async fireNotifications(notifications: PendingNotification[]): Promise<void> {
+    for (const notification of notifications) {
+      await addJob(notification.queue, notification.jobType, notification.payload, notification.options);
+    }
+  }
+  
+  /**
    * Internal: Execute inspection within a transaction session
+   * Returns pending notifications to be fired after transaction commits
    */
   private async executeInspection(params: {
     rmaId: string;
@@ -660,8 +695,11 @@ class ReturnsService {
     orgId: string;
     now: Date;
     session?: mongoose.ClientSession;
-  }): Promise<void> {
+  }): Promise<PendingNotification[]> {
     const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session } = params;
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications to return (not fire directly)
+    const pendingNotifications: PendingNotification[] = [];
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
     // 🔐 SECURITY: orgId scoping ensures tenant isolation
@@ -787,12 +825,13 @@ class ReturnsService {
         status: 'completed',
       };
       await rma.save(session ? { session } : undefined);
-      return;
+      return pendingNotifications;
     }
     
     // Auto-process refund for approved returns (within transaction)
+    // 🔄 TRANSACTION SAFETY: Collect refund notifications to merge with inspection notifications
     if (refundAmount > 0) {
-      await this.processRefund({
+      const refundNotifications = await this.processRefund({
         rmaId,
         refundAmount,
         refundMethod: 'original_payment',
@@ -800,7 +839,10 @@ class ReturnsService {
         orgId,
         session,
       });
+      pendingNotifications.push(...refundNotifications);
     }
+    
+    return pendingNotifications;
   }
 
   /**
@@ -826,7 +868,8 @@ class ReturnsService {
     if (!rmaOrgId) {
       return 0;
     }
-    const order = await this.findOrder(rma.orderId, rmaOrgId);
+    // 🔄 TRANSACTION: Pass session for consistent snapshot within transaction
+    const order = await this.findOrder(rma.orderId, rmaOrgId, session);
     if (!order) return 0;
     
     // Base refund: original item price
@@ -868,13 +911,17 @@ class ReturnsService {
    * so concurrent calls will fail safely instead of processing twice.
    * 
    * 🔄 TRANSACTION: Supports optional session for transactional consistency with inspection flow.
+   * 🔄 TRANSACTION SAFETY: Returns notifications to be fired after transaction commits.
    */
-  async processRefund(params: ProcessRefundParams): Promise<void> {
+  async processRefund(params: ProcessRefundParams): Promise<PendingNotification[]> {
     const { rmaId, refundAmount, refundMethod, processorId, orgId, session } = params;
 
     if (!orgId) {
       throw new Error('orgId is required to process refund');
     }
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications to return (not fire directly)
+    const pendingNotifications: PendingNotification[] = [];
 
     const now = new Date();
     const transactionId = `REF-${Date.now()}-${rmaId.slice(-6)}`;
@@ -951,28 +998,42 @@ class ReturnsService {
     // Save the final completed state (within transaction if session provided)
     await rma.save(session ? { session } : undefined);
 
-    // Notify buyer (outside transaction - notifications are fire-and-forget)
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
-      to: rma.buyerId.toString(),
-      template: 'refund_processed',
-      data: { 
-        rmaId, 
-        amount: refundAmount, 
-        method: refundMethod,
-        estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
-      }
-    });
-
-    // Notify seller (if restocking fee applied)
-    if (rma.inspection?.restockable === false) {
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    const buyerNotification: PendingNotification = {
+      queue: QUEUE_NAMES.NOTIFICATIONS,
+      jobType: 'send-email',
+      payload: { 
         type: 'email',
-        to: rma.sellerId.toString(),
-        template: 'return_completed',
-        data: { rmaId, restockingFee: refundAmount * 0.25 }
-      });
+        to: rma.buyerId.toString(),
+        template: 'refund_processed',
+        data: { 
+          rmaId, 
+          amount: refundAmount, 
+          method: refundMethod,
+          estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
+        }
+      }
+    };
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
+    pendingNotifications.push(buyerNotification);
+
+    if (rma.inspection?.restockable === false) {
+      const sellerNotification: PendingNotification = {
+        queue: QUEUE_NAMES.NOTIFICATIONS,
+        jobType: 'send-email',
+        payload: {
+          type: 'email',
+          to: rma.sellerId.toString(),
+          template: 'return_completed',
+          data: { rmaId, restockingFee: refundAmount * 0.25 }
+        }
+      };
+
+      // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
+      pendingNotifications.push(sellerNotification);
     }
+
+    return pendingNotifications;
   }
 
   /**
@@ -993,6 +1054,11 @@ class ReturnsService {
       throw new Error('orgId is required to fetch seller return stats');
     }
 
+    if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+      throw new Error('Invalid sellerId');
+    }
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
@@ -1007,7 +1073,7 @@ class ReturnsService {
 
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
-      'items.sellerId': new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       orgId,
       status: 'delivered',
       deliveredAt: { $gte: startDate }
@@ -1167,10 +1233,11 @@ class ReturnsService {
 
     let escalated = 0;
     for (const rma of pendingReturns) {
-      // Notify admin team
+      // Notify admin team with org context for proper multi-tenant routing
       await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
         type: 'internal',
         to: 'admin-team',
+        orgId,  // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
         priority: 'high',
         message: `RMA ${rma._id} pending for 48+ hours - requires attention`
       }, { priority: 2 });
@@ -1236,6 +1303,7 @@ class ReturnsService {
           await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
             type: 'internal',
             to: 'inspection-team',
+            orgId,  // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
             priority: 'medium',
             message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
           }, { priority: 3 });
