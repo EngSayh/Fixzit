@@ -49,6 +49,7 @@ async function seedOrder({
   const sellerId = new Types.ObjectId();
   const productId = new Types.ObjectId();
   const listingId = new Types.ObjectId();
+  const orgId = new Types.ObjectId();
 
   await SouqListing.create({
     _id: listingId,
@@ -56,6 +57,7 @@ async function seedOrder({
     productId,
     fsin: "FSIN-TEST",
     sellerId,
+    orgId,
     price,
     currency: "SAR",
     stockQuantity: 10,
@@ -81,6 +83,7 @@ async function seedOrder({
 
   const order = await SouqOrder.create({
     orderId: `ORD-${nanoid(6)}`,
+    orgId,
     customerId: buyerId,
     customerEmail: "buyer@test.com",
     customerPhone: "123456789",

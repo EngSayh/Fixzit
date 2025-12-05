@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
  * Admin-only endpoint (or background job)
  */
 export async function POST(request: NextRequest) {
-  let body: { listingId?: string; sellerId?: string } | undefined;
+  let body: { listingId?: string; sellerId?: string; targetOrgId?: string } | undefined;
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {
@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     body = await request.json();
-    const orgId = (session.user as { orgId?: string }).orgId;
+    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const requestedOrgId = body?.targetOrgId?.trim();
+    const orgId = isPlatformAdmin ? requestedOrgId || sessionOrgId : sessionOrgId;
     const listingId = body?.listingId;
     const sellerId = body?.sellerId;
 
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
     let eligible = 0;
 
     // 🔒 SECURITY FIX: orgId is REQUIRED for all badge mutations
-    // Even platform admins must specify which org they're operating on
+    // Platform admins may target a specific org explicitly via targetOrgId
     if (!orgId) {
       return NextResponse.json(
         { error: "Organization context required for badge assignment" },
@@ -48,12 +51,12 @@ export async function POST(request: NextRequest) {
       }
     } else if (sellerId) {
       // Assign badge to all seller's listings within the org
-      const listingQuery: Record<string, unknown> = { 
-        sellerId, 
+      const listingQuery: Record<string, unknown> = {
+        sellerId,
         status: "active",
         orgId,
       };
-      
+
       const listings = await SouqListing.find(listingQuery);
 
       for (const listing of listings) {
@@ -74,6 +77,16 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    logger.info("Fast badge assignment executed", {
+      actorUserId: session.user.id,
+      actorRole: session.user.role,
+      targetOrgId: orgId,
+      listingId,
+      sellerId,
+      eligible,
+      updated,
+    });
 
     return NextResponse.json({
       success: true,

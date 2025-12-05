@@ -86,16 +86,17 @@ class ReturnsService {
     orderId: string,
     listingId: string,
     preloadedOrder?: IOrder | null,
+    orgId?: string,
   ): Promise<{
     eligible: boolean;
     reason?: string;
     daysRemaining?: number;
   }> {
-    const order = preloadedOrder ?? (await this.findOrder(orderId));
+    const order = preloadedOrder ?? (await this.findOrder(orderId, orgId));
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
-    const orgId = order.orgId ? order.orgId.toString() : undefined;
+    const orderOrgId = order.orgId ? order.orgId.toString() : undefined;
 
     if (order.status !== 'delivered') {
       return { eligible: false, reason: 'Order not yet delivered' };
@@ -119,7 +120,7 @@ class ReturnsService {
       orderId: order._id.toString(), 
       'items.listingId': listingId,
       status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] },
-      ...(orgId ? { orgId } : {}),
+      ...(orderOrgId ? { orgId: orderOrgId } : {}),
     }).lean();
 
     if (existingRMA) {
@@ -135,11 +136,11 @@ class ReturnsService {
   /**
    * Initiate a return request
    */
-  async initiateReturn(params: InitiateReturnParams): Promise<string> {
-    const { orderId, buyerId, items, buyerPhotos } = params;
+  async initiateReturn(params: InitiateReturnParams & { orgId?: string }): Promise<string> {
+    const { orderId, buyerId, items, buyerPhotos, orgId: inputOrgId } = params;
 
-    // Validate order
-    const order = await this.findOrder(orderId);
+    // Validate order (pass orgId if provided for scoping)
+    const order = await this.findOrder(orderId, inputOrgId);
     if (!order) {
       throw new Error('Order not found');
     }
@@ -367,7 +368,9 @@ class ReturnsService {
       throw new Error('RMA not found');
     }
 
-    const order = await this.findOrder(rma.orderId);
+    // 🔒 SECURITY: Use RMA's orgId for tenant-scoped order lookup
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : undefined;
+    const order = await this.findOrder(rma.orderId, rmaOrgId);
     if (!order) {
       logger.error(
         "RMA return label generation failed: order not found",
@@ -376,6 +379,7 @@ class ReturnsService {
           rmaId: rma._id?.toString?.(),
           orderId: rma.orderId?.toString?.(),
           buyerId: rma.buyerId?.toString?.(),
+          orgId: rmaOrgId,
           metric: "returns.order_missing",
         },
       );
@@ -661,7 +665,9 @@ class ReturnsService {
     const rma = await RMA.findById(rmaId);
     if (!rma) return 0;
 
-    const order = await this.findOrder(rma.orderId);
+    // 🔒 SECURITY: Use RMA's orgId for tenant-scoped order lookup
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : undefined;
+    const order = await this.findOrder(rma.orderId, rmaOrgId);
     if (!order) return 0;
     
     // Base refund: original item price
@@ -897,14 +903,26 @@ class ReturnsService {
   });
   }
 
-  private async findOrder(orderId: string): Promise<IOrder | null> {
+  /**
+   * Find order with mandatory org scoping.
+   * 🔒 SECURITY: orgId is required to prevent cross-tenant reads.
+   */
+  private async findOrder(orderId: string, orgId?: string): Promise<IOrder | null> {
+    // Build base query with orderId
+    const baseQuery: Record<string, unknown> = {};
+    
+    // Add orgId to query if provided (required for tenant isolation)
+    if (orgId) {
+      baseQuery.orgId = orgId;
+    }
+    
     if (mongoose.Types.ObjectId.isValid(orderId)) {
-      const matchByObjectId = await Order.findById(orderId);
+      const matchByObjectId = await Order.findOne({ _id: orderId, ...baseQuery });
       if (matchByObjectId) {
         return matchByObjectId;
       }
     }
-    return Order.findOne({ orderId });
+    return Order.findOne({ orderId, ...baseQuery });
   }
 
   private mapReturnReason(

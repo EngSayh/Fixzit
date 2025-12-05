@@ -11,9 +11,30 @@ const ExportSchema = z.object({
 });
 
 /**
+ * Canonical collection definitions with correct org scope field.
+ * STRICT v4.1: Uses orgId (camelCase) consistently per schema conventions.
+ */
+const COLLECTION_CONFIG: Record<string, { scopeField: "orgId" | "org_id"; maxDocs: number }> = {
+  work_orders: { scopeField: "orgId", maxDocs: 10000 },
+  workorders: { scopeField: "orgId", maxDocs: 10000 },
+  properties: { scopeField: "orgId", maxDocs: 5000 },
+  vendors: { scopeField: "orgId", maxDocs: 5000 },
+  units: { scopeField: "orgId", maxDocs: 10000 },
+  invoices: { scopeField: "orgId", maxDocs: 10000 },
+  users: { scopeField: "orgId", maxDocs: 5000 },
+  tenancies: { scopeField: "orgId", maxDocs: 5000 },
+  maintenancelogs: { scopeField: "orgId", maxDocs: 10000 },
+  revenuelogs: { scopeField: "orgId", maxDocs: 10000 },
+};
+
+const ALL_EXPORTABLE = Object.keys(COLLECTION_CONFIG);
+const MAX_COLLECTIONS_PER_REQUEST = 5;
+const BATCH_SIZE = 500;
+
+/**
  * GET /api/admin/export
  * Export database collections to JSON or CSV format
- * SUPER_ADMIN only - scoped to organization
+ * SUPER_ADMIN only - scoped to organization with batching
  */
 export async function GET(request: NextRequest) {
   try {
@@ -46,38 +67,52 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    // Define exportable collections
-    const allCollections = [
-      "work_orders",
-      "properties",
-      "vendors",
-      "units",
-      "invoices",
-      "users",
-      "tenancies",
-      "maintenancelogs",
-      "revenuelogs",
-    ];
-
-    const requestedCollections = parseResult.data.collections || allCollections;
-
-    // Validate requested collections
-    const validCollections = requestedCollections.filter((c) => allCollections.includes(c.toLowerCase()));
+    // Normalize and validate requested collections
+    const requestedRaw = parseResult.data.collections || ALL_EXPORTABLE;
+    const requestedNormalized = requestedRaw.map((c) => c.toLowerCase().trim());
+    const validCollections = requestedNormalized.filter((c) => ALL_EXPORTABLE.includes(c));
 
     if (validCollections.length === 0) {
-      return NextResponse.json({ error: "No valid collections specified" }, { status: 400 });
+      return NextResponse.json({ 
+        error: "No valid collections specified",
+        available: ALL_EXPORTABLE,
+      }, { status: 400 });
+    }
+
+    // Limit collections per request to prevent memory exhaustion
+    if (validCollections.length > MAX_COLLECTIONS_PER_REQUEST) {
+      return NextResponse.json({
+        error: `Maximum ${MAX_COLLECTIONS_PER_REQUEST} collections per request. Use multiple requests.`,
+        requested: validCollections.length,
+      }, { status: 400 });
     }
 
     const exportData: Record<string, unknown[]> = {};
     const orgObjectId = new mongoose.Types.ObjectId(orgId);
 
     for (const collectionName of validCollections) {
-      const collection = mongoose.connection.collection(collectionName);
+      const config = COLLECTION_CONFIG[collectionName];
+      if (!config) continue;
 
-      // Query with org_id filter for multi-tenant isolation
-      const documents = await collection.find({ org_id: orgObjectId }).toArray();
+      const collection = mongoose.connection.collection(collectionName);
+      const scopeQuery = { [config.scopeField]: orgObjectId };
+      
+      // 🔒 SECURITY: Use batched cursor with limit to prevent memory exhaustion
+      const documents: unknown[] = [];
+      const cursor = collection.find(scopeQuery).batchSize(BATCH_SIZE).limit(config.maxDocs);
+      
+      for await (const doc of cursor) {
+        documents.push(doc);
+      }
 
       exportData[collectionName] = documents;
+      
+      logger.info("Export collection fetched", {
+        collection: collectionName,
+        count: documents.length,
+        maxDocs: config.maxDocs,
+        orgId,
+      });
     }
 
     if (parseResult.data.format === "csv") {

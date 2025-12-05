@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/tooltip";
 import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react";
 
+// Import from shared RBAC source of truth
+import { Role, ModuleKey, ROLE_MODULES } from "@/lib/rbac/client-roles";
+
 export interface RolePermission {
   role: string;
   roleLabel: string;
@@ -265,185 +268,113 @@ export default function RBACMatrixTable({
   );
 }
 
-// Export default permissions for use in pages
-export const DEFAULT_MODULES: Module[] = [
-  { id: "dashboard", label: "Dashboard", description: "Org overview and insights" },
-  { id: "properties", label: "Properties", description: "Property and portfolio management" },
+/**
+ * Default modules derived from shared RBAC source (domain/fm/fm-lite.ts).
+ * STRICT v4.1: Maps ModuleKey enum to UI-friendly module definitions.
+ * 
+ * Note: This bridges the canonical ModuleKey enum with the UI's Module interface.
+ * Any changes to core modules should be made in domain/fm/fm-lite.ts first.
+ */
+const MODULE_LABELS: Record<string, { label: string; description: string }> = {
+  [ModuleKey.DASHBOARD]: { label: "Dashboard", description: "Org overview and insights" },
+  [ModuleKey.PROPERTIES]: { label: "Properties", description: "Property and portfolio management" },
+  [ModuleKey.WORK_ORDERS]: { label: "Work Orders", description: "Maintenance and service requests" },
+  [ModuleKey.FINANCE]: { label: "Finance", description: "Invoices, payments, ZATCA compliance, budgets" },
+  [ModuleKey.HR]: { label: "HR", description: "Human resources management" },
+  [ModuleKey.ADMINISTRATION]: { label: "Admin", description: "Administrative functions and configuration" },
+  [ModuleKey.CRM]: { label: "CRM & Notifications", description: "Customers, communication, templates, alerts" },
+  [ModuleKey.MARKETPLACE]: { label: "Marketplace (Souq)", description: "Listings, orders, claims/returns, settlements" },
+  [ModuleKey.SUPPORT]: { label: "Support", description: "Support tickets and knowledge base" },
+  [ModuleKey.COMPLIANCE]: { label: "Compliance", description: "Contracts, disputes, and inspections" },
+  [ModuleKey.REPORTS]: { label: "Reports", description: "Analytics and reporting" },
+  [ModuleKey.SYSTEM_MANAGEMENT]: { label: "System Management", description: "Users, roles, billing, integrations" },
+};
+
+// Additional UI-specific modules not in core ModuleKey (for FM/Aqar extensions)
+const EXTENSION_MODULES: Module[] = [
   { id: "units", label: "Units", description: "Unit management within properties" },
   { id: "tenants", label: "Tenants", description: "Tenant management and profiles" },
   { id: "vendors", label: "Vendors", description: "Vendor and contractor management" },
-  { id: "work_orders", label: "Work Orders", description: "Maintenance and service requests" },
   { id: "approvals", label: "Approvals", description: "Approval workflows and SLA decisions" },
   { id: "assets_sla", label: "Assets & SLA", description: "Assets, PM schedules, SLA tracking" },
-  { id: "finance", label: "Finance", description: "Invoices, payments, ZATCA compliance, budgets" },
-  { id: "marketplace", label: "Marketplace (Souq)", description: "Listings, orders, claims/returns, settlements" },
-  { id: "crm_notifications", label: "CRM & Notifications", description: "Customers, communication, templates, alerts" },
-  { id: "hr", label: "HR", description: "Human resources management" },
-  { id: "reports", label: "Reports", description: "Analytics and reporting" },
-  { id: "admin", label: "Admin", description: "Administrative functions and configuration" },
   { id: "qa", label: "QA & Telemetry", description: "QA alerts/logs and platform telemetry" },
 ];
 
-export const DEFAULT_ROLES: RolePermission[] = [
-  {
-    role: "SUPER_ADMIN",
-    roleLabel: "Super Admin",
-    permissions: Object.fromEntries(
-      DEFAULT_MODULES.map((m) => [m.id, { view: true, create: true, edit: true, delete: true }])
-    ),
-  },
-  {
-    role: "ADMIN",
-    roleLabel: "Admin",
-    permissions: Object.fromEntries(
-      DEFAULT_MODULES.map((m) => [
-        m.id,
-        { view: true, create: true, edit: true, delete: m.id !== "qa" },
-      ]),
-    ),
-  },
-  {
-    role: "CORPORATE_ADMIN",
-    roleLabel: "Corporate Admin",
-    permissions: Object.fromEntries(
-      DEFAULT_MODULES.map((m) => [
+// Build DEFAULT_MODULES from shared source + extensions
+export const DEFAULT_MODULES: Module[] = [
+  // Core modules from shared RBAC source
+  ...Object.values(ModuleKey).map((key) => ({
+    id: key.toLowerCase(),
+    label: MODULE_LABELS[key]?.label ?? key,
+    description: MODULE_LABELS[key]?.description ?? "",
+  })),
+  // Extension modules for FM/Aqar-specific features
+  ...EXTENSION_MODULES,
+];
+
+/**
+ * Role label mappings for UI display.
+ * STRICT v4.1: Canonical roles from domain/fm/fm-lite.ts Role enum.
+ */
+const ROLE_LABELS: Record<string, string> = {
+  [Role.SUPER_ADMIN]: "Super Admin",
+  [Role.ADMIN]: "Admin / Corporate Admin",
+  [Role.CORPORATE_OWNER]: "Corporate Owner",
+  [Role.TEAM_MEMBER]: "Team Member",
+  [Role.TECHNICIAN]: "Technician",
+  [Role.PROPERTY_MANAGER]: "Property Manager",
+  [Role.TENANT]: "Tenant / End-User",
+  [Role.VENDOR]: "Vendor",
+  [Role.GUEST]: "Guest / Auditor",
+};
+
+/**
+ * Helper to check if a role has access to a module based on ROLE_MODULES.
+ */
+function roleHasModuleAccess(role: Role, moduleId: string): boolean {
+  const modules = ROLE_MODULES[role];
+  if (!modules) return false;
+  // Match by lowercase comparison since ModuleKey is UPPERCASE
+  return modules.some((m) => m.toLowerCase() === moduleId.toLowerCase());
+}
+
+/**
+ * Generate default permissions for a role based on shared ROLE_MODULES.
+ * STRICT v4.1: Conservative delete rights - only SUPER_ADMIN gets delete.
+ */
+function generateRolePermissions(role: Role): RolePermission["permissions"] {
+  const isAdmin = role === Role.SUPER_ADMIN || role === Role.ADMIN;
+  const isCorporateOwner = role === Role.CORPORATE_OWNER;
+  
+  return Object.fromEntries(
+    DEFAULT_MODULES.map((m) => {
+      const hasAccess = roleHasModuleAccess(role, m.id);
+      const canCreate = hasAccess && (isAdmin || isCorporateOwner || [Role.TEAM_MEMBER, Role.PROPERTY_MANAGER].includes(role));
+      const canEdit = hasAccess && (isAdmin || isCorporateOwner || [Role.TEAM_MEMBER, Role.PROPERTY_MANAGER, Role.TECHNICIAN].includes(role));
+      // Only SUPER_ADMIN gets delete rights per STRICT v4.1
+      const canDelete = role === Role.SUPER_ADMIN;
+      
+      return [
         m.id,
         {
-          view: true,
-          create: true,
-          edit: true,
-          delete: ["admin", "qa"].includes(m.id) ? false : true,
+          view: hasAccess || isAdmin || isCorporateOwner,
+          create: canCreate,
+          edit: canEdit,
+          delete: canDelete,
         },
-      ]),
-    ),
-  },
-  {
-    role: "MANAGEMENT",
-    roleLabel: "Management",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      properties: { view: true, create: true, edit: true, delete: false },
-      units: { view: true, create: true, edit: true, delete: false },
-      work_orders: { view: true, create: true, edit: true, delete: false },
-      approvals: { view: true, create: true, edit: true, delete: false },
-      finance: { view: true, create: true, edit: true, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-      marketplace: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "FINANCE",
-    roleLabel: "Finance",
-    permissions: {
-      finance: { view: true, create: true, edit: true, delete: false },
-      approvals: { view: true, create: false, edit: false, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-      marketplace: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "FINANCE_OFFICER",
-    roleLabel: "Finance Officer",
-    permissions: {
-      finance: { view: true, create: true, edit: true, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "HR",
-    roleLabel: "HR",
-    permissions: {
-      hr: { view: true, create: true, edit: true, delete: false },
-      approvals: { view: true, create: false, edit: false, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "HR_OFFICER",
-    roleLabel: "HR Officer",
-    permissions: {
-      hr: { view: true, create: true, edit: false, delete: false },
-      approvals: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "SUPPORT",
-    roleLabel: "Support",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: true, delete: false },
-      crm_notifications: { view: true, create: true, edit: true, delete: false },
-      marketplace: { view: true, create: false, edit: false, delete: false },
-      qa: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "OPS",
-    roleLabel: "Ops",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: true, delete: false },
-      properties: { view: true, create: true, edit: true, delete: false },
-      units: { view: true, create: true, edit: true, delete: false },
-      approvals: { view: true, create: true, edit: true, delete: false },
-      assets_sla: { view: true, create: true, edit: true, delete: false },
-      crm_notifications: { view: true, create: true, edit: true, delete: false },
-    },
-  },
-  {
-    role: "CORPORATE_EMPLOYEE",
-    roleLabel: "Corporate Employee",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: false, delete: false },
-      properties: { view: true, create: false, edit: false, delete: false },
-      units: { view: true, create: false, edit: false, delete: false },
-      crm_notifications: { view: true, create: true, edit: false, delete: false },
-    },
-  },
-  {
-    role: "PROPERTY_MANAGER",
-    roleLabel: "Property Manager",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: true, delete: false },
-      properties: { view: true, create: false, edit: true, delete: false },
-      units: { view: true, create: true, edit: true, delete: false },
-      tenants: { view: true, create: true, edit: true, delete: false },
-      vendors: { view: true, create: false, edit: false, delete: false },
-      finance: { view: true, create: true, edit: true, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "PROPERTY_OWNER",
-    roleLabel: "Property Owner",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      properties: { view: true, create: false, edit: false, delete: false },
-      units: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: false, delete: false },
-      finance: { view: true, create: false, edit: false, delete: false },
-      reports: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "TECHNICIAN",
-    roleLabel: "Technician",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: false, edit: true, delete: false },
-      properties: { view: true, create: false, edit: false, delete: false },
-      units: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    role: "TENANT",
-    roleLabel: "Tenant",
-    permissions: {
-      dashboard: { view: true, create: false, edit: false, delete: false },
-      work_orders: { view: true, create: true, edit: false, delete: false },
-      finance: { view: true, create: false, edit: false, delete: false },
-    },
-  },
-];
+      ];
+    })
+  );
+}
+
+/**
+ * STRICT v4.1 Canonical Roles derived from shared RBAC source.
+ * Roles are generated from domain/fm/fm-lite.ts Role enum with conservative permissions.
+ */
+export const DEFAULT_ROLES: RolePermission[] = Object.values(Role)
+  .filter((r) => typeof r === "string") // Filter out numeric enum values
+  .map((role) => ({
+    role: role as string,
+    roleLabel: ROLE_LABELS[role] ?? role,
+    permissions: generateRolePermissions(role as Role),
+  }));

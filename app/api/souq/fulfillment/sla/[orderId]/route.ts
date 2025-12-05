@@ -22,10 +22,16 @@ export async function GET(
     const { orderId } = params;
     const orgId = (session.user as { orgId?: string }).orgId;
 
-    // Get order and verify access
-    const order = await SouqOrder.findOne(
-      orgId ? { orderId, orgId } : { orderId },
-    );
+    // 🔒 SECURITY: orgId is required for tenant isolation
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 }
+      );
+    }
+
+    // Get order and verify access (always scoped by orgId)
+    const order = await SouqOrder.findOne({ orderId, orgId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
