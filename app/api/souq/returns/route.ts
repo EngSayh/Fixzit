@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   } catch (error) {
-    logger.error("List returns error", { error });
+    logger.error("List returns error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to list returns",

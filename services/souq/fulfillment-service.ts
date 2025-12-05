@@ -604,11 +604,7 @@ class FulfillmentService {
       const query: Record<string, unknown> = { listingId };
       if (orgId) query.orgId = orgId;
 
-      let listing = await SouqListing.findOne(query);
-
-      if (!listing && orgId) {
-        listing = await SouqListing.findOne({ listingId });
-      }
+      const listing = await SouqListing.findOne(query);
 
       if (!listing) {
         return false;

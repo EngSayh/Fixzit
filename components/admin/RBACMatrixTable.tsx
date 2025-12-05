@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -59,6 +59,12 @@ export default function RBACMatrixTable({
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Keep internal state in sync if the parent provides new initial roles (e.g., after load/save)
+  useEffect(() => {
+    setRoles(initialRoles);
+    setIsDirty(false);
+  }, [initialRoles]);
+
   const handlePermissionChange = useCallback(
     (roleIndex: number, moduleId: string, permissionType: "view" | "create" | "edit" | "delete", value: boolean) => {
       setRoles((prevRoles) => {
@@ -88,12 +94,12 @@ export default function RBACMatrixTable({
         }
 
         newRoles[roleIndex] = role;
+        onChange?.(newRoles);
         return newRoles;
       });
       setIsDirty(true);
-      onChange?.(roles);
     },
-    [onChange, roles]
+    [onChange]
   );
 
   const handleSave = async () => {
@@ -112,6 +118,7 @@ export default function RBACMatrixTable({
   const handleReset = () => {
     setRoles(initialRoles);
     setIsDirty(false);
+    onChange?.(initialRoles);
   };
 
   const getPermissionIcon = (type: "view" | "create" | "edit" | "delete") => {
@@ -175,7 +182,7 @@ export default function RBACMatrixTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">
+                  <TableHead className="sticky start-0 bg-background z-10 min-w-[150px]">
                     Role / Module
                   </TableHead>
                   {modules.map((module) => (
@@ -195,7 +202,7 @@ export default function RBACMatrixTable({
               <TableBody>
                 {roles.map((role, roleIndex) => (
                   <TableRow key={role.role}>
-                    <TableCell className="sticky left-0 bg-background z-10 font-medium">
+                    <TableCell className="sticky start-0 bg-background z-10 font-medium">
                       <Badge variant={getRoleBadgeVariant(role.role)}>
                         {role.roleLabel}
                       </Badge>
