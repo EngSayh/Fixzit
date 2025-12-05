@@ -298,6 +298,9 @@ export async function GET(request: NextRequest) {
       const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
       const userIdStrings = orgUserIds.map((u) => String(u._id));
       
+      // Ensure org-scoped queries for tenant isolation and index use
+      andConditions.push({ orgId });
+
       // Only show claims where buyer OR seller belongs to this org
       andConditions.push({
         $or: [

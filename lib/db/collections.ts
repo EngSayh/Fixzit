@@ -70,6 +70,7 @@ export const COLLECTIONS: Record<string, string> = {
   SOUQ_REVIEWS: "souq_reviews",
   SOUQ_SETTLEMENTS: "souq_settlements",
   CLAIMS: "claims",
+  SOUQ_RMAS: "souq_rmas",
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
@@ -167,6 +168,9 @@ export async function createIndexes() {
   await dropLegacyEmployeeIndexes(db);
   // Clean up legacy error event indexes that clash with named variants
   await dropLegacyErrorEventIndexes(db);
+  // Clean up legacy claims/RMA indexes that clash with org-scoped variants
+  await dropLegacyClaimIndexes(db);
+  await dropLegacyRmaIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -674,6 +678,55 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_REVIEWS)
     .createIndex({ orgId: 1, productId: 1 }, { background: true, name: "souq_reviews_orgId_productId" });
+  await db
+    .collection(COLLECTIONS.CLAIMS)
+    .createIndex(
+      { orgId: 1, claimId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "claims_orgId_claimId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, claimId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.CLAIMS)
+    .createIndex({ orgId: 1, status: 1, createdAt: -1 }, { background: true, name: "claims_orgId_status_createdAt" });
+  await db
+    .collection(COLLECTIONS.CLAIMS)
+    .createIndex({ orgId: 1, buyerId: 1, status: 1 }, { background: true, name: "claims_orgId_buyer_status" });
+  await db
+    .collection(COLLECTIONS.CLAIMS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "claims_orgId_seller_status" });
+  await db
+    .collection(COLLECTIONS.CLAIMS)
+    .createIndex(
+      { orgId: 1, sellerResponseDeadline: 1, status: 1 },
+      { background: true, name: "claims_orgId_responseDeadline_status" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_RMAS)
+    .createIndex(
+      { orgId: 1, rmaId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_rmas_orgId_rmaId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, rmaId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_RMAS)
+    .createIndex({ orgId: 1, status: 1, createdAt: -1 }, { background: true, name: "souq_rmas_orgId_status_createdAt" });
+  await db
+    .collection(COLLECTIONS.SOUQ_RMAS)
+    .createIndex({ orgId: 1, buyerId: 1, status: 1 }, { background: true, name: "souq_rmas_orgId_buyer_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_RMAS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_rmas_orgId_seller_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_RMAS)
+    .createIndex({ orgId: 1, returnDeadline: 1 }, { background: true, name: "souq_rmas_orgId_returnDeadline" });
 
   // Help Articles - STRICT v4.1: slug unique per org
   await db
@@ -1372,6 +1425,69 @@ async function dropLegacyErrorEventIndexes(db: Awaited<ReturnType<typeof getData
         err?.message?.includes("index not found");
       if (isMissing) continue;
       logger.warn("[indexes] Failed to drop legacy error event index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy claims indexes that were global or used default names.
+ * Ensures org-scoped, named indexes can be created without IndexOptionsConflict.
+ */
+async function dropLegacyClaimIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const claimIndexes = [
+    "claimId_1",
+    "status_1_createdAt_-1",
+    "buyerId_1_status_1",
+    "sellerId_1_status_1",
+    "sellerId_1_createdAt_-1",
+    "sellerResponseDeadline_1_status_1",
+    "assignedTo_1_status_1",
+    "orgId_1_status_1",
+    "orgId_1_claimId_1",
+  ];
+
+  for (const indexName of claimIndexes) {
+    try {
+      await db.collection(COLLECTIONS.CLAIMS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy claim index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy RMA indexes that were global or used default names.
+ * Ensures org-scoped, named indexes can be created without IndexOptionsConflict.
+ */
+async function dropLegacyRmaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const rmaIndexes = [
+    "rmaId_1",
+    "status_1_createdAt_-1",
+    "buyerId_1_status_1",
+    "sellerId_1_status_1",
+    "sellerId_1_createdAt_-1",
+    "returnDeadline_1",
+    "orgId_1_status_1",
+    "orgId_1_rmaId_1",
+  ];
+
+  for (const indexName of rmaIndexes) {
+    try {
+      await db.collection(COLLECTIONS.SOUQ_RMAS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy RMA index", { indexName, error: err?.message });
     }
   }
 }

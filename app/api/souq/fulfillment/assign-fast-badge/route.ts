@@ -27,42 +27,32 @@ export async function POST(request: NextRequest) {
     const listingId = body?.listingId;
     const sellerId = body?.sellerId;
 
-    // 🔒 SECURITY: Platform admin check for cross-org operations
-    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
-
     let updated = 0;
     let eligible = 0;
 
-    if (listingId) {
-      // 🔒 SECURITY FIX: CORPORATE_ADMIN must operate within their org scope
-      // Platform admins may optionally scope by orgId
-      if (!orgId && session.user.role === "CORPORATE_ADMIN") {
-        return NextResponse.json(
-          { error: "Organization context required" },
-          { status: 403 },
-        );
-      }
+    // 🔒 SECURITY FIX: orgId is REQUIRED for all badge mutations
+    // Even platform admins must specify which org they're operating on
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required for badge assignment" },
+        { status: 403 },
+      );
+    }
 
-      // Assign badge to specific listing
+    if (listingId) {
+      // Assign badge to specific listing (orgId already verified above)
       const result = await fulfillmentService.assignFastBadge(listingId, orgId);
       if (result) {
         eligible = 1;
         updated = 1;
       }
     } else if (sellerId) {
-      // Assign badge to all seller's listings
-      // 🔒 SECURITY FIX: Always require orgId for CORPORATE_ADMIN
-      // Platform admins (SUPER_ADMIN) can optionally scope by orgId
-      const listingQuery: Record<string, unknown> = { sellerId, status: "active" };
-      if (orgId) {
-        listingQuery.orgId = orgId;
-      } else if (!isPlatformAdmin) {
-        // CORPORATE_ADMIN must have orgId
-        return NextResponse.json(
-          { error: "Organization context required" },
-          { status: 403 },
-        );
-      }
+      // Assign badge to all seller's listings within the org
+      const listingQuery: Record<string, unknown> = { 
+        sellerId, 
+        status: "active",
+        orgId,
+      };
       
       const listings = await SouqListing.find(listingQuery);
 

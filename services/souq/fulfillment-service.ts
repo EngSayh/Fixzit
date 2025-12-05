@@ -598,11 +598,17 @@ class FulfillmentService {
 
   /**
    * Assign Fast Badge to listings that meet criteria
+   * 🔒 SECURITY: orgId is REQUIRED to prevent cross-tenant mutations
    */
-  async assignFastBadge(listingId: string, orgId?: string): Promise<boolean> {
+  async assignFastBadge(listingId: string, orgId: string): Promise<boolean> {
     try {
-      const query: Record<string, unknown> = { listingId };
-      if (orgId) query.orgId = orgId;
+      // 🔒 SECURITY FIX: Always require orgId - no unscoped fallback
+      if (!orgId) {
+        logger.warn("assignFastBadge called without orgId - rejecting", { listingId });
+        return false;
+      }
+
+      const query: Record<string, unknown> = { listingId, orgId };
 
       const listing = await SouqListing.findOne(query);
 
@@ -612,7 +618,7 @@ class FulfillmentService {
 
       const inventory = await SouqInventory.findOne({
         listingId,
-        ...(orgId ? { orgId } : {}),
+        orgId,
       });
 
       if (!inventory) {
