@@ -20,9 +20,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react";
-
-// Import from shared RBAC source of truth
-import { Role, ModuleKey, ROLE_MODULES } from "@/lib/rbac/client-roles";
+import {
+  RBAC_MODULES,
+  RBAC_ROLE_PERMISSIONS,
+  type RBACModule,
+} from "@/config/rbac.matrix";
 
 export interface RolePermission {
   role: string;
@@ -37,11 +39,7 @@ export interface RolePermission {
   };
 }
 
-export interface Module {
-  id: string;
-  label: string;
-  description: string;
-}
+export type Module = RBACModule;
 
 interface RBACMatrixTableProps {
   roles: RolePermission[];
@@ -53,7 +51,7 @@ interface RBACMatrixTableProps {
 
 export default function RBACMatrixTable({
   roles: initialRoles,
-  modules,
+  modules = RBAC_MODULES,
   onChange,
   onSave,
   readOnly = false,
@@ -269,112 +267,29 @@ export default function RBACMatrixTable({
 }
 
 /**
- * Default modules derived from shared RBAC source (domain/fm/fm-lite.ts).
- * STRICT v4.1: Maps ModuleKey enum to UI-friendly module definitions.
- * 
- * Note: This bridges the canonical ModuleKey enum with the UI's Module interface.
- * Any changes to core modules should be made in domain/fm/fm-lite.ts first.
+ * Default modules derived from shared RBAC source (config/rbac.matrix.ts).
+ * STRICT v4.1: UI consumes the same module list as server RBAC.
  */
-const MODULE_LABELS: Record<string, { label: string; description: string }> = {
-  [ModuleKey.DASHBOARD]: { label: "Dashboard", description: "Org overview and insights" },
-  [ModuleKey.PROPERTIES]: { label: "Properties", description: "Property and portfolio management" },
-  [ModuleKey.WORK_ORDERS]: { label: "Work Orders", description: "Maintenance and service requests" },
-  [ModuleKey.FINANCE]: { label: "Finance", description: "Invoices, payments, ZATCA compliance, budgets" },
-  [ModuleKey.HR]: { label: "HR", description: "Human resources management" },
-  [ModuleKey.ADMINISTRATION]: { label: "Admin", description: "Administrative functions and configuration" },
-  [ModuleKey.CRM]: { label: "CRM & Notifications", description: "Customers, communication, templates, alerts" },
-  [ModuleKey.MARKETPLACE]: { label: "Marketplace (Souq)", description: "Listings, orders, claims/returns, settlements" },
-  [ModuleKey.SUPPORT]: { label: "Support", description: "Support tickets and knowledge base" },
-  [ModuleKey.COMPLIANCE]: { label: "Compliance", description: "Contracts, disputes, and inspections" },
-  [ModuleKey.REPORTS]: { label: "Reports", description: "Analytics and reporting" },
-  [ModuleKey.SYSTEM_MANAGEMENT]: { label: "System Management", description: "Users, roles, billing, integrations" },
-};
-
-// Additional UI-specific modules not in core ModuleKey (for FM/Aqar extensions)
-const EXTENSION_MODULES: Module[] = [
-  { id: "units", label: "Units", description: "Unit management within properties" },
-  { id: "tenants", label: "Tenants", description: "Tenant management and profiles" },
-  { id: "vendors", label: "Vendors", description: "Vendor and contractor management" },
-  { id: "approvals", label: "Approvals", description: "Approval workflows and SLA decisions" },
-  { id: "assets_sla", label: "Assets & SLA", description: "Assets, PM schedules, SLA tracking" },
-  { id: "qa", label: "QA & Telemetry", description: "QA alerts/logs and platform telemetry" },
-];
-
-// Build DEFAULT_MODULES from shared source + extensions
-export const DEFAULT_MODULES: Module[] = [
-  // Core modules from shared RBAC source
-  ...Object.values(ModuleKey).map((key) => ({
-    id: key.toLowerCase(),
-    label: MODULE_LABELS[key]?.label ?? key,
-    description: MODULE_LABELS[key]?.description ?? "",
-  })),
-  // Extension modules for FM/Aqar-specific features
-  ...EXTENSION_MODULES,
-];
+export const DEFAULT_MODULES: Module[] = RBAC_MODULES;
 
 /**
  * Role label mappings for UI display.
- * STRICT v4.1: Canonical roles from domain/fm/fm-lite.ts Role enum.
+ * STRICT v4.1: Canonical roles from RBAC matrix.
  */
-const ROLE_LABELS: Record<string, string> = {
-  [Role.SUPER_ADMIN]: "Super Admin",
-  [Role.ADMIN]: "Admin / Corporate Admin",
-  [Role.CORPORATE_OWNER]: "Corporate Owner",
-  [Role.TEAM_MEMBER]: "Team Member",
-  [Role.TECHNICIAN]: "Technician",
-  [Role.PROPERTY_MANAGER]: "Property Manager",
-  [Role.TENANT]: "Tenant / End-User",
-  [Role.VENDOR]: "Vendor",
-  [Role.GUEST]: "Guest / Auditor",
-};
-
-/**
- * Helper to check if a role has access to a module based on ROLE_MODULES.
- */
-function roleHasModuleAccess(role: Role, moduleId: string): boolean {
-  const modules = ROLE_MODULES[role];
-  if (!modules) return false;
-  // Match by lowercase comparison since ModuleKey is UPPERCASE
-  return modules.some((m) => m.toLowerCase() === moduleId.toLowerCase());
-}
-
-/**
- * Generate default permissions for a role based on shared ROLE_MODULES.
- * STRICT v4.1: Conservative delete rights - only SUPER_ADMIN gets delete.
- */
-function generateRolePermissions(role: Role): RolePermission["permissions"] {
-  const isAdmin = role === Role.SUPER_ADMIN || role === Role.ADMIN;
-  const isCorporateOwner = role === Role.CORPORATE_OWNER;
-  
-  return Object.fromEntries(
-    DEFAULT_MODULES.map((m) => {
-      const hasAccess = roleHasModuleAccess(role, m.id);
-      const canCreate = hasAccess && (isAdmin || isCorporateOwner || [Role.TEAM_MEMBER, Role.PROPERTY_MANAGER].includes(role));
-      const canEdit = hasAccess && (isAdmin || isCorporateOwner || [Role.TEAM_MEMBER, Role.PROPERTY_MANAGER, Role.TECHNICIAN].includes(role));
-      // Only SUPER_ADMIN gets delete rights per STRICT v4.1
-      const canDelete = role === Role.SUPER_ADMIN;
-      
-      return [
-        m.id,
-        {
-          view: hasAccess || isAdmin || isCorporateOwner,
-          create: canCreate,
-          edit: canEdit,
-          delete: canDelete,
-        },
-      ];
-    })
-  );
-}
+const toTitle = (role: string) =>
+  role
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 /**
  * STRICT v4.1 Canonical Roles derived from shared RBAC source.
- * Roles are generated from domain/fm/fm-lite.ts Role enum with conservative permissions.
+ * Roles are generated from RBAC matrix config to keep UI aligned with server auth.
  */
-export const DEFAULT_ROLES: RolePermission[] = Object.values(Role)
-  .filter((r) => typeof r === "string") // Filter out numeric enum values
-  .map((role) => ({
-    role: role as string,
-    roleLabel: ROLE_LABELS[role] ?? role,
-    permissions: generateRolePermissions(role as Role),
-  }));
+export const DEFAULT_ROLES: RolePermission[] = Object.entries(RBAC_ROLE_PERMISSIONS).map(
+  ([role, permissions]) => ({
+    role,
+    roleLabel: toTitle(role),
+    permissions: permissions ?? {},
+  }),
+);

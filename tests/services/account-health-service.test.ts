@@ -79,12 +79,13 @@ async function seedSeller({
  */
 async function seedOrder({
   sellerId,
+  orgId = testOrgId,
   status = "delivered",
   isDefective = false,
   isLate = false,
   isCancelled = false,
   createdAt = new Date(),
-} = { sellerId: "" }) {
+} = { sellerId: "", orgId: testOrgId }) {
   const orderId = `ORD-${nanoid(8)}`;
   const customerId = new Types.ObjectId();
   const listingId = new Types.ObjectId();
@@ -92,6 +93,7 @@ async function seedOrder({
 
   await SouqOrder.create({
     orderId,
+    orgId,
     customerId,
     customerEmail: `test-${nanoid(4)}@example.com`,
     customerPhone: "+966501234567",

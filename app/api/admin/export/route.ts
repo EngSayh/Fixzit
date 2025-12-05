@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
     }
 
     const exportData: Record<string, unknown[]> = {};
+    const truncatedCollections: string[] = [];
 
     for (const collectionName of validCollections) {
       const config = COLLECTION_CONFIG[collectionName];
@@ -110,6 +111,10 @@ export async function GET(request: NextRequest) {
         documents.push(doc);
       }
 
+      if (documents.length === config.maxDocs) {
+        truncatedCollections.push(collectionName);
+      }
+
       exportData[collectionName] = documents;
       
       logger.info("Export collection fetched", {
@@ -124,21 +129,35 @@ export async function GET(request: NextRequest) {
       // Convert to CSV format
       const csvData = convertToCSV(exportData);
 
-      return new NextResponse(csvData, {
-        headers: {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="export_${new Date().toISOString().split("T")[0]}.csv"`,
-        },
-      });
+      const headers: Record<string, string> = {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="export_${new Date().toISOString().split("T")[0]}.csv"`,
+      };
+      if (truncatedCollections.length > 0) {
+        headers["X-Export-Truncated"] = truncatedCollections.join(",");
+      }
+
+      return new NextResponse(csvData, { headers });
     }
 
     // Return JSON
-    return new NextResponse(JSON.stringify(exportData, null, 2), {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="export_${new Date().toISOString().split("T")[0]}.json"`,
-      },
-    });
+    const jsonBody = JSON.stringify(
+      truncatedCollections.length
+        ? { data: exportData, truncated: truncatedCollections }
+        : exportData,
+      null,
+      2,
+    );
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="export_${new Date().toISOString().split("T")[0]}.json"`,
+    };
+    if (truncatedCollections.length > 0) {
+      headers["X-Export-Truncated"] = truncatedCollections.join(",");
+    }
+
+    return new NextResponse(jsonBody, { headers });
   } catch (error) {
     logger.error("Error exporting data", error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(

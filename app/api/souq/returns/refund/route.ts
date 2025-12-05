@@ -20,14 +20,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const orgId = (session.user as { orgId?: string }).orgId;
-    if (!orgId) {
-      return NextResponse.json(
-        { error: 'Organization context required' },
-        { status: 403 },
-      );
-    }
-
     const body = await request.json();
     const { rmaId, refundAmount, refundMethod } = body;
 
@@ -38,28 +30,41 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Org boundary enforcement: Verify RMA belongs to admin's organization
-    // SUPER_ADMIN can process refunds across all organizations
-    if (session.user.role !== 'SUPER_ADMIN') {
-      const { SouqRMA } = await import('@/server/models/souq/RMA');
-      const rma = await SouqRMA.findById(rmaId).lean();
-      if (!rma) {
-        return NextResponse.json({ 
-          error: 'RMA not found' 
-        }, { status: 404 });
-      }
-      // Verify organization match - sellerId should match orgId for tenant isolation
-      if (rma.sellerId?.toString() !== orgId) {
-        logger.warn('Org boundary violation attempt in refund processing', { 
-          userId: session.user.id, 
-          userOrg: orgId,
-          rmaSeller: rma.sellerId,
-          rmaId 
-        });
-        return NextResponse.json({ 
-          error: 'Access denied: RMA belongs to different organization' 
-        }, { status: 403 });
-      }
+    // Org boundary enforcement: Verify RMA belongs to the caller's organization (SUPER_ADMIN may cross-org)
+    const { SouqRMA } = await import('@/server/models/souq/RMA');
+    const rma = await SouqRMA.findById(rmaId).lean();
+    if (!rma) {
+      return NextResponse.json({ 
+        error: 'RMA not found' 
+      }, { status: 404 });
+    }
+    const rmaOrgId = rma.orgId?.toString();
+    if (!rmaOrgId) {
+      return NextResponse.json({ error: 'RMA missing orgId' }, { status: 400 });
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const targetOrgId = session.user.role === 'SUPER_ADMIN'
+      ? (sessionOrgId || rmaOrgId)
+      : sessionOrgId;
+
+    if (!targetOrgId) {
+      return NextResponse.json(
+        { error: 'Organization context required' },
+        { status: 403 },
+      );
+    }
+
+    if (session.user.role !== 'SUPER_ADMIN' && rmaOrgId !== targetOrgId) {
+      logger.warn('Org boundary violation attempt in refund processing', { 
+        userId: session.user.id, 
+        userOrg: targetOrgId,
+        rmaOrg: rmaOrgId,
+        rmaId 
+      });
+      return NextResponse.json({ 
+        error: 'Access denied: RMA belongs to different organization' 
+      }, { status: 403 });
     }
 
     const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Process refund
     await returnsService.processRefund({
       rmaId,
-      orgId,
+      orgId: targetOrgId,
       refundAmount,
       refundMethod,
       processorId: session.user.id

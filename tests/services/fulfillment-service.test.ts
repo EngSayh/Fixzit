@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { Types } from "mongoose";
-import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqOrder } from "../../server/models/souq/Order";
 
 // Hoist mock setup
 const { mockAramexGetRates, mockSmsaGetRates, mockSplGetRates } = vi.hoisted(() => ({
@@ -17,16 +17,16 @@ const { mockAramexGetRates, mockSmsaGetRates, mockSplGetRates } = vi.hoisted(() 
 }));
 
 // Mock dependencies
-vi.mock("@/lib/queues/setup", () => ({
+vi.mock("../../lib/queues/setup", () => ({
   addJob: vi.fn(async () => undefined),
   QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
 }));
 
-vi.mock("@/lib/logger", () => ({
+vi.mock("../../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock("@/lib/carriers/aramex", () => ({
+vi.mock("../../lib/carriers/aramex", () => ({
   aramexCarrier: {
     name: "Aramex",
     createShipment: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock("@/lib/carriers/aramex", () => ({
   },
 }));
 
-vi.mock("@/lib/carriers/smsa", () => ({
+vi.mock("../../lib/carriers/smsa", () => ({
   smsaCarrier: {
     name: "SMSA",
     createShipment: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock("@/lib/carriers/smsa", () => ({
   },
 }));
 
-vi.mock("@/lib/carriers/spl", () => ({
+vi.mock("../../lib/carriers/spl", () => ({
   splCarrier: {
     name: "SPL",
     createShipment: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock("@/lib/carriers/spl", () => ({
   },
 }));
 
-let fulfillmentService: typeof import("@/services/souq/fulfillment-service").fulfillmentService;
+let fulfillmentService: typeof import("../../services/souq/fulfillment-service").fulfillmentService;
 
 afterEach(async () => {
   await SouqOrder.deleteMany({});
@@ -64,7 +64,7 @@ afterEach(async () => {
 });
 
 beforeAll(async () => {
-  ({ fulfillmentService } = await import("@/services/souq/fulfillment-service"));
+  ({ fulfillmentService } = await import("../../services/souq/fulfillment-service"));
 });
 
 describe("fulfillmentService", () => {

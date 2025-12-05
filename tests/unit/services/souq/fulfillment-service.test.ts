@@ -13,13 +13,30 @@ type ListingRecord = { listingId: string; orgId: string; badges?: string[]; save
 const listings: Array<ListingRecord> = [];
 const inventories: Array<{ listingId: string; orgId: string; fulfillmentType: string; availableQuantity: number }> = [];
 
+/**
+ * Helper to check if an orgId matches using the same logic as buildOrgFilter.
+ * buildOrgFilter creates a $in query with both string and ObjectId variants.
+ */
+function matchesOrgQuery(targetOrgId: string, queryOrg: unknown): boolean {
+  if (!queryOrg) return true;
+  // If it's an $in array, check if targetOrgId matches any candidate (as string)
+  if (typeof queryOrg === "object" && queryOrg !== null) {
+    const inArr = (queryOrg as { $in?: unknown[] }).$in;
+    if (Array.isArray(inArr)) {
+      return inArr.some((cand) => String(cand) === targetOrgId);
+    }
+  }
+  // Direct string match
+  return String(queryOrg) === targetOrgId;
+}
+
 vi.mock("@/server/models/souq/Listing", () => ({
   SouqListing: {
     findOne: vi.fn(async (query: Record<string, unknown>) => {
       return listings.find(
         (l) =>
           l.listingId === query.listingId &&
-          (query.orgId ? l.orgId === query.orgId : true),
+          matchesOrgQuery(l.orgId, query.orgId),
       ) || null;
     }),
   },
@@ -31,7 +48,7 @@ vi.mock("@/server/models/souq/Inventory", () => ({
       return inventories.find(
         (inv) =>
           inv.listingId === query.listingId &&
-          (query.orgId ? inv.orgId === query.orgId : true),
+          matchesOrgQuery(inv.orgId, query.orgId),
       ) || null;
     }),
   },

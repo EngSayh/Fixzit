@@ -59,20 +59,38 @@ export async function GET(request: NextRequest) {
       // Get all returns (admin view)
       const { SouqRMA } = await import("@/server/models/souq/RMA");
       const status = searchParams.get("status");
-      const baseOrgScope = isPlatformAdmin ? {} : { orgId: tenantOrgId };
+
+      const targetOrgId = searchParams.get("targetOrgId") || undefined;
+      const scopedOrgId = isPlatformAdmin ? targetOrgId : tenantOrgId;
+
+      if (isPlatformAdmin && !targetOrgId) {
+        return NextResponse.json(
+          { error: "targetOrgId is required for platform admins" },
+          { status: 400 },
+        );
+      }
+
+      if (!scopedOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
+
+      const baseOrgScope = { orgId: scopedOrgId };
 
       // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see returns involving their org's users
       let query: Record<string, unknown> = status ? { status } : {};
       
       if (isCorporateAdmin && !isPlatformAdmin) {
-        if (!tenantOrgId) {
+        if (!scopedOrgId) {
           return NextResponse.json(
             { error: "Organization context required for CORPORATE_ADMIN" },
             { status: 403 },
           );
         }
         
-        const orgUserIds = await User.find({ orgId: tenantOrgId }, { _id: 1 }).lean();
+        const orgUserIds = await User.find({ orgId: scopedOrgId }, { _id: 1 }).lean();
         const userIdStrings = orgUserIds.map((u: { _id: unknown }) => String(u._id));
         
         query = {

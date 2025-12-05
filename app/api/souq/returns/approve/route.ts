@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import { AgentAuditLog } from "@/server/models/AgentAuditLog";
 
 /**
  * POST /api/souq/returns/approve
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
+    // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
+    if (isPlatformAdmin && !sessionOrgId && !targetOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins without a session org" },
+        { status: 400 },
+      );
+    }
     const orgId = isPlatformAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
     if (!orgId) {
       return NextResponse.json(
@@ -42,19 +50,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const actorId = session.user.id;
+    const actorRole = session.user.role;
+    const auditCrossOrg = isPlatformAdmin && targetOrgId && targetOrgId !== sessionOrgId;
+
+    const logCrossOrgAudit = async (action: string) => {
+      if (!auditCrossOrg) return;
+      await AgentAuditLog.create({
+        agent_id: actorId,
+        assumed_user_id: actorId,
+        action_summary: action,
+        resource_type: "other",
+        resource_id: rmaId,
+        orgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    };
+
     if (approve) {
       await returnsService.approveReturn({
         rmaId,
         orgId,
-        adminId: session.user.id,
+        adminId: actorId,
         approvalNotes,
       });
 
+      await logCrossOrgAudit("Approved return across org boundary");
+
       logger.info("Return approved", {
-        actorUserId: session.user.id,
-        actorRole: session.user.role,
+        actorUserId: actorId,
+        actorRole,
         rmaId,
         targetOrgId: orgId,
+        crossOrg: auditCrossOrg,
       });
 
       return NextResponse.json({
@@ -72,16 +103,19 @@ export async function POST(request: NextRequest) {
 
     await returnsService.rejectReturn(
       rmaId,
-      session.user.id,
+      actorId,
       rejectionReason,
       orgId,
     );
 
+    await logCrossOrgAudit("Rejected return across org boundary");
+
     logger.info("Return rejected", {
-      actorUserId: session.user.id,
-      actorRole: session.user.role,
+      actorUserId: actorId,
+      actorRole,
       rmaId,
       targetOrgId: orgId,
+      crossOrg: auditCrossOrg,
     });
 
     return NextResponse.json({

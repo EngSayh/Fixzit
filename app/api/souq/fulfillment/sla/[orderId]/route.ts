@@ -45,7 +45,11 @@ export async function GET(
       Role.CORPORATE_OWNER,
       Role.TEAM_MEMBER,
     ];
-    const isAdmin = userRole !== null && adminRoles.includes(userRole);
+    const legacyOpsSupport = ["OPS", "SUPPORT"].includes(
+      (session.user.role || "").toUpperCase(),
+    );
+    const isAdmin =
+      (userRole !== null && adminRoles.includes(userRole)) || legacyOpsSupport;
     const isSeller = order.items.some(
       (item) => item.sellerId?.toString() === session.user.id,
     );

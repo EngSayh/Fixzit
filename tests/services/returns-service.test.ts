@@ -8,28 +8,28 @@ const { mockAddJob, mockProcessReturn, mockGetRates } = vi.hoisted(() => ({
   mockGetRates: vi.fn(async () => [{ carrier: "SPL", cost: 12 }]),
 }));
 
-vi.mock("@/lib/queues/setup", () => ({
+vi.mock("../../lib/queues/setup", () => ({
   addJob: mockAddJob,
   QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
 }));
 
-vi.mock("@/services/souq/inventory-service", () => ({
+vi.mock("../../services/souq/inventory-service", () => ({
   inventoryService: {
     processReturn: mockProcessReturn,
   },
 }));
 
-vi.mock("@/services/souq/fulfillment-service", () => ({
+vi.mock("../../services/souq/fulfillment-service", () => ({
   fulfillmentService: {
     getRates: mockGetRates,
   },
 }));
 
-import { SouqOrder } from "@/server/models/souq/Order";
-import { SouqListing } from "@/server/models/souq/Listing";
-import { SouqRMA } from "@/server/models/souq/RMA";
+import { SouqOrder } from "../../server/models/souq/Order";
+import { SouqListing } from "../../server/models/souq/Listing";
+import { SouqRMA } from "../../server/models/souq/RMA";
 
-let returnsService: typeof import("@/services/souq/returns-service").returnsService;
+let returnsService: typeof import("../../services/souq/returns-service").returnsService;
 
 const REQUIRED_ADDRESS = {
   name: "Test User",
@@ -138,7 +138,7 @@ afterEach(() => {
 });
 
 beforeAll(async () => {
-  ({ returnsService } = await import("@/services/souq/returns-service"));
+  ({ returnsService } = await import("../../services/souq/returns-service"));
 });
 
 describe("returnsService", () => {

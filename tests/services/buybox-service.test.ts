@@ -32,9 +32,6 @@ let BuyBoxService: typeof import("@/services/souq/buybox-service").BuyBoxService
 // Test fixture org for listings
 const testOrgId = new Types.ObjectId();
 
-// Test fixture ObjectId for consistent test data
-const testOrgId = new Types.ObjectId();
-
 /**
  * Helper to seed a test seller
  */

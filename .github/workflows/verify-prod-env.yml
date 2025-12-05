@@ -122,18 +122,18 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### Production Environment Validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.validate.outcome }}" == "success" ]; then
-            echo "✅ **Status**: PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "All required production secrets are configured." >> $GITHUB_STEP_SUMMARY
+          echo "### Production Environment Validation" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.validate.outcome }}" = "success" ]; then
+            echo "Status: PASSED" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "All required production secrets are configured." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> $GITHUB_STEP_SUMMARY
-            echo "- \`NEXTAUTH_SECRET\` / \`AUTH_SECRET\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`PAYTABS_PROFILE_ID\`, \`PAYTABS_SERVER_KEY\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_API_KEY\`, \`ZATCA_SELLER_NAME\`, \`ZATCA_VAT_NUMBER\`, \`ZATCA_SELLER_ADDRESS\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`REDIS_URL\` / \`BULLMQ_REDIS_URL\`" >> $GITHUB_STEP_SUMMARY
+            echo "Status: FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> "$GITHUB_STEP_SUMMARY"
+            echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
+            echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
+            echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
+            echo "- REDIS_URL / BULLMQ_REDIS_URL" >> "$GITHUB_STEP_SUMMARY"
           fi

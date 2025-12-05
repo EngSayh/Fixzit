@@ -260,7 +260,7 @@ class ReturnsService {
     const allAutoApprove = items.every(item => autoApprovalReasons.includes(item.reason));
 
     if (allAutoApprove) {
-      await this.autoApprove(rma._id.toString(), orgId);
+      await this.autoApprove({ rmaId: rma._id.toString(), orgId });
     }
 
     // Notify seller
@@ -278,7 +278,7 @@ class ReturnsService {
    * Auto-approve return (for defective/damaged items)
    * 🔒 SECURITY: orgId required for tenant isolation
    */
-  private async autoApprove(rmaId: string, orgId: string): Promise<void> {
+  private async autoApprove({ rmaId, orgId }: { rmaId: string; orgId: string }): Promise<void> {
     if (!orgId) {
       throw new Error('orgId is required for auto-approve');
     }
