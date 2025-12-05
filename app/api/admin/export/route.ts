@@ -96,12 +96,16 @@ export async function GET(request: NextRequest) {
     const exportData: Record<string, unknown[]> = {};
     const truncatedCollections: string[] = [];
 
+    // 🔐 SECURITY: Dual filter to match orgId stored as string OR ObjectId
+    // Some collections (e.g., souq_rmas) store orgId as string, others as ObjectId
+    const orgFilter = { $in: [orgId, orgObjectId] };
+
     for (const collectionName of validCollections) {
       const config = COLLECTION_CONFIG[collectionName];
       if (!config) continue;
 
       const collection = mongoose.connection.collection(collectionName);
-      const scopeQuery = { [config.scopeField]: orgObjectId };
+      const scopeQuery = { [config.scopeField]: orgFilter };
       
       // 🔒 SECURITY: Use batched cursor with limit to prevent memory exhaustion
       const documents: unknown[] = [];

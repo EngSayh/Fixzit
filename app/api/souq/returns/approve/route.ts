@@ -54,21 +54,22 @@ export async function POST(request: NextRequest) {
     const actorRole = session.user.role;
     const auditCrossOrg = isPlatformAdmin && targetOrgId && targetOrgId !== sessionOrgId;
 
-    const logCrossOrgAudit = async (action: string) => {
-      if (!auditCrossOrg) return;
-      await AgentAuditLog.create({
-        agent_id: actorId,
-        assumed_user_id: actorId,
-        action_summary: action,
-        resource_type: "other",
-        resource_id: rmaId,
-        orgId,
-        request_path: request.nextUrl.pathname,
-        success: true,
-        ip_address: request.headers.get("x-forwarded-for") || undefined,
-        user_agent: request.headers.get("user-agent") || undefined,
-      });
-    };
+  const logCrossOrgAudit = async (action: string) => {
+    if (!auditCrossOrg) return;
+    await AgentAuditLog.create({
+      agent_id: actorId,
+      assumed_user_id: actorId,
+      action_summary: action,
+      resource_type: "cross_tenant_action",
+      resource_id: rmaId,
+      orgId,
+      targetOrgId: targetOrgId ?? sessionOrgId,
+      request_path: request.nextUrl.pathname,
+      success: true,
+      ip_address: request.headers.get("x-forwarded-for") || undefined,
+      user_agent: request.headers.get("user-agent") || undefined,
+    });
+  };
 
     if (approve) {
       await returnsService.approveReturn({

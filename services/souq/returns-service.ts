@@ -687,12 +687,14 @@ class ReturnsService {
     await rma.save();
 
     // Always adjust inventory so unsellable units are tracked correctly.
+    // 🔐 SECURITY: Pass orgId for tenant-scoped inventory lookup/update
     for (const item of rma.items) {
       await inventoryService.processReturn({
         listingId: item.listingId.toString(),
         rmaId,
         quantity: item.quantity,
         condition: restockable ? 'sellable' : 'unsellable',
+        orgId,  // Ensures tenant isolation in inventory updates
       });
     }
 
@@ -988,8 +990,9 @@ class ReturnsService {
       throw new Error('orgId is required to fetch buyer return history');
     }
 
+    // 🔐 NOTE: buyerId is stored as string in RMA schema, not ObjectId
     const returns = await RMA.find({
-      buyerId: new mongoose.Types.ObjectId(buyerId),
+      buyerId: buyerId.toString(),
       orgId,
     })
       .sort({ createdAt: -1 })

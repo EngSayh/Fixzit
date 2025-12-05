@@ -17,6 +17,7 @@ export interface IAgentAuditLog extends Document {
   resource_type: string;
   resource_id?: string;
   orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId
+  targetOrgId?: string; // When acting cross-tenant (platform admin)
   request_path?: string;
   success: boolean;
   error_message?: string;
@@ -70,7 +71,17 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
     resource_type: {
       type: String,
       required: true,
-      enum: ["work_order", "property", "user", "finance_record", "hr_record", "report", "config", "other"],
+      enum: [
+        "work_order",
+        "property",
+        "user",
+        "finance_record",
+        "hr_record",
+        "report",
+        "config",
+        "cross_tenant_action",
+        "other",
+      ],
       description: "Type of resource affected",
     },
     
@@ -86,6 +97,10 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
       required: true,
       index: true,
       description: "Tenant organization ID for multi-tenant isolation",
+    },
+    targetOrgId: {
+      type: String,
+      description: "Target tenant org when acting cross-tenant (platform admin only)",
     },
     
     // HTTP request context
