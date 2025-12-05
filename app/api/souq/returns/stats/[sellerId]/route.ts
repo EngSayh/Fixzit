@@ -17,6 +17,13 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     const { sellerId } = params;
     const { searchParams } = new URL(request.url);
@@ -34,7 +41,7 @@ export async function GET(
     }
 
     // Get stats
-    const stats = await returnsService.getSellerReturnStats(sellerId, period);
+    const stats = await returnsService.getSellerReturnStats(sellerId, orgId, period);
 
     return NextResponse.json({
       success: true,

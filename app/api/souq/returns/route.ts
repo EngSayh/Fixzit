@@ -16,10 +16,18 @@ export async function GET(request: NextRequest) {
     }
     const orgId = (session.user as { orgId?: string }).orgId;
 
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = orgId;
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
 
-    const isPlatformAdmin = session.user.isSuperAdmin || session.user.role === "ADMIN";
+    const isPlatformAdmin = session.user.role === "SUPER_ADMIN";
     const isCorporateAdmin = session.user.role === "CORPORATE_ADMIN";
     const isAdmin = isPlatformAdmin || isCorporateAdmin;
 
@@ -27,7 +35,7 @@ export async function GET(request: NextRequest) {
       // Get buyer's return history
       const returns = await returnsService.getBuyerReturnHistory(
         session.user.id,
-        orgId,
+        tenantOrgId,
       );
 
       return NextResponse.json({
@@ -38,7 +46,7 @@ export async function GET(request: NextRequest) {
     } else if (type === "seller") {
       // Get seller's returns
       const { SouqRMA } = await import("@/server/models/souq/RMA");
-      const returns = await SouqRMA.find({ sellerId: session.user.id, ...(orgId ? { orgId } : {}) })
+      const returns = await SouqRMA.find({ sellerId: session.user.id, orgId: tenantOrgId })
         .sort({ createdAt: -1 })
         .limit(100);
 
@@ -51,20 +59,20 @@ export async function GET(request: NextRequest) {
       // Get all returns (admin view)
       const { SouqRMA } = await import("@/server/models/souq/RMA");
       const status = searchParams.get("status");
-      const baseOrgScope = isPlatformAdmin ? {} : { orgId };
+      const baseOrgScope = isPlatformAdmin ? {} : { orgId: tenantOrgId };
 
       // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see returns involving their org's users
       let query: Record<string, unknown> = status ? { status } : {};
       
       if (isCorporateAdmin && !isPlatformAdmin) {
-        if (!orgId) {
+        if (!tenantOrgId) {
           return NextResponse.json(
             { error: "Organization context required for CORPORATE_ADMIN" },
             { status: 403 },
           );
         }
         
-        const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+        const orgUserIds = await User.find({ orgId: tenantOrgId }, { _id: 1 }).lean();
         const userIdStrings = orgUserIds.map((u: { _id: unknown }) => String(u._id));
         
         query = {

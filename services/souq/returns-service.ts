@@ -827,18 +827,27 @@ class ReturnsService {
   /**
    * Get return statistics for a seller
    */
-  async getSellerReturnStats(sellerId: string, period: 'week' | 'month' | 'year' = 'month'): Promise<{
+  async getSellerReturnStats(
+    sellerId: string,
+    orgId: string,
+    period: 'week' | 'month' | 'year' = 'month',
+  ): Promise<{
     totalReturns: number;
     returnRate: number;
     topReasons: Array<{ reason: string; count: number }>;
     avgRefundAmount: number;
     restockableRate: number;
   }> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch seller return stats');
+    }
+
     const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
     const returns = await RMA.find({
       sellerId: sellerId.toString(),
+      orgId,
       createdAt: { $gte: startDate }
     });
 
@@ -847,6 +856,7 @@ class ReturnsService {
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
       'items.sellerId': new mongoose.Types.ObjectId(sellerId),
+      orgId,
       status: 'delivered',
       deliveredAt: { $gte: startDate }
     });
@@ -913,16 +923,23 @@ class ReturnsService {
       .limit(50);
 
     return returns.map((rma: unknown) => {
-      const r = rma as { _id: { toString(): string }; orderId: { toString(): string }; status: string; createdAt: Date; items: unknown[]; refund?: { amount?: number } };
+      const r = rma as {
+        _id: { toString(): string };
+        orderId: { toString(): string };
+        status: string;
+        createdAt: Date;
+        items: unknown[];
+        refund?: { amount?: number };
+      };
       return {
         rmaId: r._id.toString(),
         orderId: r.orderId.toString(),
         status: r.status,
         createdAt: r.createdAt,
         items: r.items.length,
-      refundAmount: r.refund?.amount
-    };
-  });
+        refundAmount: r.refund?.amount,
+      };
+    });
   }
 
   /**
