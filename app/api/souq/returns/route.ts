@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
-import { User } from "@/server/models/User";
 import {
   Role,
   SubRole,
@@ -10,6 +9,20 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
 
 /**
  * GET /api/souq/returns
@@ -46,8 +59,6 @@ export async function GET(request: NextRequest) {
       inferSubRoleFromRole(session.user.role);
 
     const isPlatformAdmin = normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
-    const isCorporateAdmin =
-      (session.user.role || "").toUpperCase() === "CORPORATE_ADMIN";
     const isOrgAdmin =
       normalizedRole !== null &&
       [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
@@ -74,7 +85,10 @@ export async function GET(request: NextRequest) {
     } else if (type === "seller") {
       // Get seller's returns
       const { SouqRMA } = await import("@/server/models/souq/RMA");
-      const returns = await SouqRMA.find({ sellerId: session.user.id, orgId: tenantOrgId })
+      const returns = await SouqRMA.find({
+        sellerId: session.user.id,
+        ...buildOrgFilter(tenantOrgId),
+      })
         .sort({ createdAt: -1 })
         .limit(100);
 
@@ -105,52 +119,15 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const baseOrgScope = { orgId: scopedOrgId };
+      const baseOrgScope = buildOrgFilter(scopedOrgId);
+      const query: Record<string, unknown> = { ...baseOrgScope };
 
-      // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see returns involving their org's users
-      let query: Record<string, unknown> = status ? { status } : {};
-      
-      if (isCorporateAdmin && !isPlatformAdmin) {
-        if (!scopedOrgId) {
-          return NextResponse.json(
-            { error: "Organization context required for CORPORATE_ADMIN" },
-            { status: 403 },
-          );
-        }
-        
-        const orgUserIds = await User.find({ orgId: scopedOrgId }, { _id: 1 }).lean();
-        const userIdStrings = orgUserIds.map((u: { _id: unknown }) => String(u._id));
-        
-        query = {
-          $and: [
-            baseOrgScope,
-            ...(status ? [{ status }] : []),
-            {
-              $or: [
-                { buyerId: { $in: userIdStrings } },
-                { sellerId: { $in: userIdStrings } },
-              ],
-            },
-          ],
-        };
-        
-        // If no conditions, simplify
-        if (!status) {
-          query = {
-            $and: [
-              baseOrgScope,
-              {
-                $or: [
-                  { buyerId: { $in: userIdStrings } },
-                  { sellerId: { $in: userIdStrings } },
-                ],
-              },
-            ],
-          };
-        }
-      } else {
-        query = { ...baseOrgScope, ...(status ? { status } : {}) };
+      if (status) {
+        query.status = status;
       }
+
+      // For non-platform admins, ensure only same-org records (baseOrgScope already enforces this).
+      // Additional per-user scoping can be added here if we later allow finer-grained permissions.
       
       const returns = await SouqRMA.find(query)
         .sort({ createdAt: -1 })

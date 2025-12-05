@@ -7,6 +7,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +25,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sellerId =
       searchParams.get("sellerId") || (session.user.id as string);
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
     const type = searchParams.get("type");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -27,14 +46,31 @@ export async function GET(request: NextRequest) {
       100,
     );
 
-    // Authorization: Seller can only view own transactions, admin can view all
-    const userRole = (session.user as { role?: string }).role;
-    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE roles
-    if (
-      !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
-      sellerId !== session.user.id
-    ) {
+    // Authorization: Seller can only view own transactions, admin/finance can view all
+    const isAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isFinance =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+
+    if (!isSuperAdmin && !isAdmin && !isFinance && sellerId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !orgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
     }
 
     // Build filters
@@ -58,6 +94,7 @@ export async function GET(request: NextRequest) {
     // Get transactions
     const result = await SellerBalanceService.getTransactionHistory(
       sellerId,
+      orgId,
       filters,
     );
 
@@ -71,7 +108,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("Error fetching transactions", { error });
+    logger.error("Error fetching transactions", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
       { status: 500 },

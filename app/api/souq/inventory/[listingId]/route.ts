@@ -58,7 +58,7 @@ export async function GET(
       inventory,
     });
   } catch (error) {
-    logger.error("GET /api/souq/inventory/[listingId] error", { error });
+    logger.error("GET /api/souq/inventory/[listingId] error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

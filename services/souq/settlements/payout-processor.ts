@@ -54,7 +54,7 @@ interface PayoutRequest {
   payoutId: string;
   sellerId: string;
   statementId: string;
-  orgId?: string;
+  orgId: string;
   escrowAccountId?: string;
   amount: number;
   currency: string;
@@ -164,8 +164,13 @@ export class PayoutProcessorService {
   static async requestPayout(
     sellerId: string,
     statementId: string,
+    orgId: string,
     bankAccount: BankAccount,
   ): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error("orgId is required to request payout");
+    }
+
     const db = await getDbInstance();
     const statementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
@@ -174,6 +179,7 @@ export class PayoutProcessorService {
     const statement = (await statementsCollection.findOne({
       statementId,
       sellerId,
+      orgId,
     })) as SettlementStatement | null;
 
     if (!statement) {
@@ -194,6 +200,7 @@ export class PayoutProcessorService {
     // Check for existing payout request
     const existingPayout = await payoutsCollection.findOne({
       statementId,
+      orgId,
       status: { $in: ["pending", "processing"] },
     });
 
@@ -212,7 +219,7 @@ export class PayoutProcessorService {
       payoutId,
       sellerId,
       statementId,
-      orgId: (statement as SettlementStatement & { orgId?: string }).orgId,
+      orgId,
       escrowAccountId: (
         statement as SettlementStatement & { escrowAccountId?: string }
       ).escrowAccountId,
@@ -231,7 +238,7 @@ export class PayoutProcessorService {
 
     // Update statement status
     await statementsCollection.updateOne(
-      { statementId },
+      { statementId, orgId },
       { $set: { status: "pending", payoutId } },
     );
 

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       message: "Return rejected successfully",
     });
   } catch (error) {
-    logger.error("Approve/reject return error", { error });
+    logger.error("Approve/reject return error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to process return approval",

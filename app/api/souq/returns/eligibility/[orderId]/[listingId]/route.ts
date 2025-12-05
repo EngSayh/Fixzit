@@ -39,7 +39,7 @@ export async function GET(
       ...eligibility,
     });
   } catch (error) {
-    logger.error("Check eligibility error", { error });
+    logger.error("Check eligibility error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to check eligibility",

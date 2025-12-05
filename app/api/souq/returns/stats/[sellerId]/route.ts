@@ -96,7 +96,7 @@ export async function GET(
       period,
     });
   } catch (error) {
-    logger.error("Get return stats error", { error });
+    logger.error("Get return stats error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get return stats",

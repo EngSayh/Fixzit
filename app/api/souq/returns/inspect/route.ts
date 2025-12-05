@@ -16,11 +16,13 @@ import {
  * Admin/Inspector-only endpoint
  */
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    userId = session.user.id;
 
     // Admin or operations staff with inspect permissions - canonical Role + subRole per STRICT v4.1
     const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
       message: "Inspection completed successfully",
     });
   } catch (error) {
-    logger.error("Inspect return error", { error });
+    logger.error("Inspect return error", error as Error, { userId });
     return NextResponse.json(
       {
         error: "Failed to complete inspection",

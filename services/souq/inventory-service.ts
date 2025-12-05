@@ -2,7 +2,27 @@ import { SouqInventory, IInventory } from "@/server/models/souq/Inventory";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
-import type { ClientSession } from "mongoose";
+import mongoose, { type ClientSession } from "mongoose";
+
+// Temporary helper to match orgId stored as string or ObjectId during migration
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { orgId };
+  }
+
+  return { orgId: { $in: candidates } };
+};
 
 /**
  * Inventory Service
@@ -158,13 +178,11 @@ class InventoryService {
         throw new Error("orgId is required to receive stock");
       }
 
-      const inventory = await SouqInventory.findOne(
-        {
-          listingId,
-          status: { $ne: "suspended" },
-          orgId,
-        },
-      );
+      const inventory = await SouqInventory.findOne({
+        listingId,
+        status: { $ne: "suspended" },
+        ...buildOrgFilter(orgId),
+      });
 
       if (!inventory) {
         throw new Error(`Inventory not found for listing: ${listingId}`);
@@ -208,7 +226,7 @@ class InventoryService {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
         status: "active",
-        orgId: params.orgId,
+        ...buildOrgFilter(params.orgId),
       });
 
       if (!inventory) {
@@ -273,7 +291,7 @@ class InventoryService {
 
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        orgId: params.orgId,
+        ...buildOrgFilter(params.orgId),
       });
 
       if (!inventory) {
@@ -327,7 +345,7 @@ class InventoryService {
 
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        orgId: params.orgId,
+        ...buildOrgFilter(params.orgId),
       });
 
       if (!inventory) {
@@ -384,10 +402,13 @@ class InventoryService {
         throw new Error("orgId is required to process returns");
       }
 
-      const inventory = await SouqInventory.findOne({
+      const inventoryQuery = SouqInventory.findOne({
         listingId: params.listingId,
-        orgId: params.orgId,
+        ...buildOrgFilter(params.orgId),
       });
+      const inventory = params.session
+        ? await inventoryQuery.session(params.session)
+        : await inventoryQuery;
 
       if (!inventory) {
         throw new Error(`Inventory not found for listing: ${params.listingId}`);
@@ -401,6 +422,7 @@ class InventoryService {
         params.listingId,
         inventory.availableQuantity,
         params.orgId,
+        params.session,
       );
 
       logger.info("Return processed", {
@@ -475,7 +497,7 @@ class InventoryService {
 
     return await SouqInventory.findOne({
       listingId,
-      orgId,
+      ...buildOrgFilter(orgId),
     });
   }
 
@@ -496,7 +518,7 @@ class InventoryService {
       throw new Error("orgId is required to fetch seller inventory");
     }
 
-    const query: Record<string, unknown> = { sellerId, orgId };
+    const query: Record<string, unknown> = { sellerId, ...buildOrgFilter(orgId) };
 
     if (filters?.status) {
       query.status = filters.status;
@@ -533,7 +555,7 @@ class InventoryService {
     const inventory = await SouqInventory.find({
       sellerId,
       status: "active",
-      orgId,
+      ...buildOrgFilter(orgId),
     });
 
     const report: IInventoryHealthReport = {
@@ -579,7 +601,7 @@ class InventoryService {
       const inventories = await SouqInventory.find({
         status: "active",
         "reservations.status": "active",
-        orgId,
+        ...buildOrgFilter(orgId),
       });
 
       for (const inventory of inventories) {
@@ -617,9 +639,8 @@ class InventoryService {
         throw new Error("orgId is required to update health metrics");
       }
 
-      const query: Record<string, unknown> = { status: "active" };
+      const query: Record<string, unknown> = { status: "active", ...buildOrgFilter(orgId) };
       if (sellerId) query.sellerId = sellerId;
-      query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
 
@@ -627,10 +648,11 @@ class InventoryService {
         inventory.updateHealth();
 
         // Check if listing still exists (stranded check)
-        const listing = await SouqListing.findOne({
-          listingId: inventory.listingId,
-          orgId,
-        }) ?? await SouqListing.findOne({ listingId: inventory.listingId });
+        const listing =
+          (await SouqListing.findOne({
+            listingId: inventory.listingId,
+            ...buildOrgFilter(orgId),
+          })) ?? (await SouqListing.findOne({ listingId: inventory.listingId }));
         inventory.health.isStranded = !listing || listing.status !== "active";
 
         await inventory.save();
@@ -655,9 +677,8 @@ class InventoryService {
         throw new Error("orgId is required to queue low stock alerts");
       }
 
-      const query: Record<string, unknown> = { status: "active" };
+      const query: Record<string, unknown> = { status: "active", ...buildOrgFilter(orgId) };
       if (sellerId) query.sellerId = sellerId;
-      query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
       let alertCount = 0;
@@ -697,16 +718,29 @@ class InventoryService {
     session?: ClientSession,
   ): Promise<void> {
     try {
-      const query: Record<string, unknown> = { listingId };
-      if (orgId) query.orgId = orgId;
+      if (!orgId) {
+        logger.warn("Listing stock update skipped (orgId missing)", { listingId });
+        return;
+      }
+
+      const query: Record<string, unknown> = { listingId, ...buildOrgFilter(orgId) };
 
       const listingQuery = SouqListing.findOne(query);
       let listing = session ? await listingQuery.session(session) : await listingQuery;
 
-      // Backward compatibility: if orgId is set but listing schema/data lacks it
-      if (!listing && orgId) {
+      // Backward compatibility: allow legacy records missing orgId, but do not cross orgs
+      if (!listing) {
         const fallbackQuery = SouqListing.findOne({ listingId });
-        listing = session ? await fallbackQuery.session(session) : await fallbackQuery;
+        const fallback = session ? await fallbackQuery.session(session) : await fallbackQuery;
+        if (fallback?.orgId && fallback.orgId.toString() !== orgId.toString()) {
+          logger.warn("Listing org mismatch during stock update; skipping", {
+            listingId,
+            orgId,
+            listingOrgId: fallback.orgId.toString(),
+          });
+          return;
+        }
+        listing = fallback ?? null;
       }
 
       if (!listing) {

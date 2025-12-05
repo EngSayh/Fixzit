@@ -64,6 +64,7 @@ interface WithdrawalRequest {
   _id?: ObjectId;
   requestId: string;
   sellerId: string;
+  orgId?: string;
   amount: number;
   status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
   requestedAt: Date;
@@ -97,6 +98,14 @@ interface BalanceAdjustment {
 /**
  * Seller Balance Service
  */
+type TransactionFilters = {
+  type?: Transaction["type"];
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  offset?: number;
+};
+
 export class SellerBalanceService {
   /**
    * Get seller balance (real-time from Redis)
@@ -401,6 +410,7 @@ export class SellerBalanceService {
     const payout = await PayoutProcessorService.requestPayout(
       request.sellerId,
       request.statementId,
+      request.orgId || "",
       bankAccount,
     );
 
@@ -510,19 +520,22 @@ export class SellerBalanceService {
    */
   static async getTransactionHistory(
     sellerId: string,
-    filters?: {
-      type?: Transaction["type"];
-      startDate?: Date;
-      endDate?: Date;
-      limit?: number;
-      offset?: number;
-    },
+    orgIdOrFilters?: string | TransactionFilters,
+    maybeFilters?: TransactionFilters,
   ): Promise<{ transactions: Transaction[]; total: number }> {
+    const orgId = typeof orgIdOrFilters === "string" ? orgIdOrFilters : undefined;
+    const filters =
+      typeof orgIdOrFilters === "string" ? maybeFilters : orgIdOrFilters;
+
+    if (!orgId) {
+      throw new Error("orgId is required to fetch transaction history");
+    }
+
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
-    const query: Record<string, unknown> = { sellerId };
+    const query: Record<string, unknown> = { sellerId, orgId };
 
     if (filters?.type) {
       query.type = filters.type;

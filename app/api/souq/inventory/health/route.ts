@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       ],
     });
   } catch (error) {
-    logger.error("GET /api/souq/inventory/health error", { error });
+    logger.error("GET /api/souq/inventory/health error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

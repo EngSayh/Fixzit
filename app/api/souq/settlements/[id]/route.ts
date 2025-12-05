@@ -47,7 +47,7 @@ export async function GET(
 
     return NextResponse.json({ statement });
   } catch (error) {
-    logger.error("Error fetching settlement", { error });
+    logger.error("Error fetching settlement", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch settlement" },
       { status: 500 },

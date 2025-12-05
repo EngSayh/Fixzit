@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       message: "Return request submitted successfully",
     });
   } catch (error) {
-    logger.error("Initiate return error", { error });
+    logger.error("Initiate return error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to initiate return",

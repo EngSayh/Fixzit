@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { amount, statementId, bankAccount } = body;
 
@@ -42,12 +50,13 @@ export async function POST(request: NextRequest) {
     const payout = await PayoutProcessorService.requestPayout(
       sellerId,
       statementId,
+      orgId,
       bankAccount,
     );
 
     return NextResponse.json({ payout }, { status: 201 });
   } catch (error) {
-    logger.error("Error requesting payout", { error });
+    logger.error("Error requesting payout", error as Error);
     const message =
       error instanceof Error ? error.message : "Failed to request payout";
     return NextResponse.json({ error: message }, { status: 500 });
