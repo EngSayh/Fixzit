@@ -8,11 +8,21 @@ import { logger } from "@/lib/logger";
  * Adjust inventory for damage/loss (admin or seller only)
  */
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.user.id;
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -52,7 +62,7 @@ export async function POST(request: NextRequest) {
       type,
       reason,
       performedBy: session.user.id,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId,
     });
 
     return NextResponse.json({
@@ -66,7 +76,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("POST /api/souq/inventory/adjust error", { error });
+    logger.error("POST /api/souq/inventory/adjust error", error as Error, {
+      userId,
+    });
     return NextResponse.json(
       {
         error: "Internal server error",

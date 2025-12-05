@@ -3,6 +3,13 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
 import { User } from "@/server/models/User";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * GET /api/souq/returns
@@ -27,9 +34,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
 
-    const isPlatformAdmin = session.user.role === "SUPER_ADMIN";
-    const isCorporateAdmin = session.user.role === "CORPORATE_ADMIN";
-    const isAdmin = isPlatformAdmin || isCorporateAdmin;
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ??
+      undefined) as string | undefined;
+    const validatedSubRole: SubRole | undefined =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const normalizedRole = normalizeRole(session.user.role, validatedSubRole);
+    const normalizedSubRole =
+      normalizeSubRole(validatedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isCorporateAdmin =
+      (session.user.role || "").toUpperCase() === "CORPORATE_ADMIN";
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isAdmin = isPlatformAdmin || isOrgAdmin || isOpsOrSupport;
 
     if (type === "buyer") {
       // Get buyer's return history

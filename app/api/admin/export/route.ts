@@ -31,6 +31,76 @@ const MAX_COLLECTIONS_PER_REQUEST = 5;
 const BATCH_SIZE = 500;
 
 /**
+ * 🔐 SECURITY: Projections to exclude sensitive fields from exports
+ * Even for SUPER_ADMIN, we don't export password hashes, tokens, or raw PII
+ * Each collection has explicit field exclusions for compliance
+ */
+const COLLECTION_PROJECTIONS: Record<string, Record<string, 0>> = {
+  users: {
+    password: 0,
+    personal: 0,
+    refreshToken: 0,
+    magicLinkToken: 0,
+    resetToken: 0,
+    resetPasswordToken: 0,
+    resetPasswordExpires: 0,
+    verificationToken: 0,
+    twoFactorSecret: 0,
+    backupCodes: 0,
+    phone: 0,
+    emergencyContact: 0,
+  },
+  vendors: {
+    bankAccount: 0,
+    iban: 0,
+    taxCertificate: 0,
+    contactPhone: 0,
+    contactEmail: 0,
+    paymentDetails: 0,
+    apiKey: 0,
+    apiSecret: 0,
+  },
+  invoices: {
+    paymentIntentSecret: 0,
+    payerEmail: 0,
+    payerPhone: 0,
+    stripeCustomerId: 0,
+    paymentMethodId: 0,
+  },
+  workorders: {
+    requesterPhone: 0,
+    requesterEmail: 0,
+    attachments: 0,  // May contain sensitive documents
+  },
+  properties: {
+    ownerPhone: 0,
+    ownerEmail: 0,
+    bankDetails: 0,
+    taxId: 0,
+  },
+  units: {
+    tenantPhone: 0,
+    tenantEmail: 0,
+    accessCodes: 0,
+    keyLocation: 0,
+  },
+  tenancies: {
+    tenantPhone: 0,
+    tenantEmail: 0,
+    bankAccount: 0,
+    emergencyContact: 0,
+    idDocument: 0,
+  },
+  maintenancelogs: {
+    technicianPhone: 0,
+  },
+  revenuelogs: {
+    payerDetails: 0,
+    bankReference: 0,
+  },
+};
+
+/**
  * GET /api/admin/export
  * Export database collections to JSON or CSV format
  * SUPER_ADMIN only - scoped to organization with batching
@@ -107,9 +177,18 @@ export async function GET(request: NextRequest) {
       const collection = mongoose.connection.collection(collectionName);
       const scopeQuery = { [config.scopeField]: orgFilter };
       
+      // 🔐 SECURITY: Apply projection to exclude sensitive fields
+      const projection =
+        COLLECTION_PROJECTIONS[
+          collectionName as keyof typeof COLLECTION_CONFIG
+        ];
+      
       // 🔒 SECURITY: Use batched cursor with limit to prevent memory exhaustion
       const documents: unknown[] = [];
-      const cursor = collection.find(scopeQuery).batchSize(BATCH_SIZE).limit(config.maxDocs);
+      const cursor = (projection
+        ? collection.find(scopeQuery, { projection })
+        : collection.find(scopeQuery)
+      ).batchSize(BATCH_SIZE).limit(config.maxDocs);
       
       for await (const doc of cursor) {
         documents.push(doc);
@@ -172,8 +251,19 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Sanitize a value for CSV to prevent formula injection
+ * Prefixes values starting with =, +, -, @ (including leading whitespace),
+ * tab, or CR with a single quote
+ */
+function sanitizeCSVValue(value: string): string {
+  const trimmed = value.trimStart();
+  return /^[=+\-@]/.test(trimmed) || /^[\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/**
  * Convert export data to CSV format
  * Each collection becomes a section in the CSV
+ * 🔐 SECURITY: Values are sanitized to prevent formula injection
  */
 function convertToCSV(data: Record<string, unknown[]>): string {
   const lines: string[] = [];
@@ -198,13 +288,17 @@ function convertToCSV(data: Record<string, unknown[]>): string {
     // Add CSV header row
     lines.push(headerArray.map((h) => `"${h}"`).join(","));
 
-    // Add data rows
+    // Add data rows with CSV sanitization to prevent formula injection
     documents.forEach((doc) => {
       const row = headerArray.map((header) => {
         const value = (doc as Record<string, unknown>)[header];
         if (value === null || value === undefined) return "";
-        if (typeof value === "object") return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
-        return `"${String(value).replace(/"/g, '""')}"`;
+        if (typeof value === "object") {
+          const jsonStr = JSON.stringify(value).replace(/"/g, '""');
+          return `"${sanitizeCSVValue(jsonStr)}"`;
+        }
+        const strVal = String(value).replace(/"/g, '""');
+        return `"${sanitizeCSVValue(strVal)}"`;
       });
       lines.push(row.join(","));
     });

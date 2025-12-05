@@ -19,10 +19,17 @@ export async function GET(
     }
 
     const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
 
     const inventory = await inventoryService.getInventory(
       params.listingId,
-      orgId,
+      orgIdStr,
     );
 
     if (!inventory) {
@@ -37,7 +44,7 @@ export async function GET(
     // Authorization: Can only view own inventory unless admin
     const sellerMatches =
       inventory.sellerId?.toString() === session.user.id ||
-      (orgId && inventory.orgId && inventory.orgId.toString() === orgId);
+      (orgIdStr && inventory.orgId && inventory.orgId.toString() === orgIdStr);
     const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
       session.user.role,
     );

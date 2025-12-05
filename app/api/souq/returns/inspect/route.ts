@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * POST /api/souq/returns/inspect
@@ -15,8 +22,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Admin or inspector role
-    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "INSPECTOR"].includes(session.user.role)) {
+    // Admin or operations staff with inspect permissions - canonical Role + subRole per STRICT v4.1
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole as SubRole | undefined);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole as SubRole | undefined) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isAdminRole =
+      userRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(userRole);
+    
+    // TEAM_MEMBER with ops/support subRole can inspect returns
+    const isOpsStaff =
+      userRole === Role.TEAM_MEMBER &&
+      userSubRole !== undefined &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+    
+    if (!isPlatformAdmin && !isAdminRole && !isOpsStaff) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

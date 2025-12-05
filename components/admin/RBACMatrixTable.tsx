@@ -23,6 +23,7 @@ import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react
 import {
   RBAC_MODULES,
   RBAC_ROLE_PERMISSIONS,
+  RBAC_ROLE_LABELS,
   type RBACModule,
 } from "@/config/rbac.matrix";
 
@@ -272,16 +273,6 @@ export default function RBACMatrixTable({
  */
 export const DEFAULT_MODULES: Module[] = RBAC_MODULES;
 
-/**
- * Role label mappings for UI display.
- * STRICT v4.1: Canonical roles from RBAC matrix.
- */
-const toTitle = (role: string) =>
-  role
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-
 const normalizePermissions = (
   permissions: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }> | undefined,
 ): Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }> => {
@@ -300,7 +291,7 @@ const normalizePermissions = (
 export const DEFAULT_ROLES: RolePermission[] = Object.entries(RBAC_ROLE_PERMISSIONS).map(
   ([role, permissions]) => ({
     role,
-    roleLabel: toTitle(role),
+    roleLabel: RBAC_ROLE_LABELS[role] ?? role,
     permissions: normalizePermissions(permissions as Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>),
   }),
 );

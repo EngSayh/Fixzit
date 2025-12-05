@@ -35,6 +35,8 @@ let inventoryService: typeof import("@/services/souq/inventory-service").invento
 // Test fixture ObjectId for consistent test data
 const testOrgId = new Types.ObjectId();
 const otherOrgId = new Types.ObjectId();
+const testOrgIdStr = testOrgId.toString();
+const otherOrgIdStr = otherOrgId.toString();
 
 async function seedInventory({
   quantity = 100,
@@ -139,6 +141,7 @@ describe("inventoryService", () => {
         listingId,
         quantity: 5,
         reservationId,
+        orgId: testOrgIdStr,
         expirationMinutes: 15,
       });
 
@@ -165,6 +168,7 @@ describe("inventoryService", () => {
         listingId,
         quantity: 10, // More than available
         reservationId,
+        orgId: testOrgIdStr,
       });
 
       expect(result).toBe(false);
@@ -189,6 +193,7 @@ describe("inventoryService", () => {
         listingId: "non-existent-listing",
         quantity: 5,
         reservationId: "res-1",
+        orgId: testOrgIdStr,
       });
 
       expect(result).toBe(false);
@@ -205,12 +210,14 @@ describe("inventoryService", () => {
         listingId,
         quantity: 10,
         reservationId,
+        orgId: testOrgIdStr,
       });
 
       // Then release
       const result = await inventoryService.releaseReservation({
         listingId,
         reservationId,
+        orgId: testOrgIdStr,
       });
 
       expect(result).toBe(true);
@@ -255,7 +262,7 @@ describe("inventoryService", () => {
     it("should return inventory for existing listing", async () => {
       const { listingId, quantity } = await seedInventory({ quantity: 100 });
 
-      const result = await inventoryService.getInventory(listingId);
+      const result = await inventoryService.getInventory(listingId, testOrgIdStr);
 
       expect(result).not.toBeNull();
       expect(result?.listingId).toBe(listingId);
@@ -263,7 +270,7 @@ describe("inventoryService", () => {
     });
 
     it("should return null for non-existent listing", async () => {
-      const result = await inventoryService.getInventory("non-existent");
+      const result = await inventoryService.getInventory("non-existent", testOrgIdStr);
       expect(result).toBeNull();
     });
   });

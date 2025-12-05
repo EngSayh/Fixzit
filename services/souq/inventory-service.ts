@@ -14,7 +14,7 @@ export interface IReceiveInventoryParams {
   sellerId: string;
   quantity: number;
   fulfillmentType: "FBM" | "FBF";
-  orgId?: string;
+  orgId: string;
   warehouseId?: string;
   binLocation?: string;
   performedBy: string;
@@ -25,21 +25,21 @@ export interface IReserveInventoryParams {
   listingId: string;
   quantity: number;
   reservationId: string;
-  orgId?: string;
+  orgId: string;
   expirationMinutes?: number;
 }
 
 export interface IReleaseInventoryParams {
   listingId: string;
   reservationId: string;
-  orgId?: string;
+  orgId: string;
 }
 
 export interface IConvertReservationParams {
   listingId: string;
   reservationId: string;
   orderId: string;
-  orgId?: string;
+  orgId: string;
 }
 
 export interface IReturnInventoryParams {
@@ -47,7 +47,8 @@ export interface IReturnInventoryParams {
   rmaId: string;
   quantity: number;
   condition: "sellable" | "unsellable";
-  orgId?: string;
+  orgId: string;
+  session?: import("mongodb").ClientSession;
 }
 
 export interface IAdjustInventoryParams {
@@ -56,7 +57,7 @@ export interface IAdjustInventoryParams {
   type: "damage" | "lost";
   reason: string;
   performedBy: string;
-  orgId?: string;
+  orgId: string;
 }
 
 export interface IInventoryHealthReport {
@@ -78,6 +79,10 @@ class InventoryService {
     params: IReceiveInventoryParams,
   ): Promise<IInventory> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to initialize inventory");
+      }
+
       const inventoryId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const inventory = await SouqInventory.create({
@@ -144,15 +149,19 @@ class InventoryService {
     listingId: string,
     quantity: number,
     performedBy: string,
-    reason?: string,
-    orgId?: string,
+    orgId: string,
+    reason?: string
   ): Promise<IInventory> {
     try {
+      if (!orgId) {
+        throw new Error("orgId is required to receive stock");
+      }
+
       const inventory = await SouqInventory.findOne(
         {
           listingId,
           status: { $ne: "suspended" },
-          ...(orgId ? { orgId } : {}),
+          orgId,
         },
       );
 
@@ -191,10 +200,14 @@ class InventoryService {
    */
   async reserveInventory(params: IReserveInventoryParams): Promise<boolean> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to reserve inventory");
+      }
+
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
         status: "active",
-        ...(params.orgId ? { orgId: params.orgId } : {}),
+        orgId: params.orgId,
       });
 
       if (!inventory) {
@@ -253,9 +266,13 @@ class InventoryService {
    */
   async releaseReservation(params: IReleaseInventoryParams): Promise<boolean> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to release reservation");
+      }
+
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        ...(params.orgId ? { orgId: params.orgId } : {}),
+        orgId: params.orgId,
       });
 
       if (!inventory) {
@@ -303,9 +320,13 @@ class InventoryService {
     params: IConvertReservationParams,
   ): Promise<boolean> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to convert reservation");
+      }
+
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        ...(params.orgId ? { orgId: params.orgId } : {}),
+        orgId: params.orgId,
       });
 
       if (!inventory) {
@@ -358,9 +379,13 @@ class InventoryService {
    */
   async processReturn(params: IReturnInventoryParams): Promise<IInventory> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to process returns");
+      }
+
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        ...(params.orgId ? { orgId: params.orgId } : {}),
+        orgId: params.orgId,
       });
 
       if (!inventory) {
@@ -368,7 +393,7 @@ class InventoryService {
       }
 
       inventory.processReturn(params.rmaId, params.quantity, params.condition);
-      await inventory.save();
+      await inventory.save(params.session ? { session: params.session } : undefined);
 
       // Update listing stock status
       await this.updateListingStockStatus(
@@ -399,9 +424,13 @@ class InventoryService {
    */
   async adjustInventory(params: IAdjustInventoryParams): Promise<IInventory> {
     try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to adjust inventory");
+      }
+
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
-        ...(params.orgId ? { orgId: params.orgId } : {}),
+        orgId: params.orgId,
       });
 
       if (!inventory) {
@@ -437,11 +466,15 @@ class InventoryService {
    */
   async getInventory(
     listingId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<IInventory | null> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch inventory");
+    }
+
     return await SouqInventory.findOne({
       listingId,
-      ...(orgId ? { orgId } : {}),
+      orgId,
     });
   }
 
@@ -454,10 +487,15 @@ class InventoryService {
       status?: string;
       fulfillmentType?: "FBM" | "FBF";
       lowStockOnly?: boolean;
-      orgId?: string;
+      orgId: string;
     },
   ): Promise<IInventory[]> {
-    const query: Record<string, unknown> = { sellerId };
+    const orgId = filters?.orgId;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch seller inventory");
+    }
+
+    const query: Record<string, unknown> = { sellerId, orgId };
 
     if (filters?.status) {
       query.status = filters.status;
@@ -485,12 +523,16 @@ class InventoryService {
    */
   async getInventoryHealthReport(
     sellerId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<IInventoryHealthReport> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch inventory health");
+    }
+
     const inventory = await SouqInventory.find({
       sellerId,
       status: "active",
-      ...(orgId ? { orgId } : {}),
+      orgId,
     });
 
     const report: IInventoryHealthReport = {
@@ -521,10 +563,14 @@ class InventoryService {
   /**
    * Clean expired reservations (run periodically via cron)
    */
-  async cleanExpiredReservations(orgId?: string): Promise<{
+  async cleanExpiredReservations(orgId: string): Promise<{
     cleaned: number;
     released: number;
   }> {
+    if (!orgId) {
+      throw new Error("orgId is required to clean expired reservations");
+    }
+
     let cleaned = 0;
     let released = 0;
 
@@ -532,18 +578,17 @@ class InventoryService {
       const inventories = await SouqInventory.find({
         status: "active",
         "reservations.status": "active",
-        ...(orgId ? { orgId } : {}),
+        orgId,
       });
 
       for (const inventory of inventories) {
         const count = inventory.cleanExpiredReservations();
         if (count > 0) {
           await inventory.save();
-          const effectiveOrgId = orgId ?? (inventory.orgId ? String(inventory.orgId) : undefined);
           await this.updateListingStockStatus(
             inventory.listingId,
             inventory.availableQuantity,
-            effectiveOrgId,
+            orgId,
           );
           cleaned++;
           released += count;
@@ -565,11 +610,15 @@ class InventoryService {
   /**
    * Update inventory health metrics (run daily)
    */
-  async updateHealthMetrics(sellerId?: string, orgId?: string): Promise<void> {
+  async updateHealthMetrics(sellerId: string | undefined, orgId: string): Promise<void> {
     try {
+      if (!orgId) {
+        throw new Error("orgId is required to update health metrics");
+      }
+
       const query: Record<string, unknown> = { status: "active" };
       if (sellerId) query.sellerId = sellerId;
-      if (orgId) query.orgId = orgId;
+      query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
 
@@ -579,7 +628,8 @@ class InventoryService {
         // Check if listing still exists (stranded check)
         const listing = await SouqListing.findOne({
           listingId: inventory.listingId,
-        });
+          orgId,
+        }) ?? await SouqListing.findOne({ listingId: inventory.listingId });
         inventory.health.isStranded = !listing || listing.status !== "active";
 
         await inventory.save();
@@ -598,11 +648,15 @@ class InventoryService {
   /**
    * Queue low stock alerts
    */
-  async queueLowStockAlerts(sellerId?: string, orgId?: string): Promise<number> {
+  async queueLowStockAlerts(sellerId: string | undefined, orgId: string): Promise<number> {
     try {
+      if (!orgId) {
+        throw new Error("orgId is required to queue low stock alerts");
+      }
+
       const query: Record<string, unknown> = { status: "active" };
       if (sellerId) query.sellerId = sellerId;
-      if (orgId) query.orgId = orgId;
+      query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
       let alertCount = 0;
@@ -615,6 +669,7 @@ class InventoryService {
             productId: inventory.productId,
             availableQuantity: inventory.availableQuantity,
             threshold: inventory.lowStockThreshold,
+            orgId,
           });
           alertCount++;
         }

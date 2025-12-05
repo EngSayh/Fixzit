@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ClaimService,
   type ClaimType,
+  type ClaimStatus,
 } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
@@ -218,6 +219,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const type = searchParams.get("type");
     const priority = searchParams.get("priority");
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
     // Robust parsing with validation and bounds
     const pageRaw = searchParams.get("page");
@@ -229,15 +232,42 @@ export async function GET(request: NextRequest) {
       ? Math.min(Math.max(1, limitParsed), 100)
       : 20;
 
-    const filters: Record<string, unknown> = {
-      limit,
-      offset: (page - 1) * limit,
-    };
-
     const effectiveView = (view || "buyer").toLowerCase();
     const isAdminUser = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
       (session.user.role || "").toUpperCase(),
     );
+    const isSuperAdmin = (session.user.role || "").toUpperCase() === "SUPER_ADMIN";
+
+    // Resolve org scope: require targetOrgId for SUPER_ADMIN without session org; otherwise use session org
+    const resolvedOrgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !resolvedOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const filters: {
+      orgId: string;
+      buyerId?: string;
+      sellerId?: string;
+      status?: ClaimStatus;
+      type?: ClaimType;
+      priority?: string;
+      limit: number;
+      offset: number;
+    } = {
+      orgId: resolvedOrgId,
+      limit,
+      offset: (page - 1) * limit,
+    };
+
     if (effectiveView === "admin" && isAdminUser) {
       // Admin view: allow all claims
     } else if (effectiveView === "seller") {
@@ -245,9 +275,8 @@ export async function GET(request: NextRequest) {
     } else {
       filters.buyerId = session.user.id;
     }
-
-    if (status) filters.status = status;
-    if (type) filters.type = type;
+    if (status) filters.status = status as ClaimStatus;
+    if (type) filters.type = type as ClaimType;
     if (priority) filters.priority = priority;
 
     const result = await ClaimService.listClaims(filters);

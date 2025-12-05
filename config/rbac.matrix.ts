@@ -193,3 +193,34 @@ export const DEFAULT_LEGACY_PERMISSIONS: ModulePermissions = {
   edit: false,
   delete: false,
 };
+
+// Shared role labels for UI display to keep labels consistent across apps
+export const RBAC_ROLE_LABELS: Record<UserRoleType | string, string> = {
+  [UserRole.SUPER_ADMIN]: "Super Admin",
+  [UserRole.CORPORATE_ADMIN]: "Corporate Admin",
+  [UserRole.ADMIN]: "Admin",
+  [UserRole.MANAGER]: "Manager",
+  [UserRole.FM_MANAGER]: "FM Manager",
+  [UserRole.PROPERTY_MANAGER]: "Property Manager",
+  [UserRole.TECHNICIAN]: "Technician",
+  [UserRole.FINANCE]: "Finance",
+  [UserRole.FINANCE_OFFICER]: "Finance Officer",
+  [UserRole.FINANCE_MANAGER]: "Finance Manager",
+  [UserRole.HR]: "HR",
+  [UserRole.HR_OFFICER]: "HR Officer",
+  [UserRole.SUPPORT_AGENT]: "Support Agent",
+  [UserRole.OPERATIONS_MANAGER]: "Operations Manager",
+  [UserRole.PROCUREMENT]: "Procurement",
+  [UserRole.TEAM_MEMBER]: "Team Member",
+  [UserRole.OWNER]: "Owner",
+  [UserRole.CORPORATE_OWNER]: "Corporate Owner",
+  [UserRole.TENANT]: "Tenant / End-User",
+  [UserRole.VENDOR]: "Vendor",
+  [UserRole.AUDITOR]: "Auditor / QA",
+  // Legacy labels
+  [UserRole.EMPLOYEE]: "Employee (Legacy)",
+  [UserRole.SUPPORT]: "Support (Legacy)",
+  [UserRole.DISPATCHER]: "Dispatcher (Legacy)",
+  [UserRole.CUSTOMER]: "Customer (Legacy)",
+  [UserRole.VIEWER]: "Viewer (Legacy)",
+};

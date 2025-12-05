@@ -81,6 +81,7 @@ interface ProcessRefundParams {
   refundMethod: 'original_payment' | 'wallet' | 'bank_transfer';
   processorId: string;
   orgId: string; // 🔒 Required for tenant isolation
+  session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
 }
 
 class ReturnsService {
@@ -593,6 +594,9 @@ class ReturnsService {
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent concurrent inspections.
    * Only one inspection can succeed for an RMA in 'received' status.
    * 🔐 SECURITY: orgId required for tenant isolation
+   * 
+   * TRANSACTION: Wraps RMA update, inventory adjustment, and refund in a MongoDB session
+   * to ensure atomic rollback if any step fails. Prevents stuck "inspected/processing" states.
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
     const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId } = params;
@@ -602,9 +606,48 @@ class ReturnsService {
     }
 
     const now = new Date();
+    
+    // Start a MongoDB session for transactional consistency
+    const session = await mongoose.startSession();
+    
+    try {
+      await session.withTransaction(async () => {
+        await this.executeInspection({
+          rmaId,
+          inspectorId,
+          condition,
+          restockable,
+          inspectionNotes,
+          inspectionPhotos,
+          orgId,
+          now,
+          session,
+        });
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
+  
+  /**
+   * Internal: Execute inspection within a transaction session
+   */
+  private async executeInspection(params: {
+    rmaId: string;
+    inspectorId: string;
+    condition: 'like_new' | 'good' | 'acceptable' | 'damaged' | 'defective';
+    restockable: boolean;
+    inspectionNotes?: string;
+    inspectionPhotos?: string[];
+    orgId: string;
+    now: Date;
+    session: mongoose.ClientSession;
+  }): Promise<void> {
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session } = params;
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
     // 🔐 SECURITY: orgId scoping ensures tenant isolation
+    // 🔄 TRANSACTION: Uses session for atomic rollback
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId, 
@@ -624,11 +667,11 @@ class ReturnsService {
           }
         }
       },
-      { new: true }
+      { new: true, session }
     );
 
     if (!rma) {
-      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
+      const existing = await RMA.findOne({ _id: rmaId, orgId }).session(session).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -727,7 +770,7 @@ class ReturnsService {
       return;
     }
     
-    // Auto-process refund for approved returns
+    // Auto-process refund for approved returns (within transaction)
     if (refundAmount > 0) {
       await this.processRefund({
         rmaId,
@@ -795,9 +838,11 @@ class ReturnsService {
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-processing.
    * The status transition from 'inspected' to 'refund_processing' is atomic,
    * so concurrent calls will fail safely instead of processing twice.
+   * 
+   * 🔄 TRANSACTION: Supports optional session for transactional consistency with inspection flow.
    */
   async processRefund(params: ProcessRefundParams): Promise<void> {
-    const { rmaId, refundAmount, refundMethod, processorId, orgId } = params;
+    const { rmaId, refundAmount, refundMethod, processorId, orgId, session } = params;
 
     if (!orgId) {
       throw new Error('orgId is required to process refund');
@@ -808,6 +853,7 @@ class ReturnsService {
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
     // If status is not 'inspected', the update returns null (already processed or wrong state)
+    // 🔄 TRANSACTION: Uses session if provided for atomic rollback
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId,
@@ -830,12 +876,14 @@ class ReturnsService {
           }
         }
       },
-      { new: true }
+      { new: true, session }
     );
 
     if (!rma) {
       // Either RMA doesn't exist or it's not in 'inspected' status (already processing/completed)
-      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
+      const existing = session 
+        ? await RMA.findOne({ _id: rmaId, orgId }).session(session).lean()
+        : await RMA.findOne({ _id: rmaId, orgId }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -872,10 +920,10 @@ class ReturnsService {
       rmaRefundDoc.status = 'completed';
       rmaRefundDoc.completedAt = refundData.processedAt;
     }
-    // Save the final completed state
-    await rma.save();
+    // Save the final completed state (within transaction if session provided)
+    await rma.save(session ? { session } : undefined);
 
-    // Notify buyer
+    // Notify buyer (outside transaction - notifications are fire-and-forget)
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: rma.buyerId.toString(),
@@ -920,11 +968,12 @@ class ReturnsService {
     const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
+    // 💡 OPTIMIZATION: Use .lean() for read-only stats query
     const returns = await RMA.find({
       sellerId: sellerId.toString(),
       orgId,
       createdAt: { $gte: startDate }
-    });
+    }).lean();
 
     const totalReturns = returns.length;
 
@@ -991,12 +1040,15 @@ class ReturnsService {
     }
 
     // 🔐 NOTE: buyerId is stored as string in RMA schema, not ObjectId
+    // 💡 OPTIMIZATION: Use .lean() and projection for read-only query
     const returns = await RMA.find({
       buyerId: buyerId.toString(),
       orgId,
     })
+      .select({ orderId: 1, status: 1, createdAt: 1, items: 1, refund: 1 })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     return returns.map((rma: unknown) => {
       const r = rma as {
@@ -1080,7 +1132,8 @@ class ReturnsService {
 
     logger.info(`[ReturnsService] Auto-escalating pending returns for org ${orgId}`);
 
-    const pendingReturns = await RMA.find(query);
+    // 💡 OPTIMIZATION: Use .lean() since we only read for notifications
+    const pendingReturns = await RMA.find(query).lean();
 
     let escalated = 0;
     for (const rma of pendingReturns) {

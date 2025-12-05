@@ -15,6 +15,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
     const searchParams = request.nextUrl.searchParams;
     const sellerId = searchParams.get("sellerId") || session.user.id;
 
@@ -29,7 +38,7 @@ export async function GET(request: NextRequest) {
     const healthReport =
       await inventoryService.getInventoryHealthReport(
         sellerId,
-        (session.user as { orgId?: string }).orgId,
+        orgIdStr,
       );
 
     // Calculate health score (0-100)

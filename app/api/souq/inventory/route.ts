@@ -15,6 +15,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+    const orgIdStr = orgId;
+
     const searchParams = request.nextUrl.searchParams;
     const sellerId = searchParams.get("sellerId") || session.user.id;
     const status = searchParams.get("status") || undefined;
@@ -36,7 +46,7 @@ export async function GET(request: NextRequest) {
       status,
       fulfillmentType,
       lowStockOnly,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId: orgIdStr,
     });
 
     return NextResponse.json({
@@ -45,7 +55,7 @@ export async function GET(request: NextRequest) {
       count: inventory.length,
     });
   } catch (error) {
-    logger.error("GET /api/souq/inventory error", { error });
+    logger.error("GET /api/souq/inventory error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -66,6 +76,14 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -106,7 +124,7 @@ export async function POST(request: NextRequest) {
         listingId,
         productId,
         sellerId: session.user.id,
-        orgId: (session.user as { orgId?: string }).orgId,
+        orgId: orgIdStr,
         quantity,
         fulfillmentType,
         warehouseId,
@@ -129,8 +147,8 @@ export async function POST(request: NextRequest) {
         listingId,
         quantity,
         session.user.id,
+        orgIdStr,
         reason,
-        (session.user as { orgId?: string }).orgId,
       );
 
       return NextResponse.json({

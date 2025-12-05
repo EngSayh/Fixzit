@@ -292,6 +292,7 @@ export class ClaimService {
    * List claims with filters
    */
   static async listClaims(filters: {
+    orgId: string;
     buyerId?: string;
     sellerId?: string;
     status?: ClaimStatus;
@@ -302,7 +303,9 @@ export class ClaimService {
   }): Promise<{ claims: Claim[]; total: number }> {
     const collection = await this.collection();
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      orgId: this.buildIdMatch(filters.orgId),
+    };
     if (filters.buyerId) query.buyerId = this.buildIdMatch(filters.buyerId);
     if (filters.sellerId) query.sellerId = this.buildIdMatch(filters.sellerId);
     if (filters.status) query.status = filters.status;

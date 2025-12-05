@@ -8,12 +8,14 @@ import { logger } from "@/lib/logger";
  * Convert reservation to sale (order confirmed)
  */
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    userId = session.user.id;
 
     const body = await request.json();
     const { listingId, reservationId, orderId } = body;
@@ -28,11 +30,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const converted = await inventoryService.convertReservationToSale({
       listingId,
       reservationId,
       orderId,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId,
     });
 
     if (!converted) {
@@ -51,7 +61,9 @@ export async function POST(request: NextRequest) {
       orderId,
     });
   } catch (error) {
-    logger.error("POST /api/souq/inventory/convert error", { error });
+    logger.error("POST /api/souq/inventory/convert error", error as Error, {
+      userId,
+    });
     return NextResponse.json(
       {
         error: "Internal server error",

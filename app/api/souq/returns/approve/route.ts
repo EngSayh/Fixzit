@@ -3,6 +3,13 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
 import { AgentAuditLog } from "@/server/models/AgentAuditLog";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * POST /api/souq/returns/approve
@@ -16,12 +23,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Admin only
-    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)) {
+    // STRICT v4.1: admins plus ops/support sub-roles on TEAM_MEMBER
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin = userRole !== null && adminRoles.includes(userRole) && !isPlatformAdmin;
+    const isOpsOrSupport =
+      userRole === Role.TEAM_MEMBER &&
+      !!userSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
     const body = await request.json();
@@ -34,7 +58,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
     // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
     if (isPlatformAdmin && !sessionOrgId && !targetOrgId) {
       return NextResponse.json(
@@ -54,22 +77,22 @@ export async function POST(request: NextRequest) {
     const actorRole = session.user.role;
     const auditCrossOrg = isPlatformAdmin && targetOrgId && targetOrgId !== sessionOrgId;
 
-  const logCrossOrgAudit = async (action: string) => {
-    if (!auditCrossOrg) return;
-    await AgentAuditLog.create({
-      agent_id: actorId,
-      assumed_user_id: actorId,
-      action_summary: action,
-      resource_type: "cross_tenant_action",
-      resource_id: rmaId,
-      orgId,
-      targetOrgId: targetOrgId ?? sessionOrgId,
-      request_path: request.nextUrl.pathname,
-      success: true,
-      ip_address: request.headers.get("x-forwarded-for") || undefined,
-      user_agent: request.headers.get("user-agent") || undefined,
-    });
-  };
+    const logCrossOrgAudit = async (action: string) => {
+      if (!auditCrossOrg) return;
+      await AgentAuditLog.create({
+        agent_id: actorId,
+        assumed_user_id: actorId,
+        action_summary: action,
+        resource_type: "cross_tenant_action",
+        resource_id: rmaId,
+        orgId,
+        targetOrgId: targetOrgId ?? sessionOrgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    };
 
     if (approve) {
       await returnsService.approveReturn({

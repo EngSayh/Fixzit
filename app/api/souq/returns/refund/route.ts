@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from '@/lib/rbac/client-roles';
 
 /**
  * POST /api/souq/returns/refund
@@ -15,8 +22,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Admin only
-    if (!['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN'].includes(session.user.role)) {
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole as SubRole | undefined);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole as SubRole | undefined) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin = userRole !== null && adminRoles.includes(userRole) && !isPlatformAdmin;
+    const isOpsOrSupport =
+      userRole === Role.TEAM_MEMBER &&
+      !!userSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -44,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
-    const targetOrgId = session.user.role === 'SUPER_ADMIN'
+    const targetOrgId = isPlatformAdmin
       ? (sessionOrgId || rmaOrgId)
       : sessionOrgId;
 
@@ -55,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.role !== 'SUPER_ADMIN' && rmaOrgId !== targetOrgId) {
+    if (!isPlatformAdmin && rmaOrgId !== targetOrgId) {
       logger.warn('Org boundary violation attempt in refund processing', { 
         userId: session.user.id, 
         userOrg: targetOrgId,

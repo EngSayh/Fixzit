@@ -37,12 +37,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const reserved = await inventoryService.reserveInventory({
       listingId,
       quantity,
       reservationId,
       expirationMinutes,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId,
     });
 
     if (!reserved) {
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
       expiresIn: `${expirationMinutes || 15} minutes`,
     });
   } catch (error) {
-    logger.error("POST /api/souq/inventory/reserve error", { error });
+    logger.error("POST /api/souq/inventory/reserve error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

@@ -28,10 +28,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const released = await inventoryService.releaseReservation({
       listingId,
       reservationId,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId,
     });
 
     if (!released) {
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest) {
       message: "Reservation released successfully",
     });
   } catch (error) {
-    logger.error("POST /api/souq/inventory/release error", { error });
+    logger.error("POST /api/souq/inventory/release error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",
