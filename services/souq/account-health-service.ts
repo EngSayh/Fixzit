@@ -414,6 +414,7 @@ class AccountHealthService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "policy_violation",
       data: {
         businessName: seller.tradeName || seller.legalName,

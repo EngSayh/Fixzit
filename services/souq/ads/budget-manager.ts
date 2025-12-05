@@ -372,14 +372,26 @@ export class BudgetManager {
   }): Promise<void> {
     const { sellerId, template, internalAudience, subject, data } = params;
 
+    // 🔐 Tenant-specific routing: Fetch seller to get orgId
+    let orgId: string | undefined;
+    try {
+      const { SouqSeller } = await import("@/server/models/souq/Seller");
+      const seller = await SouqSeller.findById(sellerId).select("orgId").lean();
+      orgId = seller?.orgId?.toString();
+    } catch {
+      logger.warn(`[BudgetManager] Could not fetch orgId for seller ${sellerId}`);
+    }
+
     await Promise.all([
       addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: sellerId,
+        orgId, // 🔐 Tenant-specific routing for branding/templates
         template,
         data,
       }),
       addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
         to: internalAudience,
+        orgId, // 🔐 Include for audit/routing
         priority: "normal",
         message: subject,
         metadata: data,

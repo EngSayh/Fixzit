@@ -296,7 +296,7 @@ class ReturnsService {
     if (!orgId) {
       throw new Error('orgId is required for auto-approve');
     }
-    const rma = await RMA.findOne({ _id: rmaId, orgId });
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) return;
 
     await rma.approve('SYSTEM', 'Auto-approved: Defective or damaged item');
@@ -325,7 +325,7 @@ class ReturnsService {
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId,
-        orgId,  // 🔒 Tenant isolation
+        ...buildOrgFilter(orgId),  // 🔒 Tenant isolation (string/ObjectId safe)
         status: 'initiated'  // Atomic condition - prevents double-approval
       },
       { 
@@ -345,7 +345,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
+      const existing = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -385,7 +385,7 @@ class ReturnsService {
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId,
-        orgId,  // 🔒 Tenant isolation
+        ...buildOrgFilter(orgId),  // 🔒 Tenant isolation (string/ObjectId safe)
         status: 'initiated'  // Atomic condition - prevents double-rejection
       },
       { 
@@ -405,7 +405,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findOne({ _id: rmaId, orgId }).lean();
+      const existing = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -437,7 +437,7 @@ class ReturnsService {
       throw new Error('orgId is required for generate return label');
     }
 
-    const rma = await RMA.findOne({ _id: rmaId, orgId });
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -538,7 +538,7 @@ class ReturnsService {
       throw new Error('orgId is required for schedule pickup');
     }
 
-    const rma = await RMA.findOne({ _id: rmaId, orgId });
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -560,6 +560,7 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-sms', {
       type: 'sms',
       to: rma.buyerId.toString(),
+      orgId, // 🔐 Tenant-specific routing
       message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`
     });
   }
@@ -573,7 +574,7 @@ class ReturnsService {
       throw new Error('orgId is required for update tracking');
     }
 
-    const rma = await RMA.findOne({ _id: rmaId, orgId });
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -736,7 +737,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existingQuery = RMA.findOne({ _id: rmaId, orgId });
+      const existingQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
       const existing = session ? await existingQuery.session(session).lean() : await existingQuery.lean();
       if (!existing) {
         throw new Error('RMA not found');
@@ -871,7 +872,7 @@ class ReturnsService {
       return 0;
     }
 
-    const rmaQuery = RMA.findOne({ _id: rmaId, orgId });
+    const rmaQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     const rma = session ? await rmaQuery.session(session) : await rmaQuery;
     if (!rma) return 0;
 
@@ -962,7 +963,7 @@ class ReturnsService {
     if (!orgId) {
       throw new Error('orgId is required to fetch refundable amount');
     }
-    const rmaQuery = RMA.findOne({ _id: rmaId, orgId });
+    const rmaQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     const rma = session ? await rmaQuery.session(session) : await rmaQuery;
     if (!rma) {
       throw new Error('RMA not found');

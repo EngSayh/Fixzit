@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     // 🔄 TRANSACTION SAFETY: processRefund returns notifications to be fired after commit
     // Wrap in a session to avoid leaving RMAs stuck in refund_processing on errors
     const sessionDb = await mongoose.startSession();
-    let notifications: Awaited<ReturnType<typeof returnsService.processRefund>>;
+    let notifications: Awaited<ReturnType<typeof returnsService.processRefund>> | undefined;
     try {
       notifications = await sessionDb.withTransaction(() =>
         returnsService.processRefund({
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fire notifications after refund is complete and transaction committed
-    await returnsService.fireNotifications(notifications);
+    await returnsService.fireNotifications(notifications ?? []);
 
     return NextResponse.json({ 
       success: true,

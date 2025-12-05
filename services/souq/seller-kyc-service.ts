@@ -258,6 +258,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_company_info_received",
       data: { businessName: data.businessName },
     });
@@ -320,6 +321,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_documents_received",
       data: { businessName: seller.businessName },
     });
@@ -372,6 +374,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_under_review",
       data: {
         businessName: seller.businessName,
@@ -472,6 +475,7 @@ class SellerKYCService {
     if (!approved) {
       await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
         template: "kyc_document_rejected",
         data: {
           documentType,
@@ -554,6 +558,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_approved",
       data: {
         businessName: seller.businessName,
@@ -567,6 +572,7 @@ class SellerKYCService {
       "send-email",
       {
         to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
         template: "seller_welcome_guide",
         data: { businessName: seller.businessName },
       },
@@ -647,6 +653,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_rejected",
       data: {
         businessName: seller.businessName,
