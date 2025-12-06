@@ -3,8 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { nanoid } from "nanoid";
 import { Types } from "mongoose";
+import { ProjectBidModel } from "@/server/models/ProjectBid";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -35,7 +35,7 @@ interface Bid {
 type RFQWithBids = {
   bids: Bid[];
   timeline?: { bidDeadline?: Date | string };
-  bidding?: { targetBids?: number; anonymous?: boolean };
+  bidding?: { targetBids?: number; maxBids?: number; anonymous?: boolean };
   workflow?: { closedBy?: string; closedAt?: Date };
   status: string;
   save: () => Promise<unknown>;
@@ -43,10 +43,12 @@ type RFQWithBids = {
 
 const submitBidSchema = z.object({
   // vendorId and vendorName are derived from the authenticated user to prevent spoofing
-  amount: z.number(),
+  amount: z.number().positive(),
   currency: z.string().default("SAR"),
-  validity: z.string(),
-  deliveryTime: z.number(),
+  validity: z.union([z.string(), z.number()]).transform((value) =>
+    typeof value === "number" ? `${value}` : value.trim(),
+  ),
+  deliveryTime: z.number().positive(),
   paymentTerms: z.string(),
   technicalProposal: z.string().optional(),
   commercialProposal: z.string().optional(),
@@ -91,7 +93,7 @@ export async function POST(
         req,
       );
     }
-    if (!params?.id || typeof params.id !== "string") {
+    if (!params?.id || typeof params.id !== "string" || !Types.ObjectId.isValid(params.id)) {
       return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
     }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
@@ -102,11 +104,7 @@ export async function POST(
 
     const data = submitBidSchema.parse(await req.json());
 
-    if (!Types.ObjectId.isValid(params.id)) {
-      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
-    }
-
-    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId }).lean();
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
@@ -122,14 +120,42 @@ export async function POST(
       );
     }
 
+    if (!Types.ObjectId.isValid(String(user.id))) {
+      return createSecureResponse(
+        { error: "Invalid vendor identifier" },
+        400,
+        req,
+      );
+    }
+
+    const vendorObjectId = new Types.ObjectId(String(user.id));
+    const currentBidCount = await ProjectBidModel.countDocuments({
+      rfqId: rfq._id,
+      orgId: user.orgId,
+    });
+
     // Check if vendor already submitted a bid
-    const bidsArray = Array.isArray(rfqDoc.bids)
-      ? rfqDoc.bids
-      : (rfqDoc.bids = []);
-    const existingBid = bidsArray.find((b) => b.vendorId === user.id);
+    const existingBid = await ProjectBidModel.findOne({
+      rfqId: rfq._id,
+      vendorId: vendorObjectId,
+      orgId: user.orgId,
+    })
+      .lean()
+      .exec();
     if (existingBid) {
       return createSecureResponse(
         { error: "Vendor has already submitted a bid" },
+        400,
+        req,
+      );
+    }
+
+    if (
+      rfqDoc.bidding?.maxBids &&
+      currentBidCount >= rfqDoc.bidding.maxBids
+    ) {
+      return createSecureResponse(
+        { error: "RFQ is no longer accepting bids (max reached)" },
         400,
         req,
       );
@@ -147,39 +173,71 @@ export async function POST(
       );
     }
 
-    // Add bid
-    const bid = {
-      bidId: nanoid(),
-      ...data,
-      // 🔐 STRICT v4.1: derive vendor identity from authenticated user to prevent cross-tenant spoofing
-      vendorId: user.id,
-      vendorName: (user as { name?: string; email?: string }).name ?? (user as { email?: string }).email ?? "Vendor",
-      submitted: new Date(),
+    // Add bid as standalone ProjectBid document (schema uses references, not embedded)
+    const bidDoc = await ProjectBidModel.create({
+      orgId: user.orgId,
+      rfqId: rfq._id,
+      rfqCode: (rfq as { code?: string }).code,
+      bidAmount: data.amount,
+      currency: data.currency,
+      validityText: data.validity,
+      deliveryTimeDays: data.deliveryTime,
+      paymentTermsNote: data.paymentTerms,
+      technicalProposal: data.technicalProposal,
+      commercialProposal: data.commercialProposal,
+      alternates: data.alternates,
+      exceptions: data.exceptions,
       status: "SUBMITTED",
+      vendorId: vendorObjectId,
+      vendorName:
+        (user as { name?: string; email?: string }).name ??
+        (user as { email?: string }).email ??
+        "Vendor",
+      submittedAt: new Date(),
+    });
+
+    // Update RFQ status and reference list atomically
+    const update: Record<string, unknown> = {
+      $addToSet: { bids: bidDoc._id },
     };
-
-    bidsArray.push(bid);
-
-    // Update status to BIDDING if first bid
-    if (bidsArray.length === 1 && rfqDoc.status === "PUBLISHED") {
-      rfqDoc.status = "BIDDING";
+    const nextStatus: Record<string, unknown> = {};
+    if (rfqDoc.status === "PUBLISHED") {
+      nextStatus.status = "BIDDING";
     }
 
-    // Check if target bids reached
+    const totalBidCount = currentBidCount + 1;
+
     if (
       rfqDoc.bidding?.targetBids &&
-      bidsArray.length >= rfqDoc.bidding.targetBids
+      totalBidCount >= rfqDoc.bidding.targetBids
     ) {
-      rfqDoc.status = "CLOSED";
-      if (rfqDoc.workflow) {
-        rfqDoc.workflow.closedBy = user.id;
-        rfqDoc.workflow.closedAt = new Date();
-      }
+      nextStatus.status = "CLOSED";
+      nextStatus["workflow.closedBy"] = user.id;
+      nextStatus["workflow.closedAt"] = new Date();
     }
 
-    await rfqDoc.save();
+    if (Object.keys(nextStatus).length > 0) {
+      update.$set = nextStatus;
+    }
 
-    return createSecureResponse(bid, 201, req);
+    await RFQ.updateOne({ _id: rfq._id, orgId: user.orgId }, update);
+
+    return createSecureResponse(
+      {
+        bidId: bidDoc._id.toString(),
+        vendorId: vendorObjectId.toString(),
+        vendorName: bidDoc.vendorName,
+        amount: data.amount,
+        currency: data.currency,
+        validity: data.validity,
+        deliveryTime: data.deliveryTime,
+        paymentTerms: data.paymentTerms,
+        status: "SUBMITTED",
+        submitted: bidDoc.submittedAt,
+      },
+      201,
+      req,
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -198,7 +256,7 @@ export async function GET(
         req,
       );
     }
-    if (!params?.id || typeof params.id !== "string") {
+    if (!params?.id || typeof params.id !== "string" || !Types.ObjectId.isValid(params.id)) {
       return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
     }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
@@ -206,10 +264,6 @@ export async function GET(
       return rateLimitError();
     }
     await connectToDatabase();
-
-    if (!Types.ObjectId.isValid(params.id)) {
-      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
-    }
 
     const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
 
@@ -219,17 +273,54 @@ export async function GET(
 
     const rfqDoc = rfq as unknown as RFQWithBids;
 
-    // If anonymous bidding is enabled, hide vendor details
-    if (rfqDoc.bidding?.anonymous && rfqDoc.status !== "AWARDED") {
-      const anonymizedBids = (rfqDoc.bids || []).map((bid, index: number) => ({
-        ...bid,
-        vendorId: `VENDOR-${index + 1}`,
-        vendorName: `Anonymous Vendor ${index + 1}`,
-      }));
-      return createSecureResponse(anonymizedBids, 200, req);
-    }
+    const bids = await ProjectBidModel.find({
+      rfqId: rfq._id,
+      orgId: user.orgId,
+    })
+      .sort({ submittedAt: -1 })
+      .limit(200) // Safety cap to prevent unbounded responses
+      .lean()
+      .exec();
 
-    return createSecureResponse(rfqDoc.bids, 200, req);
+    const shaped = bids.map((bid, index: number) => {
+      const bidId =
+        (bid as { _id?: Types.ObjectId | string })?._id?.toString?.() ??
+        (bid as { _id?: Types.ObjectId | string })._id?.toString?.() ??
+        "";
+      const vendorId = (bid as { vendorId?: Types.ObjectId | string }).vendorId;
+      const vendorIdString =
+        typeof vendorId === "string"
+          ? vendorId
+          : vendorId?.toString?.() ?? "UNKNOWN";
+      const base = {
+        bidId,
+        vendorId: vendorIdString,
+        vendorName: (bid as { vendorName?: string }).vendorName ?? vendorIdString,
+        amount: (bid as { bidAmount?: number }).bidAmount,
+        currency: (bid as { currency?: string }).currency,
+        validity: (bid as { validityText?: string }).validityText,
+        deliveryTime: (bid as { deliveryTimeDays?: number }).deliveryTimeDays,
+        paymentTerms: (bid as { paymentTermsNote?: string }).paymentTermsNote,
+        technicalProposal: (bid as { technicalProposal?: string }).technicalProposal,
+        commercialProposal: (bid as { commercialProposal?: string }).commercialProposal,
+        alternates: (bid as { alternates?: Bid["alternates"] }).alternates ?? [],
+        exceptions: (bid as { exceptions?: Bid["exceptions"] }).exceptions ?? [],
+        submitted: (bid as { submittedAt?: Date }).submittedAt,
+        status: (bid as { status?: string }).status ?? "SUBMITTED",
+      };
+
+      if (rfqDoc.bidding?.anonymous && rfqDoc.status !== "AWARDED") {
+        return {
+          ...base,
+          vendorId: `VENDOR-${index + 1}`,
+          vendorName: `Anonymous Vendor ${index + 1}`,
+        };
+      }
+
+      return base;
+    });
+
+    return createSecureResponse(shaped, 200, req);
   } catch (error: unknown) {
     return handleApiError(error);
   }

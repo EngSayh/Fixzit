@@ -789,7 +789,8 @@ export class SellerBalanceService {
       throw new Error('orgId is required to request withdrawal (STRICT v4.1 tenant isolation)');
     }
     // AUDIT-2025-12-06: souq_settlements uses STRING orgId; allow legacy ObjectId with dual filter
-    const orgCandidates = ObjectId.isValid(orgId) ? [orgId, new ObjectId(orgId)] : [orgId];
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr) ? [orgIdStr, new ObjectId(orgIdStr)] : [orgIdStr];
     const sellerObjectId = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
     const connection = await connectDb();
     const db = connection.connection.db!;
@@ -902,13 +903,14 @@ export class SellerBalanceService {
 
         // Generate request ID
         const requestId = `WDR-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+        const orgIdStr = String(orgId);
 
         // Create withdrawal request
         // 🔐 STRICT v4.1: Include orgId for tenant isolation
         request = {
           requestId,
           sellerId,
-          orgId,
+          orgId: orgIdStr,
           amount: withdrawalAmount,
           status: "pending",
           requestedAt: new Date(),
@@ -919,7 +921,6 @@ export class SellerBalanceService {
         // Save to database
         // 🔐 STRICT v4.1: Write orgId as string to match schema/migration standards
         // The orgCandidates dual filter handles both string and ObjectId for reads
-        const orgIdStr = String(orgId);
         await withdrawalsCollection.insertOne(
           {
             ...request,
@@ -967,9 +968,10 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to approve withdrawal (STRICT v4.1 tenant isolation)');
     }
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
     const connection = await connectDb();
     const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
@@ -1059,9 +1061,10 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to reject withdrawal (STRICT v4.1 tenant isolation)');
     }
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
     const connection = await connectDb();
     const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");

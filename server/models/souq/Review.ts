@@ -45,6 +45,8 @@ export interface IReview extends Document {
 
   status: "pending" | "published" | "rejected" | "flagged";
   moderationNotes?: string;
+  moderatedBy?: mongoose.Types.ObjectId;
+  moderatedAt?: Date;
 
   reportedCount: number;
   reportReasons?: string[];
@@ -171,6 +173,15 @@ const ReviewSchema = new Schema<IReview>(
       index: true,
     },
     moderationNotes: String,
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      select: false, // hide reviewer identity by default
+    },
+    moderatedAt: {
+      type: Date,
+      select: false,
+    },
     reportedCount: {
       type: Number,
       default: 0,
