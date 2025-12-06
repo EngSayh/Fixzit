@@ -97,6 +97,10 @@ class ReviewService {
    * Submit a new review
    */
   async submitReview(orgId: string, data: CreateReviewDto): Promise<IReview> {
+    // 🔐 STRICT v4.1: Validate rating is provided before range check
+    if (data.rating == null) {
+      throw new Error("Rating is required");
+    }
     this.assertRatingRange(data.rating);
 
     const orgObjectId = this.ensureObjectId(orgId, "orgId");
@@ -537,12 +541,17 @@ class ReviewService {
 
   /**
    * Get product reviews (public)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getProductReviews(
     productId: string,
     orgId: string,
     filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getProductReviews (STRICT v4.1 tenant isolation)');
+    }
     const orgFilter = getOrgFilter(orgId);
     const productObjectId = this.ensureObjectId(productId, "productId");
 
@@ -627,8 +636,8 @@ class ReviewService {
     review.status = "published";
     review.publishedAt = new Date();
     // 🔐 AUDIT: Record who approved the review
-    (review as unknown as Record<string, unknown>).moderatedBy = moderatorId;
-    (review as unknown as Record<string, unknown>).moderatedAt = new Date();
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
     await this.updateProductAggregates(review.productId, orgId);
 
@@ -662,8 +671,8 @@ class ReviewService {
     review.status = "rejected";
     review.moderationNotes = notes;
     // 🔐 AUDIT: Record who rejected the review
-    (review as unknown as Record<string, unknown>).moderatedBy = moderatorId;
-    (review as unknown as Record<string, unknown>).moderatedAt = new Date();
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
     await this.updateProductAggregates(review.productId, orgId);
 
@@ -700,8 +709,8 @@ class ReviewService {
     review.status = "flagged";
     review.moderationNotes = reason;
     // 🔐 AUDIT: Record who flagged the review
-    (review as unknown as Record<string, unknown>).moderatedBy = moderatorId;
-    (review as unknown as Record<string, unknown>).moderatedAt = new Date();
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
     await this.updateProductAggregates(review.productId, orgId);
 
