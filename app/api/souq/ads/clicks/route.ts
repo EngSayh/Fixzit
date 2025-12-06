@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const cpc = parseFloat(actualCpc);
 
     // Check budget availability
-    const canCharge = await BudgetManager.canCharge(campaignId, cpc);
+    const canCharge = await BudgetManager.canCharge(campaignId, orgId, cpc);
 
     if (!canCharge) {
       return NextResponse.json(
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Charge budget
-    const charged = await BudgetManager.chargeBudget(campaignId, cpc);
+    const charged = await BudgetManager.chargeBudget(campaignId, orgId, cpc);
 
     if (!charged) {
       return NextResponse.json(

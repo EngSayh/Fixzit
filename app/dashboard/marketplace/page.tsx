@@ -37,10 +37,16 @@ export default function MarketplaceDashboard() {
           signal: abortController.signal,
         });
 
+        const marketplace =
+          data &&
+          typeof data === "object" &&
+          "marketplace" in data &&
+          typeof (data as { marketplace?: unknown }).marketplace === "object"
+            ? ((data as { marketplace: Partial<MarketplaceCounters["marketplace"]> })
+                .marketplace ?? {})
+            : {};
+
         if (mounted) {
-          const marketplace =
-            (data.marketplace as Partial<MarketplaceCounters["marketplace"]>) ??
-            {};
           setCounters({
             marketplace: {
               listings: marketplace.listings ?? 0,

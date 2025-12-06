@@ -9,6 +9,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface ISouqPayoutRequest extends Document {
   payoutId: string;
   sellerId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId; // 🔐 STRICT v4.1: Required for tenant isolation
   statementId: string;
   escrowAccountId?: mongoose.Types.ObjectId;
   amount: number;
@@ -47,6 +48,12 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: "User",
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Organization",
       index: true,
     },
     statementId: {
@@ -113,8 +120,9 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
   },
 );
 
-// Indexes
-SouqPayoutRequestSchema.index({ sellerId: 1, status: 1, requestedAt: -1 });
+// Indexes - 🔐 STRICT v4.1: Include orgId for tenant isolation
+SouqPayoutRequestSchema.index({ orgId: 1, sellerId: 1, status: 1, requestedAt: -1 });
+SouqPayoutRequestSchema.index({ orgId: 1, payoutId: 1 });
 SouqPayoutRequestSchema.index({ status: 1, retryCount: 1 });
 
 export const SouqPayoutRequest =

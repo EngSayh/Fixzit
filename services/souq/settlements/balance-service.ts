@@ -36,6 +36,7 @@ interface Transaction {
   _id?: ObjectId;
   transactionId: string;
   sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   orderId?: string;
   type:
     | "sale"
@@ -64,7 +65,7 @@ interface WithdrawalRequest {
   _id?: ObjectId;
   requestId: string;
   sellerId: string;
-  orgId?: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   amount: number;
   status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
   requestedAt: Date;
@@ -113,12 +114,12 @@ export class SellerBalanceService {
    * @param sellerId - The seller ID
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getBalance(sellerId: string, orgId?: string): Promise<SellerBalance> {
-    // 🔐 STRICT v4.1: orgId is required in production for tenant isolation
-    if (!orgId && process.env.NODE_ENV !== 'test') {
+  static async getBalance(sellerId: string, orgId: string): Promise<SellerBalance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
       throw new Error('orgId is required to fetch seller balance (STRICT v4.1 tenant isolation)');
     }
-    const key = `seller:${sellerId}:${orgId || 'global'}:balance`;
+    const key = `seller:${sellerId}:${orgId}:balance`;
     const cached = await getCache<SellerBalance>(key);
     if (cached) return cached;
 
@@ -138,15 +139,18 @@ export class SellerBalanceService {
    */
   private static async calculateBalance(
     sellerId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<SellerBalance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to calculate balance (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
-    const query: Record<string, unknown> = { sellerId };
-    if (orgId) query.orgId = orgId;
+    const query: Record<string, unknown> = { sellerId, orgId };
 
     // Get all transactions
     const transactions = (await transactionsCollection
@@ -179,8 +183,12 @@ export class SellerBalanceService {
           reserved -= txn.amount; // Convert to positive
           break;
         case "reserve_release":
-          reserved += txn.amount; // Negative amount
-          available -= txn.amount; // Convert to positive
+          // 🔧 FIX: When releasing reserve, reserved DECREASES and available INCREASES
+          // releaseReserve records a POSITIVE amount, so:
+          // - reserved -= amount (decreases reserved)
+          // - available += amount (increases available)
+          reserved -= txn.amount;
+          available += txn.amount;
           break;
         case "withdrawal":
           available += txn.amount; // Negative amount
@@ -192,11 +200,15 @@ export class SellerBalanceService {
     }
 
     // Get pending balance (orders not yet delivered)
+    // 🔐 STRICT v4.1: orgId is REQUIRED for tenant isolation in pending orders query
     const ordersCollection = db.collection("souq_orders");
+    const orderSellerId =
+      ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
     const pendingOrders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         status: { $in: ["pending", "processing", "shipped"] },
+        orgId, // 🔐 STRICT v4.1: Always filter by orgId for tenant isolation
       })
       .toArray();
 
@@ -462,8 +474,9 @@ export class SellerBalanceService {
       payout.status === "pending" ? "processing" : payout.status;
 
     // Update status with payout reference
+    // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
     await withdrawalsCollection.updateOne(
-      { requestId },
+      { requestId, orgId },
       {
         $set: {
           status: payoutStatus,
@@ -517,8 +530,9 @@ export class SellerBalanceService {
     }
 
     // Update status
+    // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
     await withdrawalsCollection.updateOne(
-      { requestId },
+      { requestId, orgId },
       {
         $set: {
           status: "rejected",
