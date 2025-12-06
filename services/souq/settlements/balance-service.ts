@@ -111,7 +111,9 @@ type TransactionFilters = {
 
 export class SellerBalanceService {
   /**
-   * Get seller balance (real-time from Redis)
+   * Get seller balance (real-time from Redis or balance document)
+   * 🔧 FIX: Now uses souq_seller_balances collection as primary source
+   * for faster reads and consistency with atomic recordTransaction.
    * @param sellerId - The seller ID
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
@@ -128,8 +130,42 @@ export class SellerBalanceService {
     const cached = options?.bypassCache ? null : await getCache<SellerBalance>(key);
     if (cached) return cached;
 
-    // Calculate from database if not cached
-    const balance = await this.calculateBalance(sellerId, orgId);
+    // 🔧 FIX: Try to get from balance document first (fast path)
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const balancesCollection = db.collection("souq_seller_balances");
+    
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
+    const balanceDoc = await balancesCollection.findOne({
+      sellerId: sellerFilter,
+      orgId: orgFilter,
+    });
+
+    let balance: SellerBalance;
+
+    if (balanceDoc) {
+      // Use balance document (updated atomically by recordTransaction)
+      balance = {
+        sellerId,
+        available: (balanceDoc as { available?: number }).available ?? 0,
+        reserved: (balanceDoc as { reserved?: number }).reserved ?? 0,
+        pending: (balanceDoc as { pending?: number }).pending ?? 0,
+        totalEarnings: (balanceDoc as { totalEarnings?: number }).totalEarnings ?? 0,
+        lastUpdated: (balanceDoc as { updatedAt?: Date }).updatedAt ?? new Date(),
+      };
+      
+      // Calculate pending from orders (not tracked in balance doc)
+      const pendingFromOrders = await this.calculatePendingFromOrders(sellerId, orgId);
+      balance.pending = pendingFromOrders;
+    } else {
+      // Fallback: Calculate from transactions if no balance document exists
+      // This handles legacy sellers or first-time balance requests
+      balance = await this.calculateBalance(sellerId, orgId);
+    }
 
     // Cache for 5 minutes (unless bypassing cache)
     if (!options?.bypassCache) {
@@ -140,7 +176,58 @@ export class SellerBalanceService {
   }
 
   /**
-   * Calculate balance from database
+   * Calculate pending balance from orders (orders not yet delivered)
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async calculatePendingFromOrders(
+    sellerId: string,
+    orgId: string,
+  ): Promise<number> {
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const ordersCollection = db.collection("souq_orders");
+    
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+
+    // Use aggregation for efficiency
+    const result = await ordersCollection.aggregate([
+      {
+        $match: {
+          "items.sellerId": sellerFilter,
+          status: { $in: ["pending", "processing", "shipped"] },
+          orgId: orgFilter,
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.sellerId": sellerFilter,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: {
+              $ifNull: [
+                "$items.subtotal",
+                { $multiply: ["$items.pricePerUnit", { $ifNull: ["$items.quantity", 1] }] },
+              ],
+            },
+          },
+        },
+      },
+    ]).toArray();
+
+    return result.length > 0 ? parseFloat((result[0].total ?? 0).toFixed(2)) : 0;
+  }
+
+  /**
+   * Calculate balance from database (fallback for legacy sellers)
    * @param sellerId - The seller ID
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
@@ -152,8 +239,9 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to calculate balance (STRICT v4.1 tenant isolation)');
     }
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    // 🔧 FIX: Single connectDb call instead of duplicate
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
@@ -161,51 +249,55 @@ export class SellerBalanceService {
       ? new ObjectId(sellerId)
       : sellerId;
     const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
-    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: orgFilter };
 
-    // Get all transactions
-    const transactions = (await transactionsCollection
-      .find(query)
-      .sort({ createdAt: 1 })
-      .toArray()) as Transaction[];
+    // 🔧 FIX: Use aggregation pipeline instead of unbounded find().toArray()
+    // This leverages the { orgId, sellerId, createdAt } compound index
+    const balanceAggregation = await transactionsCollection.aggregate([
+      { $match: { sellerId: sellerFilter, orgId: orgFilter } },
+      {
+        $group: {
+          _id: "$type",
+          total: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+    ]).toArray();
 
+    // Initialize balance components
     let available = 0;
     let reserved = 0;
     let pending = 0;
     let totalEarnings = 0;
 
-    for (const txn of transactions) {
-      switch (txn.type) {
+    // Process aggregated results by transaction type
+    for (const item of balanceAggregation) {
+      const txnType = item._id as string;
+      const total = item.total as number;
+
+      switch (txnType) {
         case "sale":
-          totalEarnings += txn.amount;
-          available += txn.amount;
+          totalEarnings += total;
+          available += total;
           break;
         case "refund":
         case "chargeback":
-          available += txn.amount; // Negative amount
-          break;
         case "commission":
         case "gateway_fee":
         case "vat":
-          available += txn.amount; // Negative amount
+        case "withdrawal":
+          available += total; // These are negative amounts
           break;
         case "reserve_hold":
-          available += txn.amount; // Negative amount
-          reserved -= txn.amount; // Convert to positive
+          available += total; // Negative amount
+          reserved -= total; // Convert to positive
           break;
-        case "reserve_release": {
-          // 🔧 When releasing reserve, ensure we only reduce reserved and increase available.
-          // Use abs to protect against any negative transaction amount.
-          const releaseAmount = Math.abs(txn.amount);
-          reserved = Math.max(0, reserved - releaseAmount);
-          available += releaseAmount;
-          break;
-        }
-        case "withdrawal":
-          available += txn.amount; // Negative amount
+        case "reserve_release":
+          // Release adds to available and reduces reserved
+          available += Math.abs(total);
+          reserved = Math.max(0, reserved - Math.abs(total));
           break;
         case "adjustment":
-          available += txn.amount;
+          available += total;
           break;
       }
     }
@@ -305,7 +397,9 @@ export class SellerBalanceService {
   }
 
   /**
-   * Record transaction and update balance
+   * Record transaction and update balance ATOMICALLY
+   * 🔐 FIX: Uses MongoDB session with optimistic locking to prevent race conditions
+   * and double-spend/overdraw scenarios under concurrent withdrawals/adjustments.
    * @param transaction - Transaction data including orgId for tenant isolation
    */
   static async recordTransaction(
@@ -318,49 +412,118 @@ export class SellerBalanceService {
     if (!transaction.orgId) {
       throw new Error('orgId is required to record transaction (STRICT v4.1 tenant isolation)');
     }
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const client = connection.connection.getClient();
     const transactionsCollection = db.collection("souq_transactions");
+    const balancesCollection = db.collection("souq_seller_balances");
 
-    // Get current balance (fresh read to avoid stale cached balance for writes)
-    const balance = await this.getBalance(transaction.sellerId, transaction.orgId, {
-      bypassCache: true,
-    });
+    const sellerFilter = ObjectId.isValid(transaction.sellerId)
+      ? new ObjectId(transaction.sellerId)
+      : transaction.sellerId;
+    const orgFilter = ObjectId.isValid(transaction.orgId)
+      ? new ObjectId(transaction.orgId)
+      : transaction.orgId;
 
     // Generate transaction ID
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    // Calculate new balance and guard against overdraft
-    const balanceBefore = balance.available;
-    const balanceAfter = balanceBefore + transaction.amount;
-    if (balanceAfter < 0) {
-      throw new Error("Insufficient available balance for this transaction");
+    // 🔐 ATOMIC OPERATION: Use MongoDB session for transactional consistency
+    const session = client.startSession();
+    let txn: Transaction;
+
+    try {
+      await session.withTransaction(async () => {
+        // Step 1: Find or create balance document with atomic upsert
+        const balanceDoc = await balancesCollection.findOne(
+          { sellerId: sellerFilter, orgId: orgFilter },
+          { session }
+        );
+
+        let balanceBefore = 0;
+        
+        if (balanceDoc) {
+          balanceBefore = (balanceDoc as { available?: number }).available ?? 0;
+        } else {
+          // Create new balance document if doesn't exist
+          await balancesCollection.insertOne(
+            {
+              sellerId: sellerFilter,
+              orgId: orgFilter,
+              available: 0,
+              reserved: 0,
+              pending: 0,
+              totalEarnings: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            { session }
+          );
+        }
+
+        // Step 2: Calculate new balance and guard against overdraft
+        const balanceAfter = balanceBefore + transaction.amount;
+        if (balanceAfter < 0) {
+          throw new Error(`Insufficient available balance. Current: ${balanceBefore} SAR, Required debit: ${Math.abs(transaction.amount)} SAR`);
+        }
+
+        // Step 3: Atomic balance update with version check
+        // 🔐 This prevents race conditions: if another transaction modified the balance
+        // between our read and write, the update will fail (optimistic locking)
+        const updateResult = await balancesCollection.updateOne(
+          { 
+            sellerId: sellerFilter, 
+            orgId: orgFilter,
+            available: balanceBefore, // Optimistic lock: only update if balance unchanged
+          },
+          {
+            $set: {
+              available: parseFloat(balanceAfter.toFixed(2)),
+              updatedAt: new Date(),
+            },
+            $inc: {
+              // Track total earnings for sales
+              ...(transaction.type === "sale" ? { totalEarnings: transaction.amount } : {}),
+              // Track reserved for holds/releases
+              ...(transaction.type === "reserve_hold" ? { reserved: -transaction.amount } : {}),
+              ...(transaction.type === "reserve_release" ? { reserved: -Math.abs(transaction.amount) } : {}),
+            },
+          },
+          { session }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+          // Race condition detected - balance was modified concurrently
+          throw new Error("Balance was modified concurrently. Please retry the transaction.");
+        }
+
+        // Step 4: Insert transaction record
+        txn = {
+          ...transaction,
+          transactionId,
+          balanceBefore: parseFloat(balanceBefore.toFixed(2)),
+          balanceAfter: parseFloat(balanceAfter.toFixed(2)),
+          createdAt: new Date(),
+        };
+
+        await transactionsCollection.insertOne(
+          {
+            ...txn,
+            sellerId: sellerFilter,
+            orgId: orgFilter,
+          },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
     }
 
-    // Create transaction record
-    const txn: Transaction = {
-      ...transaction,
-      transactionId,
-      balanceBefore: parseFloat(balanceBefore.toFixed(2)),
-      balanceAfter: parseFloat(balanceAfter.toFixed(2)),
-      createdAt: new Date(),
-    };
-
-    // Save to database
-    await transactionsCollection.insertOne({
-      ...txn,
-      sellerId: ObjectId.isValid(transaction.sellerId)
-        ? new ObjectId(transaction.sellerId)
-        : transaction.sellerId,
-      orgId: ObjectId.isValid(transaction.orgId)
-        ? new ObjectId(transaction.orgId)
-        : transaction.orgId,
-    });
-
-    // Invalidate Redis cache
+    // Invalidate Redis cache after successful transaction
     await this.invalidateBalanceCache(transaction.sellerId, transaction.orgId);
 
-    return txn;
+    return txn!;
   }
 
   /**
@@ -384,8 +547,8 @@ export class SellerBalanceService {
     }
     const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
     const sellerObjectId = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
     const settlementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
@@ -526,8 +689,8 @@ export class SellerBalanceService {
       throw new Error('orgId is required to approve withdrawal (STRICT v4.1 tenant isolation)');
     }
     const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
@@ -615,8 +778,8 @@ export class SellerBalanceService {
       throw new Error('orgId is required to reject withdrawal (STRICT v4.1 tenant isolation)');
     }
     const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
@@ -715,8 +878,8 @@ export class SellerBalanceService {
       ? new ObjectId(sellerId)
       : sellerId;
 
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
     const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: orgFilter };
@@ -764,8 +927,8 @@ export class SellerBalanceService {
     const sellerFilter = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation

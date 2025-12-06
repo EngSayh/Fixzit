@@ -450,7 +450,7 @@ export class BudgetManager {
 
   private static async enqueueSellerAlert(params: {
     sellerId: string;
-    orgId?: string;
+    orgId: string; // 🔐 STRICT v4.1: orgId is now REQUIRED
     template: string;
     internalAudience: string;
     subject: string;
@@ -458,23 +458,44 @@ export class BudgetManager {
   }): Promise<void> {
     const { sellerId, template, internalAudience, subject, data, orgId: providedOrgId } = params;
 
-    // 🔐 Tenant-specific routing: Prefer provided orgId, otherwise fetch from seller
-    let orgId: string | undefined = providedOrgId;
+    // 🔐 STRICT v4.1: Require orgId to prevent cross-tenant notification leakage
+    if (!providedOrgId) {
+      throw new Error('orgId is required for enqueueSellerAlert (STRICT v4.1 tenant isolation)');
+    }
+
+    // 🔐 STRICT v4.1: Verify seller belongs to this org before sending notifications
+    // This prevents cross-tenant metadata leakage and ensures correct branding
+    let orgId: string = providedOrgId;
     try {
-      if (!orgId) {
-        const { SouqSeller } = await import("@/server/models/souq/Seller");
-        const seller = await SouqSeller.findById(sellerId).select("orgId").lean();
-        orgId = seller?.orgId ? String(seller.orgId) : undefined;
+      const { SouqSeller } = await import("@/server/models/souq/Seller");
+      // 🔐 FIX: Use findOne with orgId scoping instead of findById
+      const seller = await SouqSeller.findOne({ 
+        _id: sellerId, 
+        orgId: providedOrgId 
+      }).select("orgId").lean();
+      
+      if (!seller) {
+        logger.warn(`[BudgetManager] Seller ${sellerId} not found in org ${providedOrgId}, skipping alert`, {
+          sellerId,
+          orgId: providedOrgId,
+          component: "BudgetManager",
+          action: "enqueueSellerAlert",
+        });
+        return; // Don't send notification if seller doesn't belong to this org
       }
+      orgId = seller.orgId ? String(seller.orgId) : providedOrgId;
     } catch (error) {
-      logger.warn(`[BudgetManager] Could not fetch orgId for seller ${sellerId}`, {
+      logger.error(`[BudgetManager] Failed to verify seller org for ${sellerId}`, {
         error,
         sellerId,
+        orgId: providedOrgId,
         component: "BudgetManager",
-          action: "enqueueSellerAlert",
+        action: "enqueueSellerAlert",
       });
+      // 🔐 STRICT v4.1: Fail-safe - don't send notification if we can't verify tenant
+      return;
     }
-    const orgKey = orgId || undefined;
+    const orgKey = orgId;
 
     await Promise.all([
       addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
