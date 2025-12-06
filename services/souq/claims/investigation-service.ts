@@ -96,18 +96,25 @@ export class InvestigationService {
     const orgCandidates = MongoObjectId.isValid(orgId)
       ? [orgId, new MongoObjectId(orgId)]
       : [orgId];
+    // Cast to Filter<Claim> to handle mixed string/ObjectId candidates
+    const orgScope = {
+      $or: [
+        { orgId: { $in: orgCandidates } },
+        { org_id: { $in: orgCandidates } },
+      ],
+    } as Filter<Claim>;
 
     // Check for multiple claims from same buyer in short period
     const claimsCollection = await this.claimsCollection();
     const recentClaims = await claimsCollection.countDocuments({
       buyerId: claim.buyerId,
-      orgId: { $in: orgCandidates },
+      ...orgScope,
       filedAt: {
         $gte: new Date(
           Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
         ),
       },
-    } as Parameters<typeof claimsCollection.countDocuments>[0]);
+    } as Filter<Claim>);
 
     const trackingShowsDelivered =
       trackingInfo.status === "delivered" && trackingInfo.deliveredAt !== undefined;
@@ -212,7 +219,14 @@ export class InvestigationService {
         : [];
     const order = await db
       .collection("souq_orders")
-      .findOne(orgCandidates.length > 0 ? { orderId, orgId: { $in: orgCandidates } } : { orderId });
+      .findOne(
+        orgCandidates.length > 0
+          ? {
+              orderId,
+              $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
+            }
+          : { orderId },
+      );
 
     if (!order) return { status: "unknown" };
 
@@ -246,9 +260,15 @@ export class InvestigationService {
     const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
 
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
-      db.collection("claims").countDocuments(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
-      db.collection("souq_sellers").findOne(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
+      db.collection("souq_orders").countDocuments(
+        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
+      ),
+      db.collection("claims").countDocuments(
+        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
+      ),
+      db.collection("souq_sellers").findOne(
+        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
+      ),
     ]);
 
     return {
@@ -278,8 +298,12 @@ export class InvestigationService {
     const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
 
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgFilter ? { buyerId, orgId: orgFilter } : { buyerId }),
-      db.collection("claims").countDocuments(orgFilter ? { buyerId, orgId: orgFilter } : { buyerId }),
+      db.collection("souq_orders").countDocuments(
+        orgFilter ? { buyerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { buyerId },
+      ),
+      db.collection("claims").countDocuments(
+        orgFilter ? { buyerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { buyerId },
+      ),
     ]);
 
     return {
@@ -474,11 +498,26 @@ export class InvestigationService {
   /**
    * Auto-resolve eligible claims
    */
-  static async autoResolveClaims(): Promise<number> {
+  static async autoResolveClaims(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error("orgId is required for auto-resolve (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
+
     // Get claims eligible for auto-resolution
     const claimsCollection = await this.claimsCollection();
     const eligibleClaims = await claimsCollection
       .find({
+        ...orgScope,
         status: "under_investigation",
         isAutoResolvable: true,
       })

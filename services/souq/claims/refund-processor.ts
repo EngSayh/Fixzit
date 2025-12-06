@@ -876,8 +876,11 @@ export class RefundProcessor {
     if (MongoObjectId.isValid(orderId)) {
       orderIdFilters.push({ _id: new MongoObjectId(orderId) });
     }
+    // Use $and to combine org filter (which has $or) with orderId filter (which also uses $or).
+    // This prevents the second $or from overwriting the first one.
+    const orgFilter = buildOrgFilter(orgId);
     await db.collection('souq_orders').updateOne(
-      { ...buildOrgFilter(orgId), $or: orderIdFilters },
+      { $and: [orgFilter, { $or: orderIdFilters }] },
       {
         $set: {
           status,

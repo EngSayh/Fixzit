@@ -13,6 +13,7 @@ import { ObjectId } from "mongodb";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
@@ -596,18 +597,12 @@ export class BudgetManager {
     const db = await getDatabase();
 
     // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
-    // 🔒 Deterministic: prefer findOne with $in and projection/limit to avoid non-deterministic picks if duplicates exist
-    const orgList = Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates];
-    const campaign =
-      (await db.collection("souq_campaigns").findOne(
-        { campaignId, orgId: { $in: orgList } },
-        { projection: { campaignId: 1, orgId: 1, dailyBudget: 1, status: 1, sellerId: 1 } },
-      )) ||
-      // 🧪 Mock/driver fallback: retry with primary org when $in unsupported
-      (await db.collection("souq_campaigns").findOne(
-        { campaignId, orgId: orgList[0] },
-        { projection: { campaignId: 1, orgId: 1, dailyBudget: 1, status: 1, sellerId: 1 } },
-      ));
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      { campaignId } as Record<string, unknown>,
+      Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
+    );
+    const campaign = campaigns[0] ?? null;
 
     return campaign as unknown as {
       campaignId: string;
@@ -642,24 +637,13 @@ export class BudgetManager {
     const sellerFilter = ObjectId.isValid(sellerId) && typeof sellerId === "string"
       ? { $in: [sellerId, new ObjectId(sellerId)] }
       : sellerId;
-    let campaigns = await db
-      .collection("souq_campaigns")
-      .find({
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      {
         sellerId: sellerFilter,
-        orgId: { $in: orgCandidates },
-      })
-      .toArray();
-
-    // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
-    if (campaigns.length === 0 && orgCandidates.length > 0) {
-      campaigns = await db
-        .collection("souq_campaigns")
-        .find({
-          sellerId: sellerFilter,
-          orgId: orgCandidates[0],
-        })
-        .toArray();
-    }
+      } as Record<string, unknown>,
+      orgCandidates,
+    );
 
     let totalDailyBudget = 0;
     let totalSpentToday = 0;

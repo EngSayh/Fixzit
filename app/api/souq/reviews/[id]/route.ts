@@ -54,7 +54,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
     const requesterOrg = session?.user?.orgId;
     if (requesterOrg && requesterOrg !== orgIdParam) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Avoid cross-tenant existence leak
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
     const orgCandidates = [orgIdParam, new ObjectId(orgIdParam)];
 
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     // If requester has org, enforce match with provided or document orgId
     const orgId = orgIdParam ?? orgFromDoc;
     if (requesterOrg && orgId && requesterOrg !== orgId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
 
     const review = await reviewService.getReviewById(reviewId, orgId);
