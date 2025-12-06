@@ -1037,6 +1037,7 @@ describe("Claims API - Core Functionality", () => {
         },
       );
 
+      // Claim found but user is not buyer/seller - returns 403 Forbidden
       expect(response.status).toBe(403);
     });
   });

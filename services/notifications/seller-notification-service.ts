@@ -275,11 +275,15 @@ export async function sendSellerNotification<T extends TemplateKey>(
   template: T,
   data: TemplatePayloads[T],
 ): Promise<void> {
+  let status: "sent" | "failed" = "failed";
+  let locale: Locale | undefined;
+  let logged = false;
+  let seller: SellerDetails | null = null;
   try {
     if (!orgId) {
       throw new Error("[SellerNotification] orgId is required for tenant isolation");
     }
-    const seller = await getSeller(sellerId, orgId);
+    seller = await getSeller(sellerId, orgId);
 
     if (!seller) {
       logger.warn(
@@ -289,7 +293,7 @@ export async function sendSellerNotification<T extends TemplateKey>(
       return;
     }
 
-    const locale = seller.preferredLocale || "ar";
+    locale = seller.preferredLocale || "ar";
     const templateConfig = templateTranslations[template];
     const params = data as Record<string, string | number>;
     const subject = translateTemplate(locale, templateConfig.subject, params);
@@ -304,8 +308,9 @@ export async function sendSellerNotification<T extends TemplateKey>(
       : false;
 
     // Log notification in database for tracking
-    const status = emailSent || smsSent ? "sent" : "failed";
+    status = emailSent || smsSent ? "sent" : "failed";
     await logNotification(sellerId, orgId, template, data, locale, status);
+    logged = true;
 
     logger.info("[SellerNotification] Notification sent", {
       sellerId,
@@ -319,6 +324,19 @@ export async function sendSellerNotification<T extends TemplateKey>(
       sellerId,
       template,
     });
+  } finally {
+    // Ensure we still log failed attempts for observability
+    const localeToLog = locale ?? seller?.preferredLocale ?? "ar";
+    if (localeToLog && !logged) {
+      await logNotification(
+        sellerId,
+        orgId,
+        template,
+        data,
+        localeToLog,
+        status,
+      );
+    }
   }
 }
 

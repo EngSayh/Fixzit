@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
+import { ObjectId } from "mongodb";
 
 type RouteContext = {
   params: Promise<{
@@ -30,10 +31,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const connection = await connectDb();
     const { id: reviewId } = await context.params;
+    const requesterOrg = session.user.orgId;
+    if (!requesterOrg) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
     // Fetch orgId for tenant isolation
     const db = connection.connection.db!;
+    const orgCandidates = [requesterOrg, new ObjectId(requesterOrg)];
     const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId },
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
       { projection: { orgId: 1, org_id: 1 } },
     );
     if (!found) {
@@ -45,10 +54,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
         : typeof found.org_id === "string"
           ? found.org_id
           : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
-    const requesterOrg = session.user.orgId;
-    if (requesterOrg && orgId && requesterOrg !== orgId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const body = await req.json().catch(() => ({}));
     const { action } = helpfulActionSchema.parse(body ?? {});

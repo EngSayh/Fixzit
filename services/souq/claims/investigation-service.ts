@@ -29,8 +29,8 @@ export class InvestigationService {
   private static MULTIPLE_CLAIMS_PERIOD = 30; // days
   private static LATE_REPORTING_DAYS = 14; // days after delivery
   private static async claimsCollection() {
-    const db = await getDatabase();
-    return db.collection<Claim>("claims");
+    // Use ClaimService.ensureIndexes to guarantee index bootstrap before heavy queries
+    return ClaimService.ensureIndexes();
   }
 
   /**

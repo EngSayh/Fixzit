@@ -178,8 +178,6 @@ export class RefundProcessor {
   private static MAX_STATUS_POLLS = 5;
   private static RETRY_DELAY_MS = 5000; // 5 seconds
   private static indexesReady: Promise<void> | null = null;
-  private static retryTimers = new Map<string, NodeJS.Timeout>();
-  private static statusCheckTimers = new Map<string, NodeJS.Timeout>();
   private static async collection() {
     const db = await getDatabase();
     const collection = db.collection<Refund>(this.COLLECTION);
@@ -641,9 +639,17 @@ export class RefundProcessor {
         delayMs,
         error: error.message,
       });
+      // Mark refund as failed to avoid silent hang; surface operational signal
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason: 'Queue unavailable for retry scheduling',
+      });
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason: 'Queue unavailable for retry scheduling',
+      });
     }
-
-    this.scheduleInProcessRetry(refund.refundId, refund.orgId, delayMs);
   }
 
   /**
@@ -705,49 +711,16 @@ export class RefundProcessor {
         delayMs,
         error: error.message,
       });
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason: 'Queue unavailable for status check scheduling',
+      });
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason: 'Queue unavailable for status check scheduling',
+      });
     }
-
-    this.scheduleInProcessStatusCheck(refund.refundId, refund.orgId, delayMs);
-  }
-
-  private static scheduleInProcessStatusCheck(refundId: string, orgId: string, delayMs: number) {
-    const existingTimer = this.statusCheckTimers.get(refundId);
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await this.processStatusCheckJob(refundId, orgId);
-      } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
-        logger.error('[Refunds] Fallback status check failed', { refundId, error: error.message });
-      } finally {
-        this.statusCheckTimers.delete(refundId);
-      }
-    }, delayMs);
-
-    this.statusCheckTimers.set(refundId, timer);
-  }
-
-  private static scheduleInProcessRetry(refundId: string, orgId: string, delayMs: number) {
-    const existingTimer = this.retryTimers.get(refundId);
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await this.processRetryJob(refundId, orgId);
-      } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
-        logger.error('[Refunds] Fallback retry failed', { refundId, error: error.message });
-      } finally {
-        this.retryTimers.delete(refundId);
-      }
-    }, delayMs);
-
-    this.retryTimers.set(refundId, timer);
   }
 
   static async processRetryJob(refundId: string, orgId: string): Promise<void> {

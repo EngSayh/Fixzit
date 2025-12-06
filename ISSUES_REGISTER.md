@@ -198,6 +198,35 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 
 **Evidence**:  
 - Current code writes string orgId; legacy rows remain. Queries use `$in` with `[string, ObjectId]`, indicating mixed storage and degraded index usage.
+- **2025-03-xx (local)**: Dry-run + execution completed on local fallback DB, processed=0/updated=0 (no legacy rows here). Still required in staging/prod with real data.
+
+---
+
+## 🟨 MINOR - Operational Monitoring (Canary)
+
+### ISSUE-006: Ledger Sign-Validation Canary Warnings
+
+**Severity**: 🟨 MINOR  
+**Category**: Operations, Observability, Finance  
+**Status**: OPEN (Canary)  
+
+**Description**:  
+Temporary warnings added in `services/souq/settlements/balance-service.ts` to log and reject mis-signed ledger transactions (debited types must be negative; releases/credits positive). Purpose is to surface any legacy callers during a canary window.
+
+**Impact**:  
+None to correctness (guards already enforce). Potential log noise if legacy callers exist.
+
+**Recommended Actions**:  
+1) Monitor logs for `[SellerBalance] Rejected transaction due to non-negative debit amount` and reserve_release warnings during canary.  
+2) If no mis-signed callers by **2025-03-31**, remove/downgrade these warnings (TODOs embedded in code).  
+3) If warnings appear, fix offending callers/jobs to send correctly signed amounts, then re-run canary.
+
+**Files**:  
+- `services/souq/settlements/balance-service.ts` (recordTransaction sign validation)
+
+**Notes**:  
+- Warnings are tagged with sellerId/orgId and optional correlationId (requestId/payoutId) for triage.  
+- No further code changes needed once callers are clean; remove warnings after target date.
 
 ---
 

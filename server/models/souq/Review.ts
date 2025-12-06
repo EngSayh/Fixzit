@@ -34,6 +34,8 @@ export interface IReview extends Document {
 
   helpful: number;
   notHelpful: number;
+  helpfulVoters?: mongoose.Types.ObjectId[];
+  notHelpfulVoters?: mongoose.Types.ObjectId[];
 
   sellerResponse?: {
     content: string;
@@ -138,6 +140,18 @@ const ReviewSchema = new Schema<IReview>(
       default: 0,
       min: 0,
     },
+    helpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
+    notHelpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
     sellerResponse: {
       content: {
         type: String,
@@ -176,6 +190,9 @@ ReviewSchema.index({ productId: 1, rating: 1, createdAt: -1 });
 ReviewSchema.index({ orgId: 1, customerId: 1, productId: 1 }, { unique: true });
 ReviewSchema.index({ rating: 1, status: 1 });
 ReviewSchema.index({ helpful: -1, status: 1 });
+// 🚀 PERF: Compound indexes for high-traffic query patterns (ISSUE-SOUQ-012)
+ReviewSchema.index({ orgId: 1, productId: 1, status: 1, createdAt: -1 });
+ReviewSchema.index({ orgId: 1, productId: 1 });
 
 export const SouqReview = getModel<IReview>("SouqReview", ReviewSchema);
 
