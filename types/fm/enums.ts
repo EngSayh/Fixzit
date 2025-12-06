@@ -50,7 +50,7 @@ export enum SubscriptionPlan {
  * FM Module Identifiers (for permissions and navigation)
  */
 export enum FMModule {
-  WORK_ORDERS = "work_orders",
+  WORK_ORDERS = "workOrders",
   VENDORS = "vendors",
   TENANTS = "tenants",
   PROPERTIES = "properties",

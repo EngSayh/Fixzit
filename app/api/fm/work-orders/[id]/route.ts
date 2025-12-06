@@ -260,9 +260,9 @@ export async function PATCH(
     }
 
     if (body.status && existingWorkOrder.status !== body.status) {
-      await recordTimelineEntry(db, {
+      await recordTimelineEntry({
         workOrderId: id,
-        tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+        orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
         action: "status_changed",
         description: `Status changed to ${body.status}`,
         metadata: {
@@ -357,9 +357,9 @@ export async function DELETE(
       return FMErrors.notFound("Work order");
     }
 
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId: id,
-      tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+      orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
       action: "status_changed",
       description: "Work order closed",
       metadata: { toStatus: WOStatus.CLOSED },

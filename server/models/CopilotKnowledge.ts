@@ -25,7 +25,10 @@ KnowledgeSchema.plugin(tenantIsolationPlugin);
 KnowledgeSchema.plugin(auditPlugin);
 
 // Tenant-scoped indexes for data isolation
-KnowledgeSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+KnowledgeSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 KnowledgeSchema.index({
   orgId: 1,
   title: "text",

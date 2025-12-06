@@ -104,7 +104,7 @@ export async function PATCH(
 
     return NextResponse.json({ status: doc.status }, { status: 200 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to review document', { error });
+    logger.error('[Onboarding] Failed to review document', error as Error);
     return NextResponse.json({ error: 'Failed to review document' }, { status: 500 });
   }
 }

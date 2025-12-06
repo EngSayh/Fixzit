@@ -54,7 +54,7 @@ interface PayoutRequest {
   payoutId: string;
   sellerId: string;
   statementId: string;
-  orgId?: string;
+  orgId: string;
   escrowAccountId?: string;
   amount: number;
   currency: string;
@@ -164,8 +164,13 @@ export class PayoutProcessorService {
   static async requestPayout(
     sellerId: string,
     statementId: string,
+    orgId: string,
     bankAccount: BankAccount,
   ): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error("orgId is required to request payout");
+    }
+
     const db = await getDbInstance();
     const statementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
@@ -174,6 +179,7 @@ export class PayoutProcessorService {
     const statement = (await statementsCollection.findOne({
       statementId,
       sellerId,
+      orgId,
     })) as SettlementStatement | null;
 
     if (!statement) {
@@ -194,6 +200,7 @@ export class PayoutProcessorService {
     // Check for existing payout request
     const existingPayout = await payoutsCollection.findOne({
       statementId,
+      orgId,
       status: { $in: ["pending", "processing"] },
     });
 
@@ -212,7 +219,7 @@ export class PayoutProcessorService {
       payoutId,
       sellerId,
       statementId,
-      orgId: (statement as SettlementStatement & { orgId?: string }).orgId,
+      orgId,
       escrowAccountId: (
         statement as SettlementStatement & { escrowAccountId?: string }
       ).escrowAccountId,
@@ -231,7 +238,7 @@ export class PayoutProcessorService {
 
     // Update statement status
     await statementsCollection.updateOne(
-      { statementId },
+      { statementId, orgId },
       { $set: { status: "pending", payoutId } },
     );
 
@@ -240,14 +247,19 @@ export class PayoutProcessorService {
 
   /**
    * Process a single payout
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async processPayout(payoutId: string): Promise<PayoutRequest> {
+  static async processPayout(payoutId: string, orgId: string): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error('orgId is required for processPayout (STRICT v4.1 tenant isolation)');
+    }
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
-    // Fetch payout
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const payout = (await payoutsCollection.findOne({
       payoutId,
+      orgId,
     })) as PayoutRequest | null;
     if (!payout) {
       throw new Error("Payout not found");
@@ -257,9 +269,9 @@ export class PayoutProcessorService {
       throw new Error(`Payout is already ${payout.status}`);
     }
 
-    // Update status to processing
+    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation
     await payoutsCollection.updateOne(
-      { payoutId },
+      { payoutId, orgId },
       {
         $set: {
           status: "processing",
@@ -273,9 +285,9 @@ export class PayoutProcessorService {
       const transferResult = await this.executeBankTransfer(payout);
 
       if (transferResult.success) {
-        // Success: Mark as completed
+        // Success: Mark as completed - 🔐 STRICT v4.1: Include orgId
         await payoutsCollection.updateOne(
-          { payoutId },
+          { payoutId, orgId },
           {
             $set: {
               status: "completed",
@@ -285,8 +297,8 @@ export class PayoutProcessorService {
           },
         );
 
-        // Update settlement statement
-        await this.updateStatementStatus(payout.statementId, "paid");
+        // Update settlement statement - 🔐 STRICT v4.1: Pass orgId
+        await this.updateStatementStatus(payout.statementId, orgId, "paid");
 
         // Send notification to seller
         await this.sendPayoutNotification(payout, "success");
@@ -336,9 +348,10 @@ export class PayoutProcessorService {
           transactionReference: transferResult.transactionId,
         };
       } else {
-        // Failed: Retry or mark as failed
+        // Failed: Retry or mark as failed - 🔐 STRICT v4.1: Pass orgId
         return await this.handlePayoutFailure(
           payout,
+          orgId,
           transferResult.errorMessage || "Unknown error",
         );
       }
@@ -346,18 +359,20 @@ export class PayoutProcessorService {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      // Exception: Retry or mark as failed
+      // Exception: Retry or mark as failed - 🔐 STRICT v4.1: Pass orgId
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      return await this.handlePayoutFailure(payout, errorMessage);
+      return await this.handlePayoutFailure(payout, orgId, errorMessage);
     }
   }
 
   /**
    * Handle payout failure with retry logic
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   private static async handlePayoutFailure(
     payout: PayoutRequest,
+    orgId: string,
     errorMessage: string,
   ): Promise<PayoutRequest> {
     const db = await getDbInstance();
@@ -366,9 +381,9 @@ export class PayoutProcessorService {
     const newRetryCount = payout.retryCount + 1;
 
     if (newRetryCount >= PAYOUT_CONFIG.maxRetries) {
-      // Max retries reached: Mark as failed
+      // Max retries reached: Mark as failed - 🔐 STRICT v4.1: Include orgId
       await payoutsCollection.updateOne(
-        { payoutId: payout.payoutId },
+        { payoutId: payout.payoutId, orgId },
         {
           $set: {
             status: "failed",
@@ -379,8 +394,8 @@ export class PayoutProcessorService {
         },
       );
 
-      // Update settlement status
-      await this.updateStatementStatus(payout.statementId, "failed");
+      // Update settlement status - 🔐 STRICT v4.1: Pass orgId
+      await this.updateStatementStatus(payout.statementId, orgId, "failed");
 
       // Send failure notification
       await this.sendPayoutNotification(payout, "failed", errorMessage);
@@ -392,9 +407,9 @@ export class PayoutProcessorService {
         errorMessage,
       };
     } else {
-      // Schedule retry
+      // Schedule retry - 🔐 STRICT v4.1: Include orgId
       await payoutsCollection.updateOne(
-        { payoutId: payout.payoutId },
+        { payoutId: payout.payoutId, orgId },
         {
           $set: {
             status: "pending",
@@ -587,7 +602,14 @@ export class PayoutProcessorService {
     // Process each payout
     for (const payout of pendingPayouts) {
       try {
-        const result = await this.processPayout(payout.payoutId);
+        // 🔐 STRICT v4.1: Pass orgId from payout record for tenant isolation
+        const payoutOrgId = payout.orgId;
+        if (!payoutOrgId) {
+          logger.warn(`[PayoutProcessor] Skipping payout ${payout.payoutId} - missing orgId`);
+          batch.failedPayouts++;
+          continue;
+        }
+        const result = await this.processPayout(payout.payoutId, payoutOrgId);
         if (result.status === "completed") {
           batch.successfulPayouts++;
         } else {
@@ -626,12 +648,17 @@ export class PayoutProcessorService {
 
   /**
    * Cancel payout request
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async cancelPayout(payoutId: string, reason: string): Promise<void> {
+  static async cancelPayout(payoutId: string, orgId: string, reason: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for cancelPayout (STRICT v4.1 tenant isolation)');
+    }
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
-    const payout = await payoutsCollection.findOne({ payoutId });
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const payout = await payoutsCollection.findOne({ payoutId, orgId });
     if (!payout) {
       throw new Error("Payout not found");
     }
@@ -640,8 +667,9 @@ export class PayoutProcessorService {
       throw new Error("Only pending payouts can be cancelled");
     }
 
+    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation
     await payoutsCollection.updateOne(
-      { payoutId },
+      { payoutId, orgId },
       {
         $set: {
           status: "cancelled",
@@ -650,19 +678,25 @@ export class PayoutProcessorService {
       },
     );
 
-    // Update settlement status
-    await this.updateStatementStatus(payout.statementId, "approved");
+    // Update settlement status - 🔐 STRICT v4.1: Pass orgId
+    await this.updateStatementStatus(payout.statementId, orgId, "approved");
   }
 
   /**
    * Get payout status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getPayoutStatus(payoutId: string): Promise<PayoutRequest> {
+  static async getPayoutStatus(payoutId: string, orgId: string): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error('orgId is required for getPayoutStatus (STRICT v4.1 tenant isolation)');
+    }
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const payout = (await payoutsCollection.findOne({
       payoutId,
+      orgId,
     })) as PayoutRequest | null;
     if (!payout) {
       throw new Error("Payout not found");
@@ -673,9 +707,11 @@ export class PayoutProcessorService {
 
   /**
    * List payouts for seller
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   static async listPayouts(
     sellerId: string,
+    orgId: string,
     filters?: {
       status?: PayoutStatus;
       startDate?: Date;
@@ -684,10 +720,14 @@ export class PayoutProcessorService {
       offset?: number;
     },
   ): Promise<{ payouts: PayoutRequest[]; total: number }> {
+    if (!orgId) {
+      throw new Error('orgId is required for listPayouts (STRICT v4.1 tenant isolation)');
+    }
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
-    const query: Record<string, unknown> = { sellerId };
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const query: Record<string, unknown> = { sellerId, orgId };
 
     if (filters?.status) {
       query.status = filters.status;
@@ -751,11 +791,16 @@ export class PayoutProcessorService {
 
   /**
    * Update settlement statement status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   private static async updateStatementStatus(
     statementId: string,
+    orgId: string,
     status: SettlementStatement["status"],
   ): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for updateStatementStatus (STRICT v4.1 tenant isolation)');
+    }
     const db = await getDbInstance();
     const statementsCollection = db.collection("souq_settlements");
 
@@ -765,7 +810,8 @@ export class PayoutProcessorService {
       update.paidAt = new Date();
     }
 
-    await statementsCollection.updateOne({ statementId }, { $set: update });
+    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation
+    await statementsCollection.updateOne({ statementId, orgId }, { $set: update });
   }
 
   /**
@@ -830,13 +876,12 @@ export class PayoutProcessorService {
         );
       }
     } catch (_error) {
-      const error =
-        _error instanceof Error ? _error : new Error(String(_error));
-      void error;
-      logger.error(
-        `Error sending payout notification for ${payout.payoutId}`,
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error(`Error sending payout notification for ${payout.payoutId}`, {
         error,
-      );
+        payoutId: payout.payoutId,
+        sellerId: payout.sellerId,
+      });
     }
   }
 

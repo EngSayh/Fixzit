@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     ]);
     return NextResponse.json({ leads, total });
   } catch (error) {
-    logger.error("[crm/contacts] Failed to list leads", { error });
+    logger.error("[crm/contacts] Failed to list leads", error as Error);
     return NextResponse.json(
       { error: "Failed to load CRM contacts" },
       { status: 500 },
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {
-    logger.error("[crm/contacts] Failed to create lead", { error });
+    logger.error("[crm/contacts] Failed to create lead", error as Error);
     return NextResponse.json(
       { error: "Failed to capture lead" },
       { status: 500 },

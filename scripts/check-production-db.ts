@@ -1,10 +1,16 @@
 #!/usr/bin/env tsx
 /**
- * Script to check MongoDB and list collections.
- * NOTE: Access is gated to prevent accidental prod access and to avoid hard-coded secrets.
+ * Script to check MongoDB production database using unified connector and COLLECTIONS.
+ * Safeguarded by ALLOW_PROD_DB=1 and explicit MONGODB_URI.
  */
 
-import mongoose from "mongoose";
+import { config } from "dotenv";
+import { resolve } from "path";
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+config();
 
 async function checkProductionDatabase() {
   try {
@@ -24,25 +30,18 @@ async function checkProductionDatabase() {
     }
 
     console.log("🔍 Checking MongoDB connection...\n");
+    console.log("URI:", mongoUri.replace(/:[^:@]+@/, ":****@")); // hide password
 
-    console.log("📡 Connecting to MongoDB...");
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000,
-    });
-
+    const db = await getDatabase();
     console.log("✅ Connected to MongoDB successfully!\n");
-
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error("Database connection failed");
-    }
+    console.log("Database:", db.databaseName);
 
     // List all collections
     console.log("📚 Available collections in production:");
     const collections = await db.listCollections().toArray();
     console.log(`Found ${collections.length} collections\n`);
 
-    // Check for auth-related collections
+    // Auth-related collections
     const authCollections = collections.filter(
       (c) =>
         c.name.includes("user") ||
@@ -50,15 +49,12 @@ async function checkProductionDatabase() {
         c.name.includes("credential") ||
         c.name.includes("session"),
     );
-
     console.log("🔐 Auth-related collections:");
-    authCollections.forEach((col) => {
-      console.log(`   ✓ ${col.name}`);
-    });
+    authCollections.forEach((col) => console.log(`   ✓ ${col.name}`));
     console.log("");
 
-    // Count users
-    const userCount = await db.collection("users").countDocuments();
+    // Users summary
+    const userCount = await db.collection(COLLECTIONS.USERS).countDocuments();
     console.log(`👥 Total users in production: ${userCount}\n`);
 
     if (userCount > 0) {
@@ -66,48 +62,35 @@ async function checkProductionDatabase() {
       console.log("=".repeat(80));
 
       const users = await db
-        .collection("users")
+        .collection(COLLECTIONS.USERS)
         .find({})
         .sort({ createdAt: -1 })
         .limit(50)
         .toArray();
 
-      users.forEach(
-        (
-          user: {
-            name?: string;
-            email?: string;
-            phone?: string;
-            role?: string;
-            organizationId?: string;
-            _id: unknown;
-            createdAt?: Date;
-          },
-          index: number,
-        ) => {
-          console.log(`\n${index + 1}. ${user.name || "Unnamed User"}`);
-          console.log(`   📧 Email: ${user.email || "N/A"}`);
-          console.log(`   📱 Phone: ${user.phone || "N/A"}`);
-          console.log(`   👤 Role: ${user.role || "N/A"}`);
-          console.log(`   🏢 Organization: ${user.organizationId || "N/A"}`);
-          console.log(`   🆔 User ID: ${user._id}`);
-          console.log(
-            `   📅 Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}`,
-          );
-        },
-      );
+      users.forEach((user, index) => {
+        console.log(`\n${index + 1}. ${user.name || "Unnamed User"}`);
+        console.log(`   📧 Email: ${user.email || "N/A"}`);
+        console.log(`   📱 Phone: ${user.phone || "N/A"}`);
+        console.log(`   👤 Role: ${user.role || "N/A"}`);
+        console.log(`   🏢 Organization: ${user.orgId || user.organizationId || "N/A"}`);
+        console.log(`   🆔 User ID: ${user._id}`);
+        console.log(
+          `   📅 Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}`,
+        );
+      });
     }
 
-    // Check for accounts collection (NextAuth credentials)
+    // Accounts (NextAuth)
     console.log("\n" + "=".repeat(80));
     console.log("\n🔐 Checking NextAuth accounts/credentials...\n");
 
-    const accountCount = await db.collection("accounts").countDocuments();
-    console.log(`Found ${accountCount} account(s) in 'accounts' collection`);
+    const accountCount = await db.collection(COLLECTIONS.ACCOUNTS).countDocuments();
+    console.log(`Found ${accountCount} account(s) in '${COLLECTIONS.ACCOUNTS}' collection`);
 
     if (accountCount > 0) {
       const accounts = await db
-        .collection("accounts")
+        .collection(COLLECTIONS.ACCOUNTS)
         .find({ provider: "credentials" })
         .limit(10)
         .toArray();
@@ -116,7 +99,7 @@ async function checkProductionDatabase() {
 
       for (const account of accounts) {
         const user = await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: account.userId });
         if (user) {
           console.log(`\n   📧 ${user.email}`);
@@ -126,12 +109,12 @@ async function checkProductionDatabase() {
       }
     }
 
-    // Check for password hashes (if stored in users collection)
+    // Users with password hashes
     console.log("\n" + "=".repeat(80));
     console.log("\n🔑 Checking for password hashes in users...\n");
 
     const usersWithPassword = await db
-      .collection("users")
+      .collection(COLLECTIONS.USERS)
       .find({ password: { $exists: true } })
       .limit(5)
       .toArray();
@@ -140,17 +123,17 @@ async function checkProductionDatabase() {
       console.log(
         `✅ Found ${usersWithPassword.length} user(s) with password field:`,
       );
-      usersWithPassword.forEach(
-        (user: { email: string; password?: string }) => {
-          console.log(`\n   📧 Email: ${user.email}`);
-          console.log(
-            `   🔐 Has password: ${user.password ? "Yes (hashed)" : "No"}`,
-          );
-          console.log(
-            `   🔐 Hash preview: ${user.password ? user.password.substring(0, 20) + "..." : "N/A"}`,
-          );
-        },
-      );
+      usersWithPassword.forEach((user: { email: string; password?: string }) => {
+        console.log(`\n   📧 Email: ${user.email}`);
+        console.log(
+          `   🔐 Has password: ${user.password ? "Yes (hashed)" : "No"}`,
+        );
+        console.log(
+          `   🔐 Hash preview: ${
+            user.password ? user.password.substring(0, 20) + "..." : "N/A"
+          }`,
+        );
+      });
     } else {
       console.log("⚠️  No users found with password field in users collection");
       console.log(
@@ -173,27 +156,11 @@ async function checkProductionDatabase() {
   } catch (error: unknown) {
     const err = error as Error;
     console.error("\n❌ Error:", err.message);
-
-    if (err.message.includes("ENOTFOUND")) {
-      console.error(
-        "\n🔧 Cannot reach MongoDB. Check connectivity/whitelists.",
-      );
-    } else if (err.message.includes("Authentication failed")) {
-      console.error(
-        "\n🔧 Authentication failed. Verify credentials and roles.",
-      );
-    } else if (err.name === "MongoServerSelectionError") {
-      console.error(
-        "\n🔧 Cannot connect to server. Check cluster status and IP allow list.",
-      );
-    }
-
     process.exit(1);
   } finally {
-    await mongoose.disconnect();
+    await disconnectFromDatabase();
     console.log("\n👋 Disconnected from MongoDB");
   }
 }
 
-// Run the check
 checkProductionDatabase();

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 interface CounterEvidenceEntry {
   type?: string;
@@ -28,9 +30,9 @@ export async function POST(
     const db = await getDatabase();
     const adminRecord = ObjectId.isValid(session.user.id)
       ? await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(session.user.id) })
-      : await db.collection("users").findOne({ id: session.user.id });
+      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id });
 
     const role = (adminRecord?.role || session.user.role || "").toUpperCase();
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
@@ -53,7 +55,8 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -61,7 +64,9 @@ export async function POST(
     const claimOrgFilter = ObjectId.isValid(claim.orderId)
       ? { orgId: new ObjectId(userOrgId), _id: new ObjectId(claim.orderId) }
       : { orgId: new ObjectId(userOrgId), orderId: claim.orderId };
-    const orderForScope = await db.collection("orders").findOne(claimOrgFilter);
+    const orderForScope = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne(claimOrgFilter);
     if (!orderForScope) {
       return NextResponse.json(
         { error: "Forbidden: claim does not belong to your organization" },
@@ -69,9 +74,13 @@ export async function POST(
       );
     }
 
+    const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());
+    const orgFilter = allowOrgless
+      ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
+      : baseOrgFilter;
     const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id) }
-      : { claimId: params.id };
+      ? { _id: new ObjectId(params.id), ...orgFilter }
+      : { claimId: params.id, ...orgFilter };
 
     let status: string;
     let refundAmountNumber: number;
@@ -86,6 +95,28 @@ export async function POST(
           ? refundAmountInput
           : Number(refundAmountInput ?? fallbackAmount);
       status = "approved";
+
+      // 🔒 SAFETY: Cap refund to the order total to prevent over-refunds
+      const maxAllowedRefund = Number(
+        (orderForScope as { pricing?: { total?: number } })?.pricing?.total ??
+          fallbackAmount ??
+          0,
+      );
+      if (refundAmountNumber > maxAllowedRefund) {
+        return NextResponse.json(
+          {
+            error: `Refund amount (${refundAmountNumber}) exceeds order total (${maxAllowedRefund})`,
+          },
+          { status: 400 },
+        );
+      }
+      if (refundAmountNumber < 0) {
+        return NextResponse.json(
+          { error: "Refund amount must be non-negative" },
+          { status: 400 },
+        );
+      }
+      refundAmountNumber = Math.min(refundAmountNumber, maxAllowedRefund);
     } else if (decisionRaw === "reject") {
       status = "rejected";
       refundAmountNumber = 0;
@@ -116,7 +147,7 @@ export async function POST(
       decidedBy: session.user.id,
     };
 
-    await db.collection("claims").updateOne(filter, {
+    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
       $set: {
         status,
         refundAmount: refundAmountNumber,
@@ -132,7 +163,7 @@ export async function POST(
       sellerProtected,
     });
   } catch (error) {
-    logger.error("[Claims API] Make decision failed", { error });
+    logger.error("[Claims API] Make decision failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to make decision",

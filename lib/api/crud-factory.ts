@@ -34,6 +34,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { isTruthy } from "@/lib/utils/env";
 import type { MModel } from "@/types/mongoose-compat";
 
 /**
@@ -164,7 +165,7 @@ export function createCrudHandlers<T = unknown>(
     const query = searchParams.get("q") || searchParams.get("search") || "";
 
     // OFFLINE MODE: Avoid MongoDB entirely to prevent 500s in CI/offline runs
-    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
       return createSecureResponse(
         {
           items: [],
@@ -309,7 +310,7 @@ export function createCrudHandlers<T = unknown>(
     }
 
     // OFFLINE MODE: Reject mutations gracefully to avoid 500s in CI/offline runs
-    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
       return createSecureResponse(
         {
           error: "ServiceUnavailable",

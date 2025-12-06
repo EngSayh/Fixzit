@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
+import { ensureQaIndexes, COLLECTIONS } from '@/lib/db/collections';
+import { sanitizeQaPayload } from '@/lib/qa/sanitize';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 import { getClientIP } from '@/server/security/headers';
 
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
@@ -79,9 +82,10 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
     }
 
-    // VALIDATION: Check payload size before processing
+    // VALIDATION: Check payload size before processing (use byte length for accurate UTF-8 sizing)
     const bodyStr = JSON.stringify(rawBody);
-    if (bodyStr.length > MAX_PAYLOAD_SIZE) {
+    const bodyBytes = Buffer.byteLength(bodyStr, 'utf8');
+    if (bodyBytes > MAX_PAYLOAD_SIZE) {
       return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
     }
 
@@ -94,31 +98,42 @@ export async function POST(req: NextRequest) {
 
     const { event, data } = parsed.data;
 
-    // Log the alert to database with org/user attribution for multi-tenant auditing
-    const native = await resolveDatabase();
-    await native.collection('qa_alerts').insertOne({
-      event,
-      data: data ?? null,
-      timestamp: new Date(),
-      // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
-      orgId,
-      userId,
-      ip: getClientIP(req),
-      userAgent: req.headers.get('user-agent'),
-    });
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
 
-    // Log event for observability (redact data to prevent PII leakage)
-    logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadSize: bodyStr.length });
+      // Log the alert to database with org/user attribution for multi-tenant auditing
+      const native = await resolveDatabase();
+      // SECURITY: Sanitize payload to redact PII/credentials before storage
+      const sanitizedData = sanitizeQaPayload(data);
+      await native.collection(COLLECTIONS.QA_ALERTS).insertOne({
+        event,
+        data: sanitizedData,
+        timestamp: new Date(),
+        // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get('user-agent'),
+      });
 
-    const successBody = { success: true };
-    return createSecureResponse(successBody, 200, req);
-  } catch (error) {
-    if (process.env.NODE_ENV === 'test') {
-      logger.error('[QA alert debug]', error);
+      // Log event for observability (redact data to prevent PII leakage)
+      logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
+
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure('alert', 'write', dbError);
+      logger.error(
+        '[QA Alert] DB unavailable',
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? '')),
+        { operation: 'write' }
+      );
+      return createSecureResponse({ error: 'Alert storage unavailable' }, 503, req);
     }
+  } catch (error) {
     logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
-    const errorBody = { error: 'Failed to process alert' };
-    return createSecureResponse(errorBody, 500, req);
+    return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
   }
 }
 
@@ -147,21 +162,54 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const native = await resolveDatabase();
-    
+    const { searchParams } = new URL(req.url);
+    const parsed = Number(searchParams.get('limit'));
+    // PERFORMANCE: Lower default limit (50) and cap at 200 to prevent large responses (parity with logs)
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 50,
+      200
+    );
+    const eventType = searchParams.get('event');
+    // PERFORMANCE: Optionally include data field (excluded by default to reduce payload size)
+    const includeData = searchParams.get('includeData') === 'true';
+
     // ORG SCOPING: Filter alerts by org to prevent cross-tenant data exposure
     // Super-admins without tenantId see all alerts (platform-level debugging)
-    const query = orgId ? { orgId } : {};
-    
-    const alerts = await native.collection('qa_alerts')
-      .find(query)
-      .sort({ timestamp: -1 })
-      .limit(50)
-      .toArray();
+    const query: Record<string, unknown> = orgId ? { orgId } : {};
+    if (eventType) {
+      query.event = eventType;
+    }
 
-    return createSecureResponse({ alerts }, 200, req);
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      const native = await resolveDatabase();
+      // PERFORMANCE: Exclude large data field by default to keep responses small
+      const projection = includeData ? {} : { data: 0 };
+      
+      const alerts = await native.collection(COLLECTIONS.QA_ALERTS)
+        .find(query, { projection })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+
+      return createSecureResponse({ alerts }, 200, req);
+  } catch (dbError) {
+    // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+    void recordQaStorageFailure('alert', 'read', dbError);
+    logger.error(
+      '[QA Alert] DB unavailable',
+      dbError instanceof Error ? dbError : new Error(String(dbError ?? '')),
+      { operation: 'read' }
+    );
+    return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
+  }
   } catch (error) {
-    logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      'Failed to fetch QA alerts:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

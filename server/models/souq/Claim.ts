@@ -39,6 +39,7 @@ export interface IClaimFundsHold {
 
 export interface IClaim extends Document {
   claimId: string;
+  orgId: string;
   orderId: string;
   orderNumber: string;
   buyerId: string;
@@ -169,6 +170,7 @@ const ClaimFundsHoldSchema = new Schema<IClaimFundsHold>(
 const ClaimSchema = new Schema<IClaim>(
   {
     claimId: { type: String, required: true, unique: true, index: true },
+    orgId: { type: String, required: true, index: true },
     orderId: { type: String, required: true, index: true },
     orderNumber: { type: String, required: true },
     buyerId: { type: String, required: true, index: true },
@@ -244,12 +246,19 @@ const ClaimSchema = new Schema<IClaim>(
 );
 
 // Indexes
-ClaimSchema.index({ status: 1, createdAt: -1 });
-ClaimSchema.index({ buyerId: 1, status: 1 });
-ClaimSchema.index({ sellerId: 1, status: 1 });
-ClaimSchema.index({ sellerId: 1, createdAt: -1 });
-ClaimSchema.index({ sellerResponseDeadline: 1, status: 1 });
-ClaimSchema.index({ assignedTo: 1, status: 1 });
+ClaimSchema.index(
+  { orgId: 1, claimId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orgId: { $exists: true }, claimId: { $exists: true } },
+  },
+);
+ClaimSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+ClaimSchema.index({ orgId: 1, buyerId: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, sellerId: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, sellerId: 1, createdAt: -1 });
+ClaimSchema.index({ orgId: 1, sellerResponseDeadline: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, assignedTo: 1, status: 1 });
 
 // Methods
 

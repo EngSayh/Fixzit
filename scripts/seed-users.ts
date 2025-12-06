@@ -98,7 +98,7 @@ const initialUsers = [
     },
     security: {
       accessLevel: "WRITE",
-      permissions: ["properties.*", "tenants.*", "workorders.*"],
+      permissions: ["properties:*", "tenants:*", "workorders:*"],
       mfa: {
         enabled: false,
         type: "EMAIL",
@@ -184,7 +184,7 @@ const initialUsers = [
     },
     security: {
       accessLevel: "WRITE",
-      permissions: ["workorders.update", "assets.read"],
+      permissions: ["workorders:update", "assets:read"],
       mfa: {
         enabled: false,
         type: "SMS",

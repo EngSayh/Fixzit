@@ -9,6 +9,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface ISouqTransaction extends Document {
   transactionId: string;
   sellerId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId; // 🔐 STRICT v4.1: Required for tenant isolation
   orderId?: string;
   type:
     | "sale"
@@ -43,6 +44,12 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: "User",
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Organization",
       index: true,
     },
     orderId: {
@@ -96,9 +103,9 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
   },
 );
 
-// Indexes
-SouqTransactionSchema.index({ sellerId: 1, createdAt: -1 });
-SouqTransactionSchema.index({ sellerId: 1, type: 1, createdAt: -1 });
+// Indexes - 🔐 STRICT v4.1: Include orgId for tenant isolation
+SouqTransactionSchema.index({ orgId: 1, sellerId: 1, createdAt: -1 });
+SouqTransactionSchema.index({ orgId: 1, sellerId: 1, type: 1, createdAt: -1 });
 
 export const SouqTransaction =
   (mongoose.models.SouqTransaction as mongoose.Model<ISouqTransaction>) ||

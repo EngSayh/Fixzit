@@ -19,6 +19,9 @@ type InterviewRequestBody = {
   feedback?: Record<string, string | number | boolean | null | object>;
 };
 
+// Increase timeouts for this suite; Mongo/route wiring can take longer when run inside the full CI matrix
+vi.setConfig({ hookTimeout: 120000, testTimeout: 120000 });
+
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {

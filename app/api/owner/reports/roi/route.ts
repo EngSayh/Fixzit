@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
       subscription: subCheck.status,
     });
   } catch (error) {
-    logger.error("Error calculating ROI report", { error });
+    logger.error("Error calculating ROI report", error as Error);
     return NextResponse.json(
       {
         success: false,

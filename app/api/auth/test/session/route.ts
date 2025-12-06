@@ -30,8 +30,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "email required" }, { status: 400 });
   }
 
+  const resolvedOrgId =
+    body.orgId ||
+    process.env.PUBLIC_ORG_ID ||
+    process.env.DEFAULT_ORG_ID ||
+    process.env.TEST_ORG_ID;
+
+  if (!resolvedOrgId) {
+    return NextResponse.json(
+      { error: "orgId required for test session" },
+      { status: 400 },
+    );
+  }
+
   await connectToDatabase().catch(() => {});
-  const user = await User.findOne({ email }).lean<{
+  const user = await User.findOne({ email, orgId: resolvedOrgId }).lean<{
     _id: Types.ObjectId;
     email: string;
     professional?: { role?: string };
@@ -42,11 +55,8 @@ export async function POST(req: NextRequest) {
   }>().catch(() => null);
 
   const fallbackOrg =
-    body.orgId ||
+    resolvedOrgId ||
     (user?.orgId ? user.orgId.toString() : undefined) ||
-    process.env.PUBLIC_ORG_ID ||
-    process.env.DEFAULT_ORG_ID ||
-    process.env.TEST_ORG_ID ||
     "000000000000000000000001";
 
   const orgId = Types.ObjectId.isValid(fallbackOrg)

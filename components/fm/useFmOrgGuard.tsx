@@ -20,7 +20,7 @@ type PromptOverrides = Pick<
 >;
 
 interface UseFmOrgGuardOptions {
-  moduleId?: ModuleId;
+  moduleId?: ModuleId | string;
   includeTabsInFallback?: boolean;
   promptOverrides?: PromptOverrides;
 }

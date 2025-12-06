@@ -348,6 +348,7 @@ export class SettlementCalculatorService {
     sellerId: string,
     startDate: Date,
     endDate: Date,
+    orgId?: string,
   ): Promise<SettlementPeriod> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
@@ -359,6 +360,7 @@ export class SettlementCalculatorService {
         "items.sellerId": new ObjectId(sellerId),
         deliveredAt: { $gte: startDate, $lte: endDate },
         status: "delivered",
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 
@@ -418,11 +420,13 @@ export class SettlementCalculatorService {
     sellerId: string,
     startDate: Date,
     endDate: Date,
+    orgId?: string,
   ): Promise<SettlementStatement> {
     const period = await this.calculatePeriodSettlement(
       sellerId,
       startDate,
       endDate,
+      orgId,
     );
     await connectDb();
     const db = (await connectDb()).connection.db!;
@@ -519,7 +523,7 @@ export class SettlementCalculatorService {
     const statement: SettlementStatement = {
       statementId,
       sellerId,
-      orgId: period.orders[0]?.orgId,
+      orgId: orgId || period.orders[0]?.orgId,
       escrowAccountId: period.orders.find(
         (o: SettlementOrder) => o.escrowAccountId,
       )?.escrowAccountId,
@@ -599,7 +603,7 @@ export class SettlementCalculatorService {
   /**
    * Release reserve for old orders
    */
-  static async releaseReserves(sellerId: string): Promise<number> {
+  static async releaseReserves(sellerId: string, orgId?: string): Promise<number> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
@@ -613,6 +617,7 @@ export class SettlementCalculatorService {
         "items.sellerId": new ObjectId(sellerId),
         deliveredAt: { $lte: reservePeriodEnd },
         "settlement.reserveReleased": { $ne: true },
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 
@@ -652,7 +657,10 @@ export class SettlementCalculatorService {
   /**
    * Get settlement summary for seller dashboard
    */
-  static async getSellerSummary(sellerId: string): Promise<{
+  static async getSellerSummary(
+    sellerId: string,
+    orgId?: string,
+  ): Promise<{
     availableBalance: number;
     reservedBalance: number;
     pendingBalance: number;
@@ -677,6 +685,7 @@ export class SettlementCalculatorService {
           ),
         },
         "settlement.processed": { $ne: true },
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 
@@ -705,6 +714,7 @@ export class SettlementCalculatorService {
         deliveredAt: {
           $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         },
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 
@@ -730,6 +740,7 @@ export class SettlementCalculatorService {
       .find({
         "items.sellerId": new ObjectId(sellerId),
         status: { $in: ["pending", "processing", "shipped"] },
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 
@@ -755,6 +766,7 @@ export class SettlementCalculatorService {
       .find({
         sellerId,
         status: "paid",
+        ...(orgId ? { orgId } : {}),
       })
       .toArray();
 

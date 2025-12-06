@@ -64,7 +64,7 @@ class RatingAggregationService {
       status: "published",
     };
     if (orgId) {
-      reviewFilter.org_id = orgId;
+      reviewFilter.$or = [{ orgId }, { org_id: orgId }];
     }
 
     const reviews = await SouqReview.find(reviewFilter)

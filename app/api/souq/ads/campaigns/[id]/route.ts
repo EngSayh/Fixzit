@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * GET /api/souq/ads/campaigns/[id]
@@ -21,7 +46,22 @@ export async function GET(
       );
     }
 
-    const campaign = await CampaignService.getCampaign(params.id);
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -43,7 +83,7 @@ export async function GET(
       data: campaign,
     });
   } catch (error) {
-    logger.error("[Ad API] Get campaign failed", { error });
+    logger.error("[Ad API] Get campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -74,8 +114,23 @@ export async function PUT(
       );
     }
 
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -115,6 +170,7 @@ export async function PUT(
       params.id,
       updates,
       session.user.id,
+      userOrgId, // Required for tenant isolation (STRICT v4.1)
     );
 
     return NextResponse.json({
@@ -122,7 +178,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error) {
-    logger.error("[Ad API] Update campaign failed", { error });
+    logger.error("[Ad API] Update campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -153,8 +209,25 @@ export async function DELETE(
       );
     }
 
-    // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    // 🔐 STRICT v4.1: Use canonical ALLOWED_AD_ROLES for consistent RBAC enforcement
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify ownership (now scoped by orgId)
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -170,14 +243,14 @@ export async function DELETE(
       );
     }
 
-    await CampaignService.deleteCampaign(params.id, session.user.id);
+    await CampaignService.deleteCampaign(params.id, session.user.id, orgId);
 
     return NextResponse.json({
       success: true,
       message: "Campaign deleted successfully",
     });
   } catch (error) {
-    logger.error("[Ad API] Delete campaign failed", { error });
+    logger.error("[Ad API] Delete campaign failed", error as Error);
 
     return NextResponse.json(
       {

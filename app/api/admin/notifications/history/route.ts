@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { ObjectId } from "mongodb";
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     // Scope to orgId to prevent cross-tenant access; Super Admin is still org-bound
     const notifications = await db
-      .collection("admin_notifications")
+      .collection(COLLECTIONS.ADMIN_NOTIFICATIONS)
       .find({ orgId })
       .sort({ sentAt: -1 })
       .limit(limit)
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
       .toArray();
 
     const total = await db
-      .collection("admin_notifications")
+      .collection(COLLECTIONS.ADMIN_NOTIFICATIONS)
       .countDocuments({ orgId });
 
     logger.info("[Admin Notification] History fetched", {
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[Admin Notification] History fetch failed", { error });
+    logger.error("[Admin Notification] History fetch failed", error as Error);
     return NextResponse.json(
       {
         success: false,

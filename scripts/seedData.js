@@ -4,6 +4,7 @@ require("dotenv").config();
 // Import models
 const User = require("../models/User");
 const Organization = require("../models/Organization");
+// Legacy Tenant kept only for backward compatibility; new data should use orgId
 const Tenant = require("../models/Tenant");
 const Property = require("../models/Property");
 const WorkOrder = require("../models/WorkOrder");
@@ -46,7 +47,7 @@ const seedDatabase = async () => {
     ]);
     console.log("🧹 Cleared existing data");
 
-    // Create Organizations & Tenants
+    // Create Organizations (TENANT model kept only for legacy compatibility)
     const organizations = [];
     for (let i = 1; i <= 3; i++) {
       const org = await Organization.create({
@@ -60,14 +61,15 @@ const seedDatabase = async () => {
         },
       });
 
+      // Legacy tenant record for backward compatibility; prefer orgId moving forward
       const tenant = await Tenant.create({
         name: `Tenant ${i}`,
-        organization: org._id,
+        orgId: org._id,
         isActive: true,
       });
 
       organizations.push({ org, tenant });
-      console.log(`📊 Created Organization ${i} and Tenant ${i}`);
+      console.log(`📊 Created Organization ${i} (legacy tenant record kept)`);
     }
 
     // Create deterministic admin account first
@@ -77,8 +79,7 @@ const seedDatabase = async () => {
       email: "admin@fixzit.co",
       password: "Admin@1234", // Plain text - User model pre-save hook will hash it
       role: "super_admin",
-      organization: adminOrg.org._id,
-      tenantId: adminOrg.tenant._id,
+      orgId: adminOrg.org._id,
       status: "active",
     });
     console.log(
@@ -103,8 +104,7 @@ const seedDatabase = async () => {
           email: `user${orgIndex + 1}${i + 1}@fixzit.co`,
           password: "password123", // Plain text - User model pre-save hook will hash it
           role: roles[i],
-          organization: org._id,
-          tenantId: tenant._id,
+          orgId: org._id,
           status: "active",
         });
 
@@ -150,8 +150,7 @@ const seedDatabase = async () => {
           owner: ownerUser
             ? ownerUser.user._id
             : users.find((u) => u.org._id.equals(org._id))?.user._id,
-          organization: org._id,
-          tenantId: tenant._id,
+          orgId: org._id,
           status: "active",
         });
 
@@ -172,8 +171,7 @@ const seedDatabase = async () => {
         await PropertyOwner.create({
           user: ownerUser.user._id,
           properties: orgProperties.slice(0, 5).map((p) => p.property._id),
-          organization: org._id,
-          tenantId: tenant._id,
+          orgId: org._id,
         });
       }
     }
@@ -208,8 +206,7 @@ const seedDatabase = async () => {
           requestedBy: users.find((u) => u.org._id.equals(org._id))?.user._id,
           estimatedCost: 100 + i * 50,
           actualCost: i % 4 === 3 ? 100 + i * 45 : null, // Only for completed orders
-          organization: org._id,
-          tenantId: tenant._id,
+          orgId: org._id,
           createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // Spread over last 100 days
         });
 
@@ -248,8 +245,7 @@ const seedDatabase = async () => {
           },
           rating: 3.5 + (i % 3),
           status: ["pending", "approved", "rejected"][i % 3],
-          organization: org._id,
-          tenantId: tenant._id,
+          orgId: org._id,
         });
 
         vendors.push(vendor);
@@ -260,12 +256,11 @@ const seedDatabase = async () => {
     // Create Subscriptions
     const plans = ["basic", "standard", "pro", "enterprise"];
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
-      const { org, tenant } = organizations[orgIndex];
+      const { org } = organizations[orgIndex];
       const plan = plans[orgIndex % plans.length];
 
       await Subscription.create({
-        organization: org._id,
-        tenantId: tenant._id,
+        orgId: org._id,
         plan,
         seats: { purchased: 10 + orgIndex * 5, used: 3 + orgIndex },
         billing: {
@@ -303,7 +298,7 @@ const seedDatabase = async () => {
           properties: properties.filter((p) => p.org._id.equals(org._id))
             .length,
           users: users.filter((u) => u.org._id.equals(org._id)).length,
-          workOrders: workOrders.filter((w) => w.organization.equals(org._id))
+          workOrders: workOrders.filter((w) => w.orgId.equals(org._id))
             .length,
           storage: Math.floor(Math.random() * 1000),
         },

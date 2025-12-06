@@ -4,9 +4,13 @@ import { connectDb } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 import { SouqClaim } from "@/server/models/souq/Claim";
 import { SouqOrder, type IOrder } from "@/server/models/souq/Order";
+import { User } from "@/server/models/User";
 import { Types } from "mongoose";
 import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { isValidObjectId } from "@/lib/utils/objectid";
+import { Role } from "@/lib/rbac/client-roles";
+import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 const ELIGIBLE_STATUSES = [
   "submitted",
@@ -41,8 +45,11 @@ export async function POST(request: NextRequest) {
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
 
-    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
-    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
+    // 🔐 RBAC: Use canonical Role enum per STRICT v4.1
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isAuthorizedAdmin = isSuperAdmin || adminRoles.includes(userRole as Role);
+    
+    if (!isAuthorizedAdmin) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
         { status: 403 },
@@ -74,6 +81,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const invalidIds = claimIds.filter((id: unknown) => !isValidObjectId(id));
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid claimIds: ${invalidIds.join(",")}` },
+        { status: 400 },
+      );
+    }
+
     if (!reason || typeof reason !== "string" || reason.trim().length < 20) {
       return NextResponse.json(
         { error: "Reason must be at least 20 characters" },
@@ -88,11 +103,42 @@ export async function POST(request: NextRequest) {
       .filter((id: string) => Types.ObjectId.isValid(id))
       .map((id: string) => new Types.ObjectId(id));
 
+    // 🔒 SECURITY FIX: CORPORATE_OWNER can only process claims involving their org's users
+    const isPlatformAdmin = isSuperAdmin || userRole === Role.SUPER_ADMIN || userRole === Role.ADMIN;
+    let orgUserFilter: Record<string, unknown> | null = null;
+    const orgId = (session.user as { orgId?: string }).orgId;
+    
+    if (!isPlatformAdmin && userRole === Role.CORPORATE_OWNER) {
+      if (!orgId) {
+        return NextResponse.json(
+          { error: "Organization context required for CORPORATE_OWNER" },
+          { status: 403 },
+        );
+      }
+      
+      const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+      const userIdStrings = orgUserIds.map((u: { _id: Types.ObjectId }) => String(u._id));
+      
+      orgUserFilter = {
+        $or: [
+          { buyerId: { $in: userIdStrings } },
+          { sellerId: { $in: userIdStrings } },
+        ],
+      };
+    }
+
     // Fetch all claims to validate they exist and can be bulk processed
-    const claims = await SouqClaim.find({
-      status: { $in: ELIGIBLE_STATUSES },
-      $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }],
-    });
+    // 🔐 Use centralized org scope helper for consistent string/ObjectId handling
+    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildOrgScopeFilter(orgId) : {});
+    const claimQuery = {
+      ...baseOrgScope,
+      $and: [
+        { status: { $in: ELIGIBLE_STATUSES } },
+        { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
+        ...(orgUserFilter ? [orgUserFilter] : []),
+      ],
+    };
+    const claims = await SouqClaim.find(claimQuery);
 
     if (claims.length === 0) {
       return NextResponse.json(
@@ -101,10 +147,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ PERF FIX: Batch load all orders to avoid N+1 queries
-    const orderIds = claims.map((c) => c.orderId).filter(Boolean);
-    const orders = await SouqOrder.find({ _id: { $in: orderIds } }).lean();
-    const orderMap = new Map(orders.map((o) => [String(o._id), o as unknown as IOrder]));
+    // ✅ FIX: Fetch orders using BOTH orderId string AND _id ObjectId (claims store orderId as string)
+    // Claims store orderId as a string field, not necessarily matching _id
+    const orderIdStrings = claims.map((c) => c.orderId).filter(Boolean) as string[];
+    const validObjectIds = orderIdStrings
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    
+    const orders = await SouqOrder.find({
+      ...baseOrgScope,
+      $or: [
+        { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
+        ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
+      ],
+    }).lean();
+    
+    // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
+    const orderMap = new Map<string, IOrder>();
+    for (const o of orders) {
+      // Index by orderId field (primary key for claim.orderId lookup)
+      if (o.orderId) {
+        orderMap.set(String(o.orderId), o as unknown as IOrder);
+      }
+      // Also index by _id string for fallback
+      orderMap.set(String(o._id), o as unknown as IOrder);
+    }
 
     const results = {
       success: 0,
@@ -122,7 +189,38 @@ export async function POST(request: NextRequest) {
 
       try {
         const newStatus = action === "approve" ? "resolved" : "closed";
-        const refundAmount = action === "approve" ? claim.requestedAmount : 0;
+
+        // Fetch order early for validation and payment details (required for refund)
+        let order: IOrder | null = null;
+        if (action === "approve") {
+          order = orderMap.get(String(claim.orderId)) || null;
+          if (!order) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order not found - cannot process refund",
+              stage: "order_lookup",
+            });
+            continue;
+          }
+        }
+
+        // 🔒 SAFETY: Cap refund to order total to prevent over-refund
+        const rawRefundAmount = action === "approve" ? claim.requestedAmount : 0;
+        const maxAllowedRefund =
+          action === "approve" && order?.pricing?.total != null
+            ? order.pricing.total
+            : rawRefundAmount;
+        if (action === "approve" && rawRefundAmount > maxAllowedRefund) {
+          results.failed++;
+          results.errors.push({
+            claimId: claimIdStr,
+            error: `Requested refund (${rawRefundAmount}) exceeds order total (${maxAllowedRefund})`,
+            stage: "validation",
+          });
+          continue;
+        }
+        const refundAmount = Math.min(rawRefundAmount, maxAllowedRefund);
 
         // Validate refund amount
         if (action === "approve" && refundAmount <= 0) {
@@ -135,21 +233,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch order for payment details (required for refund) from pre-loaded map
-        let order: IOrder | null = null;
-        if (action === "approve" && refundAmount > 0) {
-          order = orderMap.get(String(claim.orderId)) || null;
-
-          if (!order) {
-            results.failed++;
-            results.errors.push({
-              claimId: claimIdStr,
-              error: "Order not found - cannot process refund",
-              stage: "order_lookup",
-            });
-            continue;
-          }
-
+        if (action === "approve" && refundAmount > 0 && order) {
           if (!order.payment?.transactionId) {
             results.failed++;
             results.errors.push({
@@ -200,10 +284,15 @@ export async function POST(request: NextRequest) {
 
         // Send notification to buyer and seller
         try {
+          const claimOrgId =
+            (claim as { orgId?: string | Types.ObjectId }).orgId?.toString() ||
+            orgId ||
+            (order as { orgId?: string | Types.ObjectId } | null | undefined)?.orgId?.toString();
           await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
             claimId: claimIdStr,
             buyerId: String(claim.buyerId),
             sellerId: String(claim.sellerId),
+            orgId: claimOrgId, // 🔐 Tenant-scoped notification routing
             decision: action === "approve" ? "approved" : "denied",
             reasoning: reason.trim(),
             refundAmount,
@@ -225,12 +314,24 @@ export async function POST(request: NextRequest) {
 
         // Process refund if approved
         if (action === "approve" && refundAmount > 0 && order) {
+          const orderOrgId = order.orgId?.toString();
+          if (!orderOrgId) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order missing orgId - cannot scope refund",
+              stage: "validation",
+            });
+            continue;
+          }
           try {
+            // 🔐 Get orgId from order for tenant-scoped notifications
             await RefundProcessor.processRefund({
               claimId: claimIdStr,
               orderId: String(claim.orderId),
               buyerId: String(claim.buyerId),
               sellerId: String(claim.sellerId),
+              orgId: orderOrgId, // 🔐 Tenant context for notifications
               amount: refundAmount,
               reason: reason.trim(),
               originalPaymentMethod: order.payment.method,

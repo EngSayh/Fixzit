@@ -25,16 +25,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { bidId, campaignId, query, category, productId } = body;
+    const { bidId, campaignId, orgId, query, category, productId } = body;
 
-    if (!bidId || !campaignId) {
+    if (!bidId || !campaignId || !orgId) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields: bidId, campaignId" },
+        { success: false, error: "Missing required fields: bidId, campaignId, orgId" },
         { status: 400 },
       );
     }
 
     await AuctionEngine.recordImpression(bidId, campaignId, {
+      orgId, // Required for tenant isolation (STRICT v4.1)
       query,
       category,
       productId,
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       message: "Impression recorded",
     });
   } catch (error) {
-    logger.error("[Ad API] Record impression failed", { error });
+    logger.error("[Ad API] Record impression failed", error as Error);
 
     return NextResponse.json(
       {

@@ -76,7 +76,7 @@ async function seedPendingSeller({
     autoRepricerSettings: { enabled: false, rules: {} },
   });
 
-  return { sellerId: sellerId.toString() };
+  return { sellerId: sellerId.toString(), orgId: orgId.toString() };
 }
 
 afterEach(async () => {
@@ -153,7 +153,7 @@ describe("sellerKYCService", () => {
 
   describe("verifyDocument", () => {
     it("should mark document as verified", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "in_review" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "in_review" });
       
       // Add a document to the seller first - type must match what's expected in the model
       // The service looks for documents by DOCUMENT_TYPE_MAP[key] where key is "commercialRegistration" -> "cr"
@@ -173,6 +173,7 @@ describe("sellerKYCService", () => {
           documentType: "commercialRegistration", // This maps to "cr" internally
           approved: true,
           verifiedBy: "admin-user-123",
+          orgId,
         });
         
         const seller = await SouqSeller.findById(sellerId);
@@ -182,7 +183,7 @@ describe("sellerKYCService", () => {
     });
 
     it("should reject document with reason", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "in_review" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "in_review" });
       
       // Add a document to the seller first
       await SouqSeller.findByIdAndUpdate(sellerId, {
@@ -201,6 +202,7 @@ describe("sellerKYCService", () => {
           approved: false,
           verifiedBy: "admin-user-123",
           rejectionReason: "Document expired",
+          orgId,
         });
         
         const seller = await SouqSeller.findById(sellerId);
@@ -213,10 +215,10 @@ describe("sellerKYCService", () => {
 
   describe("getKYCStatus", () => {
     it("should return current KYC status", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "pending" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "pending" });
       
       if (sellerKYCService.getKYCStatus) {
-        const result = await sellerKYCService.getKYCStatus(sellerId);
+        const result = await sellerKYCService.getKYCStatus(sellerId, orgId.toString());
         
         // Service returns {status, step, companyInfoComplete, documentsComplete, bankDetailsComplete}
         expect(result.status).toBe("pending");
@@ -232,18 +234,20 @@ describe("sellerKYCService", () => {
       
       if (sellerKYCService.getKYCStatus) {
         // Service throws "Seller not found" for non-existent sellers
-        await expect(sellerKYCService.getKYCStatus(fakeSellerId)).rejects.toThrow("Seller not found");
+        await expect(
+          sellerKYCService.getKYCStatus(fakeSellerId, testOrgId.toString())
+        ).rejects.toThrow("Seller not found");
       }
     });
   });
 
   describe("approveKYC", () => {
     it("should approve seller KYC", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "under_review" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
       
       if (sellerKYCService.approveKYC) {
         // approveKYC returns void
-        await sellerKYCService.approveKYC(sellerId, "admin-user-123");
+        await sellerKYCService.approveKYC(sellerId, orgId.toString(), "admin-user-123");
         
         const seller = await SouqSeller.findById(sellerId);
         expect(seller?.kycStatus?.status).toBe("approved");
@@ -252,10 +256,10 @@ describe("sellerKYCService", () => {
     });
 
     it("should send notification on approval", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "under_review" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
       
       if (sellerKYCService.approveKYC) {
-        await sellerKYCService.approveKYC(sellerId, "admin-user-123");
+        await sellerKYCService.approveKYC(sellerId, orgId.toString(), "admin-user-123");
         
         // Should send approval email and welcome guide
         expect(mockAddJob).toHaveBeenCalled();
@@ -265,12 +269,13 @@ describe("sellerKYCService", () => {
 
   describe("rejectKYC", () => {
     it("should reject seller KYC with reason", async () => {
-      const { sellerId } = await seedPendingSeller({ kycStatus: "under_review" });
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
       
       if (sellerKYCService.rejectKYC) {
         // rejectKYC takes (sellerId, rejectedBy, reason) and returns void
         await sellerKYCService.rejectKYC(
           sellerId,
+          orgId.toString(),
           "admin-user-123",
           "Documents do not match business registration"
         );
@@ -289,7 +294,7 @@ describe("sellerKYCService", () => {
       await seedPendingSeller({ kycStatus: "approved" });
       
       if (sellerKYCService.getPendingKYCSubmissions) {
-        const queue = await sellerKYCService.getPendingKYCSubmissions();
+        const queue = await sellerKYCService.getPendingKYCSubmissions(testOrgId.toString());
         
         expect(queue.length).toBe(2);
         expect(queue[0]).toHaveProperty("sellerId");

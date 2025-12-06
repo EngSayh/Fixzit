@@ -1,11 +1,28 @@
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+/**
+ * Normalize orgId to ObjectId, keeping string if invalid.
+ * Returns null if orgId is undefined/null.
+ */
+function normalizeOrgId(orgId: string | ObjectId | undefined | null): ObjectId | string | null {
+  if (orgId === undefined || orgId === null) return null;
+  if (typeof orgId !== "string") return orgId;
+  // Only convert to ObjectId if it's a valid 24-char hex string
+  if (ObjectId.isValid(orgId) && /^[a-fA-F0-9]{24}$/.test(orgId)) {
+    return new ObjectId(orgId);
+  }
+  return orgId; // Keep as string for non-standard org IDs
+}
 
 /**
  * Communication Log Entry Interface
+ * SECURITY: orgId is required for tenant isolation (STRICT v4.1 compliance)
  */
 export interface CommunicationLog {
   _id?: ObjectId;
+  orgId?: string | ObjectId; // Organization for tenant isolation
   userId: string | ObjectId; // User who received the communication
   channel: "sms" | "email" | "whatsapp" | "otp";
   type:
@@ -51,7 +68,21 @@ export interface CommunicationLog {
 }
 
 /**
+ * Normalize userId to ObjectId, keeping string if invalid.
+ * Demo/test users may have non-ObjectId IDs like "demo-uuid" or "EMP001".
+ */
+function normalizeUserId(userId: string | ObjectId): ObjectId | string {
+  if (typeof userId !== "string") return userId;
+  // Only convert to ObjectId if it's a valid 24-char hex string
+  if (ObjectId.isValid(userId) && /^[a-fA-F0-9]{24}$/.test(userId)) {
+    return new ObjectId(userId);
+  }
+  return userId; // Keep as string for demo/test users
+}
+
+/**
  * Log communication to database
+ * SECURITY: orgId should be provided for tenant isolation (STRICT v4.1)
  *
  * @param log - Communication log data
  * @returns Success boolean and log ID
@@ -66,20 +97,24 @@ export async function logCommunication(
     await connectToDatabase();
     const db = await getDatabase();
 
+    // SECURITY: Normalize orgId for tenant isolation
+    const normalizedOrgId = normalizeOrgId(log.orgId);
+
     const communicationLog: CommunicationLog = {
       ...log,
-      userId:
-        typeof log.userId === "string" ? new ObjectId(log.userId) : log.userId,
+      ...(normalizedOrgId !== null && { orgId: normalizedOrgId }),
+      userId: normalizeUserId(log.userId),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     const result = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .insertOne(communicationLog);
 
     logger.info("[Communication] Logged", {
       logId: result.insertedId.toString(),
+      orgId: normalizedOrgId ? String(normalizedOrgId) : undefined,
       userId:
         typeof log.userId === "string" ? log.userId : log.userId.toString(),
       channel: log.channel,
@@ -108,16 +143,19 @@ export async function logCommunication(
 
 /**
  * Update communication log status
+ * SECURITY: orgId should be provided for tenant-scoped updates (STRICT v4.1)
  *
  * @param logId - Communication log ID
  * @param status - New status
  * @param metadata - Additional metadata to merge
+ * @param orgId - Organization ID for tenant isolation (optional for backward compatibility)
  * @returns Success boolean
  */
 export async function updateCommunicationStatus(
   logId: string,
   status: CommunicationLog["status"],
   metadata?: Partial<CommunicationLog["metadata"]>,
+  orgId?: string | ObjectId,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { connectToDatabase, getDatabase } = await import(
@@ -125,6 +163,13 @@ export async function updateCommunicationStatus(
     );
     await connectToDatabase();
     const db = await getDatabase();
+
+    // SECURITY: Build query with orgId scoping when provided
+    const query: Record<string, unknown> = { _id: new ObjectId(logId) };
+    const normalizedOrgId = normalizeOrgId(orgId);
+    if (normalizedOrgId !== null) {
+      query.orgId = normalizedOrgId;
+    }
 
     let update: Record<string, unknown> | { $set: Record<string, unknown> } = {
       status,
@@ -162,15 +207,17 @@ export async function updateCommunicationStatus(
       update = { $set };
     }
 
+    // SECURITY: Use org-scoped query for tenant isolation
     await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .updateOne(
-        { _id: new ObjectId(logId) },
+        query,
         metadata ? update : { $set: update },
       );
 
     logger.info("[Communication] Status updated", {
       logId,
+      orgId: normalizedOrgId ? String(normalizedOrgId) : undefined,
       status,
     });
 
@@ -191,14 +238,16 @@ export async function updateCommunicationStatus(
 
 /**
  * Get communication history for a user
+ * SECURITY: orgId should be provided for tenant-scoped queries (STRICT v4.1)
  *
  * @param userId - User ID
- * @param options - Query options
+ * @param options - Query options including orgId for tenant isolation
  * @returns Communication logs
  */
 export async function getUserCommunications(
   userId: string,
   options?: {
+    orgId?: string | ObjectId;
     channel?: CommunicationLog["channel"];
     type?: CommunicationLog["type"];
     limit?: number;
@@ -212,7 +261,12 @@ export async function getUserCommunications(
     await connectToDatabase();
     const db = await getDatabase();
 
-    const query: Record<string, unknown> = { userId: new ObjectId(userId) };
+    // SECURITY: Build query with orgId scoping when provided
+    const query: Record<string, unknown> = { userId: normalizeUserId(userId) };
+    const normalizedOrgId = normalizeOrgId(options?.orgId);
+    if (normalizedOrgId !== null) {
+      query.orgId = normalizedOrgId;
+    }
 
     if (options?.channel) {
       query.channel = options.channel;
@@ -223,7 +277,7 @@ export async function getUserCommunications(
     }
 
     const logs = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .find(query)
       .sort({ createdAt: -1 })
       .skip(options?.skip || 0)
@@ -250,11 +304,13 @@ export async function getUserCommunications(
 
 /**
  * Get communication statistics
+ * SECURITY: orgId should be provided for tenant-scoped queries (STRICT v4.1)
  *
- * @param filters - Optional filters
+ * @param filters - Optional filters including orgId for tenant isolation
  * @returns Statistics object
  */
 export async function getCommunicationStats(filters?: {
+  orgId?: string | ObjectId;
   userId?: string;
   channel?: CommunicationLog["channel"];
   startDate?: Date;
@@ -277,8 +333,14 @@ export async function getCommunicationStats(filters?: {
 
     const matchStage: Record<string, unknown> = {};
 
+    // SECURITY: Scope by orgId when provided
+    const normalizedOrgId = normalizeOrgId(filters?.orgId);
+    if (normalizedOrgId !== null) {
+      matchStage.orgId = normalizedOrgId;
+    }
+
     if (filters?.userId) {
-      matchStage.userId = new ObjectId(filters.userId);
+      matchStage.userId = normalizeUserId(filters.userId);
     }
 
     if (filters?.channel) {
@@ -297,7 +359,7 @@ export async function getCommunicationStats(filters?: {
     }
 
     const result = await db
-      .collection("communication_logs")
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate([
         { $match: matchStage },
         {

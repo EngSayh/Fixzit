@@ -99,9 +99,13 @@ export class BudgetManager {
 
   /**
    * Check if campaign has budget available for a click
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async canCharge(campaignId: string, amount: number): Promise<boolean> {
-    const status = await this.getBudgetStatus(campaignId);
+  static async canCharge(campaignId: string, orgId: string, amount: number): Promise<boolean> {
+    if (!orgId) {
+      throw new Error('orgId is required for canCharge (STRICT v4.1 tenant isolation)');
+    }
+    const status = await this.getBudgetStatus(campaignId, orgId);
 
     if (!status.isActive) return false;
 
@@ -111,16 +115,27 @@ export class BudgetManager {
   /**
    * Charge campaign budget (atomic operation)
    * Returns true if charge succeeded, false if insufficient budget
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   static async chargeBudget(
     campaignId: string,
+    orgId: string,
     amount: number,
   ): Promise<boolean> {
-    const key = this.getBudgetKey(campaignId);
+    if (!orgId) {
+      throw new Error('orgId is required for chargeBudget (STRICT v4.1 tenant isolation)');
+    }
+    const key = this.getBudgetKey(campaignId, orgId);
 
     // Fetch daily budget from database
-    const campaign = await this.fetchCampaign(campaignId);
+    const campaign = await this.fetchCampaign(campaignId, orgId);
     if (!campaign) return false;
+
+    // Guard against zero/negative budget
+    if (!campaign.dailyBudget || campaign.dailyBudget <= 0) {
+      logger.warn(`[BudgetManager] Campaign ${campaignId} has invalid dailyBudget: ${campaign.dailyBudget}`);
+      return false;
+    }
 
     if (redis) {
       const script = `
@@ -149,7 +164,7 @@ export class BudgetManager {
       const success = result === 1;
 
       if (success) {
-        await this.checkBudgetThresholds(campaignId);
+        await this.checkBudgetThresholds(campaignId, orgId);
       }
 
       return success;
@@ -158,7 +173,7 @@ export class BudgetManager {
     const currentSpent = getLocalSpend(key);
     if (currentSpent + amount <= campaign.dailyBudget) {
       setLocalSpend(key, currentSpent + amount);
-      await this.checkBudgetThresholds(campaignId);
+      await this.checkBudgetThresholds(campaignId, orgId);
       return true;
     }
 
@@ -167,22 +182,27 @@ export class BudgetManager {
 
   /**
    * Get current budget status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getBudgetStatus(campaignId: string): Promise<BudgetStatus> {
-    const key = this.getBudgetKey(campaignId);
+  static async getBudgetStatus(campaignId: string, orgId: string): Promise<BudgetStatus> {
+    if (!orgId) {
+      throw new Error('orgId is required for getBudgetStatus (STRICT v4.1 tenant isolation)');
+    }
+    const key = this.getBudgetKey(campaignId, orgId);
     const spentToday = redis
       ? parseFloat((await redis.get(key)) || "0")
       : getLocalSpend(key);
 
-    const campaign = await this.fetchCampaign(campaignId);
+    const campaign = await this.fetchCampaign(campaignId, orgId);
 
     if (!campaign) {
-      throw new Error(`Campaign not found: ${campaignId}`);
+      throw new Error(`Campaign not found: ${campaignId} in org ${orgId}`);
     }
 
-    const dailyBudget = campaign.dailyBudget;
+    const dailyBudget = campaign.dailyBudget || 0;
     const remainingBudget = Math.max(0, dailyBudget - spentToday);
-    const percentageUsed = (spentToday / dailyBudget) * 100;
+    // Guard against divide by zero
+    const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
 
     return {
       campaignId,
@@ -196,22 +216,31 @@ export class BudgetManager {
   }
 
   /**
-   * Reset all campaign budgets (runs daily at midnight Saudi time)
+   * Reset all campaign budgets for an organization (runs daily at midnight Saudi time)
+   * @param orgId - Required for STRICT v4.1 tenant isolation.
    */
-  static async resetAllBudgets(): Promise<{ reset: number }> {
+  static async resetAllBudgets(orgId: string): Promise<{ reset: number }> {
+    if (!orgId) {
+      throw new Error('orgId is required to reset budgets (STRICT v4.1 tenant isolation)');
+    }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     // Get all active campaigns
     const campaigns = await db
       .collection("souq_ad_campaigns")
-      .find({ status: "active" })
+      .find({ status: "active", orgId })
       .toArray();
 
     let resetCount = 0;
 
     for (const campaign of campaigns) {
-      const key = this.getBudgetKey(campaign.campaignId);
+      const campaignOrgId = campaign.orgId?.toString() || orgId;
+      if (!campaignOrgId) {
+        logger.warn(`[BudgetManager] Skipping reset for campaign ${campaign.campaignId} due to missing orgId`);
+        continue;
+      }
+      const key = this.getBudgetKey(campaign.campaignId, campaignOrgId);
 
       // Delete Redis key (will start fresh tomorrow)
       if (redis) {
@@ -220,27 +249,31 @@ export class BudgetManager {
         deleteLocalSpend(key);
       }
 
-      // Reset spentToday in MongoDB
+      // Reset spentToday in MongoDB with orgId scoping
       await db
         .collection("souq_ad_campaigns")
         .updateOne(
-          { campaignId: campaign.campaignId },
+          { campaignId: campaign.campaignId, orgId: campaign.orgId },
           { $set: { spentToday: 0, lastBudgetReset: new Date() } },
         );
 
       resetCount++;
     }
 
-    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets`);
+    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets for org ${orgId}`);
 
     return { reset: resetCount };
   }
 
   /**
    * Reset single campaign budget (manual)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async resetCampaignBudget(campaignId: string): Promise<void> {
-    const key = this.getBudgetKey(campaignId);
+  static async resetCampaignBudget(campaignId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for resetCampaignBudget (STRICT v4.1 tenant isolation)');
+    }
+    const key = this.getBudgetKey(campaignId, orgId);
     if (redis) {
       await redis.del(key);
     } else {
@@ -253,11 +286,11 @@ export class BudgetManager {
     await db
       .collection("souq_ad_campaigns")
       .updateOne(
-        { campaignId },
+        { campaignId, orgId },
         { $set: { spentToday: 0, lastBudgetReset: new Date() } },
       );
 
-    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
+    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId} in org ${orgId}`);
   }
 
   /**
@@ -265,14 +298,15 @@ export class BudgetManager {
    */
   private static async checkBudgetThresholds(
     campaignId: string,
+    orgId: string,
   ): Promise<void> {
-    const status = await this.getBudgetStatus(campaignId);
+    const status = await this.getBudgetStatus(campaignId, orgId);
     const percentage = status.percentageUsed / 100;
 
     // Check if we crossed any threshold
     for (const threshold of this.ALERT_THRESHOLDS) {
       if (percentage >= threshold) {
-        const alertKey = `${this.REDIS_PREFIX}alert:${campaignId}:${threshold}`;
+        const alertKey = `${this.REDIS_PREFIX}alert:${orgId}:${campaignId}:${threshold}`;
         const alreadySent = redis
           ? await redis.get(alertKey)
           : hasLocalAlert(alertKey)
@@ -280,7 +314,7 @@ export class BudgetManager {
             : null;
 
         if (!alreadySent) {
-          await this.sendBudgetAlert(campaignId, threshold);
+          await this.sendBudgetAlert(campaignId, orgId, threshold);
           if (redis) {
             await redis.set(alertKey, "1", "EX", DAY_SECONDS); // Don't send again today
           } else {
@@ -292,7 +326,7 @@ export class BudgetManager {
 
     // Auto-pause if budget depleted
     if (percentage >= 1.0) {
-      await this.pauseCampaign(campaignId, "budget_depleted");
+      await this.pauseCampaign(campaignId, orgId, "budget_depleted");
     }
   }
 
@@ -301,9 +335,10 @@ export class BudgetManager {
    */
   private static async sendBudgetAlert(
     campaignId: string,
+    orgId: string,
     threshold: number,
   ): Promise<void> {
-    const campaign = await this.fetchCampaign(campaignId);
+    const campaign = await this.fetchCampaign(campaignId, orgId);
     if (!campaign) return;
 
     const percentage = Math.round(threshold * 100);
@@ -314,6 +349,7 @@ export class BudgetManager {
 
     await this.enqueueSellerAlert({
       sellerId: campaign.sellerId,
+      orgId,
       template: "souq_ad_budget_alert",
       internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} reached ${percentage}% of its budget`,
@@ -328,18 +364,21 @@ export class BudgetManager {
 
   /**
    * Pause campaign due to budget depletion
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   private static async pauseCampaign(
     campaignId: string,
+    orgId: string,
     reason: "budget_depleted" | "manual",
   ): Promise<void> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const campaign = await this.fetchCampaign(campaignId);
+    const campaign = await this.fetchCampaign(campaignId, orgId);
 
+    // 🔐 STRICT v4.1: Include orgId in filter
     await db.collection("souq_ad_campaigns").updateOne(
-      { campaignId },
+      { campaignId, orgId },
       {
         $set: {
           status: "paused",
@@ -353,6 +392,7 @@ export class BudgetManager {
 
     await this.enqueueSellerAlert({
       sellerId: campaign?.sellerId || "unknown",
+      orgId,
       template: "souq_ad_campaign_paused",
       internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} paused (${reason})`,
@@ -365,21 +405,41 @@ export class BudgetManager {
 
   private static async enqueueSellerAlert(params: {
     sellerId: string;
+    orgId?: string;
     template: string;
     internalAudience: string;
     subject: string;
     data: Record<string, unknown>;
   }): Promise<void> {
-    const { sellerId, template, internalAudience, subject, data } = params;
+    const { sellerId, template, internalAudience, subject, data, orgId: providedOrgId } = params;
+
+    // 🔐 Tenant-specific routing: Prefer provided orgId, otherwise fetch from seller
+    let orgId: string | undefined = providedOrgId;
+    try {
+      if (!orgId) {
+        const { SouqSeller } = await import("@/server/models/souq/Seller");
+        const seller = await SouqSeller.findById(sellerId).select("orgId").lean();
+        orgId = seller?.orgId?.toString();
+      }
+    } catch (error) {
+      logger.warn(`[BudgetManager] Could not fetch orgId for seller ${sellerId}`, {
+        error,
+        sellerId,
+        component: "BudgetManager",
+        action: "enqueueSellerAlert",
+      });
+    }
 
     await Promise.all([
       addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: sellerId,
+        orgId, // 🔐 Tenant-specific routing for branding/templates
         template,
         data,
       }),
       addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
         to: internalAudience,
+        orgId, // 🔐 Include for audit/routing
         priority: "normal",
         message: subject,
         metadata: data,
@@ -389,30 +449,37 @@ export class BudgetManager {
 
   /**
    * Get budget key for Redis
+   * @param orgId - Required for tenant isolation in Redis keys
    */
-  private static getBudgetKey(campaignId: string): string {
+  private static getBudgetKey(campaignId: string, orgId: string): string {
     const today = new Date().toISOString().split("T")[0];
-    return `${this.REDIS_PREFIX}${campaignId}:${today}`;
+    return `${this.REDIS_PREFIX}${orgId}:${campaignId}:${today}`;
   }
 
   /**
    * Fetch campaign from database
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  private static async fetchCampaign(campaignId: string): Promise<{
+  private static async fetchCampaign(campaignId: string, orgId: string): Promise<{
     campaignId: string;
+    orgId: string;
     dailyBudget: number;
     status: string;
     sellerId: string;
   } | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchCampaign (STRICT v4.1 tenant isolation)');
+    }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
       .collection("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
 
     return campaign as unknown as {
       campaignId: string;
+      orgId: string;
       dailyBudget: number;
       status: string;
       sellerId: string;
@@ -421,20 +488,27 @@ export class BudgetManager {
 
   /**
    * Get aggregated budget stats for all campaigns
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getCampaignsBudgetSummary(sellerId: string): Promise<{
+  static async getCampaignsBudgetSummary(sellerId: string, orgId: string): Promise<{
     totalDailyBudget: number;
     totalSpentToday: number;
     activeCampaigns: number;
     pausedCampaigns: number;
     campaigns: BudgetStatus[];
   }> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for campaign budget summary (STRICT v4.1 tenant isolation)');
+    }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const campaigns = await db
       .collection("souq_ad_campaigns")
-      .find({ sellerId })
+      .find({ sellerId, orgId })
       .toArray();
 
     let totalDailyBudget = 0;
@@ -445,7 +519,7 @@ export class BudgetManager {
     const budgetStatuses: BudgetStatus[] = [];
 
     for (const campaign of campaigns) {
-      const status = await this.getBudgetStatus(campaign.campaignId);
+      const status = await this.getBudgetStatus(campaign.campaignId, orgId);
       budgetStatuses.push(status);
 
       totalDailyBudget += status.dailyBudget;
@@ -472,8 +546,12 @@ export class BudgetManager {
    */
   static async updateDailyBudget(
     campaignId: string,
+    orgId: string,
     newBudget: number,
   ): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required to update daily budget (STRICT v4.1 tenant isolation)');
+    }
     if (newBudget < 10) {
       throw new Error("Daily budget must be at least 10 SAR");
     }
@@ -483,7 +561,7 @@ export class BudgetManager {
 
     await db
       .collection("souq_ad_campaigns")
-      .updateOne({ campaignId }, { $set: { dailyBudget: newBudget } });
+      .updateOne({ campaignId, orgId }, { $set: { dailyBudget: newBudget } });
 
     logger.info(
       `[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`,
@@ -495,6 +573,7 @@ export class BudgetManager {
    */
   static async getSpendHistory(
     campaignId: string,
+    orgId: string,
     days: number = 30,
   ): Promise<
     {
@@ -502,6 +581,9 @@ export class BudgetManager {
       spend: number;
     }[]
   > {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch spend history (STRICT v4.1 tenant isolation)');
+    }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -512,6 +594,7 @@ export class BudgetManager {
       .collection("souq_ad_daily_spend")
       .find({
         campaignId,
+        orgId,
         date: { $gte: startDate.toISOString().split("T")[0] },
       })
       .sort({ date: 1 })

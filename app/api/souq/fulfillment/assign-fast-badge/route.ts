@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
  * Admin-only endpoint (or background job)
  */
 export async function POST(request: NextRequest) {
+  let body: { listingId?: string; sellerId?: string; targetOrgId?: string } | undefined;
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {
@@ -21,31 +22,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const orgId = (session.user as { orgId?: string }).orgId;
-    const { listingId, sellerId } = body;
+    body = await request.json();
+    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const requestedOrgId = body?.targetOrgId?.trim();
+    const orgId = isPlatformAdmin ? requestedOrgId || sessionOrgId : sessionOrgId;
+    const listingId = body?.listingId;
+    const sellerId = body?.sellerId;
 
     let updated = 0;
     let eligible = 0;
 
+    // 🔒 SECURITY FIX: orgId is REQUIRED for all badge mutations
+    // Platform admins may target a specific org explicitly via targetOrgId
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required for badge assignment" },
+        { status: 403 },
+      );
+    }
+
     if (listingId) {
-      // Assign badge to specific listing
+      // Assign badge to specific listing (orgId already verified above)
       const result = await fulfillmentService.assignFastBadge(listingId, orgId);
       if (result) {
         eligible = 1;
         updated = 1;
       }
     } else if (sellerId) {
-      // Assign badge to all seller's listings
-      let listings = await SouqListing.find({
+      // Assign badge to all seller's listings within the org
+      const listingQuery: Record<string, unknown> = {
         sellerId,
         status: "active",
-        ...(orgId ? { orgId } : {}),
-      });
+        orgId,
+      };
 
-      if (listings.length === 0 && orgId) {
-        listings = await SouqListing.find({ sellerId, status: "active" });
-      }
+      const listings = await SouqListing.find(listingQuery);
 
       for (const listing of listings) {
         const result = await fulfillmentService.assignFastBadge(
@@ -66,6 +78,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    logger.info("Fast badge assignment executed", {
+      actorUserId: session.user.id,
+      actorRole: session.user.role,
+      targetOrgId: orgId,
+      listingId,
+      sellerId,
+      eligible,
+      updated,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Fast Badge assignment complete`,
@@ -73,7 +95,10 @@ export async function POST(request: NextRequest) {
       updated,
     });
   } catch (error) {
-    logger.error("Assign Fast Badge error", { error });
+    logger.error("Assign Fast Badge error", error as Error, {
+      listingId: body?.listingId,
+      sellerId: body?.sellerId,
+    });
     return NextResponse.json(
       {
         error: "Failed to assign Fast Badge",

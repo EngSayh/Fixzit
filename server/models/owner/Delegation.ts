@@ -216,7 +216,10 @@ DelegationSchema.plugin(tenantIsolationPlugin);
 DelegationSchema.plugin(auditPlugin);
 
 // Indexes
-DelegationSchema.index({ orgId: 1, delegationNumber: 1 }, { unique: true });
+DelegationSchema.index(
+  { orgId: 1, delegationNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 DelegationSchema.index({ orgId: 1, "delegator.ownerId": 1, status: 1 });
 DelegationSchema.index({ orgId: 1, "delegate.userId": 1, status: 1 });
 DelegationSchema.index({ orgId: 1, "period.endDate": 1 }); // For expiry notifications

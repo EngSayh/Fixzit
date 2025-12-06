@@ -267,7 +267,10 @@ WarrantySchema.plugin(tenantIsolationPlugin);
 WarrantySchema.plugin(auditPlugin);
 
 // Indexes
-WarrantySchema.index({ orgId: 1, warrantyNumber: 1 }, { unique: true });
+WarrantySchema.index(
+  { orgId: 1, warrantyNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 WarrantySchema.index({ orgId: 1, propertyId: 1, status: 1 });
 WarrantySchema.index({ orgId: 1, ownerId: 1, status: 1 });
 WarrantySchema.index({ orgId: 1, "terms.endDate": 1 }); // For expiry notifications

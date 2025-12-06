@@ -136,8 +136,6 @@ const OrderSchema = new Schema<IOrder>(
     orderId: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
     },
     customerId: {
       type: Schema.Types.ObjectId,
@@ -148,6 +146,7 @@ const OrderSchema = new Schema<IOrder>(
     orgId: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
+      required: true,
       index: true,
     },
     customerEmail: {
@@ -380,13 +379,14 @@ const OrderSchema = new Schema<IOrder>(
   {
     timestamps: true,
     collection: "souq_orders",
+    // Indexes managed centrally in lib/db/collections.ts to avoid conflicts
+    autoIndex: false,
   },
 );
 
-OrderSchema.index({ customerId: 1, createdAt: -1 });
-OrderSchema.index({ "items.sellerId": 1, createdAt: -1 });
-OrderSchema.index({ status: 1, createdAt: -1 });
-OrderSchema.index({ orderId: "text" });
+// Tenant-scoped access patterns
+OrderSchema.index({ orgId: 1, orderId: 1 });
+OrderSchema.index({ orgId: 1, trackingNumber: 1 });
 
 export const SouqOrder = getModel<IOrder>("SouqOrder", OrderSchema);
 

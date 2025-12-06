@@ -88,7 +88,10 @@ const NotificationLogSchema = new Schema(
   { timestamps: true }
 );
 
-NotificationLogSchema.index({ orgId: 1, notificationId: 1 }, { unique: true });
+NotificationLogSchema.index(
+  { orgId: 1, notificationId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 if (notificationTtlDays > 0) {
   NotificationLogSchema.index(

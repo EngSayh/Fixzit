@@ -378,7 +378,7 @@ export async function GET(req: NextRequest) {
       clearTenantContext();
     }
   } catch (error) {
-    logger.error("Error generating owner statement", { error });
+    logger.error("Error generating owner statement", error as Error);
     return NextResponse.json(
       {
         success: false,

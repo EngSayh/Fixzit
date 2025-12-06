@@ -32,7 +32,7 @@ export async function PUT(
 
     return NextResponse.json({ status: 'complete' }, { status: 200 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to complete tutorial', { error });
+    logger.error('[Onboarding] Failed to complete tutorial', error as Error);
     return NextResponse.json({ error: 'Failed to complete tutorial' }, { status: 500 });
   }
 }

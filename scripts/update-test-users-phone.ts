@@ -6,23 +6,16 @@
  */
 
 import { config } from "dotenv";
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
 
 // Load environment
 config({ path: ".env.local" });
 
 async function updateTestUsersPhone() {
   try {
-    const { connectToDatabase } = await import("../lib/mongodb-unified");
-    await connectToDatabase();
-
-    const mongoose = (await import("mongoose")).default;
-    const db = mongoose.connection.db;
-
-    if (!db) {
-      throw new Error("Database connection not established");
-    }
-
-    const usersCollection = db.collection("users");
+    const db = await getDatabase();
+    const usersCollection = db.collection(COLLECTIONS.USERS);
 
     // Test user emails and their phone numbers
     const testUsers = [
@@ -61,7 +54,7 @@ async function updateTestUsersPhone() {
 
     console.log(`\n✅ Updated ${updated} test user(s) with phone numbers`);
 
-    await mongoose.disconnect();
+    await disconnectFromDatabase();
   } catch (error) {
     console.error(
       `❌ Failed to update test users: ${error instanceof Error ? error.message : String(error)}`,

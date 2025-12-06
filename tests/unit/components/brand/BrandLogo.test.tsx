@@ -1,6 +1,6 @@
 import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrandLogo, BrandLogoWithCard } from '@/components/brand/BrandLogo';
 
 // Mock fetch for org logo tests - save original for proper restoration
@@ -33,6 +33,9 @@ vi.mock('next/image', () => ({
 }));
 
 describe('BrandLogo', () => {
+  const renderLogo = (props: React.ComponentProps<typeof BrandLogo> = {}) =>
+    render(<BrandLogo fetchOrgLogo={false} {...props} />);
+
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = mockFetch; // Set mock before each test
@@ -49,7 +52,7 @@ describe('BrandLogo', () => {
 
   describe('Size Presets', () => {
     test('renders with default md size preset', () => {
-      render(<BrandLogo />);
+      renderLogo();
       const img = screen.getByTestId('brand-logo');
       
       // Default md size: 48x48
@@ -60,7 +63,7 @@ describe('BrandLogo', () => {
     });
 
     test('renders with xs size preset', () => {
-      render(<BrandLogo size="xs" />);
+      renderLogo({ size: 'xs' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '24');
@@ -70,7 +73,7 @@ describe('BrandLogo', () => {
     });
 
     test('renders with lg size preset', () => {
-      render(<BrandLogo size="lg" />);
+      renderLogo({ size: 'lg' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '64');
@@ -80,7 +83,7 @@ describe('BrandLogo', () => {
     });
 
     test('renders with 2xl size preset', () => {
-      render(<BrandLogo size="2xl" />);
+      renderLogo({ size: '2xl' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '120');
@@ -92,7 +95,7 @@ describe('BrandLogo', () => {
 
   describe('Custom Dimensions (Regression: audit fix)', () => {
     test('customWidth overrides size preset width attribute', () => {
-      render(<BrandLogo size="md" width={100} />);
+      renderLogo({ size: 'md', width: 100 });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '100');
@@ -100,7 +103,7 @@ describe('BrandLogo', () => {
     });
 
     test('customHeight overrides size preset height attribute', () => {
-      render(<BrandLogo size="md" height={100} />);
+      renderLogo({ size: 'md', height: 100 });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '48');
@@ -108,7 +111,7 @@ describe('BrandLogo', () => {
     });
 
     test('both customWidth and customHeight override size preset', () => {
-      render(<BrandLogo size="xs" width={200} height={150} />);
+      renderLogo({ size: 'xs', width: 200, height: 150 });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '200');
@@ -116,13 +119,13 @@ describe('BrandLogo', () => {
     });
 
     test('custom dimensions work with any size preset', () => {
-      const { rerender } = render(<BrandLogo size="2xl" width={50} height={50} />);
+      const { rerender } = renderLogo({ size: '2xl', width: 50, height: 50 });
       let img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '50');
       expect(img).toHaveAttribute('height', '50');
 
-      rerender(<BrandLogo size="xs" width={300} height={300} />);
+      rerender(<BrandLogo fetchOrgLogo={false} size="xs" width={300} height={300} />);
       img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('width', '300');
@@ -132,21 +135,21 @@ describe('BrandLogo', () => {
 
   describe('Logo Variants', () => {
     test('applies rounded corners by default', () => {
-      render(<BrandLogo />);
+      renderLogo();
       const img = screen.getByTestId('brand-logo');
       
       expect(img.className).toContain('rounded-2xl');
     });
 
     test('rounded can be disabled', () => {
-      render(<BrandLogo rounded={false} />);
+      renderLogo({ rounded: false });
       const img = screen.getByTestId('brand-logo');
       
       expect(img.className).not.toContain('rounded');
     });
 
     test('applies card variant styles', () => {
-      render(<BrandLogo variant="card" />);
+      renderLogo({ variant: 'card' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img.className).toContain('bg-card');
@@ -154,7 +157,7 @@ describe('BrandLogo', () => {
     });
 
     test('applies additional className', () => {
-      render(<BrandLogo className="custom-class another-class" />);
+      renderLogo({ className: 'custom-class another-class' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img.className).toContain('custom-class');
@@ -164,7 +167,7 @@ describe('BrandLogo', () => {
 
   describe('Logo Sources', () => {
     test('uses default logo when fetchOrgLogo is false', () => {
-      render(<BrandLogo fetchOrgLogo={false} />);
+      renderLogo({ fetchOrgLogo: false });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('src', '/img/fixzit-logo.png');
@@ -172,7 +175,7 @@ describe('BrandLogo', () => {
     });
 
     test('uses custom logoUrl when provided', () => {
-      render(<BrandLogo logoUrl="/custom-logo.png" />);
+      renderLogo({ logoUrl: '/custom-logo.png' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('src', '/custom-logo.png');
@@ -180,7 +183,9 @@ describe('BrandLogo', () => {
     });
 
     test('fetches org logo when fetchOrgLogo is true', async () => {
-      render(<BrandLogo fetchOrgLogo={true} />);
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
       
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -198,7 +203,9 @@ describe('BrandLogo', () => {
         json: async () => ({ logo: '/fetched-org-logo.png' }),
       });
 
-      render(<BrandLogo fetchOrgLogo={true} />);
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
       
       await waitFor(() => {
         const img = screen.getByTestId('brand-logo');
@@ -209,10 +216,12 @@ describe('BrandLogo', () => {
     test('keeps default logo when fetch fails', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      render(<BrandLogo fetchOrgLogo={true} />);
-      const img = screen.getByTestId('brand-logo');
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
       
       await waitFor(() => {
+        const img = screen.getByTestId('brand-logo');
         expect(img).toHaveAttribute('src', '/img/fixzit-logo.png');
       });
     });
@@ -220,21 +229,21 @@ describe('BrandLogo', () => {
 
   describe('Accessibility', () => {
     test('uses default alt text', () => {
-      render(<BrandLogo />);
+      renderLogo();
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('alt', 'Fixzit');
     });
 
     test('uses custom alt text when provided', () => {
-      render(<BrandLogo alt="Company Logo" />);
+      renderLogo({ alt: 'Company Logo' });
       const img = screen.getByTestId('brand-logo');
       
       expect(img).toHaveAttribute('alt', 'Company Logo');
     });
 
     test('uses custom data-testid', () => {
-      render(<BrandLogo data-testid="custom-logo" />);
+      renderLogo({ 'data-testid': 'custom-logo' });
       
       expect(screen.getByTestId('custom-logo')).toBeInTheDocument();
     });
@@ -243,10 +252,12 @@ describe('BrandLogo', () => {
   describe('Error Handling', () => {
     test('calls onError callback when image fails to load', () => {
       const handleError = vi.fn();
-      render(<BrandLogo onError={handleError} />);
+      renderLogo({ onError: handleError });
       const img = screen.getByTestId('brand-logo');
       
-      img.dispatchEvent(new Event('error'));
+      act(() => {
+        img.dispatchEvent(new Event('error'));
+      });
       
       expect(handleError).toHaveBeenCalled();
     });

@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
-import { Inter, Noto_Sans_Arabic } from 'next/font/google';
+import { 
+  Bricolage_Grotesque, 
+  Space_Mono, 
+  Noto_Sans_Arabic,
+  DM_Sans 
+} from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -21,17 +26,36 @@ export const metadata: Metadata = {
   },
 };
 
-const inter = Inter({
+// Distinctive display font for headings - editorial, characterful
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-display',
+  weight: ['200', '400', '600', '800'],
 });
 
+// Monospace accent font for data, badges, and technical elements
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono',
+  weight: ['400', '700'],
+});
+
+// Clean geometric sans for body text
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+// Arabic typography support
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ['arabic'],
   weight: ['400', '500', '700'],
   display: 'swap',
-  variable: '--font-noto-sans-arabic',
+  variable: '--font-arabic',
 });
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
       <body
-        className={`min-h-screen bg-background text-foreground ${inter.variable} ${notoSansArabic.variable}`}
+        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${notoSansArabic.variable}`}
         style={{ direction: dir }}
       >
         {/* E2E-visible fallback controls to keep language/currency selectors discoverable */}

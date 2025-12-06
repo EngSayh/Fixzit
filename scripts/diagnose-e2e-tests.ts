@@ -126,10 +126,11 @@ async function checkTestUsersSeeded() {
 
   try {
     const { getDatabase } = await import("../lib/mongodb-unified");
+    const { COLLECTIONS } = await import("../lib/db/collections");
     const db = await getDatabase();
 
     const users = await db
-      .collection("users")
+      .collection(COLLECTIONS.USERS)
       .find({
         email: { $regex: "@test\\.fixzit\\.co$" },
       })

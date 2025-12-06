@@ -361,7 +361,10 @@ PaymentSchema.plugin(auditPlugin);
 // ============================================================================
 
 // Compound tenant-scoped unique index for payment number
-PaymentSchema.index({ orgId: 1, paymentNumber: 1 }, { unique: true });
+PaymentSchema.index(
+  { orgId: 1, paymentNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // Query indexes (tenant-scoped)
 PaymentSchema.index({ orgId: 1, paymentDate: -1 });

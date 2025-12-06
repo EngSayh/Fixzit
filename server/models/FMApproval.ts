@@ -133,19 +133,14 @@ const FMApprovalSchema = new Schema(
   {
     timestamps: true,
     collection: "fm_approvals",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
 // Plugins
 FMApprovalSchema.plugin(tenantIsolationPlugin);
 FMApprovalSchema.plugin(auditPlugin);
-
-// Indexes for performance
-FMApprovalSchema.index({ orgId: 1, approvalNumber: 1 });
-FMApprovalSchema.index({ orgId: 1, entityId: 1, entityType: 1 });
-FMApprovalSchema.index({ orgId: 1, approverId: 1, status: 1 });
-FMApprovalSchema.index({ orgId: 1, status: 1, dueDate: 1 }); // For timeout checking
-FMApprovalSchema.index({ orgId: 1, workflowId: 1 });
 
 // Pre-save: Generate approval number
 FMApprovalSchema.pre("save", function (next) {

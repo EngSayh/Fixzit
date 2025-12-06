@@ -217,7 +217,10 @@ TenantSchema.index({ orgId: 1, type: 1 });
 TenantSchema.index({ orgId: 1, "contact.primary.email": 1 });
 TenantSchema.index({ orgId: 1, "properties.occupancy.status": 1 });
 // Compound tenant-scoped unique index for code
-TenantSchema.index({ orgId: 1, code: 1 }, { unique: true });
+TenantSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 

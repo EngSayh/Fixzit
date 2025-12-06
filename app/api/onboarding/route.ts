@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(cases, { status: 200 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to list cases', { error });
+    logger.error('[Onboarding] Failed to list cases', error as Error);
     return NextResponse.json({ error: 'Failed to load onboarding queue' }, { status: 500 });
   } finally {
     clearTenantContext();

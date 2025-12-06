@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * GET /api/souq/ads/campaigns/[id]/stats
@@ -21,8 +46,24 @@ export async function GET(
       );
     }
 
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads stats)" },
+        { status: 403 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -41,6 +82,7 @@ export async function GET(
     const stats = await CampaignService.getCampaignStats(
       params.id,
       session.user.id,
+      userOrgId,
     );
 
     return NextResponse.json({
@@ -48,7 +90,7 @@ export async function GET(
       data: stats,
     });
   } catch (error) {
-    logger.error("[Ad API] Get campaign stats failed", { error });
+    logger.error("[Ad API] Get campaign stats failed", error as Error);
 
     return NextResponse.json(
       {

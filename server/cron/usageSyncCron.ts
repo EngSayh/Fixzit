@@ -6,6 +6,7 @@ import Subscription from "../models/Subscription";
 import { updateUsageSnapshot } from "../services/subscriptionSeatService";
 import { connectToDatabase } from "../../lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
 
 async function syncUsageForAllSubscriptions() {
   await connectToDatabase();
@@ -24,7 +25,7 @@ async function syncUsageForAllSubscriptions() {
         users: 0,
         properties: 0,
         units: 0,
-        work_orders: 0,
+        [WORK_ORDERS_ENTITY_LEGACY]: 0,
       });
     } catch (error) {
       logger.error("[Cron] Usage sync failed for subscription", {

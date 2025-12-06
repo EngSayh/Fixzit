@@ -11,6 +11,13 @@ import { SouqListing } from "@/server/models/souq/Listing";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqReview } from "@/server/models/souq/Review";
 import { connectDb } from "@/lib/mongodb-unified";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 export async function GET(
   request: NextRequest,
@@ -24,15 +31,38 @@ export async function GET(
     }
 
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
-    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const targetOrgId = request.nextUrl.searchParams.get("targetOrgId") || undefined;
+    const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !orgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     await connectDb();
 
     const sellerId = context.params.id;
 
     const sellerQuery: Record<string, unknown> = { _id: sellerId };
-    if (!isSuperAdmin && sessionOrgId) {
-      sellerQuery.orgId = sessionOrgId;
+    if (orgId) {
+      sellerQuery.orgId = orgId;
     }
 
     const seller = await SouqSeller.findOne(sellerQuery);
@@ -43,10 +73,20 @@ export async function GET(
 
     // 🔒 ACCESS CONTROL: Only seller owner or same-org admin (or super admin) can view dashboard
     const isOwner = seller.userId?.toString() === session.user.id;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
     const isSameOrgAdmin =
-      sessionOrgId &&
-      ["CORPORATE_ADMIN", "ADMIN", "MANAGER"].includes(session.user.role) &&
+      (isOrgAdmin || isOpsOrSupport) &&
       seller.orgId &&
+      sessionOrgId &&
       seller.orgId.toString() === sessionOrgId;
 
     if (!isOwner && !isSuperAdmin && !isSameOrgAdmin) {

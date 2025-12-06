@@ -122,7 +122,10 @@ SupportTicketSchema.plugin(encryptionPlugin, {
 });
 
 // INDEXES (AFTER PLUGINS)
-SupportTicketSchema.index({ orgId: 1, code: 1 }, { unique: true }); // Tenant-scoped unique code
+SupportTicketSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // Tenant-scoped unique code
 SupportTicketSchema.index({ orgId: 1, status: 1, module: 1, priority: 1 });
 SupportTicketSchema.index({ orgId: 1, "requester.email": 1 });
 SupportTicketSchema.index({ orgId: 1, "assignment.assignedTo.userId": 1 });

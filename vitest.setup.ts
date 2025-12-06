@@ -9,12 +9,6 @@ import "@testing-library/jest-dom/vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
-import * as ClaimsRoute from "@/app/api/souq/claims/route";
-import * as ClaimByIdRoute from "@/app/api/souq/claims/[id]/route";
-import * as ClaimEvidenceRoute from "@/app/api/souq/claims/[id]/evidence/route";
-import * as ClaimResponseRoute from "@/app/api/souq/claims/[id]/response/route";
-import * as ClaimDecisionRoute from "@/app/api/souq/claims/[id]/decision/route";
-import * as ClaimAppealRoute from "@/app/api/souq/claims/[id]/appeal/route";
 import { logger } from "@/lib/logger";
 
 // Polyfill TextEncoder/TextDecoder for environments where global objects are missing
@@ -80,6 +74,24 @@ afterAll(() => {
 });
 
 // --- Mock Modules ---
+
+// Mock @/lib/mongo when SKIP_GLOBAL_MONGO is true (for pure domain tests)
+if (process.env.SKIP_GLOBAL_MONGO === "true") {
+  vi.mock("@/lib/mongo", () => ({
+    db: Promise.resolve(null),
+    connectDb: vi.fn().mockResolvedValue(null),
+    connectMongo: vi.fn().mockResolvedValue(null),
+    getDatabase: vi.fn().mockResolvedValue({
+      collection: () => ({
+        findOne: vi.fn(),
+        find: vi.fn(),
+        insertOne: vi.fn(),
+        updateOne: vi.fn(),
+        deleteOne: vi.fn(),
+      }),
+    }),
+  }));
+}
 
 // NOTE: We used to mock 'mongoose' here to work around some plugin/type issues
 // (Schema.plugin and Schema.Types.Mixed). However this global mock interferes
@@ -270,10 +282,18 @@ type RouteHandler = (
   ctx: { params: Record<string, string> },
 ) => Promise<Response | NextResponse>;
 
-const adaptRoute = <T extends Record<string, string>>(
-  handler: NextAppRouteHandler<T>,
+const lazyRoute = <T extends Record<string, string>>(
+  loader: () => Promise<Record<string, unknown>>,
+  key: string,
 ): RouteHandler => {
-  return (req, ctx) => handler(req, ctx as { params: T });
+  return async (req, ctx) => {
+    const mod = await loader();
+    const handler = mod[key] as NextAppRouteHandler<T> | undefined;
+    if (!handler) {
+      return new Response("Handler not implemented", { status: 500 });
+    }
+    return handler(req, ctx as { params: T });
+  };
 };
 
 interface RouteConfig {
@@ -287,44 +307,56 @@ const apiRoutes: RouteConfig[] = [
     pattern: /^\/api\/souq\/claims$/,
     paramNames: [],
     handlers: {
-      GET: ClaimsRoute.GET,
-      POST: ClaimsRoute.POST,
+      GET: lazyRoute(() => import("@/app/api/souq/claims/route"), "GET"),
+      POST: lazyRoute(() => import("@/app/api/souq/claims/route"), "POST"),
     },
   },
   {
     pattern: /^\/api\/souq\/claims\/([^/]+)$/,
     paramNames: ["id"],
     handlers: {
-      GET: adaptRoute(ClaimByIdRoute.GET),
-      PUT: adaptRoute(ClaimByIdRoute.PUT),
+      GET: lazyRoute(() => import("@/app/api/souq/claims/[id]/route"), "GET"),
+      PUT: lazyRoute(() => import("@/app/api/souq/claims/[id]/route"), "PUT"),
     },
   },
   {
     pattern: /^\/api\/souq\/claims\/([^/]+)\/evidence$/,
     paramNames: ["id"],
     handlers: {
-      POST: adaptRoute(ClaimEvidenceRoute.POST),
+      POST: lazyRoute(
+        () => import("@/app/api/souq/claims/[id]/evidence/route"),
+        "POST",
+      ),
     },
   },
   {
     pattern: /^\/api\/souq\/claims\/([^/]+)\/response$/,
     paramNames: ["id"],
     handlers: {
-      POST: adaptRoute(ClaimResponseRoute.POST),
+      POST: lazyRoute(
+        () => import("@/app/api/souq/claims/[id]/response/route"),
+        "POST",
+      ),
     },
   },
   {
     pattern: /^\/api\/souq\/claims\/([^/]+)\/decision$/,
     paramNames: ["id"],
     handlers: {
-      POST: adaptRoute(ClaimDecisionRoute.POST),
+      POST: lazyRoute(
+        () => import("@/app/api/souq/claims/[id]/decision/route"),
+        "POST",
+      ),
     },
   },
   {
     pattern: /^\/api\/souq\/claims\/([^/]+)\/appeal$/,
     paramNames: ["id"],
     handlers: {
-      POST: adaptRoute(ClaimAppealRoute.POST),
+      POST: lazyRoute(
+        () => import("@/app/api/souq/claims/[id]/appeal/route"),
+        "POST",
+      ),
     },
   },
 ];
@@ -393,7 +425,11 @@ const mockFetch: typeof globalThis.fetch = async (input, init) => {
 globalThis.fetch = mockFetch;
 
 // --- MongoDB Memory Server Setup ---
-const shouldUseInMemoryMongo = process.env.SKIP_GLOBAL_MONGO !== "true";
+const isJsdomEnv = typeof window !== "undefined" && typeof document !== "undefined";
+const forceMongo =
+  process.env.SKIP_GLOBAL_MONGO === "false" || process.env.FORCE_GLOBAL_MONGO === "true";
+// Default: skip MongoMemoryServer in jsdom unless explicitly forced via env above.
+const shouldUseInMemoryMongo = forceMongo || (!isJsdomEnv && process.env.SKIP_GLOBAL_MONGO !== "true");
 let mongoServer: MongoMemoryServer | undefined;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 

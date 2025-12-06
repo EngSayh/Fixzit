@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.error("[POST /api/admin/footer] Error", { error });
+    logger.error("[POST /api/admin/footer] Error", error as Error);
     return NextResponse.json(
       { error: "Failed to update footer content" },
       { status: 500 },
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.error("[GET /api/admin/footer] Error", { error });
+    logger.error("[GET /api/admin/footer] Error", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch footer content" },
       { status: 500 },

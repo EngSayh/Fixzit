@@ -322,9 +322,10 @@ describe("auth lib - authenticateUser", () => {
       "superadmin@fixzit.co",
       "admin123",
       "personal",
+      "org1", // orgId required for personal login
     );
 
-    expect(mockFindOne).toHaveBeenCalledWith({ email: "superadmin@fixzit.co" });
+    expect(mockFindOne).toHaveBeenCalledWith({ email: "superadmin@fixzit.co", orgId: "org1" });
     expect(result).toHaveProperty("token");
     expect(result.user).toEqual({
       id: expect.any(String),
@@ -344,9 +345,11 @@ describe("auth lib - authenticateUser", () => {
       "superadmin",
       "admin123",
       "corporate",
+      undefined,
+      "ACME-001", // companyCode required for corporate login
     );
 
-    expect(mockFindOne).toHaveBeenCalledWith({ username: "superadmin" });
+    expect(mockFindOne).toHaveBeenCalledWith({ username: "superadmin", code: "ACME-001" });
     expect(res.user.email).toBe("superadmin@fixzit.co");
   });
 
@@ -355,7 +358,7 @@ describe("auth lib - authenticateUser", () => {
 
     const auth = await loadAuthModule();
     await expect(
-      auth.authenticateUser("unknown@x.com", "any", "personal"),
+      auth.authenticateUser("unknown@x.com", "any", "personal", "org1"),
     ).rejects.toThrow("Invalid credentials");
   });
 
@@ -365,7 +368,7 @@ describe("auth lib - authenticateUser", () => {
 
     const auth = await loadAuthModule();
     await expect(
-      auth.authenticateUser("superadmin@fixzit.co", "wrong", "personal"),
+      auth.authenticateUser("superadmin@fixzit.co", "wrong", "personal", "org1"),
     ).rejects.toThrow("Invalid credentials");
   });
 
@@ -378,8 +381,22 @@ describe("auth lib - authenticateUser", () => {
 
     const auth = await loadAuthModule();
     await expect(
-      auth.authenticateUser("inactive@x.com", "admin123", "personal"),
+      auth.authenticateUser("inactive@x.com", "admin123", "personal", "org1"),
     ).rejects.toThrow("Account is not active");
+  });
+
+  it("fails when orgId is missing for personal login", async () => {
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("user@example.com", "password", "personal"),
+    ).rejects.toThrow("orgId required for personal login");
+  });
+
+  it("fails when companyCode is missing for corporate login", async () => {
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("EMP001", "password", "corporate"),
+    ).rejects.toThrow("companyCode required for corporate login");
   });
 });
 

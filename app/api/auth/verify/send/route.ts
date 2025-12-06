@@ -32,18 +32,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // SECURITY: Resolve default organization for public auth flow
-  // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
-  // cross-tenant verification (mirrors signup/route.ts scoping rules)
+  // SECURITY: Resolve default organization for public auth flow (must exist to enforce tenant isolation)
   const resolvedOrgId =
     process.env.PUBLIC_ORG_ID ||
-    (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
+    process.env.TEST_ORG_ID ||
+    process.env.DEFAULT_ORG_ID;
+
+  if (!resolvedOrgId) {
+    logger.error("[verify/send] Missing org context - verification disabled", {
+      severity: "ops_critical",
+      action: "Set PUBLIC_ORG_ID/TEST_ORG_ID/DEFAULT_ORG_ID env var to enable verification emails",
+    });
+    return NextResponse.json(
+      { error: "Verification temporarily unavailable. Please try again later." },
+      { status: 503 },
+    );
+  }
 
   await connectToDatabase();
   // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-  const user = resolvedOrgId
-    ? await User.findOne({ orgId: resolvedOrgId, email: body.email.toLowerCase() }).lean()
-    : await User.findOne({ email: body.email.toLowerCase() }).lean();
+  const user = await User.findOne({ orgId: resolvedOrgId, email: body.email.toLowerCase() }).lean();
   if (!user) {
     // Don't reveal if email exists for security
     return NextResponse.json({ ok: true, message: "Verification email sent if account exists" });

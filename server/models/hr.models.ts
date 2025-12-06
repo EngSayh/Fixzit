@@ -143,7 +143,10 @@ const DepartmentSchema = new Schema<DepartmentDoc>(
   { timestamps: true },
 );
 
-DepartmentSchema.index({ orgId: 1, name: 1, isDeleted: 1 }, { unique: true });
+DepartmentSchema.index(
+  { orgId: 1, name: 1, isDeleted: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 DepartmentSchema.plugin(tenantIsolationPlugin);
 
 export const Department: Model<DepartmentDoc> =
@@ -710,7 +713,10 @@ const LeaveTypeSchema = new Schema<LeaveTypeDoc>(
   { timestamps: true },
 );
 
-LeaveTypeSchema.index({ orgId: 1, code: 1, isDeleted: 1 }, { unique: true });
+LeaveTypeSchema.index(
+  { orgId: 1, code: 1, isDeleted: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 LeaveTypeSchema.plugin(tenantIsolationPlugin);
 
 export const LeaveType: Model<LeaveTypeDoc> =

@@ -15,6 +15,7 @@
 
 interface AdCampaign {
   campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   sellerId: string;
   type: "sponsored_products" | "sponsored_brands" | "product_display";
   status: "active" | "paused" | "ended";
@@ -26,6 +27,7 @@ interface AdCampaign {
 interface AdBid {
   bidId: string;
   campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   targetType: "keyword" | "category" | "product" | "asin";
   targetValue: string; // keyword text, category ID, or product FSIN
   bidAmount: number; // Max CPC bid
@@ -65,6 +67,7 @@ export interface AuctionWinner {
 }
 
 interface AuctionContext {
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   query?: string; // Search query
   category?: string; // Category ID
   productId?: string; // Product FSIN (for PDP ads)
@@ -99,7 +102,10 @@ export class AuctionEngine {
       if (campaign.spentToday >= campaign.dailyBudget) continue;
 
       // Always read the latest bids from the canonical collection
-      const campaignBids = await this.fetchCampaignBids(campaign.campaignId);
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
       if (campaignBids.length === 0) continue;
 
       // Get matching bids for this search
@@ -173,7 +179,10 @@ export class AuctionEngine {
     for (const campaign of campaigns) {
       if (campaign.spentToday >= campaign.dailyBudget) continue;
 
-      const campaignBids = await this.fetchCampaignBids(campaign.campaignId);
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
       if (campaignBids.length === 0) continue;
 
       const matchingBids = this.getMatchingBids(campaignBids, context);
@@ -425,13 +434,16 @@ export class AuctionEngine {
   /**
    * Fetch the most recent bids for a campaign from the canonical collection
    */
-  private static async fetchCampaignBids(campaignId: string): Promise<AdBid[]> {
+  private static async fetchCampaignBids(
+    campaignId: string,
+    orgId: string,
+  ): Promise<AdBid[]> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const bids = await db
       .collection<AdBid>("souq_ad_bids")
-      .find({ campaignId })
+      .find({ campaignId, orgId }) // Tenant isolation (STRICT v4.1)
       .toArray();
 
     return bids;
@@ -439,17 +451,20 @@ export class AuctionEngine {
 
   /**
    * Fetch eligible campaigns from database
+   * SECURITY: Must be scoped by orgId for tenant isolation (STRICT v4.1)
    */
   private static async fetchEligibleCampaigns(
     type: "sponsored_products" | "sponsored_brands" | "product_display",
-    _context: AuctionContext,
+    context: AuctionContext,
   ): Promise<AdCampaign[]> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // CRITICAL: Always filter by orgId to prevent cross-tenant ad serving
     const campaigns = await db
       .collection<AdCampaign>("souq_ad_campaigns")
       .find({
+        orgId: context.orgId, // Required for tenant isolation
         type,
         status: "active",
         $expr: { $lt: ["$spentToday", "$dailyBudget"] },
@@ -494,6 +509,7 @@ export class AuctionEngine {
 
     await db.collection("souq_ad_events").insertOne({
       eventType: "impression",
+      orgId: context.orgId, // Required for tenant isolation
       bidId,
       campaignId,
       timestamp: new Date(),
@@ -504,12 +520,12 @@ export class AuctionEngine {
       },
     });
 
-    // Update aggregated stats
+    // Update aggregated stats (scoped by bidId which is unique per campaign)
     await db.collection("souq_ad_stats").updateOne(
       { bidId },
       {
         $inc: { impressions: 1 },
-        $setOnInsert: { clicks: 0, conversions: 0, spend: 0 },
+        $setOnInsert: { clicks: 0, conversions: 0, spend: 0, orgId: context.orgId },
       },
       { upsert: true },
     );
@@ -529,6 +545,7 @@ export class AuctionEngine {
 
     await db.collection("souq_ad_events").insertOne({
       eventType: "click",
+      orgId: context.orgId, // Required for tenant isolation
       bidId,
       campaignId,
       cpc: actualCpc,
@@ -540,7 +557,7 @@ export class AuctionEngine {
       },
     });
 
-    // Update aggregated stats
+    // Update aggregated stats (scoped by bidId which is unique per campaign)
     await db.collection("souq_ad_stats").updateOne(
       { bidId },
       {
@@ -548,6 +565,7 @@ export class AuctionEngine {
           clicks: 1,
           spend: actualCpc,
         },
+        $setOnInsert: { orgId: context.orgId },
       },
       { upsert: true },
     );

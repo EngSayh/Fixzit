@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, reservationId } = body;
+    const { listingId, reservationId } = body as { listingId?: string; reservationId?: string };
 
     // Validation
     if (!listingId || !reservationId) {
@@ -28,10 +28,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const released = await inventoryService.releaseReservation({
-      listingId,
-      reservationId,
-      orgId: (session.user as { orgId?: string }).orgId,
+      listingId: listingId as string,
+      reservationId: reservationId as string,
+      orgId,
     });
 
     if (!released) {
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest) {
       message: "Reservation released successfully",
     });
   } catch (error) {
-    logger.error("POST /api/souq/inventory/release error", { error });
+    logger.error("POST /api/souq/inventory/release error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

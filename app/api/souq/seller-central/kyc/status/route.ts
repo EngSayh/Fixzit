@@ -14,15 +14,23 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     // Get KYC status
-    const status = await sellerKYCService.getKYCStatus(session.user.id);
+    const status = await sellerKYCService.getKYCStatus(session.user.id, orgId);
 
     return NextResponse.json({
       success: true,
       ...status,
     });
   } catch (error) {
-    logger.error("Get KYC status error", { error });
+    logger.error("Get KYC status error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get KYC status",

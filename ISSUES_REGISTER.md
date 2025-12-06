@@ -1,0 +1,490 @@
+# Issues Register - Fixzit Index Management System
+
+**Last Updated**: 2025-12-04  
+**Version**: 1.1  
+**Scope**: Database index management across all models
+
+---
+
+## Executive Summary
+
+This register documents all issues discovered in the Fixzit index management system. ~~The primary blocker is **IndexOptionsConflict** errors caused by duplicate index definitions between `lib/db/collections.ts` (manual native driver) and Mongoose schema definitions in various model files.~~
+
+**UPDATE (2025-12-04)**: ISSUE-001 and ISSUE-002 have been **RESOLVED**. Schema indexes have been removed from WorkOrder.ts and Product.ts models, and `autoIndex: false` has been added to prevent Mongoose auto-index creation. Property.ts also has `autoIndex: false`. All indexes are now centrally managed in `lib/db/collections.ts`.
+
+**Impact**: ~~Deployment failures, potential cross-tenant data leaks, wasted database resources.~~ RESOLVED - no deployment failures expected.
+
+**Root Cause**: Dual-source index architecture without clear delineation of responsibilities. **FIXED** by establishing `lib/db/collections.ts` as single source of truth.
+
+---
+
+## 🟥 CRITICAL - Blockers (Deployment Failures)
+
+### ISSUE-001: IndexOptionsConflict in WorkOrder Model
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Correctness, Deployment  
+**Status**: ✅ RESOLVED (2025-12-04)
+
+**Resolution**: Removed 6 duplicate schema indexes from `server/models/WorkOrder.ts`.
+All indexes now managed centrally in `lib/db/collections.ts`. Added `autoIndex: false` to schema options. See commit `abee80560`.
+
+**Description**:  
+`server/models/WorkOrder.ts` defines 15+ indexes via Mongoose schema (lines 496-623) that are ALSO defined manually in `lib/db/collections.ts` (lines 138-167). When `ensureCoreIndexes()` runs during deployment, it calls BOTH `createIndexes()` from collections.ts AND `WorkOrder.createIndexes()` via Mongoose, causing IndexOptionsConflict errors because the same index is defined twice with potentially different options (e.g., index names, background flags).
+
+**Files**:
+- `server/models/WorkOrder.ts`: Lines 496-623 (schema indexes)
+- `lib/db/collections.ts`: Lines 138-167 (manual indexes)
+- `lib/db/index.ts`: Line 62 (orchestrator - removed WorkOrder from model list but indexes still in schema)
+
+**Evidence**:
+```typescript
+// In WorkOrder.ts (lines 496-502)
+WorkOrderSchema.index(
+  { orgId: 1, workOrderNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+WorkOrderSchema.index({ orgId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, priority: 1 });
+// ... 12+ more indexes
+
+// In collections.ts (lines 138-150)
+await db.collection(COLLECTIONS.WORK_ORDERS).createIndex(
+  { orgId: 1, workOrderNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } }, name: "workorders_orgId_workOrderNumber_unique" }
+);
+await db.collection(COLLECTIONS.WORK_ORDERS).createIndex(
+  { orgId: 1, status: 1 },
+  { background: true, name: "workorders_orgId_status" }
+);
+// ... matching indexes
+```
+
+**Root Cause**:  
+WorkOrder was removed from the `model.createIndexes()` list in `lib/db/index.ts` (line 62 commented as "already covered by createIndexes()"), BUT the schema still defines indexes. Mongoose automatically creates indexes on model initialization, so these schema indexes are ALWAYS created, conflicting with the manual definitions.
+
+**Impact**:
+- Deployment script fails with IndexOptionsConflict
+- Potential for inconsistent index state across environments
+- Wasted database resources (duplicate index attempts)
+
+**Recommended Fix**:  
+Remove ALL index definitions from `server/models/WorkOrder.ts` (lines 496-623). Keep only the manual definitions in `lib/db/collections.ts` with explicit names. Set `autoIndex: false` in schema options to prevent Mongoose from auto-creating indexes.
+
+---
+
+### ISSUE-002: IndexOptionsConflict in Product Model
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Correctness, Deployment  
+**Status**: ✅ RESOLVED (2025-12-04)
+
+**Resolution**: Removed 5 duplicate schema indexes from `server/models/marketplace/Product.ts`.
+All indexes now managed centrally in `lib/db/collections.ts`. See commit `abee80560`.
+
+**Description**:  
+`server/models/marketplace/Product.ts` defines 5 indexes via Mongoose schema (lines 129-166) that are ALSO defined manually in `lib/db/collections.ts` (lines 187-218). Same conflict as ISSUE-001.
+
+**Files**:
+- `server/models/marketplace/Product.ts`: Lines 129-166 (schema indexes)
+- `lib/db/collections.ts`: Lines 187-218 (manual indexes)
+- `lib/db/index.ts`: Line 62 (Product removed from model list)
+
+**Evidence**:
+```typescript
+// In Product.ts (lines 129-148)
+ProductSchema.index(
+  { orgId: 1, sku: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } }, name: "products_orgId_sku_unique" }
+);
+ProductSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } }, name: "products_orgId_slug_unique" }
+);
+// ... 3 more indexes + text search index
+
+// In collections.ts (lines 187-218)
+await db.collection(COLLECTIONS.PRODUCTS).createIndex(
+  { orgId: 1, sku: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } }, name: "products_orgId_sku_unique" }
+);
+// ... exact duplicates
+```
+
+**Root Cause**:  
+Same as ISSUE-001. Product removed from model.createIndexes() list but schema still defines indexes.
+
+**Impact**: Same as ISSUE-001
+
+**Recommended Fix**:  
+Remove ALL index definitions from `server/models/marketplace/Product.ts` (lines 129-166). Keep manual definitions in collections.ts. Set `autoIndex: false` in schema options.
+
+**Special Note**:  
+The Product text search index (lines 155-166 in Product.ts, lines 209-218 in collections.ts) has a comment "⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)". Ensure this critical security feature is preserved in the manual definition.
+
+---
+
+### ISSUE-003: IndexOptionsConflict in Property Model
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Correctness, Deployment, Security  
+**Status**: OPEN
+
+**Description**:  
+`server/models/Property.ts` defines 5 indexes via Mongoose schema (lines 246-260) that are ALSO defined manually in `lib/db/collections.ts` (lines 221-242). Same conflict pattern as ISSUE-001 and ISSUE-002.
+
+**Files**:
+- `server/models/Property.ts`: Lines 246-260 (schema indexes)
+- `lib/db/collections.ts`: Lines 221-242 (manual indexes)
+- `lib/db/index.ts`: Line 62 (Property removed from model list)
+
+**Evidence**:
+```typescript
+// In Property.ts (lines 246-260)
+PropertySchema.index({ orgId: 1, type: 1 });
+PropertySchema.index({ orgId: 1, "address.city": 1 });
+PropertySchema.index({ orgId: 1, "units.status": 1 });
+PropertySchema.index({ "address.coordinates": "2dsphere" }); // Geospatial
+PropertySchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } }
+);
+
+// In collections.ts (lines 221-242)
+await db.collection(COLLECTIONS.PROPERTIES).createIndex(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } }, name: "properties_orgId_code_unique" }
+);
+// ... exact duplicates with explicit names
+```
+
+**Root Cause**: Same as ISSUE-001
+
+**Impact**: Same as ISSUE-001, PLUS risk of geo-query failures if 2dsphere index is not consistently created
+
+**Recommended Fix**:  
+Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). Keep manual definitions in collections.ts including the 2dsphere geospatial index. Set `autoIndex: false`.
+
+---
+
+## 🟧 MAJOR - Architectural Issues
+
+### ISSUE-004: User Model Indexes Without Explicit Names
+
+**Severity**: 🟧 MAJOR  
+**Category**: Architecture, Maintainability  
+**Status**: OPEN
+
+**Description**:  
+`server/models/User.ts` defines 11 indexes via Mongoose schema (lines 238-257), but these indexes are NOT defined in `lib/db/collections.ts`. While this avoids IndexOptionsConflict, it creates inconsistency:
+
+1. Schema indexes (User.ts) don't have explicit names - Mongoose auto-generates them
+2. Manual indexes (collections.ts) have explicit names for tracking and management
+3. User model is NOT in either location (collections.ts OR ensureCoreIndexes model list)
+
+This makes it unclear which indexes exist and how to manage them.
+
+**Files**:
+- `server/models/User.ts`: Lines 238-257 (11 schema indexes without explicit names)
+- `lib/db/collections.ts`: No User indexes (unlike other major models)
+- `lib/db/index.ts`: Line 62 (User removed from model list)
+
+**Evidence**:
+```typescript
+// In User.ts - indexes defined but no explicit names
+UserSchema.index(
+  { orgId: 1, email: 1 },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER }
+  // ❌ No explicit name - Mongoose will auto-generate
+);
+UserSchema.index({ orgId: 1, "professional.role": 1 }); // ❌ No name
+UserSchema.index({ orgId: 1, "professional.subRole": 1 }); // ❌ No name
+// ... 8 more without names
+```
+
+**Root Cause**:  
+Inconsistent architecture - User model indexes defined only in schema, without the explicit naming convention used for other models in collections.ts.
+
+**Impact**:
+- Index names are unpredictable (Mongoose auto-generated)
+- Harder to track and drop indexes during maintenance
+- Inconsistent with project's explicit-naming convention
+- Potential for duplicate indexes if someone adds User to collections.ts later
+
+**Recommended Fix - Option A (Preferred)**:  
+Add explicit `name` property to all User schema indexes to match the naming convention (e.g., `users_orgId_email_unique`, `users_orgId_role`). This maintains the schema-based approach while adding explicit names.
+
+**Recommended Fix - Option B**:  
+Move all User indexes to `lib/db/collections.ts` (like WorkOrder, Product, Property) and remove from schema. This achieves full consistency but requires more refactoring.
+
+**Decision Rationale**:  
+Option A is preferred because User indexes are complex (11 indexes) and closely tied to the schema definition. Adding explicit names is less disruptive than moving to collections.ts.
+
+---
+
+### ISSUE-005: Dual-Source Index Architecture Lacks Documentation
+
+**Severity**: 🟧 MAJOR  
+**Category**: Architecture, Documentation  
+**Status**: OPEN
+
+**Description**:  
+The codebase uses TWO approaches for index management:
+
+1. **Manual Native Driver** (`lib/db/collections.ts`): WorkOrder, Product, Property, Invoice, Order, SupportTicket, etc.
+2. **Mongoose Schema** (`model.createIndexes()`): Vendor, Tenant, Organization, WorkOrderComment, WorkOrderAttachment, WorkOrderTimeline, QaLog, QaAlert
+
+There is NO clear documentation explaining:
+- When to use which approach
+- Why some models are in collections.ts and others use model.createIndexes()
+- How to prevent future IndexOptionsConflict issues
+- What the responsibilities of each approach are
+
+**Files**:
+- `lib/db/index.ts`: Lines 1-95 (orchestrator with minimal comments)
+- `lib/db/collections.ts`: Lines 1-580 (no architecture explanation)
+- No ADR (Architecture Decision Record) for this pattern
+
+**Root Cause**:  
+Organic evolution of codebase without architectural documentation. Likely started with Mongoose schema indexes, then added manual indexes for control, but didn't fully migrate or document the dual approach.
+
+**Impact**:
+- Future developers will repeat the same mistakes (IndexOptionsConflict)
+- Onboarding time increased
+- Risk of re-introducing bugs during maintenance
+- Inconsistent patterns across the codebase
+
+**Recommended Fix**:
+1. Add comprehensive JSDoc comments to `ensureCoreIndexes()` explaining the dual-source architecture
+2. Create an ADR document (`docs/adr/002-index-management-dual-source.md`) explaining:
+   - Why we use manual indexes (collections.ts) for major models
+   - Why we use model.createIndexes() for smaller/auxiliary models
+   - Rules for when to add indexes to which source
+   - How autoIndex: false prevents conflicts
+3. Add inline comments in collections.ts listing which models are covered
+4. Update CONTRIBUTING.md with index management guidelines
+
+---
+
+### ISSUE-006: Missing `autoIndex: false` in Schema Options
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Performance  
+**Status**: OPEN
+
+**Description**:  
+Models with indexes defined in `lib/db/collections.ts` should have `autoIndex: false` in their schema options to prevent Mongoose from automatically creating indexes on model compilation. This is the ROOT CAUSE enabler for ISSUE-001, ISSUE-002, ISSUE-003.
+
+Currently, WorkOrder, Product, and Property schemas don't explicitly set `autoIndex: false`, meaning Mongoose WILL attempt to create indexes defined in the schema, even if we don't call `model.createIndexes()` explicitly.
+
+**Files**:
+- `server/models/WorkOrder.ts`: Schema options (around line 30-35)
+- `server/models/marketplace/Product.ts`: Schema options (around line 58)
+- `server/models/Property.ts`: Schema options (around line 18-25)
+
+**Evidence**:
+```typescript
+// Current - no autoIndex setting
+const WorkOrderSchema = new Schema(
+  {
+    // ... fields
+  },
+  {
+    timestamps: true,
+    // ❌ Missing: autoIndex: false
+  }
+);
+```
+
+**Root Cause**:  
+Mongoose's default behavior is `autoIndex: true` in development, `false` in production (based on NODE_ENV). This creates environment-specific behavior and doesn't fully prevent index conflicts if schema indexes are defined.
+
+**Impact**:
+- Indexes may be created twice in development
+- Inconsistent behavior across environments
+- Root cause for IndexOptionsConflict errors
+
+**Recommended Fix**:  
+Add `autoIndex: false` to schema options for WorkOrder, Product, Property, and any other model with manual index definitions in collections.ts:
+
+```typescript
+const WorkOrderSchema = new Schema(
+  {
+    // ... fields
+  },
+  {
+    timestamps: true,
+    autoIndex: false, // ✅ Manual indexes managed in lib/db/collections.ts
+  }
+);
+```
+
+**Note**: After adding `autoIndex: false`, schema index definitions become NO-OP in terms of actual index creation, but they still serve as documentation. For full clarity, schema indexes should be removed entirely (per ISSUE-001/002/003 fixes).
+
+---
+
+## 🟨 MODERATE - Optimization Opportunities
+
+### ISSUE-007: Redundant Index Definitions in Schema (Documentation Smell)
+
+**Severity**: 🟨 MODERATE  
+**Category**: Code Quality, Maintainability  
+**Status**: OPEN
+
+**Description**:  
+After fixing ISSUE-001/002/003 by setting `autoIndex: false`, the schema index definitions (e.g., `WorkOrderSchema.index(...)`) become NO-OP - they don't create indexes. Some may argue they serve as "documentation", but this creates confusion:
+
+1. Developers may not understand that these indexes are NOT created by the schema
+2. Changes to schema indexes won't take effect (because manual indexes control)
+3. Divergence risk: schema index definition changes but manual index doesn't
+
+**Files**: Same as ISSUE-001/002/003
+
+**Root Cause**: Preference for keeping schema indexes as "documentation" rather than single source of truth
+
+**Impact**:
+- Potential for misleading documentation
+- Risk of divergence between schema and actual indexes
+- Confusion for new developers
+
+**Recommended Fix**:  
+Remove all schema index definitions from WorkOrder, Product, Property models after setting `autoIndex: false`. Let `lib/db/collections.ts` be the SINGLE source of truth. Add comments in the schema:
+
+```typescript
+// Indexes are managed manually in lib/db/collections.ts
+// See: createIndexes() for workorders_orgId_workOrderNumber_unique, etc.
+const WorkOrderSchema = new Schema(
+  { /* ... fields ... */ },
+  {
+    timestamps: true,
+    autoIndex: false, // Manual indexes only
+  }
+);
+```
+
+---
+
+### ISSUE-008: No Index Coverage Verification Test
+
+**Severity**: 🟨 MODERATE  
+**Category**: Testing, Reliability  
+**Status**: OPEN
+
+**Description**:  
+There is no automated test that verifies:
+1. All required indexes are created successfully
+2. No IndexOptionsConflict errors occur
+3. Index names match expected conventions
+4. Org-scoped indexes have proper partialFilterExpression
+
+The `scripts/ensure-indexes.ts --verify` flag provides manual verification, but this is not run in CI/CD.
+
+**Files**:
+- `scripts/ensure-indexes.ts`: Verification logic exists but not tested
+- No test file for index coverage
+
+**Root Cause**:  
+Index management is typically deployment-time concern, not test-time. However, for a multi-tenant system with STRICT v4.1 requirements, index correctness is critical to security.
+
+**Impact**:
+- Index conflicts may only be discovered in production/staging
+- Regression risk when adding new models or indexes
+- No enforcement of org-scoping requirements
+
+**Recommended Fix**:  
+Create `tests/integration/index-management.test.ts`:
+1. Connect to test database
+2. Run `ensureCoreIndexes()`
+3. Verify expected indexes exist with correct names
+4. Verify NO global unique indexes (all must be org-scoped)
+5. Verify TTL indexes for QA collections
+6. Fail if any IndexOptionsConflict error occurs
+
+Add to CI pipeline: `pnpm test:integration:indexes`
+
+---
+
+## 🟩 MINOR - Nice-to-Have Improvements
+
+### ISSUE-009: Vendor and Tenant Index Approach Not Verified
+
+**Severity**: 🟩 MINOR  
+**Category**: Documentation, Verification  
+**Status**: OPEN
+
+**Description**:  
+Vendor and Tenant models use `model.createIndexes()` approach (called from `lib/db/index.ts` line 62) and are NOT in `collections.ts`. This appears correct (no duplication), but it's not explicitly documented WHY these models use a different approach than WorkOrder/Product/Property.
+
+**Files**:
+- `server/models/Vendor.ts`: Lines 249-260 (5 schema indexes with explicit names ✅)
+- `server/models/Tenant.ts`: Lines 213-223 (4 schema indexes with explicit names ✅)
+- `lib/db/index.ts`: Line 62 (Vendor.createIndexes() called)
+
+**Evidence**:
+```typescript
+// Vendor.ts - indexes WITH explicit names ✅
+VendorSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } }
+  // ❌ But still no explicit name property
+);
+```
+
+**Root Cause**:  
+Inconsistent migration: Some models moved to collections.ts, others stayed in schema, but naming convention not consistently applied.
+
+**Impact**:  
+Minor - Vendor/Tenant indexes work correctly, but approach differs from User (no explicit names) and WorkOrder/Product/Property (manual in collections.ts).
+
+**Recommended Fix**:  
+Document in `lib/db/index.ts` that Vendor/Tenant use model.createIndexes() because:
+- They have fewer indexes (5 and 4 respectively)
+- They were added after collections.ts pattern was established for major models
+- Explicit names should still be added to schema indexes for consistency
+
+OR: Migrate Vendor/Tenant to collections.ts for full consistency with WorkOrder/Product/Property.
+
+---
+
+## Summary Statistics
+
+| Severity | Count | Status |
+|----------|-------|--------|
+| 🟥 CRITICAL | 3 | OPEN |
+| 🟧 MAJOR | 3 | OPEN |
+| 🟨 MODERATE | 2 | OPEN |
+| 🟩 MINOR | 1 | OPEN |
+| **TOTAL** | **9** | **9 OPEN** |
+
+---
+
+## Priority Fix Order
+
+Based on severity and dependencies:
+
+1. **ISSUE-006** (autoIndex: false) - Enabler for other fixes
+2. **ISSUE-001** (WorkOrder conflicts) - Blocker
+3. **ISSUE-002** (Product conflicts) - Blocker
+4. **ISSUE-003** (Property conflicts) - Blocker
+5. **ISSUE-004** (User index names) - Major architectural
+6. **ISSUE-005** (Documentation) - Major architectural
+7. **ISSUE-007** (Remove redundant schema indexes) - Moderate cleanup
+8. **ISSUE-008** (Test coverage) - Moderate reliability
+9. **ISSUE-009** (Vendor/Tenant verification) - Minor documentation
+
+---
+
+## Next Steps
+
+1. ✅ Complete discovery and issue registration (THIS DOCUMENT)
+2. ⏳ External benchmarking research (Mongoose best practices)
+3. ⏳ Create detailed action plan with fix scripts
+4. ⏳ Execute fixes in priority order
+5. ⏳ Run verification: typecheck, lint, test, ensure-indexes
+6. ⏳ Create feature branch and PR
+7. ⏳ Document in daily progress report
+
+---
+
+**Document Owner**: Engineering Team  
+**Review Cycle**: After each fix, update status and verify resolution

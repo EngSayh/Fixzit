@@ -7,6 +7,7 @@ import { splCarrier } from "@/lib/carriers/spl";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import type { IOrder } from "@/server/models/souq/Order";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
 type OrderItem = IOrder["items"][number];
 type FbfShipmentItem = OrderItem & { warehouseId?: string };
@@ -108,6 +109,7 @@ export interface IRate {
 
 export interface IFulfillmentRequest {
   orderId: string;
+  orgId: string;
   orderItems: Array<{
     orderItemId: string;
     listingId: string;
@@ -117,7 +119,6 @@ export interface IFulfillmentRequest {
   shippingAddress: IAddress;
   buyerPhone: string;
   buyerEmail: string;
-  orgId?: string;
 }
 
 export interface ISLAMetrics {
@@ -145,28 +146,44 @@ class FulfillmentService {
    */
   async fulfillOrder(request: IFulfillmentRequest): Promise<void> {
     try {
-      const order = await SouqOrder.findOne(
-        request.orgId
-          ? { orderId: request.orderId, orgId: request.orgId }
-          : { orderId: request.orderId },
-      );
+      if (!request.orgId) {
+        throw new Error("orgId is required to fulfill order (tenant scoping)");
+      }
+
+      const orgFilter = buildSouqOrgFilter(request.orgId) as Record<string, unknown>;
+      const scopedQuery = {
+        orderId: request.orderId,
+        ...orgFilter,
+      };
+      const order = await SouqOrder.findOne(scopedQuery);
 
       if (!order) {
-        throw new Error(`Order not found: ${request.orderId}`);
+        throw new Error(`Order not found for org: ${request.orderId}`);
       }
 
       // Group items by fulfillment type
       const fbfItems: FbfShipmentItem[] = [];
       const fbmItems: OrderItem[] = [];
 
+      // 🚀 PERFORMANCE: Batch fetch all inventory records instead of N+1 queries
+      const listingIds = request.orderItems.map((item) => item.listingId);
+      const inventories = await SouqInventory.find({
+        listingId: { $in: listingIds },
+        ...orgFilter,
+      }).lean();
+
+      // Create a map for O(1) lookup
+      const inventoryMap = new Map(
+        inventories.map((inv) => [inv.listingId?.toString(), inv])
+      );
+
       for (const item of request.orderItems) {
-        const inventory = await SouqInventory.findOne({
-          listingId: item.listingId,
-          ...(request.orgId ? { orgId: request.orgId } : {}),
-        });
+        const inventory = inventoryMap.get(item.listingId);
 
         if (!inventory) {
-          throw new Error(`Inventory not found for listing: ${item.listingId}`);
+          throw new Error(
+            `Inventory not found for listing/org: ${item.listingId}`,
+          );
         }
 
         const orderItem = order.items.find((orderItemDoc) => {
@@ -280,6 +297,7 @@ class FulfillmentService {
         buyerId: order.customerId,
         trackingNumber: shipment.trackingNumber,
         carrier: carrier.name,
+        orgId: order.orgId?.toString?.(),
       });
 
       logger.info("FBF shipment created", {
@@ -324,6 +342,7 @@ class FulfillmentService {
         await addJob("souq:notifications", "fbm_fulfillment_required", {
           orderId: order.orderId,
           sellerId,
+          orgId: order.orgId?.toString?.(), // 🔒 SECURITY: Include orgId for tenant routing
           items: sellerItems,
           shippingAddress,
           deadline: this.calculateHandlingDeadline(order.createdAt, "standard"),
@@ -356,20 +375,29 @@ class FulfillmentService {
     sellerId: string;
     sellerAddress: IAddress;
     carrierName: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<IShipmentResponse> {
     const { orderId, sellerId, sellerAddress, carrierName, orgId } = params;
     try {
-      const order = await SouqOrder.findOne(
-        orgId ? { orderId, orgId } : { orderId },
-      );
-
-      if (!order) {
-        throw new Error(`Order not found: ${orderId}`);
+      if (!orgId) {
+        throw new Error("orgId is required to generate FBM label");
       }
 
-      if (orgId && order.orgId?.toString?.() !== orgId) {
+      const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+      const order = await SouqOrder.findOne({ orderId, ...orgFilter });
+
+      if (!order) {
         throw new Error(`Order not found for org: ${orderId}`);
+      }
+
+      // 🔒 SECURITY: Validate that the seller has items in this order
+      const sellerItems = order.items.filter(
+        (item) => item.sellerId?.toString() === sellerId
+      );
+      if (sellerItems.length === 0) {
+        throw new Error(
+          `Seller ${sellerId} does not have items in order ${orderId}`
+        );
       }
 
       const carrier = this.carriers.get(carrierName.toLowerCase());
@@ -455,9 +483,13 @@ class FulfillmentService {
   async updateTracking(
     trackingNumber: string,
     carrierName: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<void> {
     try {
+      if (!orgId) {
+        throw new Error("orgId is required to update tracking");
+      }
+
       const carrier = this.carriers.get(carrierName.toLowerCase());
 
       if (!carrier) {
@@ -470,9 +502,10 @@ class FulfillmentService {
 
       const tracking = await carrier.getTracking(trackingNumber);
 
-      const order = await SouqOrder.findOne(
-        orgId ? { trackingNumber, orgId } : { trackingNumber },
-      );
+      const order = await SouqOrder.findOne({
+        trackingNumber,
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
+      });
 
       if (!order) {
         logger.warn("Order not found for tracking number", { trackingNumber });
@@ -512,6 +545,7 @@ class FulfillmentService {
           oldStatus,
           newStatus: order.fulfillmentStatus,
           trackingNumber,
+          orgId: order.orgId?.toString?.(),
         });
       }
 
@@ -531,16 +565,23 @@ class FulfillmentService {
 
   /**
    * Calculate SLA metrics for an order
+   * @param orderId - The order ID
+   * @param orgId - Required: Organization ID for tenant isolation
    */
-  async calculateSLA(orderId: string, orgId?: string): Promise<ISLAMetrics> {
-    // Build scoped query explicitly to avoid reference errors when orgId is undefined
-    const query: Record<string, unknown> = { orderId };
-    if (orgId) query.orgId = orgId;
+  async calculateSLA(orderId: string, orgId: string): Promise<ISLAMetrics> {
+    // 🔒 SECURITY: orgId is mandatory for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for SLA calculation");
+    }
 
-    const order = await SouqOrder.findOne(query);
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+    const order = await SouqOrder.findOne({
+      orderId,
+      ...orgFilter,
+    });
 
     if (!order) {
-      throw new Error(`Order not found: ${orderId}`);
+      throw new Error(`Order not found for org: ${orderId}`);
     }
 
     const orderDate = order.createdAt;
@@ -598,17 +639,22 @@ class FulfillmentService {
 
   /**
    * Assign Fast Badge to listings that meet criteria
+   * 🔒 SECURITY: orgId is REQUIRED to prevent cross-tenant mutations
    */
-  async assignFastBadge(listingId: string, orgId?: string): Promise<boolean> {
+  async assignFastBadge(listingId: string, orgId: string): Promise<boolean> {
     try {
-      const query: Record<string, unknown> = { listingId };
-      if (orgId) query.orgId = orgId;
-
-      let listing = await SouqListing.findOne(query);
-
-      if (!listing && orgId) {
-        listing = await SouqListing.findOne({ listingId });
+      // 🔒 SECURITY FIX: Always require orgId - no unscoped fallback
+      if (!orgId) {
+        logger.warn("assignFastBadge called without orgId - rejecting", { listingId });
+        return false;
       }
+
+      const query: Record<string, unknown> = {
+        listingId,
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
+      };
+
+      const listing = await SouqListing.findOne(query);
 
       if (!listing) {
         return false;
@@ -616,7 +662,7 @@ class FulfillmentService {
 
       const inventory = await SouqInventory.findOne({
         listingId,
-        ...(orgId ? { orgId } : {}),
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
       });
 
       if (!inventory) {

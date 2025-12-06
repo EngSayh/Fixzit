@@ -247,7 +247,10 @@ VendorSchema.plugin(encryptionPlugin, {
 
 // INDEXES (AFTER PLUGINS)
 // CRITICAL FIX: Tenant-scoped unique index for 'code'
-VendorSchema.index({ orgId: 1, code: 1 }, { unique: true });
+VendorSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // FIXED: Tenant-scoped indexes
 VendorSchema.index({ orgId: 1, status: 1 });

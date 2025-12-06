@@ -4,6 +4,7 @@ import { encode as encodeJwt } from 'next-auth/jwt';
 import { randomBytes } from 'crypto';
 import type { ObjectId } from 'mongodb';
 import fetch from 'node-fetch';
+import { isTruthy } from '@/lib/utils/env';
 
 /**
  * Playwright global auth setup
@@ -27,7 +28,7 @@ async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
-  let offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+  let offlineMode = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
   const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
   const nextAuthSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'playwright-secret';
 

@@ -24,9 +24,14 @@ async function createTestData() {
         name: "Admin User",
         role: "super_admin",
         status: "active",
+        orgId: undefined, // set below once _id exists
       },
       { upsert: true, new: true },
     );
+    if (!admin.orgId) {
+      admin.orgId = admin._id;
+      await admin.save();
+    }
     console.log("✅ Admin user created:", admin.email);
 
     // Create test property
@@ -38,7 +43,7 @@ async function createTestData() {
         type: "commercial",
         size: 5000,
         units: 20,
-        tenantId: admin._id,
+        orgId: admin._id,
         status: "active",
       },
       { upsert: true, new: true },
@@ -53,7 +58,7 @@ async function createTestData() {
         title: "Fix AC Unit",
         description: "AC not cooling properly",
         property: property._id,
-        tenantId: admin._id,
+        orgId: admin._id,
         status: "open",
         priority: "high",
         category: "maintenance",

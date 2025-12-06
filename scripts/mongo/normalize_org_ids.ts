@@ -16,6 +16,7 @@
 
 import { logger } from "@/lib/logger";
 import { connectToDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import mongoose from "mongoose";
 
 async function main() {
@@ -27,7 +28,7 @@ async function main() {
     throw new Error("Database connection not available");
   }
 
-  const collection = db.collection("aqar_payments");
+  const collection = db.collection(COLLECTIONS.AQAR_PAYMENTS);
   const query = {
     $and: [
       { $or: [{ orgId: { $exists: false } }, { orgId: null }] },

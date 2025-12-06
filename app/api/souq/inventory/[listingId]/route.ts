@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * GET /api/souq/inventory/[listingId]
@@ -19,10 +26,17 @@ export async function GET(
     }
 
     const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
 
     const inventory = await inventoryService.getInventory(
       params.listingId,
-      orgId,
+      orgIdStr,
     );
 
     if (!inventory) {
@@ -37,12 +51,26 @@ export async function GET(
     // Authorization: Can only view own inventory unless admin
     const sellerMatches =
       inventory.sellerId?.toString() === session.user.id ||
-      (orgId && inventory.orgId && inventory.orgId === orgId);
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
-      session.user.role,
-    );
+      (orgIdStr && inventory.orgId && inventory.orgId.toString() === orgIdStr);
 
-    if (!sellerMatches && !isAdmin) {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    if (!sellerMatches && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -51,7 +79,7 @@ export async function GET(
       inventory,
     });
   } catch (error) {
-    logger.error("GET /api/souq/inventory/[listingId] error", { error });
+    logger.error("GET /api/souq/inventory/[listingId] error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

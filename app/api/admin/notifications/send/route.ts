@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, type Document, type Filter } from "mongodb";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { sendEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
@@ -203,7 +204,7 @@ export async function POST(req: NextRequest) {
 
       // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const users = await db
-        .collection("users")
+        .collection(COLLECTIONS.USERS)
         .find({
           orgId,
           ...(query ?? {}),
@@ -226,7 +227,7 @@ export async function POST(req: NextRequest) {
 
       // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const tenants = await db
-        .collection("tenants")
+        .collection(COLLECTIONS.TENANTS)
         .find({
           orgId,
           ...(query ?? {}),
@@ -248,7 +249,7 @@ export async function POST(req: NextRequest) {
       }
 
       const corps = await db
-        .collection("organizations")
+        .collection(COLLECTIONS.ORGANIZATIONS)
         .find(
           query ?? (!isSuperAdmin && orgFilter.orgId ? { _id: orgFilter.orgId } : {}),
         )
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
     } else if (recipients.type === "all") {
       // Fetch all users; non-super-admins are scoped to their org
       const users = await db
-        .collection("users")
+        .collection(COLLECTIONS.USERS)
         .find(!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {})
         .toArray();
       targetContacts = users.map((u) => ({
@@ -309,6 +310,7 @@ export async function POST(req: NextRequest) {
             });
           }
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "email",
             type: "broadcast",
@@ -334,6 +336,7 @@ export async function POST(req: NextRequest) {
           });
           results.email.failed++;
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "email",
             type: "broadcast",
@@ -369,6 +372,7 @@ export async function POST(req: NextRequest) {
             });
           }
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "sms",
             type: "broadcast",
@@ -393,6 +397,7 @@ export async function POST(req: NextRequest) {
           });
           results.sms.failed++;
           enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
             userId: contact.id,
             channel: "sms",
             type: "broadcast",
@@ -426,6 +431,7 @@ export async function POST(req: NextRequest) {
             });
             results.whatsapp.failed++;
             enqueueLog({
+              orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
               userId: contact.id,
               channel: "whatsapp",
               type: "broadcast",
@@ -452,6 +458,7 @@ export async function POST(req: NextRequest) {
             if (result.success) {
               results.whatsapp.sent++;
               enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
                 userId: contact.id,
                 channel: "whatsapp",
                 type: "broadcast",
@@ -471,6 +478,7 @@ export async function POST(req: NextRequest) {
             } else {
               results.whatsapp.failed++;
               enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
                 userId: contact.id,
                 channel: "whatsapp",
                 type: "broadcast",
@@ -500,7 +508,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log notification in database
-    await db.collection("admin_notifications").insertOne({
+    await db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS).insertOne({
       _id: broadcastId,
       orgId,
       senderId: session.user.id,
@@ -537,7 +545,7 @@ export async function POST(req: NextRequest) {
       results,
     });
   } catch (error) {
-    logger.error("[Admin Notification] Send failed", { error });
+    logger.error("[Admin Notification] Send failed", error as Error);
     await flushLogs();
     return NextResponse.json(
       {

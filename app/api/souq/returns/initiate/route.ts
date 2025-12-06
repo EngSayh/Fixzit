@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import { initiateSchema, parseJsonBody, formatZodError } from "../validation";
 
 /**
  * POST /api/souq/returns/initiate
@@ -15,36 +16,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { orderId, items, buyerPhotos } = body;
-
-    // Validation
-    if (!orderId || !items || !Array.isArray(items) || items.length === 0) {
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
       return NextResponse.json(
-        {
-          error:
-            "Missing required fields: orderId, items (must be non-empty array)",
-        },
-        { status: 400 },
+        { error: "Organization context required" },
+        { status: 403 },
       );
     }
 
-    // Validate item structure
-    for (const item of items) {
-      if (!item.listingId || !item.quantity || !item.reason) {
-        return NextResponse.json(
-          {
-            error: "Each item must have: listingId, quantity, reason",
-          },
-          { status: 400 },
-        );
-      }
+    const parsed = await parseJsonBody(request, initiateSchema);
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
     }
+    const { orderId, items, buyerPhotos } = parsed.data;
 
     // Initiate return
     const rmaId = await returnsService.initiateReturn({
       orderId,
       buyerId: session.user.id,
+      orgId,
       items,
       buyerPhotos,
     });
@@ -55,7 +45,7 @@ export async function POST(request: NextRequest) {
       message: "Return request submitted successfully",
     });
   } catch (error) {
-    logger.error("Initiate return error", { error });
+    logger.error("Initiate return error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to initiate return",

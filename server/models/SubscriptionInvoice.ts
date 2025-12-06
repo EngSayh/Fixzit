@@ -64,25 +64,15 @@ const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>(
   },
   {
     timestamps: true,
+    collection: "subscriptioninvoices",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
 // APPLY PLUGINS (BEFORE INDEXES)
 subscriptionInvoiceSchema.plugin(tenantIsolationPlugin);
 subscriptionInvoiceSchema.plugin(auditPlugin);
-
-// ✅ FIXED: Add tenant-scoped compound indexes matching actual query patterns
-// For finding overdue invoices by tenant and status
-subscriptionInvoiceSchema.index({ orgId: 1, status: 1, dueDate: 1 });
-
-// For finding all invoices for a specific subscription (most common read path)
-subscriptionInvoiceSchema.index({ orgId: 1, subscriptionId: 1, dueDate: -1 });
-
-// For charge-recurring queries that filter by subscription + status
-subscriptionInvoiceSchema.index({ orgId: 1, subscriptionId: 1, status: 1 });
-
-// For PayTabs callback lookups
-subscriptionInvoiceSchema.index({ paytabsRef: 1 }, { sparse: true });
 
 export const SubscriptionInvoice =
   (typeof mongoose.models !== "undefined" &&

@@ -1,6 +1,7 @@
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
 import { logger } from "@/lib/logger";
+import { ObjectId as MongoObjectId } from "mongodb";
 
 export interface InvestigationResult {
   claimId: string;
@@ -35,17 +36,20 @@ export class InvestigationService {
   /**
    * Investigate claim and recommend decision
    */
-  static async investigateClaim(claimId: string): Promise<InvestigationResult> {
-    const claim = await ClaimService.getClaim(claimId);
+  static async investigateClaim(claimId: string, orgId: string): Promise<InvestigationResult> {
+    if (!orgId) {
+      throw new Error("orgId is required for investigation (tenant isolation)");
+    }
+    const claim = await ClaimService.getClaim(claimId, orgId);
     if (!claim) throw new Error("Claim not found");
 
     // Collect investigation data
     const [fraudIndicators, trackingInfo, sellerHistory, buyerHistory] =
       await Promise.all([
-        this.detectFraudIndicators(claim),
-        this.getTrackingInfo(claim.orderId, (claim as unknown as { orgId?: string })?.orgId),
-        this.getSellerHistory(claim.sellerId),
-        this.getBuyerHistory(claim.buyerId),
+        this.detectFraudIndicators(claim, orgId),
+        this.getTrackingInfo({ orderId: claim.orderId, orgId }),
+        this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
+        this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
       ]);
 
     // Calculate fraud score
@@ -73,11 +77,13 @@ export class InvestigationService {
    */
   private static async detectFraudIndicators(
     claim: Claim,
+    orgId: string,
   ): Promise<FraudIndicators> {
     // Check for multiple claims from same buyer in short period
     const claimsCollection = await this.claimsCollection();
     const recentClaims = await claimsCollection.countDocuments({
       buyerId: claim.buyerId,
+      orgId,
       filedAt: {
         $gte: new Date(
           Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
@@ -91,9 +97,7 @@ export class InvestigationService {
       .collection("souq_orders")
       .findOne({
         orderId: claim.orderId,
-        ...((claim as unknown as { orgId?: string })?.orgId
-          ? { orgId: (claim as unknown as { orgId?: string }).orgId }
-          : {}),
+        orgId,
       });
     const trackingShowsDelivered =
       order?.deliveryStatus === "delivered" && order?.deliveredAt !== undefined;
@@ -106,12 +110,18 @@ export class InvestigationService {
     const lateReporting = daysSinceDelivery > this.LATE_REPORTING_DAYS;
 
     // Check seller history
-    const sellerStats = await this.getSellerHistory(claim.sellerId);
+    const sellerStats = await this.getSellerHistory({
+      sellerId: claim.sellerId,
+      orgId,
+    });
     const sellerHistoryGood =
       sellerStats.claimRate < 0.05 && sellerStats.rating >= 4.0; // <5% claim rate, 4+ stars
 
     // Check buyer history
-    const buyerStats = await this.getBuyerHistory(claim.buyerId);
+    const buyerStats = await this.getBuyerHistory({
+      buyerId: claim.buyerId,
+      orgId,
+    });
     const buyerHistoryPoor =
       buyerStats.claimCount > 10 && buyerStats.claimRate > 0.15; // >10 claims, >15% rate
 
@@ -190,10 +200,11 @@ export class InvestigationService {
   /**
    * Get tracking information
    */
-  private static async getTrackingInfo(
-    orderId: string,
-    orgId?: string,
-  ): Promise<{ status: string; deliveredAt?: Date }> {
+  private static async getTrackingInfo(params: {
+    orderId: string;
+    orgId?: string;
+  }): Promise<{ status: string; deliveredAt?: Date }> {
+    const { orderId, orgId } = params;
     const db = await getDatabase();
     const order = await db
       .collection("souq_orders")
@@ -210,18 +221,22 @@ export class InvestigationService {
   /**
    * Get seller history
    */
-  private static async getSellerHistory(sellerId: string): Promise<{
+  private static async getSellerHistory(params: {
+    sellerId: string;
+    orgId?: string;
+  }): Promise<{
     claimRate: number;
     rating: number;
     totalOrders: number;
     totalClaims: number;
   }> {
+    const { sellerId, orgId } = params;
     const db = await getDatabase();
 
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments({ sellerId }),
-      db.collection("claims").countDocuments({ sellerId }),
-      db.collection("souq_sellers").findOne({ sellerId }),
+      db.collection("souq_orders").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
+      db.collection("claims").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
+      db.collection("souq_sellers").findOne(orgId ? { sellerId, orgId } : { sellerId }),
     ]);
 
     return {
@@ -235,14 +250,16 @@ export class InvestigationService {
   /**
    * Get buyer history
    */
-  private static async getBuyerHistory(
-    buyerId: string,
-  ): Promise<{ claimCount: number; claimRate: number; totalOrders: number }> {
+  private static async getBuyerHistory(params: {
+    buyerId: string;
+    orgId?: string;
+  }): Promise<{ claimCount: number; claimRate: number; totalOrders: number }> {
+    const { buyerId, orgId } = params;
     const db = await getDatabase();
 
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments({ buyerId }),
-      db.collection("claims").countDocuments({ buyerId }),
+      db.collection("souq_orders").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
+      db.collection("claims").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
     ]);
 
     return {
@@ -451,7 +468,9 @@ export class InvestigationService {
 
     for (const claim of eligibleClaims) {
       try {
-        const investigation = await this.investigateClaim(claim.claimId);
+        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        if (!orgId) continue;
+        const investigation = await this.investigateClaim(claim.claimId, orgId);
 
         // Only auto-resolve if high confidence and no manual review required
         if (
@@ -471,6 +490,7 @@ export class InvestigationService {
                 : investigation.recommendedOutcome === "refund_partial"
                   ? claim.orderAmount * 0.5
                   : undefined,
+            orgId,
           });
 
           resolvedCount++;
@@ -502,14 +522,18 @@ export class InvestigationService {
 
     const claimsWithInvestigation = await Promise.all(
       claims.map(async (claim) => {
-        const investigation = await this.investigateClaim(claim.claimId);
+        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        if (!orgId) return null;
+        const investigation = await this.investigateClaim(claim.claimId, orgId);
         return { ...claim, investigation };
       }),
     );
 
-    return claimsWithInvestigation.filter(
-      (c) => c.investigation.requiresManualReview,
-    );
+    const hydrated = claimsWithInvestigation.filter(Boolean) as Array<
+      Claim & { investigation: InvestigationResult }
+    >;
+
+    return hydrated.filter((c) => c.investigation.requiresManualReview);
   }
 
   /**

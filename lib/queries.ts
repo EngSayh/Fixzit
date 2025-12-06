@@ -2,13 +2,23 @@
 // All queries MUST include orgId for multi-tenant isolation
 // Use these in Server Components, Server Actions, or API Routes only
 // AUDIT-2025-11-29: Standardized from org_id to orgId
+// AUDIT-2025-12-04: Fixed collection names to use COLLECTIONS constant
 
+import { ObjectId } from "mongodb";
 import { getDatabase } from "./mongodb-unified";
-import { logger } from "./logger";
+import { COLLECTIONS, createIndexes } from "./db/collections";
 
 // Alias for consistency
 const getDb = getDatabase;
 type MongoDb = Awaited<ReturnType<typeof getDb>>;
+
+// Standard soft-delete guard to exclude deleted documents
+const softDeleteGuard = { isDeleted: { $ne: true }, deletedAt: { $exists: false } };
+
+const normalizeId = (id: string | ObjectId): ObjectId | string =>
+  id instanceof ObjectId ? id : ObjectId.isValid(id) ? new ObjectId(id) : id;
+
+const normalizeOrgId = (orgId: string): ObjectId | string => normalizeId(orgId);
 
 // ==========================================
 // WORK ORDERS MODULE
@@ -19,12 +29,14 @@ type MongoDb = Awaited<ReturnType<typeof getDb>>;
  */
 export async function getSLAWatchlist(orgId: string, limit = 50) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
   return db
-    .collection("work_orders")
+    .collection(COLLECTIONS.WORK_ORDERS)
     .aggregate([
       {
         $match: {
-          orgId: orgId,
+          orgId: nOrgId,
+          ...softDeleteGuard,
           status: { $in: ["Open", "In Progress", "Pending Approval"] },
           sla_due: { $exists: true },
         },
@@ -62,18 +74,20 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
  */
 export async function getWorkOrderStats(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("work_orders");
+  const collection = db.collection(COLLECTIONS.WORK_ORDERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Open" }),
-    collection.countDocuments({ orgId: orgId, status: "In Progress" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: { $in: ["SUBMITTED", "ASSIGNED"] } }),
+    collection.countDocuments({ ...base, status: "IN_PROGRESS" }),
     collection.countDocuments({
-      orgId: orgId,
-      status: { $in: ["Open", "In Progress"] },
-      sla_due: { $lt: new Date() },
+      ...base,
+      status: { $in: ["ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL"] },
+      "sla.resolutionDeadline": { $lt: new Date() },
     }),
-    collection.countDocuments({ orgId: orgId, status: "Completed" }),
+    collection.countDocuments({ ...base, status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] } }),
   ]);
 
   return {
@@ -95,17 +109,19 @@ export async function getWorkOrderStats(orgId: string) {
  */
 export async function getInvoiceCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("invoices");
+  const collection = db.collection(COLLECTIONS.INVOICES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ orgId: orgId, status: "Unpaid" }),
+    collection.countDocuments({ ...base, status: { $in: ["ISSUED", "OVERDUE"] } }),
     collection.countDocuments({
-      orgId: orgId,
-      status: "Unpaid",
-      due_date: { $lt: new Date() },
+      ...base,
+      status: { $in: ["ISSUED", "OVERDUE"] },
+      dueDate: { $lt: new Date() },
     }),
-    collection.countDocuments({ orgId: orgId, status: "Paid" }),
-    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ ...base, status: "PAID" }),
+    collection.countDocuments(base),
   ]);
 
   return { unpaid, overdue, paid, total };
@@ -116,23 +132,25 @@ export async function getInvoiceCounters(orgId: string) {
  */
 export async function getRevenueStats(orgId: string, days = 30) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
   const result = await db
-    .collection("invoices")
+    .collection(COLLECTIONS.INVOICES)
     .aggregate([
       {
         $match: {
-          orgId: orgId,
-          status: "Paid",
-          paid_date: { $gte: startDate },
+          orgId: nOrgId,
+          ...softDeleteGuard,
+          status: "PAID",
+          paidAt: { $gte: startDate },
         },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: "$total_amount" },
+          total: { $sum: { $ifNull: ["$total", "$total_amount"] } },
           count: { $sum: 1 },
         },
       },
@@ -155,13 +173,15 @@ export async function getRevenueStats(orgId: string, days = 30) {
  */
 export async function getEmployeeCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("employees");
+  const collection = db.collection(COLLECTIONS.EMPLOYEES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, onLeave, probation] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, status: "On Leave" }),
-    collection.countDocuments({ orgId: orgId, status: "Probation" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "On Leave" }),
+    collection.countDocuments({ ...base, status: "Probation" }),
   ]);
 
   return { total, active, onLeave, probation };
@@ -174,13 +194,15 @@ export async function getAttendanceSummary(orgId: string) {
   const db = await getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const nOrgId = normalizeOrgId(orgId);
 
   const result = await db
-    .collection("attendance")
+    .collection(COLLECTIONS.ATTENDANCE)
     .aggregate([
       {
         $match: {
-          orgId: orgId,
+          orgId: nOrgId,
+          ...softDeleteGuard,
           date: { $gte: today },
         },
       },
@@ -222,13 +244,15 @@ export async function getAttendanceSummary(orgId: string) {
  */
 export async function getPropertyCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("properties");
+  const collection = db.collection(COLLECTIONS.PROPERTIES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, maintenance, leased] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, status: "Under Maintenance" }),
-    collection.countDocuments({ orgId: orgId, lease_status: "Leased" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "Under Maintenance" }),
+    collection.countDocuments({ ...base, lease_status: "Leased" }),
   ]);
 
   const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
@@ -245,15 +269,15 @@ export async function getPropertyCounters(orgId: string) {
  */
 export async function getCustomerCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("customers");
+  const collection = db.collection(COLLECTIONS.CUSTOMERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, active, leads, contracts] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Active" }),
-    collection.countDocuments({ orgId: orgId, type: "Lead" }),
-    db
-      .collection("contracts")
-      .countDocuments({ orgId: orgId, status: "Active" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, type: "Lead" }),
+    db.collection(COLLECTIONS.CONTRACTS).countDocuments({ ...base, status: "Active" }),
   ]);
 
   return { total, active, leads, contracts };
@@ -268,16 +292,48 @@ export async function getCustomerCounters(orgId: string) {
  */
 export async function getSupportCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("support_tickets");
+  const collection = db.collection(COLLECTIONS.SUPPORT_TICKETS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [total, open, pending, resolved] = await Promise.all([
-    collection.countDocuments({ orgId: orgId }),
-    collection.countDocuments({ orgId: orgId, status: "Open" }),
-    collection.countDocuments({ orgId: orgId, status: "Pending" }),
-    collection.countDocuments({ orgId: orgId, status: "Resolved" }),
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Open" }),
+    collection.countDocuments({ ...base, status: "Pending" }),
+    collection.countDocuments({ ...base, status: "Resolved" }),
   ]);
 
   return { total, open, pending, resolved };
+}
+
+// ==========================================
+// APPROVALS MODULE
+// ==========================================
+
+/**
+ * Get approval counters (tenant-scoped)
+ * - pending: approvals awaiting action
+ * - overdue: pending approvals past dueDate
+ * - total: all approvals in org
+ */
+export async function getApprovalCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.FM_APPROVALS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+  const now = new Date();
+
+  const [total, pending, overdue] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "PENDING" }),
+    collection.countDocuments({
+      ...base,
+      status: "PENDING",
+      dueDate: { $lt: now },
+    }),
+  ]);
+
+  return { total, pending, overdue };
 }
 
 // ==========================================
@@ -287,18 +343,24 @@ export async function getSupportCounters(orgId: string) {
 /**
  * Get marketplace counters (for sellers)
  */
-export async function getMarketplaceCounters(sellerId: string) {
+export async function getMarketplaceCounters(orgId: string, sellerId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const seller = normalizeId(sellerId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection("souq_listings").countDocuments({ sellerId }),
-    db.collection("souq_orders").countDocuments({ "items.sellerId": sellerId }),
-    db.collection("souq_reviews").countDocuments({
-      productId: { $in: await getSellerProductIds(sellerId, db) },
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ ...base, sellerId: seller }),
+    db
+      .collection(COLLECTIONS.SOUQ_ORDERS)
+      .countDocuments({ ...base, "items.sellerId": seller }),
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
+      ...base,
+      productId: { $in: await getSellerProductIds(nOrgId, seller, db) },
     }),
     db
-      .collection("souq_listings")
-      .countDocuments({ sellerId, status: "active" }),
+      .collection(COLLECTIONS.SOUQ_LISTINGS)
+      .countDocuments({ ...base, sellerId: seller, status: "active" }),
   ]);
 
   return { listings, activeListings, orders, reviews };
@@ -310,26 +372,48 @@ export async function getMarketplaceCounters(sellerId: string) {
  */
 export async function getMarketplaceCountersForOrg(orgId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [listings, orders, reviews] = await Promise.all([
-    db.collection("souq_listings").countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection("souq_orders").countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection("souq_reviews").countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments(base), // ✅ Tenant-scoped
   ]);
 
   return { listings, orders, reviews };
 }
 
+/**
+ * Get RFQ counters for organization
+ */
+export async function getRfqCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.RFQS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, open, awarded, closed] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "OPEN" }),
+    collection.countDocuments({ ...base, status: "AWARDED" }),
+    collection.countDocuments({ ...base, status: "CLOSED" }),
+  ]);
+
+  return { total, open, awarded, closed };
+}
+
 async function getSellerProductIds(
-  sellerId: string,
+  orgId: string | ObjectId,
+  sellerId: string | ObjectId,
   db: MongoDb,
-): Promise<string[]> {
+): Promise<unknown[]> {
   const listings = await db
-    .collection("souq_listings")
-    .find({ sellerId })
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
+    .find({ orgId, sellerId, ...softDeleteGuard })
     .project({ productId: 1 })
     .toArray();
-  return listings.map((l) => l.productId.toString());
+  return listings.map((l) => l.productId);
 }
 
 // ==========================================
@@ -341,12 +425,14 @@ async function getSellerProductIds(
  */
 export async function getSystemCounters(orgId: string) {
   const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [users, roles, tenants, apiKeys] = await Promise.all([
-    db.collection("users").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("roles").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("tenants").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("api_keys").countDocuments({ orgId, status: "Active" }), // ✅ Fixed: use orgId not org_id
+    db.collection(COLLECTIONS.USERS).countDocuments(base),
+    db.collection(COLLECTIONS.ROLES).countDocuments(base),
+    db.collection(COLLECTIONS.TENANTS).countDocuments(base),
+    db.collection(COLLECTIONS.API_KEYS).countDocuments({ ...base, status: "Active" }),
   ]);
 
   return { users, roles, tenants, apiKeys };
@@ -369,6 +455,9 @@ export async function getAllCounters(orgId: string) {
     support,
     marketplace,
     system,
+    approvals,
+    rfqs,
+    hrApplications,
   ] = await Promise.all([
     getWorkOrderStats(orgId),
     getInvoiceCounters(orgId),
@@ -378,6 +467,9 @@ export async function getAllCounters(orgId: string) {
     getSupportCounters(orgId),
     getMarketplaceCountersForOrg(orgId),
     getSystemCounters(orgId),
+    getApprovalCounters(orgId),
+    getRfqCounters(orgId),
+    getApplicationCounters(orgId),
   ]);
 
   return {
@@ -391,9 +483,38 @@ export async function getAllCounters(orgId: string) {
     customers, // ✅ Add key expected by client
     support,
     marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
     system, // ✅ Add system counters
     lastUpdated: new Date().toISOString(),
   };
+}
+
+// ==========================================
+// ATS MODULE (HR Applications)
+// ==========================================
+
+/**
+ * Get ATS application counters
+ */
+export async function getApplicationCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.ATS_APPLICATIONS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, applied, screening, interview] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, stage: "applied" }),
+    collection.countDocuments({ ...base, stage: "screening" }),
+    collection.countDocuments({ ...base, stage: "interview" }),
+  ]);
+
+  // pending = early pipeline stages (applied + screening + interview)
+  const pending = applied + screening + interview;
+
+  return { total, pending, applied, screening, interview };
 }
 
 // ==========================================
@@ -401,54 +522,10 @@ export async function getAllCounters(orgId: string) {
 // ==========================================
 
 /**
- * Create indexes for performance (run once on setup)
+ * @deprecated Use createIndexes() from lib/db/collections instead.
+ * Backward-compatible shim to avoid IndexOptionsConflict drift.
  */
 export async function createPerformanceIndexes() {
-  const db = await getDb();
-
-  const indexes: Array<{ collection: string; index: Record<string, 1 | -1> }> =
-    [
-      // Work Orders - AUDIT-2025-11-29: Updated to orgId
-      {
-        collection: "work_orders",
-        index: { orgId: 1, status: 1, sla_due: 1 },
-      },
-      { collection: "work_orders", index: { orgId: 1, created_at: -1 } },
-
-      // Invoices - AUDIT-2025-11-29: Updated to orgId
-      { collection: "invoices", index: { orgId: 1, status: 1, due_date: 1 } },
-      { collection: "invoices", index: { orgId: 1, paid_date: -1 } },
-
-      // Employees - AUDIT-2025-11-29: Updated to orgId
-      { collection: "employees", index: { orgId: 1, status: 1 } },
-
-      // Properties - AUDIT-2025-11-29: Updated to orgId
-      {
-        collection: "properties",
-        index: { orgId: 1, status: 1, lease_status: 1 },
-      },
-
-      // Souq
-      { collection: "souq_listings", index: { sellerId: 1, status: 1 } },
-      {
-        collection: "souq_orders",
-        index: { "items.sellerId": 1, createdAt: -1 },
-      },
-    ];
-
-  for (const { collection, index } of indexes) {
-    try {
-      await db.collection(collection).createIndex(index);
-      logger.info(`✅ Created index on ${collection}`, { collection, index });
-    } catch (_error) {
-      const error =
-        _error instanceof Error ? _error : new Error(String(_error));
-      void error;
-      logger.error(
-        `❌ Failed to create index on ${collection}`,
-        error as Error,
-        { collection, index },
-      );
-    }
-  }
+  // Delegates to centralized index management to prevent drift and IndexOptionsConflict.
+  await createIndexes();
 }

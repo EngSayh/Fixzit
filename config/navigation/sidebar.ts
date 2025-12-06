@@ -27,7 +27,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     id: "work-orders",
-    labelKey: "nav.work_orders",
+    labelKey: "nav.workOrders",
     icon: ClipboardList,
     path: "/fm/work-orders",
     group: "Operations",

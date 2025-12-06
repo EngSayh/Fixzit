@@ -2,7 +2,7 @@ import type { UserRoleType } from "@/types/user";
 
 export type AppKey = "fm" | "souq" | "aqar";
 export type SearchEntity =
-  | "work_orders"
+  | "workOrders"
   | "properties"
   | "units"
   | "tenants"
@@ -16,9 +16,15 @@ export type SearchEntity =
   | "projects"
   | "agents";
 
+// Canonical constants to avoid repeating string literals across the app
+export const WORK_ORDERS_ENTITY: SearchEntity = "workOrders";
+/** @deprecated Use WORK_ORDERS_ENTITY instead. Kept for API backward compatibility only. */
+export const WORK_ORDERS_ENTITY_LEGACY = "work_orders" as const;
+
 export type ModuleScope =
   | "dashboard"
-  | "work_orders"
+  | "work_orders" // legacy alias for routing/search
+  | "workOrders"
   | "properties"
   | "finance"
   | "hr"
@@ -33,7 +39,7 @@ export type ModuleScope =
 
 export type SidebarModuleKey =
   | "dashboard"
-  | "work_orders"
+  | "workOrders"
   | "properties"
   | "finance"
   | "hr"
@@ -91,7 +97,7 @@ export const APPS: Record<AppKey, AppConfig> = {
     routePrefix: "/fm",
     searchPlaceholderKey: "search.placeholders.fmDefault",
     searchEntities: [
-      "work_orders",
+      WORK_ORDERS_ENTITY,
       "properties",
       "units",
       "tenants",
@@ -199,6 +205,11 @@ export const APPS: Record<AppKey, AppConfig> = {
 
 export const DEFAULT_SCOPE: ModuleScope = "dashboard";
 
+// Normalize legacy scope strings to canonical
+// Note: WORK_ORDERS_ENTITY_LEGACY is kept for API backward compatibility but removed from ModuleScope type
+const normalizeScope = (scope: string): ModuleScope =>
+  scope === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : (scope as ModuleScope);
+
 const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
   dashboard: {
     id: "dashboard",
@@ -208,7 +219,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Dashboard",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search work orders, properties, tenants…",
-    searchEntities: ["work_orders", "properties", "tenants"],
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
     savedSearches: [
       {
         id: "recent-activity",
@@ -220,15 +231,59 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     ],
     quickActions: [],
   },
-  work_orders: {
-    id: "work_orders",
+  workOrders: {
+    id: WORK_ORDERS_ENTITY,
     app: "fm",
-    navKey: "work_orders",
+    navKey: WORK_ORDERS_ENTITY,
     labelKey: "nav.workOrders",
     fallbackLabel: "Work Orders",
     searchPlaceholderKey: "search.placeholders.workOrders",
     placeholderFallback: "Search work orders, technicians, assets…",
-    searchEntities: ["work_orders", "properties", "tenants"],
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
+    savedSearches: [
+      {
+        id: "urgent-wo",
+        labelKey: "search.saved.workOrdersUrgent",
+        fallbackLabel: "Urgent & overdue work orders",
+        query: "status:urgent OR status:overdue",
+        scope: "module",
+      },
+      {
+        id: "preventive-wo",
+        labelKey: "search.saved.workOrdersPreventive",
+        fallbackLabel: "Upcoming preventive maintenance",
+        query: "type:preventive due:<14d",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_wo",
+        labelKey: "dashboard.newWorkOrder",
+        fallbackLabel: "New Work Order",
+        href: "/fm/work-orders/new",
+        permission: "wo.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+      {
+        id: "assign_wo",
+        labelKey: "dashboard.assignWorkOrder",
+        fallbackLabel: "Assign Work Order",
+        href: "/fm/work-orders/board",
+        permission: "wo.assign",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+    ],
+  },
+  work_orders: {
+    id: WORK_ORDERS_ENTITY,
+    app: "fm",
+    navKey: WORK_ORDERS_ENTITY,
+    labelKey: "nav.workOrders",
+    fallbackLabel: "Work Orders",
+    searchPlaceholderKey: "search.placeholders.workOrders",
+    placeholderFallback: "Search work orders, technicians, assets…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
     savedSearches: [
       {
         id: "urgent-wo",
@@ -355,7 +410,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Administration",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search administrative records…",
-    searchEntities: ["properties", "work_orders"],
+    searchEntities: ["properties", WORK_ORDERS_ENTITY],
     savedSearches: [],
     quickActions: [],
   },
@@ -379,7 +434,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Support",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search tickets and knowledge base…",
-    searchEntities: ["work_orders"],
+    searchEntities: [WORK_ORDERS_ENTITY],
     savedSearches: [],
     quickActions: [],
   },
@@ -391,7 +446,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Compliance",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search policies, audits, disputes…",
-    searchEntities: ["work_orders"],
+    searchEntities: [WORK_ORDERS_ENTITY],
     savedSearches: [],
     quickActions: [],
   },
@@ -403,7 +458,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Reports",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search reports and dashboards…",
-    searchEntities: ["work_orders", "properties", "invoices"],
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "invoices"],
     savedSearches: [],
     quickActions: [],
   },
@@ -517,8 +572,11 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
   },
 };
 
+// Legacy alias support is handled via normalizeScope() function
+// API backward compatibility: work_orders -> workOrders is done at runtime
+
 const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
-  { pattern: /^\/(fm\/)?work-orders/i, scope: "work_orders" },
+  { pattern: /^\/(fm\/)?work-orders/i, scope: WORK_ORDERS_ENTITY },
   { pattern: /^\/(fm\/)?properties/i, scope: "properties" },
   { pattern: /^\/(fm\/)?finance/i, scope: "finance" },
   { pattern: /^\/(fm\/)?hr/i, scope: "hr" },
@@ -550,7 +608,7 @@ export function detectModuleFromPath(pathname: string): ModuleScope {
   const hit = MODULE_ROUTE_MATCHERS.find((matcher) =>
     matcher.pattern.test(target),
   );
-  return hit?.scope ?? DEFAULT_SCOPE;
+  return normalizeScope(hit?.scope ?? DEFAULT_SCOPE);
 }
 
 export function getModuleFromPath(pathname: string): ModuleScope {
@@ -558,20 +616,22 @@ export function getModuleFromPath(pathname: string): ModuleScope {
 }
 
 export function getModuleSearchConfig(scope: ModuleScope): ModuleScopeConfig {
-  return MODULE_SCOPE_CONFIG[scope] ?? MODULE_SCOPE_CONFIG[DEFAULT_SCOPE];
+  const normalized = normalizeScope(scope);
+  return MODULE_SCOPE_CONFIG[normalized] ?? MODULE_SCOPE_CONFIG[DEFAULT_SCOPE];
 }
 
 export function getModuleSavedSearches(
   scope: ModuleScope,
 ): SavedSearchConfig[] {
-  return getModuleSearchConfig(scope).savedSearches;
+  return getModuleSearchConfig(normalizeScope(scope)).savedSearches;
 }
 
 export function getModuleQuickActions(
   scope: ModuleScope,
   app: AppKey,
 ): QuickActionConfig[] {
-  const config = MODULE_SCOPE_CONFIG[scope];
+  const normalized = normalizeScope(scope);
+  const config = MODULE_SCOPE_CONFIG[normalized];
   if (config && config.quickActions.length) {
     return config.quickActions;
   }
@@ -581,14 +641,16 @@ export function getModuleQuickActions(
 export function getNavKeyForScope(
   scope: ModuleScope,
 ): SidebarModuleKey | undefined {
-  return MODULE_SCOPE_CONFIG[scope]?.navKey;
+  const normalized = normalizeScope(scope);
+  return MODULE_SCOPE_CONFIG[normalized]?.navKey;
 }
 
 export function getSearchEntitiesForScope(
   scope: ModuleScope,
   app: AppKey,
 ): SearchEntity[] {
-  const config = MODULE_SCOPE_CONFIG[scope];
+  const normalized = normalizeScope(scope);
+  const config = MODULE_SCOPE_CONFIG[normalized];
   if (config) {
     return config.searchEntities;
   }

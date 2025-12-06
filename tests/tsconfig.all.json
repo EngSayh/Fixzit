@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.json" },
+    { "path": "./api/souq/tsconfig.json" },
     { "path": "./unit/tsconfig.json" },
     { "path": "./tsconfig.hr.json" },
     { "path": "./tsconfig.ats.json" },

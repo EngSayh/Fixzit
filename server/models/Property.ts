@@ -234,6 +234,9 @@ const PropertySchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts to prevent
+    // IndexOptionsConflict; disable automatic schema index creation.
+    autoIndex: false,
   },
 );
 
@@ -241,13 +244,8 @@ const PropertySchema = new Schema(
 PropertySchema.plugin(tenantIsolationPlugin, { uniqueTenantFields: ["code"] });
 PropertySchema.plugin(auditPlugin);
 
-// Indexes for performance (orgId from plugin)
-PropertySchema.index({ orgId: 1, type: 1 });
-PropertySchema.index({ orgId: 1, "address.city": 1 });
-PropertySchema.index({ orgId: 1, "units.status": 1 });
-PropertySchema.index({ "address.coordinates": "2dsphere" });
-// Compound tenant-scoped unique index for code
-PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
+// All Property indexes live in lib/db/collections.ts (createIndexes()) to keep
+// a single source of truth. Avoid adding schema-level indexes here.
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 

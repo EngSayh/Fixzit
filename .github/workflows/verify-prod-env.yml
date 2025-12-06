@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Production Environment Validation
 
 on:
@@ -17,17 +19,17 @@ jobs:
   validate-production-env:
     name: Validate Production Environment Configuration
     runs-on: ubuntu-latest
-    
+
     # Only run on preview deployments or production pushes (skip forked PRs without secrets)
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.ref == 'refs/heads/main' ||
       (github.event_name == 'pull_request' && github.base_ref == 'main' && github.event.pull_request.head.repo.fork != true)
-    
+
     permissions:
       contents: read
       pull-requests: write
-    
+
     env:
       # Production validation requires actual secrets
       VERCEL_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
@@ -46,22 +48,22 @@ jobs:
       # Redis (required for queues)
       REDIS_URL: ${{ secrets.REDIS_URL }}
       BULLMQ_REDIS_URL: ${{ secrets.BULLMQ_REDIS_URL }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           run_install: false
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -69,14 +71,14 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
-      
+
       - name: Run production environment validation
         id: validate
         run: |
           echo "🔍 Running production environment validation..."
           pnpm guard:prod-env
           echo "validation_status=success" >> $GITHUB_OUTPUT
-      
+
       - name: Check validation result
         if: failure()
         run: |
@@ -104,7 +106,7 @@ jobs:
           echo "  - GitHub: Repository Settings → Secrets and Variables → Actions"
           echo "  - Vercel: Project Settings → Environment Variables"
           exit 1
-      
+
       - name: Post validation success
         if: success() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -116,22 +118,22 @@ jobs:
               repo: context.repo.repo,
               body: '✅ **Production Environment Validation Passed**\\n\\nAll required secrets (Auth, PayTabs, ZATCA, Redis) are configured.'
             })
-      
+
       - name: Summary
         if: always()
         run: |
-          echo "### Production Environment Validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.validate.outcome }}" == "success" ]; then
-            echo "✅ **Status**: PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "All required production secrets are configured." >> $GITHUB_STEP_SUMMARY
+          echo "### Production Environment Validation" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.validate.outcome }}" = "success" ]; then
+            echo "Status: PASSED" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "All required production secrets are configured." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> $GITHUB_STEP_SUMMARY
-            echo "- \`NEXTAUTH_SECRET\` / \`AUTH_SECRET\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`PAYTABS_PROFILE_ID\`, \`PAYTABS_SERVER_KEY\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_API_KEY\`, \`ZATCA_SELLER_NAME\`, \`ZATCA_VAT_NUMBER\`, \`ZATCA_SELLER_ADDRESS\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`REDIS_URL\` / \`BULLMQ_REDIS_URL\`" >> $GITHUB_STEP_SUMMARY
+            echo "Status: FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> "$GITHUB_STEP_SUMMARY"
+            echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
+            echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
+            echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
+            echo "- REDIS_URL / BULLMQ_REDIS_URL" >> "$GITHUB_STEP_SUMMARY"
           fi

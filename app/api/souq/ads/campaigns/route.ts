@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * POST /api/souq/ads/campaigns
@@ -15,6 +40,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
       );
     }
 
@@ -43,6 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const campaign = await CampaignService.createCampaign({
+      orgId: userOrgId, // Required for tenant isolation (STRICT v4.1)
       sellerId: session.user.id,
       name: body.name,
       type: body.type,
@@ -60,7 +101,7 @@ export async function POST(request: NextRequest) {
       data: campaign,
     });
   } catch (error) {
-    logger.error("[Ad API] Create campaign failed", { error });
+    logger.error("[Ad API] Create campaign failed", error as Error);
 
     return NextResponse.json(
       {
@@ -88,6 +129,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as
       | "active"
@@ -100,7 +156,7 @@ export async function GET(request: NextRequest) {
       | "product_display"
       | null;
 
-    const campaigns = await CampaignService.listCampaigns(session.user.id, {
+    const campaigns = await CampaignService.listCampaigns(session.user.id, userOrgId, {
       status: status || undefined,
       type: type || undefined,
     });
@@ -110,7 +166,7 @@ export async function GET(request: NextRequest) {
       data: campaigns,
     });
   } catch (error) {
-    logger.error("[Ad API] List campaigns failed", { error });
+    logger.error("[Ad API] List campaigns failed", error as Error);
 
     return NextResponse.json(
       {

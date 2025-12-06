@@ -31,7 +31,10 @@ OwnerGroupSchema.plugin(tenantIsolationPlugin);
 OwnerGroupSchema.plugin(auditPlugin);
 
 // ⚡ FIX: Tenant-scoped indexes (orgId added by plugin)
-OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
+OwnerGroupSchema.index(
+  { orgId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
 
 export type OwnerGroup = InferSchemaType<typeof OwnerGroupSchema>;

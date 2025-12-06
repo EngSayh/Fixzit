@@ -11,15 +11,18 @@ import {
   type ModuleSubView,
 } from "@/config/navigation";
 
+type ModuleKeyLike = ModuleId | string;
 type QueryView = Extract<ModuleSubView, { kind: "query" }>;
 
-const getQueryViews = (moduleId: ModuleId): QueryView[] => {
-  return (MODULE_SUB_VIEWS[moduleId] ?? []).filter(
-    (view): view is QueryView => view.kind === "query",
-  );
+const getQueryViews = (moduleId: ModuleKeyLike): QueryView[] => {
+  const views =
+    (MODULE_SUB_VIEWS as Record<string, ModuleSubView[] | undefined>)[
+      moduleId
+    ] ?? [];
+  return views.filter((view): view is QueryView => view.kind === "query");
 };
 
-export function useModuleView(moduleId: ModuleId) {
+export function useModuleView(moduleId: ModuleKeyLike) {
   const searchParams = useSearchParams();
   const views = useMemo(() => getQueryViews(moduleId), [moduleId]);
   const requested = searchParams?.get("view");
@@ -31,7 +34,7 @@ export function useModuleView(moduleId: ModuleId) {
 }
 
 interface ModuleViewTabsProps {
-  moduleId: ModuleId;
+  moduleId: ModuleKeyLike;
   className?: string;
 }
 

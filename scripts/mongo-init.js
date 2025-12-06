@@ -9,10 +9,10 @@ db.createCollection("users", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["email", "tenantId"],
+      required: ["email", "orgId"],
       properties: {
         email: { bsonType: "string" },
-        tenantId: { bsonType: "string" },
+        orgId: { bsonType: "string" },
         name: { bsonType: "string" },
         role: { enum: ["SUPER_ADMIN", "ADMIN", "USER", "VIEWER"] },
       },
@@ -20,7 +20,7 @@ db.createCollection("users", {
   },
 });
 
-db.createCollection("tenants", {
+db.createCollection("organizations", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
@@ -35,12 +35,12 @@ db.createCollection("tenants", {
 });
 
 // Create indexes for performance
-db.users.createIndex({ email: 1, tenantId: 1 }, { unique: true });
-db.users.createIndex({ tenantId: 1 });
-db.tenants.createIndex({ domain: 1 }, { unique: true });
+db.users.createIndex({ orgId: 1, email: 1 }, { unique: true });
+db.users.createIndex({ orgId: 1 });
+db.organizations.createIndex({ domain: 1 }, { unique: true });
 
 // Create default tenant and admin user
-const defaultTenant = {
+const defaultOrg = {
   _id: ObjectId(),
   name: "Fixzit Demo",
   domain: "demo-tenant",
@@ -54,13 +54,13 @@ const defaultTenant = {
   updatedAt: new Date(),
 };
 
-db.tenants.insertOne(defaultTenant);
+db.organizations.insertOne(defaultOrg);
 
 const adminUser = {
   _id: ObjectId(),
   email: "admin@fixzit.app",
   name: "System Administrator",
-  tenantId: defaultTenant._id.toString(),
+  orgId: defaultOrg._id.toString(),
   role: "SUPER_ADMIN",
   status: "ACTIVE",
   // Password: Admin@123 (hashed with bcrypt)
@@ -72,5 +72,5 @@ const adminUser = {
 db.users.insertOne(adminUser);
 
 print("MongoDB initialization complete!");
-print("Default tenant created: demo-tenant");
+print("Default organization created: demo-tenant");
 print("Admin user: admin@fixzit.app / Admin@123");

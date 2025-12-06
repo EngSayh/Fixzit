@@ -51,13 +51,13 @@ describe("OTP Utils", () => {
 
   describe("buildOtpKey", () => {
     it("should build composite key for corporate logins", () => {
-      expect(buildOtpKey("EMP001", "ACME-001")).toBe("EMP001::ACME-001");
-      expect(buildOtpKey("EMP-ABC", "DEMO")).toBe("EMP-ABC::DEMO");
+      expect(buildOtpKey("EMP001", "ACME-001", "ORG123")).toBe("EMP001::ACME-001::ORG123");
+      expect(buildOtpKey("EMP-ABC", "DEMO", "ORG123")).toBe("EMP-ABC::DEMO::ORG123");
     });
 
     it("should return identifier only for personal logins", () => {
-      expect(buildOtpKey("user@email.com", null)).toBe("user@email.com");
-      expect(buildOtpKey("test@example.com", null)).toBe("test@example.com");
+      expect(buildOtpKey("user@email.com", null, "ORG123")).toBe("user@email.com::ORG123");
+      expect(buildOtpKey("test@example.com", null, "ORG123")).toBe("test@example.com::ORG123");
     });
   });
 

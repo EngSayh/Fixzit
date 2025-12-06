@@ -19,6 +19,7 @@ import * as crypto from "crypto";
 import * as cron from "node-cron";
 import { db } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 // Documents to scan (from your Blueprint/Design System PDFs)
 // Note: Only .pdf files are supported. .docx files will be skipped.
@@ -125,7 +126,7 @@ async function scanDocument(filename: string): Promise<number> {
     ) => Promise<{ text: string }>;
     const fileHash = calculateFileHash(fullPath);
     const database = await db;
-    const collection = database.collection("ai_kb");
+    const collection = database.collection(COLLECTIONS.AI_KB);
 
     // Check if document already processed with same hash
     const existing = await collection.findOne({

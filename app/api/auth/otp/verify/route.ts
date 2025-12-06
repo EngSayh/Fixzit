@@ -101,9 +101,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Resolve orgId to build tenant-scoped OTP key (SEC-BLOCKER-001)
+    // Must match the key structure used in OTP send route
+    let orgScopeId: string | null = null;
+    const resolvedDefaultOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    if (empOk && normalizedCompanyCode) {
+      // Corporate login - resolve org from company code
+      await connectToDatabase();
+      const { Organization } = await import("@/server/models/Organization");
+      const org = await Organization.findOne({ code: normalizedCompanyCode })
+        .select({ _id: 1, orgId: 1 })
+        .lean<{ _id?: { toString: () => string }; orgId?: string }>()
+        .catch(() => null);
+
+      if (!org) {
+        logger.warn("[OTP Verify] Invalid company code", {
+          identifier: redactIdentifier(loginIdentifier),
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      orgScopeId = org.orgId || org._id?.toString() || null;
+    } else {
+      // Personal login - use default org
+      if (!resolvedDefaultOrgId) {
+        logger.error("[OTP Verify] Missing org context for personal login", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+        return NextResponse.json(
+          { success: false, error: "Login temporarily unavailable" },
+          { status: 503 },
+        );
+      }
+      orgScopeId = resolvedDefaultOrgId;
+    }
+
     const otpKey = buildOtpKey(
       loginIdentifier,
       empOk ? normalizedCompanyCode : null,
+      orgScopeId,
     );
 
     // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
@@ -119,6 +162,20 @@ export async function POST(request: NextRequest) {
           error: "OTP not found or expired. Please request a new code.",
         },
         { status: 400 },
+      );
+    }
+
+    // SECURITY: Validate orgId matches (SEC-BLOCKER-001) and clean up OTP on mismatch
+    if (otpData.orgId && orgScopeId && otpData.orgId !== orgScopeId) {
+      logger.warn("[OTP] OrgId mismatch - potential cross-tenant attack", {
+        identifier: redactIdentifier(otpKey),
+        storedOrgId: otpData.orgId,
+        requestedOrgId: orgScopeId,
+      });
+      await redisOtpStore.delete(otpKey);
+      return NextResponse.json(
+        { success: false, error: "Invalid credentials" },
+        { status: 401 },
       );
     }
 
@@ -175,16 +232,20 @@ export async function POST(request: NextRequest) {
     logger.info("[OTP] OTP verified successfully", {
       userId: otpData.userId,
       identifier: redactIdentifier(otpKey),
+      orgId: otpData.orgId || orgScopeId,
     });
 
     // 8. Clean up OTP from store
     await redisOtpStore.delete(otpKey);
 
     // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
+    // SECURITY: Include orgId and companyCode for tenant isolation (SEC-BLOCKER-001)
     const sessionToken = randomBytes(32).toString("hex");
     await redisOtpSessionStore.set(sessionToken, {
       userId: otpData.userId,
       identifier: otpKey,
+      orgId: otpData.orgId || orgScopeId,
+      companyCode: otpData.companyCode || normalizedCompanyCode,
       expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
     });
 
@@ -212,6 +273,20 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { success: false, error: "Account not active" },
+        { status: 401 },
+      );
+    }
+
+    const userOrgId =
+      (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() || null;
+    if (orgScopeId && userOrgId && userOrgId !== orgScopeId) {
+      logger.warn("[OTP] Org mismatch between OTP session and user record", {
+        userId: otpData.userId,
+        expectedOrg: orgScopeId,
+        userOrgId,
+      });
+      return NextResponse.json(
+        { success: false, error: "Invalid credentials" },
         { status: 401 },
       );
     }

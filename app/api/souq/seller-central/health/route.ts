@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const period = (searchParams.get("period") || "last_30_days") as
       | "last_7_days"
@@ -23,6 +31,7 @@ export async function GET(request: NextRequest) {
     // Get health metrics
     const metrics = await accountHealthService.calculateAccountHealth(
       session.user.id,
+      orgId,
       period,
     );
 
@@ -31,7 +40,7 @@ export async function GET(request: NextRequest) {
       ...metrics,
     });
   } catch (error) {
-    logger.error("Get account health error", { error });
+    logger.error("Get account health error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get account health",

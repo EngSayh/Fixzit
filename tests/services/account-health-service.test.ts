@@ -79,12 +79,13 @@ async function seedSeller({
  */
 async function seedOrder({
   sellerId,
+  orgId = testOrgId,
   status = "delivered",
   isDefective = false,
   isLate = false,
   isCancelled = false,
   createdAt = new Date(),
-} = { sellerId: "" }) {
+} = { sellerId: "", orgId: testOrgId }) {
   const orderId = `ORD-${nanoid(8)}`;
   const customerId = new Types.ObjectId();
   const listingId = new Types.ObjectId();
@@ -92,6 +93,7 @@ async function seedOrder({
 
   await SouqOrder.create({
     orderId,
+    orgId,
     customerId,
     customerEmail: `test-${nanoid(4)}@example.com`,
     customerPhone: "+966501234567",
@@ -155,7 +157,11 @@ describe("accountHealthService", () => {
     it("should return zero metrics when seller has no orders", async () => {
       const { sellerId } = await seedSeller();
       
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       expect(metrics.totalOrders).toBe(0);
       expect(metrics.odr).toBe(0);
@@ -173,7 +179,11 @@ describe("accountHealthService", () => {
       await seedOrder({ sellerId, status: "delivered" });
       await seedOrder({ sellerId, status: "delivered" });
 
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       expect(metrics.totalOrders).toBe(3);
       expect(metrics.odr).toBe(0);
@@ -190,7 +200,11 @@ describe("accountHealthService", () => {
       await seedOrder({ sellerId, status: "delivered", isDefective: true });
       await seedOrder({ sellerId, status: "delivered", isDefective: true });
 
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       expect(metrics.totalOrders).toBe(10);
       expect(metrics.totalDefects).toBeGreaterThanOrEqual(0); // Depends on implementation
@@ -206,7 +220,11 @@ describe("accountHealthService", () => {
       await seedOrder({ sellerId, status: "delivered", isLate: true });
       await seedOrder({ sellerId, status: "delivered", isLate: true });
 
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       expect(metrics.totalOrders).toBe(10);
       expect(metrics.totalLateShipments).toBeGreaterThanOrEqual(0);
@@ -222,7 +240,11 @@ describe("accountHealthService", () => {
       await seedOrder({ sellerId, isCancelled: true });
       await seedOrder({ sellerId, isCancelled: true });
 
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       expect(metrics.totalOrders).toBeGreaterThanOrEqual(8);
     });
@@ -237,9 +259,21 @@ describe("accountHealthService", () => {
       // Recent order
       await seedOrder({ sellerId, status: "delivered" });
 
-      const metrics7d = await accountHealthService.calculateAccountHealth(sellerId, "last_7_days");
-      const metrics30d = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
-      const metrics90d = await accountHealthService.calculateAccountHealth(sellerId, "last_90_days");
+      const metrics7d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_7_days",
+      );
+      const metrics30d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      const metrics90d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_90_days",
+      );
       
       expect(metrics7d.totalOrders).toBeLessThanOrEqual(metrics30d.totalOrders);
       expect(metrics30d.totalOrders).toBeLessThanOrEqual(metrics90d.totalOrders);
@@ -253,7 +287,11 @@ describe("accountHealthService", () => {
         await seedOrder({ sellerId, status: "delivered", isDefective: true });
       }
 
-      const metrics = await accountHealthService.calculateAccountHealth(sellerId, "last_30_days");
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
       
       // Health status depends on implementation thresholds
       expect(metrics).toHaveProperty("atRisk");
@@ -265,21 +303,19 @@ describe("accountHealthService", () => {
     it("should return a summary for a seller", async () => {
       const { sellerId } = await seedSeller();
       
-      if (accountHealthService.getAccountHealthSummary) {
-        const summary = await accountHealthService.getAccountHealthSummary(sellerId);
-        expect(summary).toHaveProperty("healthStatus");
-      }
+      const summary = await accountHealthService.getHealthSummary(
+        sellerId,
+        testOrgId.toString(),
+      );
+      expect(summary).toHaveProperty("current");
     });
   });
 
-  describe("checkAndEnforcePolicy", () => {
-    it("should apply warnings for poor performance", async () => {
-      const { sellerId } = await seedSeller();
-      
-      if (accountHealthService.checkAndEnforcePolicy) {
-        const result = await accountHealthService.checkAndEnforcePolicy(sellerId);
-        expect(result).toBeDefined();
-      }
+  describe("monitorAllSellers", () => {
+    it("should run health checks for active sellers", async () => {
+      await seedSeller();
+      const result = await accountHealthService.monitorAllSellers();
+      expect(result).toHaveProperty("checked");
     });
   });
 });

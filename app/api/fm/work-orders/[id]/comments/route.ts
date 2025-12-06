@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import type { WorkOrderComment } from "@/types/fm";
+import { WorkOrderComment as WorkOrderCommentModel } from "@/server/models/workorder/WorkOrderComment";
 import {
   assertWorkOrderQuota,
   buildWorkOrderUser,
@@ -10,6 +10,7 @@ import {
   recordTimelineEntry,
   WorkOrderQuotaError,
   WORK_ORDER_COMMENT_LIMIT,
+  WORK_ORDER_TIMELINE_LIMIT,
 } from "../../utils";
 import { resolveTenantId } from "../../../utils/tenant";
 import { requireFmAbility } from "../../../utils/auth";
@@ -18,12 +19,12 @@ import { FMErrors } from "../../../errors";
 interface CommentDocument {
   _id?: { toString?: () => string };
   id?: string;
-  workOrderId?: string;
+  workOrderId?: string | ObjectId;
   comment?: string;
   type?: string;
   createdAt?: Date | string | number;
   createdBy?: {
-    id?: string;
+    id?: string | null;
     email?: string;
     firstName?: string;
     lastName?: string;
@@ -46,7 +47,7 @@ export async function GET(
     if (actor instanceof NextResponse) return actor;
     const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
     if ("error" in tenantResult) return tenantResult.error;
-    const { tenantId } = tenantResult;
+    const { tenantId: orgId } = tenantResult;
 
     const workOrderId = params.id;
     if (!ObjectId.isValid(workOrderId)) {
@@ -61,21 +62,20 @@ export async function GET(
     );
     const skip = (page - 1) * limit;
 
-    const db = await getDatabase();
-    const collection = db.collection("workorder_comments");
-    const filter = { tenantId, workOrderId };
+    const filter = { orgId, workOrderId };
 
     const [comments, total] = await Promise.all([
-      collection
-        .find(filter)
+      WorkOrderCommentModel.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .toArray(),
-      collection.countDocuments(filter),
+        .lean(),
+      WorkOrderCommentModel.countDocuments(filter),
     ]);
 
-    const data: WorkOrderComment[] = comments.map(mapCommentDocument);
+    const data: WorkOrderComment[] = comments.map((doc) =>
+      mapCommentDocument(doc as CommentDocument),
+    );
 
     return NextResponse.json({
       success: true,
@@ -102,7 +102,7 @@ export async function POST(
     if (actor instanceof NextResponse) return actor;
     const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
     if ("error" in tenantResult) return tenantResult.error;
-    const { tenantId } = tenantResult;
+    const { tenantId: orgId } = tenantResult;
     const actorId = getCanonicalUserId(actor);
     if (!actorId) {
       return FMErrors.validationError("User identifier is required");
@@ -123,19 +123,16 @@ export async function POST(
       return FMErrors.validationError("Comment text is required");
     }
 
-    const db = await getDatabase();
     await assertWorkOrderQuota(
-      db,
       "workorder_comments",
-      tenantId,
+      orgId,
       workOrderId,
       WORK_ORDER_COMMENT_LIMIT,
     );
     const now = new Date();
     const commentDoc = {
-      tenantId,
+      orgId,
       workOrderId,
-      workOrderObjectId: new ObjectId(workOrderId),
       comment,
       type,
       attachments: body?.attachments ?? [],
@@ -147,25 +144,26 @@ export async function POST(
       },
     };
 
-    const result = await db
-      .collection("workorder_comments")
-      .insertOne(commentDoc);
+    const result = await WorkOrderCommentModel.create(commentDoc);
 
-    await recordTimelineEntry(db, {
-      workOrderId,
-      tenantId,
-      action: "comment_added",
-      description: comment.slice(0, 240),
-      metadata: {
-        commentId: result.insertedId.toString(),
-        type,
+    await recordTimelineEntry(
+      {
+        workOrderId,
+        orgId,
+        action: "comment_added",
+        description: comment.slice(0, 240),
+        metadata: {
+          commentId: result.id.toString(),
+          type,
+        },
+        performedBy: actorId,
+        performedAt: now,
       },
-      performedBy: actorId,
-      performedAt: now,
-    });
+      WORK_ORDER_TIMELINE_LIMIT,
+    );
 
     const createdComment: WorkOrderComment = mapCommentDocument({
-      _id: result.insertedId,
+      _id: result._id,
       ...commentDoc,
     });
 
@@ -192,9 +190,14 @@ function mapCommentDocument(doc: CommentDocument): WorkOrderComment {
       : new Date(doc.createdAt ?? Date.now());
   const createdBy = doc.createdBy || {};
 
+  const workOrderId =
+    typeof doc.workOrderId === "string"
+      ? doc.workOrderId
+      : doc.workOrderId?.toString?.() ?? "";
+
   return {
     id: doc._id?.toString?.() ?? doc.id ?? "",
-    workOrderId: doc.workOrderId ?? "",
+    workOrderId,
     comment: doc.comment ?? "",
     type: (COMMENT_TYPES.has(doc.type as "comment" | "internal")
       ? doc.type

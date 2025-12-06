@@ -4,6 +4,7 @@ import { User } from '@/server/models/User';
 import { connectDb } from '@/lib/mongo';
 import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
+import { isTruthy } from '@/lib/utils/env';
 
 type ThemePreference = 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO';
 
@@ -139,7 +140,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
       return NextResponse.json({ preferences: DEFAULT_PREFERENCES });
     }
 
@@ -297,7 +298,7 @@ export async function PUT(request: NextRequest) {
       sanitizedUpdates.theme = themeForStorage;
     }
     
-    if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
       return NextResponse.json({ success: true, preferences: DEFAULT_PREFERENCES });
     }
 

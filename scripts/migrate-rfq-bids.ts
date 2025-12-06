@@ -19,7 +19,8 @@
  */
 
 import mongoose from "mongoose";
-import { dbConnect } from "../db/mongoose";
+import { connectToDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
 // Note: ProjectBid model must be created before running this migration
 // import ProjectBidModel from '../server/models/marketplace/ProjectBid';
 
@@ -45,10 +46,12 @@ async function main() {
   console.log(`${"=".repeat(60)}\n`);
 
   try {
-    await dbConnect();
+    await connectToDatabase();
 
-    const RFQCollection = mongoose.connection.collection("marketplacerfqs");
-    const ProjectBidCollection = mongoose.connection.collection("projectbids");
+    const RFQCollection = mongoose.connection.collection(COLLECTIONS.RFQS);
+    const ProjectBidCollection = mongoose.connection.collection(
+      COLLECTIONS.PROJECT_BIDS,
+    );
 
     if (mode === "VERIFY") {
       await verifyMigration(RFQCollection, ProjectBidCollection);
@@ -195,7 +198,7 @@ async function main() {
     console.error("\n❌ FATAL ERROR:", error);
     process.exit(1);
   } finally {
-    await mongoose.connection.close();
+    await disconnectFromDatabase();
   }
 }
 

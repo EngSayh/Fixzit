@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: E2E Tests (Playwright)
 
 on:
@@ -74,7 +76,7 @@ jobs:
     # Skip E2E tests for forked PRs - secrets are unavailable
     # Fork contributors get feedback from the e2e-fork-notice job above
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
-    
+
     # MongoDB service per job to avoid port conflicts
     services:
       mongodb:
@@ -89,25 +91,28 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     strategy:
       fail-fast: false
       matrix:
         # Run critical smoke tests in parallel
         # Project names MUST match playwright.config.ts exactly
-        project: 
+        project:
           - 'Desktop:EN:Admin'       # Matches: Desktop:EN:Admin
           - 'Desktop:AR:Tenant'      # Matches: Desktop:AR:Tenant
           - 'Mobile:EN:Technician'   # Mobile Android field ops
           - 'Mobile:AR:Tenant'       # Mobile iOS self-service
-    
+
     env:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=8192
       PLAYWRIGHT_CONFIG: tests/playwright.config.ts
       PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
-      
+      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
+      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
+      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -141,7 +146,7 @@ jobs:
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps
-      
+
       - name: Install Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps
@@ -157,6 +162,7 @@ jobs:
       - name: Run RBAC v4.1 Unit Tests
         env:
           NODE_ENV: test
+          SKIP_GLOBAL_MONGO: "true"
         run: |
           echo "🔒 Running RBAC v4.1 validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
@@ -166,6 +172,7 @@ jobs:
           echo "✅ All 41 RBAC tests passing"
 
       - name: Build app (for E2E tests)
+        timeout-minutes: 15
         env:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
@@ -276,7 +283,7 @@ jobs:
             echo "::error::Missing required E2E secrets: ${missing[*]}. Configure in GitHub Actions secrets."
             exit 1
           fi
-          
+
           echo "✅ All required E2E secrets are configured"
 
       # AUDIT-2025-11-30: Warn about optional employee secrets that may be needed in the future
@@ -317,15 +324,15 @@ jobs:
           AUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_SKIP_CSRF_CHECK: 'true'
           AUTH_TRUST_HOST: 'true'
-          
+
           # Disable OTP for E2E tests
           NEXT_PUBLIC_REQUIRE_SMS_OTP: 'false'
           NEXTAUTH_REQUIRE_SMS_OTP: 'false'
-          
+
           # Google OAuth (from GitHub Secrets - optional)
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          
+
           # Database - require real MongoDB for meaningful RBAC/tenancy testing
           # AUDIT-2025-11-30: Changed from 'true' to 'false' to ensure E2E tests hit real DB
           # With offline mode enabled, API handlers return empty data, making RBAC/tenancy
@@ -333,24 +340,24 @@ jobs:
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
           ALLOW_OFFLINE_MONGODB: 'false'
           PLAYWRIGHT_TESTS: 'true'
-          
+
           # Test environment
           NODE_ENV: test
           CI: 'true'
           SKIP_ENV_VALIDATION: 'true'
-          
+
           # Base URL
           BASE_URL: http://localhost:3000
-          
+
           # ============================================================
           # E2E RBAC Test Credentials (Required for subrole-api-access.spec.ts)
           # These must be configured in GitHub Settings > Secrets
           # See env.example for documentation on creating test users
-          # 
+          #
           # REQUIRED: email + password for each role
           # OPTIONAL: _EMPLOYEE secrets (only TEST_ADMIN_EMPLOYEE is required for
           #           the employee-number login test; others are pass-through)
-          # 
+          #
           # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles
           # (TEAM_MEMBER, SUPPORT_AGENT) to enable row-level RBAC assertions.
           # Without them, tests pass even if API returns over-broad data.
@@ -378,26 +385,26 @@ jobs:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           # REQUIRED: Used by employee-number login test (auth.spec.ts)
           TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
-          
+
           # Multi-tenancy validation (org_id scoping for data isolation checks)
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
-          
+
         run: |
           project_arg=""
           test_path_arg=""
-          
+
           # Use matrix project or workflow input
           if [ -n "${{ matrix.project }}" ]; then
             project_arg="--project=${{ matrix.project }}"
           elif [ -n "${{ github.event.inputs.project }}" ]; then
             project_arg="--project=${{ github.event.inputs.project }}"
           fi
-          
+
           # Use specific test path from workflow input
           if [ -n "${{ github.event.inputs.test_path }}" ]; then
             test_path_arg="${{ github.event.inputs.test_path }}"
           fi
-          
+
           echo "🎭 Running Playwright E2E Tests"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Project: ${project_arg:-all projects}"
@@ -406,7 +413,7 @@ jobs:
           echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
           echo "CSRF bypass: $NEXTAUTH_SKIP_CSRF_CHECK"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
+
           # Verify auth states were created
           if [ -d "tests/state" ]; then
             echo "✅ Auth state directory exists"
@@ -414,7 +421,7 @@ jobs:
           else
             echo "❌ Auth state directory missing!"
           fi
-          
+
           # Run with retries for flaky tests and reasonable failure threshold
           pnpm exec playwright test \
             --config "$PLAYWRIGHT_CONFIG" \
@@ -463,14 +470,14 @@ jobs:
         run: |
           project="${{ matrix.project }}"
           status="${{ job.status }}"
-          
+
           # Save status to artifact for summary job
           mkdir -p test-results
           echo "${status}" > "test-results/${project//[:\/]/-}-status.txt"
-          
+
           echo "PROJECT_NAME=${project}" >> $GITHUB_ENV
           echo "PROJECT_STATUS=${status}" >> $GITHUB_ENV
-          
+
           # Create project-specific summary
           echo "### 🎭 ${project}" >> $GITHUB_STEP_SUMMARY
           if [ "${status}" = "success" ]; then
@@ -480,7 +487,7 @@ jobs:
           fi
           echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Upload test status
         uses: actions/upload-artifact@v4
         if: always()
@@ -498,10 +505,10 @@ jobs:
             const jobStatus = '${{ job.status }}';
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
-            
+
             const statusIcon = jobStatus === 'success' ? '✅' : '❌';
             const statusText = jobStatus === 'success' ? 'All tests passed' : 'Some tests failed';
-            
+
             let body = `## 🎭 E2E Test Results - ${project}\n\n`;
             body += `${statusIcon} **${statusText}**\n\n`;
             body += `**Details:**\n`;
@@ -509,7 +516,7 @@ jobs:
             body += `- Status: ${jobStatus}\n`;
             body += `- [View action logs](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
             body += `- [Download artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
-            
+
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
@@ -525,7 +532,7 @@ jobs:
     needs: e2e-tests
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Download all test statuses
         uses: actions/download-artifact@v4
@@ -534,7 +541,7 @@ jobs:
           path: test-statuses
           merge-multiple: true
         continue-on-error: true
-      
+
       - name: Generate comprehensive summary
         uses: actions/github-script@v7
         with:
@@ -544,7 +551,7 @@ jobs:
             const result = '${{ needs.e2e-tests.result }}';
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
-            
+
             // Read individual project statuses
             const projects = [
               { name: 'Desktop:EN:Admin', locale: 'EN', persona: 'Admin' },
@@ -552,15 +559,15 @@ jobs:
               { name: 'Desktop:AR:Tenant', locale: 'AR', persona: 'Tenant' },
               { name: 'Mobile:EN:Technician', locale: 'EN', persona: 'Technician' }
             ];
-            
+
             const statuses = {};
             const statusDir = 'test-statuses';
-            
+
             if (fs.existsSync(statusDir)) {
               for (const project of projects) {
                 const fileName = `${project.name.replace(/:/g, '-')}-status.txt`;
                 const filePath = path.join(statusDir, fileName);
-                
+
                 if (fs.existsSync(filePath)) {
                   statuses[project.name] = fs.readFileSync(filePath, 'utf8').trim();
                 } else {
@@ -568,37 +575,37 @@ jobs:
                 }
               }
             }
-            
+
             let summary = '## 🎭 E2E Tests - Complete Summary\n\n';
-            
+
             // Count successes and failures
             const successCount = Object.values(statuses).filter(s => s === 'success').length;
             const failureCount = Object.values(statuses).filter(s => s === 'failure').length;
-            
+
             // Overall status
             if (result === 'success') {
               summary += `✅ **All ${projects.length} E2E test projects passed successfully!**\n\n`;
             } else {
               summary += `❌ **${failureCount} of ${projects.length} E2E test projects failed**\n\n`;
             }
-            
+
             // Project breakdown with individual statuses
             summary += '### Test Projects Coverage\n\n';
             summary += '| Project | Locale | Persona | Status |\n';
             summary += '|---------|--------|---------|--------|\n';
-            
+
             for (const project of projects) {
               const status = statuses[project.name] || 'unknown';
               const icon = status === 'success' ? '✅' : status === 'failure' ? '❌' : '❓';
               summary += `| ${project.name} | ${project.locale} | ${project.persona} | ${icon} ${status} |\n`;
             }
             summary += '\n';
-            
+
             summary += '### Resources\n\n';
             summary += `- [View workflow run](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
             summary += `- [Download all artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
             summary += '- Reports retained for 7 days\n\n';
-            
+
             summary += '### Configuration\n\n';
             summary += '- **Retries:** 2 attempts per test (for flakiness)\n';
             summary += '- **Max failures:** Stop after 10 failures per project\n';
@@ -606,9 +613,9 @@ jobs:
             summary += '- **Database:** Isolated MongoDB per project\n';
             summary += '- **Browser cache:** Playwright browsers cached across runs\n';
             summary += '- **Build cache:** Next.js build artifacts cached\n';
-            
+
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
-            
+
             // Exit with error if tests failed
             if (result !== 'success') {
               core.setFailed(`E2E tests failed: ${failureCount} project(s) with failures. Check individual project logs above.`);

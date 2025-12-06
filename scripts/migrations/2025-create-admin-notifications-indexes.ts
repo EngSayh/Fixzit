@@ -11,8 +11,9 @@
  *   --dry-run    Preview changes without applying them
  */
 
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -27,7 +28,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 
 const INDEXES_TO_CREATE = [
   {
-    collection: "admin_notifications",
+    collection: COLLECTIONS.ADMIN_NOTIFICATIONS,
     index: { orgId: 1, sentAt: -1 },
     options: {
       name: "orgId_sentAt_desc",
@@ -35,7 +36,7 @@ const INDEXES_TO_CREATE = [
     },
   },
   {
-    collection: "admin_notifications",
+    collection: COLLECTIONS.ADMIN_NOTIFICATIONS,
     index: { sentAt: 1 },
     options: {
       name: "ttl_admin_notifications_90d",

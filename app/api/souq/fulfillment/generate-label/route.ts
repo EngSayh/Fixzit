@@ -30,10 +30,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Missing required orgId for tenant scoping" },
+        { status: 400 },
+      );
+    }
+
     // Get order and verify seller ownership
-    const order = await SouqOrder.findOne(
-      orgId ? { orderId, orgId } : { orderId },
-    );
+    const order = await SouqOrder.findOne({ orderId, orgId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -47,9 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const seller = await SouqSeller.findOne(
-      orgId ? { _id: session.user.id, orgId } : { _id: session.user.id },
-    );
+    const seller = await SouqSeller.findOne({ _id: session.user.id, orgId });
     if (!seller) {
       return NextResponse.json(
         { error: "Seller profile not found" },
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
       label,
     });
   } catch (error) {
-    logger.error("Generate label error", { error });
+    logger.error("Generate label error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to generate label",

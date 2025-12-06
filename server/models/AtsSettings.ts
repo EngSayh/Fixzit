@@ -43,7 +43,10 @@ AtsSettingsSchema.plugin(tenantIsolationPlugin);
 AtsSettingsSchema.plugin(auditPlugin);
 
 // Tenant-scoped indexes
-AtsSettingsSchema.index({ orgId: 1 }, { unique: true });
+AtsSettingsSchema.index(
+  { orgId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> &
   Document) & {

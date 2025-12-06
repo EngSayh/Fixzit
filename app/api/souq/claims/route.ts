@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ClaimService,
   type ClaimType,
+  type ClaimStatus,
 } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter as buildOrgScope } from "@/app/api/souq/claims/org-scope";
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -44,6 +47,13 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const { orderId, reason, description, requestedAmount, requestType } = body;
@@ -70,7 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDatabase();
-    const order = await db.collection("orders").findOne({ _id: orderObjectId });
+    const order = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne({ _id: orderObjectId, ...buildOrgScope(orgId) });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }
@@ -90,9 +102,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const claimsCollection = db.collection("claims");
+    const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
     const existingClaim = await claimsCollection.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       status: {
         $nin: [
           "withdrawn",
@@ -145,6 +158,7 @@ export async function POST(request: NextRequest) {
 
     const recentClaimsCount = await claimsCollection.countDocuments({
       buyerId: { $in: buyerIdFilter },
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
     });
 
@@ -164,6 +178,7 @@ export async function POST(request: NextRequest) {
     }
 
     const claim = await ClaimService.createClaim({
+      orgId,
       orderId: orderObjectId.toString(),
       buyerId: session.user.id,
       sellerId,
@@ -188,7 +203,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    logger.error("[Claims API] Create claim failed", { error });
+    logger.error("[Claims API] Create claim failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to create claim",
@@ -215,6 +230,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const type = searchParams.get("type");
     const priority = searchParams.get("priority");
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
 
     // Robust parsing with validation and bounds
     const pageRaw = searchParams.get("page");
@@ -226,15 +243,42 @@ export async function GET(request: NextRequest) {
       ? Math.min(Math.max(1, limitParsed), 100)
       : 20;
 
-    const filters: Record<string, unknown> = {
-      limit,
-      offset: (page - 1) * limit,
-    };
-
     const effectiveView = (view || "buyer").toLowerCase();
     const isAdminUser = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
       (session.user.role || "").toUpperCase(),
     );
+    const isSuperAdmin = (session.user.role || "").toUpperCase() === "SUPER_ADMIN";
+
+    // Resolve org scope: require targetOrgId for SUPER_ADMIN without session org; otherwise use session org
+    const resolvedOrgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !resolvedOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const filters: {
+      orgId: string;
+      buyerId?: string;
+      sellerId?: string;
+      status?: ClaimStatus;
+      type?: ClaimType;
+      priority?: string;
+      limit: number;
+      offset: number;
+    } = {
+      orgId: resolvedOrgId,
+      limit,
+      offset: (page - 1) * limit,
+    };
+
     if (effectiveView === "admin" && isAdminUser) {
       // Admin view: allow all claims
     } else if (effectiveView === "seller") {
@@ -242,9 +286,8 @@ export async function GET(request: NextRequest) {
     } else {
       filters.buyerId = session.user.id;
     }
-
-    if (status) filters.status = status;
-    if (type) filters.type = type;
+    if (status) filters.status = status as ClaimStatus;
+    if (type) filters.type = type as ClaimType;
     if (priority) filters.priority = priority;
 
     const result = await ClaimService.listClaims(filters);
@@ -259,7 +302,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[Claims API] List claims failed", { error });
+    logger.error("[Claims API] List claims failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to list claims",

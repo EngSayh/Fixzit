@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[billing/history] Error fetching invoices", { error });
+    logger.error("[billing/history] Error fetching invoices", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch billing history" },
       { status: 500 }

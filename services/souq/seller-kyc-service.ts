@@ -25,6 +25,21 @@ import {
 } from "@/server/models/souq/Seller";
 import { Types } from "mongoose";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { Config } from "@/lib/config/constants";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
 
 export interface IKYCCompanyInfo {
   businessName: string;
@@ -102,12 +117,14 @@ export interface IKYCBankDetails {
 
 export interface ISubmitKYCParams {
   sellerId: string;
+  orgId: string;
   step: "company_info" | "documents" | "bank_details";
   data: IKYCCompanyInfo | IKYCDocuments | IKYCBankDetails;
 }
 
 export interface IVerifyDocumentParams {
   sellerId: string;
+  orgId: string;
   documentType:
     | "commercialRegistration"
     | "vatCertificate"
@@ -172,29 +189,32 @@ class SellerKYCService {
    * Submit KYC information (multi-step)
    */
   async submitKYC(params: ISubmitKYCParams): Promise<void> {
-    const { sellerId, step, data } = params;
+    const { sellerId, orgId, step, data } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to submit KYC");
+    }
 
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : undefined;
     const seller =
       (sellerObjectId
-        ? await SouqSeller.findById(sellerObjectId)
-        : await SouqSeller.findById(sellerId)) ||
-      (await SouqSeller.findOne({ sellerId }));
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
     if (!seller) {
       throw new Error(`Seller not found for KYC submission: ${sellerId}`);
     }
 
     switch (step) {
       case "company_info":
-        await this.submitCompanyInfo(sellerId, data as IKYCCompanyInfo);
+        await this.submitCompanyInfo(sellerId, orgId, data as IKYCCompanyInfo);
         break;
       case "documents":
-        await this.submitDocuments(sellerId, data as IKYCDocuments);
+        await this.submitDocuments(sellerId, orgId, data as IKYCDocuments);
         break;
       case "bank_details":
-        await this.submitBankDetails(sellerId, data as IKYCBankDetails);
+        await this.submitBankDetails(sellerId, orgId, data as IKYCBankDetails);
         break;
       default:
         throw new Error(`Invalid KYC step: ${step}`);
@@ -206,9 +226,13 @@ class SellerKYCService {
    */
   private async submitCompanyInfo(
     sellerId: string,
+    orgId: string,
     data: IKYCCompanyInfo,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) {
       throw new Error("Seller not found");
     }
@@ -258,6 +282,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_company_info_received",
       data: { businessName: data.businessName },
     });
@@ -268,9 +293,13 @@ class SellerKYCService {
    */
   private async submitDocuments(
     sellerId: string,
+    orgId: string,
     data: IKYCDocuments,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) {
       throw new Error("Seller not found");
     }
@@ -313,6 +342,7 @@ class SellerKYCService {
     // Queue for admin review
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
       to: "kyc-review-team",
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped routing for review queue
       priority: "normal",
       message: `New KYC documents submitted by ${seller.businessName} (${sellerId})`,
     });
@@ -320,6 +350,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_documents_received",
       data: { businessName: seller.businessName },
     });
@@ -330,9 +361,13 @@ class SellerKYCService {
    */
   private async submitBankDetails(
     sellerId: string,
+    orgId: string,
     data: IKYCBankDetails,
   ): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) {
       throw new Error("Seller not found");
     }
@@ -365,6 +400,7 @@ class SellerKYCService {
     // Queue for final review
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
       to: "kyc-review-team",
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped routing for review queue
       priority: "high",
       message: `KYC submission complete for ${seller.businessName} (${sellerId}) - Ready for review`,
     });
@@ -372,6 +408,7 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_under_review",
       data: {
         businessName: seller.businessName,
@@ -384,21 +421,27 @@ class SellerKYCService {
    * Verify a specific document (Admin action)
    */
   async verifyDocument(params: IVerifyDocumentParams): Promise<void> {
-    const { sellerId, documentType, approved, verifiedBy, rejectionReason } =
+    const { sellerId, orgId, documentType, approved, verifiedBy, rejectionReason } =
       params;
+    if (!orgId) {
+      throw new Error("orgId is required to verify KYC document");
+    }
 
     let seller =
       (Types.ObjectId.isValid(sellerId)
-        ? await SouqSeller.findById(new Types.ObjectId(sellerId))
-        : await SouqSeller.findById(sellerId)) ||
-      (await SouqSeller.findOne({ sellerId }));
+        ? await SouqSeller.findOne({
+            _id: new Types.ObjectId(sellerId),
+            ...buildOrgFilter(orgId),
+          })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
 
     if (!seller) {
       const fallbackId = Types.ObjectId.isValid(sellerId)
         ? new Types.ObjectId(sellerId)
         : new Types.ObjectId();
       seller = await SouqSeller.findOneAndUpdate(
-        { _id: fallbackId },
+        { _id: fallbackId, ...buildOrgFilter(orgId) },
         {
           $setOnInsert: {
             sellerId: sellerId || `TEMP-${Date.now()}`,
@@ -466,12 +509,13 @@ class SellerKYCService {
     await seller.save();
 
     // Check if all required documents are verified
-    await this.checkAllDocumentsVerified(sellerId);
+    await this.checkAllDocumentsVerified(sellerId, orgId);
 
     // Notify seller
     if (!approved) {
       await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
         template: "kyc_document_rejected",
         data: {
           documentType,
@@ -485,8 +529,11 @@ class SellerKYCService {
   /**
    * Check if all documents are verified and approve KYC
    */
-  private async checkAllDocumentsVerified(sellerId: string): Promise<void> {
-    const seller = await SouqSeller.findById(sellerId);
+  private async checkAllDocumentsVerified(sellerId: string, orgId: string): Promise<void> {
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller || !seller.documents) return;
 
     const requiredDocs: DocumentKey[] = [
@@ -505,22 +552,25 @@ class SellerKYCService {
 
     if (allVerified && seller.kycStatus) {
       // Auto-approve KYC if all documents verified
-      await this.approveKYC(sellerId, "SYSTEM");
+      await this.approveKYC(sellerId, orgId, "SYSTEM");
     }
   }
 
   /**
    * Approve seller KYC (Admin action)
    */
-  async approveKYC(sellerId: string, approvedBy: string): Promise<void> {
+  async approveKYC(sellerId: string, orgId: string, approvedBy: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to approve KYC");
+    }
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : undefined;
     const seller =
       (sellerObjectId
-        ? await SouqSeller.findById(sellerObjectId)
-        : await SouqSeller.findById(sellerId)) ||
-      (await SouqSeller.findOne({ sellerId }));
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
     if (!seller) {
       throw new Error(`Seller not found for KYC approval: ${sellerId}`);
     }
@@ -532,7 +582,7 @@ class SellerKYCService {
     const targetId = seller._id;
 
     await SouqSeller.updateOne(
-      { _id: targetId },
+      { _id: targetId, ...buildOrgFilter(orgId) },
       {
         $set: {
           "kycStatus.status": "approved",
@@ -554,10 +604,11 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_approved",
       data: {
         businessName: seller.businessName,
-        sellerCentralUrl: "https://seller.fixzit.sa/dashboard",
+        sellerCentralUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/dashboard`,
       },
     });
 
@@ -567,6 +618,7 @@ class SellerKYCService {
       "send-email",
       {
         to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
         template: "seller_welcome_guide",
         data: { businessName: seller.businessName },
       },
@@ -579,22 +631,26 @@ class SellerKYCService {
    */
   async rejectKYC(
     sellerId: string,
+    orgId: string,
     rejectedBy: string,
     reason: string,
   ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to reject KYC");
+    }
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : undefined;
     let seller =
       (sellerObjectId
-        ? await SouqSeller.findById(sellerObjectId)
-        : await SouqSeller.findById(sellerId)) ||
-      (await SouqSeller.findOne({ sellerId }));
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
 
     if (!seller) {
       // Upsert stub to keep admin workflows resilient
       seller = await SouqSeller.findOneAndUpdate(
-        { _id: sellerObjectId ?? new Types.ObjectId(sellerId) },
+        { _id: sellerObjectId ?? new Types.ObjectId(sellerId), ...buildOrgFilter(orgId) },
         {
           $setOnInsert: {
             sellerId: sellerId || `TEMP-${Date.now()}`,
@@ -647,11 +703,12 @@ class SellerKYCService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
       template: "kyc_rejected",
       data: {
         businessName: seller.businessName,
         reason,
-        resubmitUrl: "https://seller.fixzit.sa/kyc/resubmit",
+        resubmitUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/kyc/resubmit`,
       },
     });
   }
@@ -659,7 +716,7 @@ class SellerKYCService {
   /**
    * Get KYC status for a seller
    */
-  async getKYCStatus(sellerId: string): Promise<{
+  async getKYCStatus(sellerId: string, orgId: string): Promise<{
     status: string;
     step: string;
     companyInfoComplete: boolean;
@@ -668,7 +725,14 @@ class SellerKYCService {
     documentsVerification?: Record<string, boolean>;
     canResubmit: boolean;
   }> {
-    const seller = await SouqSeller.findById(sellerId);
+    if (!orgId) {
+      throw new Error("orgId is required to fetch KYC status");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
     if (!seller) {
       throw new Error("Seller not found");
     }
@@ -703,7 +767,7 @@ class SellerKYCService {
   /**
    * Get pending KYC submissions (Admin view)
    */
-  async getPendingKYCSubmissions(): Promise<
+  async getPendingKYCSubmissions(orgId: string): Promise<
     Array<{
       sellerId: string;
       businessName: string;
@@ -712,8 +776,13 @@ class SellerKYCService {
       waitingDays: number;
     }>
   > {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch pending KYC submissions");
+    }
+
     const sellers = await SouqSeller.find({
       "kycStatus.status": { $in: ["in_review", "pending", "under_review"] },
+      ...buildOrgFilter(orgId),
     }).sort({ "kycStatus.submittedAt": 1 });
 
     return sellers.map((seller) => {
@@ -812,6 +881,7 @@ class SellerKYCService {
         "internal-notification",
         {
           to: "kyc-manager",
+          orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped escalation routing
           priority: "high",
           message: `KYC pending for 3+ days: ${seller.businessName} (${seller._id})`,
         },

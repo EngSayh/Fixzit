@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Building2, Home, Key, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface PropertyCounters {
   properties: {
@@ -17,24 +19,32 @@ interface PropertyCounters {
 }
 
 export default function PropertiesDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.properties");
   const [activeTab, setActiveTab] = useState("overview");
   const [counters, setCounters] = useState<PropertyCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const properties =
+          (data.properties as Partial<PropertyCounters["properties"]>) ?? {};
         setCounters({
-          properties: data.properties || {
-            total: 0,
-            vacant: 0,
-            occupied: 0,
-            occupancy_rate: 0,
+          properties: {
+            total: properties.total ?? 0,
+            vacant: properties.vacant ?? 0,
+            occupied: properties.occupied ?? 0,
+            occupancy_rate: properties.occupancy_rate ?? 0,
           },
         });
         setLoading(false);
@@ -44,7 +54,8 @@ export default function PropertiesDashboard() {
       }
     };
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [auto, orgId, status]);
 
   const tabs = [
     {

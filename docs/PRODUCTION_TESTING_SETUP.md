@@ -26,7 +26,7 @@ Copy `.env.test` and update with your real MongoDB connection:
 
 ```bash
 # .env.test
-ALLOW_OFFLINE_MONGODB=false
+ALLOW_OFFLINE_MONGODB=false   # accepts "true"/"1" to enable offline
 MONGODB_URI=mongodb://localhost:27017/fixzit_test
 BASE_URL=http://localhost:3000
 
@@ -249,7 +249,7 @@ For CI/CD environments without database access:
 
 ```bash
 # .env.test
-ALLOW_OFFLINE_MONGODB=true
+ALLOW_OFFLINE_MONGODB=true    # accepts "true"/"1" to enable offline
 ```
 
 **Warning:** Offline mode creates mock JWT sessions that:

@@ -8,16 +8,37 @@
  * - Refund processing
  */
 
-import { SouqRMA as RMA } from '@/server/models/souq/RMA';
-import { SouqOrder as Order } from '@/server/models/souq/Order';
-import type { IOrder } from '@/server/models/souq/Order';
-import { SouqListing as Listing } from '@/server/models/souq/Listing';
-import { inventoryService } from './inventory-service';
-import { fulfillmentService } from './fulfillment-service';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import { nanoid } from 'nanoid';
-import mongoose from 'mongoose';
-import { logger } from '@/lib/logger';
+import { SouqRMA as RMA } from "@/server/models/souq/RMA";
+import { SouqOrder as Order } from "@/server/models/souq/Order";
+import type { IOrder } from "@/server/models/souq/Order";
+import { SouqListing as Listing } from "@/server/models/souq/Listing";
+import { inventoryService } from "./inventory-service";
+import { fulfillmentService } from "./fulfillment-service";
+import { Config } from "@/lib/config/constants";
+import { addJob, QUEUE_NAMES, type QueueName } from "@/lib/queues/setup";
+import { nanoid } from "nanoid";
+import mongoose from "mongoose";
+import { logger } from "@/lib/logger";
+
+// Temporary helper to match orgId stored as string or ObjectId during migration
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { orgId };
+  }
+
+  return { orgId: { $in: candidates } };
+};
 
 // Helper type for accessing order properties safely
 interface OrderWithDates extends IOrder {
@@ -28,6 +49,7 @@ interface OrderWithDates extends IOrder {
 interface InitiateReturnParams {
   orderId: string;
   buyerId: string;
+  orgId: string;
   items: Array<{
     listingId: string;
     quantity: number;
@@ -41,6 +63,7 @@ interface ApproveReturnParams {
   rmaId: string;
   adminId: string;
   approvalNotes?: string;
+  orgId: string; // 🔒 Required for tenant isolation
 }
 
 interface InspectReturnParams {
@@ -50,6 +73,9 @@ interface InspectReturnParams {
   restockable: boolean;
   inspectionNotes?: string;
   inspectionPhotos?: string[];
+  orgId: string; // 🔒 Required for tenant isolation
+  session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
+  allowAutoRefund?: boolean; // 🔐 Optional: only true for system/finance flows
 }
 
 interface ProcessRefundParams {
@@ -57,6 +83,19 @@ interface ProcessRefundParams {
   refundAmount: number;
   refundMethod: 'original_payment' | 'wallet' | 'bank_transfer';
   processorId: string;
+  orgId: string; // 🔒 Required for tenant isolation
+  session?: mongoose.ClientSession; // 🔄 Optional session for transactional consistency
+}
+
+/**
+ * 🔄 TRANSACTION SAFETY: Notification payloads to be fired AFTER transaction commits.
+ * Prevents duplicate/phantom notifications on transaction retries.
+ */
+interface PendingNotification {
+  queue: QueueName;
+  jobType: string;
+  payload: Record<string, unknown>;
+  options?: { priority?: number };
 }
 
 class ReturnsService {
@@ -85,16 +124,22 @@ class ReturnsService {
   async checkEligibility(
     orderId: string,
     listingId: string,
+    orgId: string,
     preloadedOrder?: IOrder | null,
   ): Promise<{
     eligible: boolean;
     reason?: string;
     daysRemaining?: number;
   }> {
-    const order = preloadedOrder ?? (await this.findOrder(orderId));
+    if (!orgId) {
+      return { eligible: false, reason: 'Organization context required' };
+    }
+
+    const order = preloadedOrder ?? (await this.findOrder(orderId, orgId));
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
+    const orderOrgId = order.orgId ? order.orgId.toString() : undefined;
 
     if (order.status !== 'delivered') {
       return { eligible: false, reason: 'Order not yet delivered' };
@@ -114,10 +159,12 @@ class ReturnsService {
     }
 
     // Check if already returned
+    const orgScope = orderOrgId ? buildOrgFilter(orderOrgId) : buildOrgFilter(orgId);
     const existingRMA = await RMA.findOne({ 
       orderId: order._id.toString(), 
       'items.listingId': listingId,
-      status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] }
+      status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] },
+      ...orgScope,
     }).lean();
 
     if (existingRMA) {
@@ -134,12 +181,20 @@ class ReturnsService {
    * Initiate a return request
    */
   async initiateReturn(params: InitiateReturnParams): Promise<string> {
-    const { orderId, buyerId, items, buyerPhotos } = params;
+    const { orderId, buyerId, items, buyerPhotos, orgId } = params;
 
-    // Validate order
-    const order = await this.findOrder(orderId);
+    if (!orgId) {
+      throw new Error('orgId is required to initiate return');
+    }
+
+    // Validate order within tenant scope
+    const order = await this.findOrder(orderId, orgId);
     if (!order) {
       throw new Error('Order not found');
+    }
+    const orderOrgId = order.orgId ? order.orgId.toString() : undefined;
+    if (orderOrgId && orderOrgId !== orgId) {
+      throw new Error('Order does not belong to the provided organization');
     }
 
     if (order.customerId.toString() !== buyerId) {
@@ -150,7 +205,7 @@ class ReturnsService {
 
     // Validate eligibility for all items
     for (const item of items) {
-      const eligibility = await this.checkEligibility(orderId, item.listingId, order);
+      const eligibility = await this.checkEligibility(orderId, item.listingId, orgId, order);
       if (!eligibility.eligible) {
         throw new Error(`Item ${item.listingId} not eligible: ${eligibility.reason}`);
       }
@@ -189,6 +244,7 @@ class ReturnsService {
     // Create RMA
     const rma = await RMA.create({
       rmaId: `RMA-${nanoid(10)}`,
+      orgId,
       orderId: order._id.toString(),
       orderNumber: order.orderId,
       buyerId,
@@ -220,13 +276,14 @@ class ReturnsService {
     const allAutoApprove = items.every(item => autoApprovalReasons.includes(item.reason));
 
     if (allAutoApprove) {
-      await this.autoApprove(rma._id.toString());
+      await this.autoApprove({ rmaId: rma._id.toString(), orgId });
     }
 
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: sellerId.toString(),
+      orgId,
       template: 'return_initiated',
       data: { rmaId: rma._id.toString(), orderId, items }
     });
@@ -236,31 +293,42 @@ class ReturnsService {
 
   /**
    * Auto-approve return (for defective/damaged items)
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  private async autoApprove(rmaId: string): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  private async autoApprove({ rmaId, orgId }: { rmaId: string; orgId: string }): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for auto-approve');
+    }
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) return;
 
     await rma.approve('SYSTEM', 'Auto-approved: Defective or damaged item');
     
     // Generate return label
-    await this.generateReturnLabel(rmaId);
+    await this.generateReturnLabel(rmaId, orgId);
   }
 
   /**
    * Manually approve return (admin action)
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-approval.
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
   async approveReturn(params: ApproveReturnParams): Promise<void> {
-    const { rmaId, adminId, approvalNotes } = params;
+    const { rmaId, adminId, approvalNotes, orgId } = params;
+
+    if (!orgId) {
+      throw new Error('orgId is required for approve return');
+    }
 
     const now = new Date();
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔒 SECURITY: Always scope by orgId for tenant isolation
     const rma = await RMA.findOneAndUpdate(
       { 
-        _id: rmaId, 
+        _id: rmaId,
+        ...buildOrgFilter(orgId),  // 🔒 Tenant isolation (string/ObjectId safe)
         status: 'initiated'  // Atomic condition - prevents double-approval
       },
       { 
@@ -280,7 +348,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findById(rmaId).lean();
+      const existing = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -290,12 +358,13 @@ class ReturnsService {
     await rma.approve(adminId, approvalNotes);
     
     // Generate return label
-    await this.generateReturnLabel(rmaId);
+    await this.generateReturnLabel(rmaId, orgId);
 
     // Notify buyer
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: rma.buyerId.toString(),
+      orgId,
       template: 'return_approved',
       data: { rmaId, returnLabel: rma.shipping?.labelUrl }
     });
@@ -305,14 +374,21 @@ class ReturnsService {
    * Reject return request
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-rejection.
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async rejectReturn(rmaId: string, adminId: string, rejectionReason: string): Promise<void> {
+  async rejectReturn(rmaId: string, adminId: string, rejectionReason: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for reject return');
+    }
+
     const now = new Date();
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔒 SECURITY: Always scope by orgId for tenant isolation
     const rma = await RMA.findOneAndUpdate(
       { 
-        _id: rmaId, 
+        _id: rmaId,
+        ...buildOrgFilter(orgId),  // 🔒 Tenant isolation (string/ObjectId safe)
         status: 'initiated'  // Atomic condition - prevents double-rejection
       },
       { 
@@ -332,7 +408,7 @@ class ReturnsService {
     );
 
     if (!rma) {
-      const existing = await RMA.findById(rmaId).lean();
+      const existing = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -345,6 +421,7 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
       to: rma.buyerId.toString(),
+      orgId,
       template: 'return_rejected',
       data: { rmaId, reason: rejectionReason }
     });
@@ -352,18 +429,28 @@ class ReturnsService {
 
   /**
    * Generate return shipping label
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async generateReturnLabel(rmaId: string): Promise<{
+  async generateReturnLabel(rmaId: string, orgId: string): Promise<{
     trackingNumber: string;
     labelUrl: string;
     carrier: string;
   }> {
-    const rma = await RMA.findById(rmaId);
+    if (!orgId) {
+      throw new Error('orgId is required for generate return label');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
 
-    const order = await this.findOrder(rma.orderId);
+    // 🔒 SECURITY: Use RMA's orgId for tenant-scoped order lookup
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : undefined;
+    if (!rmaOrgId) {
+      throw new Error('orgId missing on RMA; cannot generate return label');
+    }
+    const order = await this.findOrder(rma.orderId, rmaOrgId);
     if (!order) {
       logger.error(
         "RMA return label generation failed: order not found",
@@ -372,25 +459,34 @@ class ReturnsService {
           rmaId: rma._id?.toString?.(),
           orderId: rma.orderId?.toString?.(),
           buyerId: rma.buyerId?.toString?.(),
+          orgId: rmaOrgId,
           metric: "returns.order_missing",
         },
       );
       throw new Error(`Order not found for RMA ${rma.orderId}`);
     }
     
-    // Get buyer's address from order
-    const _destination = order.shippingAddress;
-    
-    // Get seller's address (or warehouse for FBF)
-    const listing = await Listing.findById(rma.items[0].listingId);
+    const firstItem = Array.isArray(rma.items) ? rma.items[0] : undefined;
+    if (!firstItem?.listingId) {
+      throw new Error('RMA missing items; cannot generate return label');
+    }
+
+    // Get seller's address (or warehouse for FBF) with tenant isolation
+    const listing = await Listing.findOne({
+      _id: firstItem.listingId,
+      ...buildOrgFilter(rmaOrgId),
+    });
+    if (!listing) {
+      throw new Error("Listing not found for org; cannot generate return label");
+    }
     // warehouseLocation is a string field, not an address object
     const origin = {
-      name: 'Fixzit Returns Center',
-      street: '123 Warehouse St',
-      city: listing?.warehouseLocation || 'Riyadh',
-      state: 'Riyadh Province',
-      postalCode: '11564',
-      country: 'SA'
+      name: Config.returns.originName,
+      street: Config.returns.originStreet,
+      city: listing?.warehouseLocation || Config.returns.originCity,
+      state: Config.returns.originState,
+      postalCode: Config.returns.originPostalCode,
+      country: Config.returns.originCountry,
     };
 
     // Calculate total weight
@@ -419,15 +515,18 @@ class ReturnsService {
       : 0;
 
     // In production, this would call the actual carrier API
+    const baseLabelUrl =
+      (Config.returns.labelBaseUrl || Config.app.url || "http://localhost:3000").replace(/\/+$/, "");
     const label = {
       trackingNumber: `RET-${Date.now()}-${rma._id.toString().slice(-6).toUpperCase()}`,
-      labelUrl: `https://returns.fixzit.sa/labels/${rma._id}.pdf`,
+      labelUrl: `${baseLabelUrl}/returns/labels/${rma._id}.pdf`,
       carrier: splRate.carrier
     };
 
-    // Update RMA with label info
+    // Update RMA status + timeline using model helper, then persist shipping cost
+    rma.generateLabel(label.carrier, label.trackingNumber, label.labelUrl);
     rma.shipping = {
-      ...(rma.shipping || { shippingCost, paidBy: 'seller' }),
+      ...(rma.shipping || { paidBy: "seller" }),
       shippingCost,
       carrier: label.carrier,
       trackingNumber: label.trackingNumber,
@@ -440,9 +539,14 @@ class ReturnsService {
 
   /**
    * Schedule pickup for return
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async schedulePickup(rmaId: string, pickupDate: Date, timeSlot: 'morning' | 'afternoon' | 'evening'): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  async schedulePickup(rmaId: string, pickupDate: Date, timeSlot: 'morning' | 'afternoon' | 'evening', orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for schedule pickup');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -464,15 +568,21 @@ class ReturnsService {
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-sms', {
       type: 'sms',
       to: rma.buyerId.toString(),
+      orgId, // 🔐 Tenant-specific routing
       message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`
     });
   }
 
   /**
    * Update return tracking (called by carrier webhook)
+   * 🔒 SECURITY: orgId required for tenant isolation
    */
-  async updateTracking(rmaId: string, status: string, location?: string): Promise<void> {
-    const rma = await RMA.findById(rmaId);
+  async updateTracking(rmaId: string, status: string, location: string | undefined, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for update tracking');
+    }
+
+    const rma = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
     if (!rma) {
       throw new Error('RMA not found');
     }
@@ -502,6 +612,7 @@ class ReturnsService {
         await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
           type: 'internal',
           to: 'inspection-team',
+          orgId: rma.orgId?.toString(), // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
           message: `RMA ${rmaId} received and ready for inspection`
         });
       }
@@ -513,16 +624,111 @@ class ReturnsService {
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent concurrent inspections.
    * Only one inspection can succeed for an RMA in 'received' status.
+   * 🔐 SECURITY: orgId required for tenant isolation
+   * 
+   * TRANSACTION: Wraps RMA update, inventory adjustment, and refund in a MongoDB session
+   * to ensure atomic rollback if any step fails. Prevents stuck "inspected/processing" states.
+   * 
+   * 🔄 TRANSACTION SAFETY: Notifications are collected during transaction and fired ONLY after commit.
+   * This prevents duplicate/phantom notifications on transaction retries or aborts.
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
-    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos } = params;
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, allowAutoRefund = false } = params;
+
+    if (!orgId) {
+      throw new Error('orgId is required for inspect return');
+    }
 
     const now = new Date();
+    
+    // Start a MongoDB session for transactional consistency
+    const session = await mongoose.startSession();
+    
+    // 🔄 TRANSACTION SAFETY: Collect notifications to fire after successful commit
+    let pendingNotifications: PendingNotification[] = [];
+    
+    try {
+      await session.withTransaction(async () => {
+        pendingNotifications = await this.executeInspection({
+          rmaId,
+          inspectorId,
+          condition,
+          restockable,
+          inspectionNotes,
+          inspectionPhotos,
+          orgId,
+          now,
+          session,
+          allowAutoRefund,
+        });
+      });
+      
+      // 🔄 TRANSACTION SAFETY: Fire notifications ONLY after successful commit
+      await this.fireNotifications(pendingNotifications);
+    } catch (error) {
+      // Fallback for environments without replica set (e.g., unit tests using standalone Mongo)
+      if (error instanceof Error && error.message.includes('Transaction numbers are only allowed')) {
+        pendingNotifications = await this.executeInspection({
+          rmaId,
+          inspectorId,
+          condition,
+          restockable,
+          inspectionNotes,
+          inspectionPhotos,
+          orgId,
+          now,
+          allowAutoRefund,
+          session: undefined,
+        });
+        // Fire notifications after non-transactional execution
+        await this.fireNotifications(pendingNotifications);
+      } else {
+        throw error;
+      }
+    } finally {
+      await session.endSession();
+    }
+  }
+  
+  /**
+   * 🔄 TRANSACTION SAFETY: Fire collected notifications after transaction commits.
+   * Makes notification delivery idempotent-safe with respect to transaction retries.
+   * Public so routes can call this after getting notifications from processRefund.
+   */
+  async fireNotifications(notifications: PendingNotification[]): Promise<void> {
+    for (const notification of notifications) {
+      await addJob(notification.queue, notification.jobType, notification.payload, notification.options);
+    }
+  }
+  
+  /**
+   * Internal: Execute inspection within a transaction session
+   * Returns pending notifications to be fired after transaction commits
+   */
+  private async executeInspection(params: {
+    rmaId: string;
+    inspectorId: string;
+    condition: 'like_new' | 'good' | 'acceptable' | 'damaged' | 'defective';
+    restockable: boolean;
+    inspectionNotes?: string;
+    inspectionPhotos?: string[];
+    orgId: string;
+    now: Date;
+    session?: mongoose.ClientSession;
+    allowAutoRefund?: boolean;
+  }): Promise<PendingNotification[]> {
+    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos, orgId, now, session, allowAutoRefund } = params;
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications to return (not fire directly)
+    const pendingNotifications: PendingNotification[] = [];
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // 🔐 SECURITY: orgId scoping ensures tenant isolation
+    // 🔄 TRANSACTION: Uses session for atomic rollback
     const rma = await RMA.findOneAndUpdate(
       { 
         _id: rmaId, 
+        ...buildOrgFilter(orgId),  // 🔐 Tenant isolation (string/ObjectId safe)
         status: 'received'  // Atomic condition - prevents double-inspection
       },
       { 
@@ -538,11 +744,12 @@ class ReturnsService {
           }
         }
       },
-      { new: true }
+      session ? { new: true, session } : { new: true }
     );
 
     if (!rma) {
-      const existing = await RMA.findById(rmaId).lean();
+      const existingQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
+      const existing = session ? await existingQuery.session(session).lean() : await existingQuery.lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -587,31 +794,35 @@ class ReturnsService {
         photosUrls: inspectionPhotos,
       };
       rmaDoc.status = 'inspected';
+      const inspectionRefundStatus = allowAutoRefund ? 'processing' : 'pending';
       if (rmaDoc.refund) {
-        rmaDoc.refund.status = 'processing';
+        rmaDoc.refund.status = inspectionRefundStatus;
       } else {
         rmaDoc.refund = {
-          status: 'processing',
+          status: inspectionRefundStatus,
           amount: 0,
           method: 'original_payment',
         };
       }
     }
     // Save the updated RMA document
-    await rma.save();
+    await rma.save(session ? { session } : undefined);
 
     // Always adjust inventory so unsellable units are tracked correctly.
+    // 🔐 SECURITY: Pass orgId for tenant-scoped inventory lookup/update
     for (const item of rma.items) {
       await inventoryService.processReturn({
         listingId: item.listingId.toString(),
         rmaId,
         quantity: item.quantity,
         condition: restockable ? 'sellable' : 'unsellable',
+        orgId,  // Ensures tenant isolation in inventory updates
+        session,
       });
     }
 
     // Calculate refund amount
-    const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable);
+    const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable, orgId, session);
 
     // If nothing is refundable, close the RMA to avoid stuck "inspected" states
     if (refundAmount <= 0) {
@@ -635,34 +846,96 @@ class ReturnsService {
         transactionId,
         status: 'completed',
       };
-      await rma.save();
-      return;
+      await rma.save(session ? { session } : undefined);
+      return pendingNotifications;
     }
     
-    // Auto-process refund for approved returns
-    if (refundAmount > 0) {
-      await this.processRefund({
+    // Auto-process refund for approved returns (within transaction)
+    // 🔄 TRANSACTION SAFETY: Collect refund notifications to merge with inspection notifications
+    if (refundAmount > 0 && allowAutoRefund) {
+      const refundNotifications = await this.processRefund({
         rmaId,
         refundAmount,
         refundMethod: 'original_payment',
-        processorId: inspectorId
+        processorId: inspectorId,
+        orgId,
+        session,
       });
+      pendingNotifications.push(...refundNotifications);
     }
+    
+    return pendingNotifications;
   }
 
   /**
    * Calculate refund amount based on inspection
+   * 
+   * Public to allow server-side validation in refund routes.
+   * Prevents over-refunds by computing max allowed amount from inspection results.
    */
-  private async calculateRefundAmount(rmaId: string, condition: string, restockable: boolean): Promise<number> {
-    const rma = await RMA.findById(rmaId);
+  public async calculateRefundAmount(
+    rmaId: string,
+    condition: string,
+    restockable: boolean,
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
+    if (!orgId) {
+      return 0;
+    }
+
+    const rmaQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
+    const rma = session ? await rmaQuery.session(session) : await rmaQuery;
     if (!rma) return 0;
 
-    const order = await this.findOrder(rma.orderId);
+    // 🔒 SECURITY: Use RMA's orgId for tenant-scoped order lookup
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : undefined;
+    if (!rmaOrgId) {
+      return 0;
+    }
+    // 🔄 TRANSACTION: Pass session for consistent snapshot within transaction
+    const order = await this.findOrder(rma.orderId, rmaOrgId, session);
     if (!order) return 0;
-    
+
+    return this.computeRefundAmount(order, rma.items, condition, restockable);
+  }
+
+  /**
+   * Derive refundable amount directly from an RMA document (uses recorded inspection data).
+   */
+  private async calculateRefundAmountFromRmaDoc(
+    rma: {
+      orderId: mongoose.Types.ObjectId | string;
+      items: Array<{ listingId: mongoose.Types.ObjectId | string; quantity: number }>;
+      inspection?: { condition?: string; restockable?: boolean };
+      orgId?: string | mongoose.Types.ObjectId;
+    },
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
+    if (!orgId) {
+      return 0;
+    }
+    const rmaOrgId = rma.orgId ? rma.orgId.toString() : orgId;
+    const condition = rma.inspection?.condition || 'good';
+    const restockable = rma.inspection?.restockable ?? true;
+    const order = await this.findOrder(rma.orderId.toString(), rmaOrgId, session);
+    if (!order) return 0;
+    return this.computeRefundAmount(order, rma.items, condition, restockable);
+  }
+
+  /**
+   * Pure calculation for refund amount based on order + RMA items.
+   */
+  private computeRefundAmount(
+    order: IOrder,
+    rmaItems: Array<{ listingId: mongoose.Types.ObjectId | string; quantity: number }>,
+    condition: string,
+    restockable: boolean
+  ): number {
     // Base refund: original item price
     let refundAmount = 0;
-    for (const item of rma.items) {
+    for (const item of rmaItems) {
       const orderItem = order.items.find((oi) =>
         oi.listingId.toString() === item.listingId.toString()
       );
@@ -692,23 +965,54 @@ class ReturnsService {
   }
 
   /**
+   * Public helper to fetch the refundable amount for an RMA with org scoping.
+   */
+  async getRefundableAmount(
+    rmaId: string,
+    orgId: string,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch refundable amount');
+    }
+    const rmaQuery = RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) });
+    const rma = session ? await rmaQuery.session(session) : await rmaQuery;
+    if (!rma) {
+      throw new Error('RMA not found');
+    }
+    return this.calculateRefundAmountFromRmaDoc(rma, orgId, session);
+  }
+
+  /**
    * Process refund
    * 
    * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-processing.
    * The status transition from 'inspected' to 'refund_processing' is atomic,
    * so concurrent calls will fail safely instead of processing twice.
+   * 
+   * 🔄 TRANSACTION: Supports optional session for transactional consistency with inspection flow.
+   * 🔄 TRANSACTION SAFETY: Returns notifications to be fired after transaction commits.
    */
-  async processRefund(params: ProcessRefundParams): Promise<void> {
-    const { rmaId, refundAmount, refundMethod, processorId } = params;
+  async processRefund(params: ProcessRefundParams): Promise<PendingNotification[]> {
+    const { rmaId, refundAmount, refundMethod, processorId, orgId, session } = params;
+
+    if (!orgId) {
+      throw new Error('orgId is required to process refund');
+    }
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications to return (not fire directly)
+    const pendingNotifications: PendingNotification[] = [];
 
     const now = new Date();
     const transactionId = `REF-${Date.now()}-${rmaId.slice(-6)}`;
 
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
     // If status is not 'inspected', the update returns null (already processed or wrong state)
+    // 🔄 TRANSACTION: Uses session if provided for atomic rollback
     const rma = await RMA.findOneAndUpdate(
       { 
-        _id: rmaId, 
+        _id: rmaId,
+        ...buildOrgFilter(orgId),
         status: 'inspected'  // Atomic condition - prevents double-processing
       },
       { 
@@ -727,12 +1031,14 @@ class ReturnsService {
           }
         }
       },
-      { new: true }
+      { new: true, session }
     );
 
     if (!rma) {
       // Either RMA doesn't exist or it's not in 'inspected' status (already processing/completed)
-      const existing = await RMA.findById(rmaId).lean();
+      const existing = session 
+        ? await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).session(session).lean()
+        : await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
       if (!existing) {
         throw new Error('RMA not found');
       }
@@ -740,8 +1046,18 @@ class ReturnsService {
       throw new Error(`Cannot refund RMA: already in status '${existing.status}' (expected 'inspected')`);
     }
 
+    // Validate/cap refund amount against computed maximum based on inspection + order
+    const allowedRefundAmount = await this.calculateRefundAmountFromRmaDoc(rma, orgId, session);
+    if (allowedRefundAmount <= 0) {
+      throw new Error('No refundable amount available for this RMA');
+    }
+    if (refundAmount > allowedRefundAmount) {
+      throw new Error(`Refund amount exceeds allowed maximum (${allowedRefundAmount})`);
+    }
+    const finalRefundAmount = refundAmount;
+
     const refundData = {
-      amount: refundAmount,
+      amount: finalRefundAmount,
       method: refundMethod,
       processedBy: processorId,
       processedAt: now,
@@ -769,58 +1085,90 @@ class ReturnsService {
       rmaRefundDoc.status = 'completed';
       rmaRefundDoc.completedAt = refundData.processedAt;
     }
-    // Save the final completed state
-    await rma.save();
+    // Save the final completed state (within transaction if session provided)
+    await rma.save(session ? { session } : undefined);
 
-    // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
-      to: rma.buyerId.toString(),
-      template: 'refund_processed',
-      data: { 
-        rmaId, 
-        amount: refundAmount, 
-        method: refundMethod,
-        estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
-      }
-    });
-
-    // Notify seller (if restocking fee applied)
-    if (rma.inspection?.restockable === false) {
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    const buyerNotification: PendingNotification = {
+      queue: QUEUE_NAMES.NOTIFICATIONS,
+      jobType: 'send-email',
+      payload: { 
         type: 'email',
-        to: rma.sellerId.toString(),
-        template: 'return_completed',
-        data: { rmaId, restockingFee: refundAmount * 0.25 }
-      });
+        to: rma.buyerId.toString(),
+        orgId,
+        template: 'refund_processed',
+        data: { 
+          rmaId, 
+          amount: finalRefundAmount, 
+          method: refundMethod,
+          estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
+        }
+      }
+    };
+
+    // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
+    pendingNotifications.push(buyerNotification);
+
+    if (rma.inspection?.restockable === false) {
+      const sellerNotification: PendingNotification = {
+        queue: QUEUE_NAMES.NOTIFICATIONS,
+        jobType: 'send-email',
+        payload: {
+          type: 'email',
+          to: rma.sellerId.toString(),
+          orgId,
+          template: 'return_completed',
+          data: { rmaId, restockingFee: finalRefundAmount * 0.25 }
+        }
+      };
+
+      // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
+      pendingNotifications.push(sellerNotification);
     }
+
+    return pendingNotifications;
   }
 
   /**
    * Get return statistics for a seller
    */
-  async getSellerReturnStats(sellerId: string, period: 'week' | 'month' | 'year' = 'month'): Promise<{
+  async getSellerReturnStats(
+    sellerId: string,
+    orgId: string,
+    period: 'week' | 'month' | 'year' = 'month',
+  ): Promise<{
     totalReturns: number;
     returnRate: number;
     topReasons: Array<{ reason: string; count: number }>;
     avgRefundAmount: number;
     restockableRate: number;
   }> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch seller return stats');
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+      throw new Error('Invalid sellerId');
+    }
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
+    // 💡 OPTIMIZATION: Use .lean() for read-only stats query
     const returns = await RMA.find({
       sellerId: sellerId.toString(),
-      createdAt: { $gte: startDate }
-    });
+      createdAt: { $gte: startDate },
+      ...buildOrgFilter(orgId),
+    }).lean();
 
     const totalReturns = returns.length;
 
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
-      'items.sellerId': new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       status: 'delivered',
-      deliveredAt: { $gte: startDate }
+      deliveredAt: { $gte: startDate },
+      ...buildOrgFilter(orgId),
     });
 
     const returnRate = totalOrders > 0 ? (totalReturns / totalOrders) * 100 : 0;
@@ -865,7 +1213,11 @@ class ReturnsService {
   /**
    * Get buyer's return history
    */
-  async getBuyerReturnHistory(buyerId: string): Promise<Array<{
+  async getBuyerReturnHistory(
+    buyerId: string,
+    orgId: string,
+    options?: { page?: number; limit?: number },
+  ): Promise<Array<{
     rmaId: string;
     orderId: string;
     status: string;
@@ -873,33 +1225,68 @@ class ReturnsService {
     items: number;
     refundAmount?: number;
   }>> {
-    const returns = await RMA.find({ 
-      buyerId: new mongoose.Types.ObjectId(buyerId) 
+    if (!orgId) {
+      throw new Error('orgId is required to fetch buyer return history');
+    }
+
+    const page = options?.page && options.page > 0 ? options.page : 1;
+    const limit = options?.limit && options.limit > 0 ? Math.min(options.limit, 200) : 50;
+    const skip = (page - 1) * limit;
+
+    // 🔐 NOTE: buyerId is stored as string in RMA schema, not ObjectId
+    // 💡 OPTIMIZATION: Use .lean() and projection for read-only query
+    const returns = await RMA.find({
+      buyerId: buyerId.toString(),
+      ...buildOrgFilter(orgId),
     })
+      .select({ orderId: 1, status: 1, createdAt: 1, items: 1, refund: 1 })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     return returns.map((rma: unknown) => {
-      const r = rma as { _id: { toString(): string }; orderId: { toString(): string }; status: string; createdAt: Date; items: unknown[]; refund?: { amount?: number } };
+      const r = rma as {
+        _id: { toString(): string };
+        orderId: { toString(): string };
+        status: string;
+        createdAt: Date;
+        items: unknown[];
+        refund?: { amount?: number };
+      };
       return {
         rmaId: r._id.toString(),
         orderId: r.orderId.toString(),
         status: r.status,
         createdAt: r.createdAt,
         items: r.items.length,
-      refundAmount: r.refund?.amount
-    };
-  });
+        refundAmount: r.refund?.amount,
+      };
+    });
   }
 
-  private async findOrder(orderId: string): Promise<IOrder | null> {
+  /**
+   * Find order with mandatory org scoping.
+   * 🔒 SECURITY: orgId is required to prevent cross-tenant reads.
+   */
+  private async findOrder(orderId: string, orgId: string, session?: mongoose.ClientSession): Promise<IOrder | null> {
+    if (!orgId) {
+      throw new Error('orgId is required to find order');
+    }
+
+    // Build base query with orderId + orgId for tenant isolation (supports string/ObjectId)
+    const orgFilter = buildOrgFilter(orgId);
+    const baseQuery: Record<string, unknown> = { ...orgFilter };
+    
     if (mongoose.Types.ObjectId.isValid(orderId)) {
-      const matchByObjectId = await Order.findById(orderId);
+      const matchByObjectIdQuery = Order.findOne({ _id: orderId, ...baseQuery });
+      const matchByObjectId = session ? await matchByObjectIdQuery.session(session) : await matchByObjectIdQuery;
       if (matchByObjectId) {
         return matchByObjectId;
       }
     }
-    return Order.findOne({ orderId });
+    const matchByOrderIdQuery = Order.findOne({ orderId, ...baseQuery });
+    return session ? matchByOrderIdQuery.session(session) : matchByOrderIdQuery;
   }
 
   private mapReturnReason(
@@ -925,21 +1312,33 @@ class ReturnsService {
   /**
    * Background job: Auto-escalate pending returns
    * Escalate returns that haven't been reviewed within 48 hours
+   * 
    */
-  async autoEscalatePendingReturns(): Promise<number> {
+  async autoEscalatePendingReturns(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to auto-escalate pending returns');
+    }
+
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
     
-    const pendingReturns = await RMA.find({
+    const query: Record<string, unknown> = {
       status: 'initiated',
-      createdAt: { $lt: twoDaysAgo }
-    });
+      createdAt: { $lt: twoDaysAgo },
+      ...buildOrgFilter(orgId),
+    };
+
+    logger.info(`[ReturnsService] Auto-escalating pending returns for org ${orgId}`);
+
+    // 💡 OPTIMIZATION: Use .lean() since we only read for notifications
+    const pendingReturns = await RMA.find(query).lean();
 
     let escalated = 0;
     for (const rma of pendingReturns) {
-      // Notify admin team
+      // Notify admin team with org context for proper multi-tenant routing
       await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
         type: 'internal',
         to: 'admin-team',
+        orgId,  // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
         priority: 'high',
         message: `RMA ${rma._id} pending for 48+ hours - requires attention`
       }, { priority: 2 });
@@ -955,19 +1354,31 @@ class ReturnsService {
    * 
    * RACE CONDITION FIX: Uses atomic updateMany to mark RMAs as 'auto_processing'
    * before iterating, preventing concurrent job runs from processing the same RMAs.
+   * 
    */
-  async autoCompleteReceivedReturns(): Promise<number> {
+  async autoCompleteReceivedReturns(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to auto-complete returns');
+    }
+
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const jobId = `auto-complete-${Date.now()}`;  // Unique job identifier for tracking
+
+    // Build query with optional orgId scoping (string/ObjectId safe)
+    const baseOrgFilter = buildOrgFilter(orgId);
+    const baseQuery: Record<string, unknown> = {
+      status: 'received',
+      updatedAt: { $lt: sevenDaysAgo },
+      autoProcessingJobId: { $exists: false },  // Not already claimed by another job
+      ...baseOrgFilter,
+    };
+    
+    logger.info(`[ReturnsService] Auto-completing received returns for org ${orgId}`);
 
     // ATOMIC BATCH CLAIM: Mark eligible RMAs as being processed by this job instance
     // This prevents concurrent job runs from picking up the same RMAs
     const claimResult = await RMA.updateMany(
-      {
-        status: 'received',
-        updatedAt: { $lt: sevenDaysAgo },
-        autoProcessingJobId: { $exists: false }  // Not already claimed by another job
-      },
+      baseQuery,
       {
         $set: { autoProcessingJobId: jobId }
       }
@@ -979,7 +1390,8 @@ class ReturnsService {
 
     // Now fetch only the RMAs claimed by this job instance
     const receivedReturns = await RMA.find({
-      autoProcessingJobId: jobId
+      autoProcessingJobId: jobId,
+      ...baseOrgFilter,
     });
 
     let completed = 0;
@@ -993,37 +1405,66 @@ class ReturnsService {
           await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
             type: 'internal',
             to: 'inspection-team',
+            orgId,  // 🔐 SECURITY: Include orgId for tenant-scoped notification routing
             priority: 'medium',
             message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
           }, { priority: 3 });
           
           // Clear the job claim so it can be picked up by manual review
+          const resetOrgFilter = buildOrgFilter(orgId);
           await RMA.updateOne(
-            { _id: rma._id },
+            { _id: rma._id, ...resetOrgFilter },
             { $unset: { autoProcessingJobId: 1 } }
           );
           continue;
         }
 
         // Auto-inspect as "good" condition, restockable
+        // 🔐 Pass orgId from the RMA record for tenant isolation
+        const rmaOrgIdRaw = (rma as { orgId?: string | mongoose.Types.ObjectId }).orgId || orgId;
+        const rmaOrgId = rmaOrgIdRaw ? rmaOrgIdRaw.toString() : undefined;
+        if (!rmaOrgId) {
+          logger.error(`[ReturnsService] Cannot auto-inspect RMA ${rma._id}: missing orgId`);
+          await RMA.updateOne(
+            { _id: rma._id, ...baseOrgFilter },
+            { $unset: { autoProcessingJobId: 1 } }
+          );
+          continue;
+        }
+        
         await this.inspectReturn({
           rmaId: rma._id.toString(),
           inspectorId: 'SYSTEM',
           condition: 'good',
           restockable: true,
-          inspectionNotes: 'Auto-inspected after 7 days - assumed good condition'
+          inspectionNotes: 'Auto-inspected after 7 days - assumed good condition',
+          orgId: rmaOrgId,
         });
+
+        // Queue finance review task to ensure manual refund processing after auto-inspection
+        await addJob(QUEUE_NAMES.REFUNDS, 'finance-review', {
+          rmaId: rma._id.toString(),
+          orgId: rmaOrgId,
+        });
+
+        // Notify finance/internal to process refund manually (no auto-refund in auto-complete flow)
+        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+          type: 'internal',
+          to: 'finance-team',
+          orgId: rmaOrgId,
+          message: `RMA ${rma._id} auto-inspected; refund requires finance review`,
+        }, { priority: 2 });
         
         // Clear the job claim on success
         await RMA.updateOne(
-          { _id: rma._id },
+          { _id: rma._id, ...baseOrgFilter },
           { $unset: { autoProcessingJobId: 1 } }
         );
         completed++;
       } catch (error) {
         // Clear the job claim on error so it can be retried
         await RMA.updateOne(
-          { _id: rma._id },
+          { _id: rma._id, ...baseOrgFilter },
           { $unset: { autoProcessingJobId: 1 } }
         );
         // Log but continue processing other RMAs

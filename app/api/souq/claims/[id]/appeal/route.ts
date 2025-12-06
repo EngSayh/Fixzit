@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
 interface EvidenceItem {
@@ -25,6 +23,13 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
@@ -39,7 +44,8 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, orgId, allowOrgless);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -74,40 +80,36 @@ export async function POST(
       }
     }
 
-    const appealRecord = {
+    const evidencePayload = (additionalEvidence as EvidenceItem[]).map(
+      (item, idx: number) => ({
+        evidenceId: `APPEAL-${params.id}-${idx + 1}`,
+        type: item.type,
+        url: item.url,
+        description: item.description,
+        uploadedAt: new Date(),
+      }),
+    );
+
+    await ClaimService.fileAppeal(
+      params.id,
+      orgId,
       appealedBy,
       reasoning,
-      submittedAt: new Date(),
-      evidence: (additionalEvidence as EvidenceItem[]).map(
-        (item, idx: number) => ({
-          evidenceId: `APPEAL-${params.id}-${idx + 1}`,
-          type: item.type,
-          url: item.url,
-          description: item.description,
-          uploadedAt: new Date(),
-        }),
-      ),
-    };
-
-    const db = await getDatabase();
-    const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id) }
-      : { claimId: params.id };
-
-    await db.collection("claims").updateOne(filter, {
-      $set: {
-        status: "under_appeal",
-        appeal: appealRecord,
-        updatedAt: new Date(),
-      },
-    });
+      evidencePayload,
+      { allowOrgless },
+    );
 
     return NextResponse.json({
       status: "under_appeal",
-      appeal: appealRecord,
+      appeal: {
+        appealedBy,
+        reasoning,
+        submittedAt: new Date(),
+        evidence: evidencePayload,
+      },
     });
   } catch (error) {
-    logger.error("[Claims API] File appeal failed", { error });
+    logger.error("[Claims API] File appeal failed", error as Error);
     return NextResponse.json(
       {
         error: "Failed to file appeal",

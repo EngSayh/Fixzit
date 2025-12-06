@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    logger.error("[POST /api/souq/reviews/[id]/report]", { error });
+    logger.error("[POST /api/souq/reviews/[id]/report]", error as Error);
     return NextResponse.json(
       { error: "Failed to report review" },
       { status: 500 },

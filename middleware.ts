@@ -357,7 +357,7 @@ export async function middleware(request: NextRequest) {
       "/aqar": `
         <html><body>
           <h1>Aqar</h1>
-          <a href="/aqar/list">Properties</a>
+          <a href="/aqar/properties">Properties</a>
         </body></html>
       `,
       "/souq/catalog": `

@@ -9,28 +9,20 @@
  * Run with: node scripts/fix-workorder-index.js
  */
 
-const mongoose = require("mongoose");
-require("dotenv").config();
+require("dotenv/config");
+require("tsx/register");
+
+const { connectToDatabase, disconnectFromDatabase } = require("../lib/mongodb-unified.ts");
+const { COLLECTIONS, createIndexes } = require("../lib/db/collections.ts");
 
 async function fixWorkOrderIndex() {
   console.log("🔧 Starting WorkOrder Index Migration...");
 
   try {
-    // Connect to MongoDB
-    const MONGODB_URI = process.env.MONGODB_URI;
-    if (!MONGODB_URI) {
-      throw new Error("MONGODB_URI environment variable is required");
-    }
-
-    console.log("🔗 Connecting to MongoDB...");
-    await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("✅ Connected to MongoDB");
-
+    // Connect to MongoDB using the shared unified connector
+    const mongoose = await connectToDatabase();
     const db = mongoose.connection.db;
-    const collection = db.collection("workorders");
+    const collection = db.collection(COLLECTIONS.WORK_ORDERS);
 
     // Step 1: List existing indexes
     console.log("📋 Checking existing indexes...");
@@ -40,42 +32,51 @@ async function fixWorkOrderIndex() {
       indexes.map((idx) => idx.name),
     );
 
-    // Step 2: Drop problematic workOrderNumber_1 index if it exists
+    // Step 2: Drop legacy/problematic indexes so canonical org-scoped index can be recreated
+    const legacyIndexes = [
+      "workOrderNumber_1",
+      "workorders_orgId_workOrderNumber_unique",
+      "workOrderNumber_partial_unique",
+    ];
     try {
-      await collection.dropIndex("workOrderNumber_1");
-      console.log("✅ Dropped problematic workOrderNumber_1 index");
-    } catch (error) {
-      if (error.code === 27) {
-        // Index not found
-        console.log("ℹ️ workOrderNumber_1 index not found (already dropped)");
-      } else {
-        console.log("⚠️ Error dropping index:", error.message);
+      for (const name of legacyIndexes) {
+        try {
+          await collection.dropIndex(name);
+          console.log(`✅ Dropped legacy index: ${name}`);
+        } catch (error) {
+          if (error.code === 27 || /index not found/i.test(error.message)) {
+            console.log(`ℹ️ Index not found (already dropped): ${name}`);
+          } else {
+            console.log(`⚠️ Error dropping index ${name}:`, error.message);
+          }
+        }
       }
+    } catch (error) {
+      console.log("⚠️ Error while dropping legacy indexes:", error.message);
     }
 
-    // Step 3: Create partial unique index for workOrderNumber
-    // This excludes null and undefined values from uniqueness constraint
-    console.log("🔨 Creating partial unique index...");
+    // Step 3: Recreate canonical org-scoped unique index (matches createIndexes definition)
+    console.log("🔨 Creating org-scoped unique index for workOrderNumber...");
     await collection.createIndex(
-      { workOrderNumber: 1 },
+      { orgId: 1, workOrderNumber: 1 },
       {
         unique: true,
-        partialFilterExpression: {
-          workOrderNumber: {
-            $type: "string",
-          },
-        },
-        name: "workOrderNumber_partial_unique",
+        background: true,
+        name: "workorders_orgId_workOrderNumber_unique",
+        partialFilterExpression: { orgId: { $exists: true }, workOrderNumber: { $type: "string" } },
       },
     );
-    console.log(
-      "✅ Created partial unique index: workOrderNumber_partial_unique",
-    );
+    console.log("✅ Created index: workorders_orgId_workOrderNumber_unique");
 
-    // Step 4: Verify the new index
+    // Step 4: Run global index creation to ensure all canonical indexes are present
+    console.log("🧭 Ensuring all canonical indexes via createIndexes()");
+    await createIndexes();
+    console.log("✅ Canonical indexes ensured");
+
+    // Step 5: Verify the new index
     const newIndexes = await collection.indexes();
     const partialIndex = newIndexes.find(
-      (idx) => idx.name === "workOrderNumber_partial_unique",
+      (idx) => idx.name === "workorders_orgId_workOrderNumber_unique",
     );
     if (partialIndex) {
       console.log("✅ Verification: New index created successfully");
@@ -84,23 +85,17 @@ async function fixWorkOrderIndex() {
       console.log("❌ Verification failed: New index not found");
     }
 
-    // Step 5: Clean up any duplicate null workOrderNumbers
-    console.log("🧹 Cleaning up documents with null workOrderNumber...");
-    const result = await collection.updateMany(
-      { workOrderNumber: null },
-      { $unset: { workOrderNumber: "" } },
-    );
-    console.log(
-      `✅ Cleaned up ${result.modifiedCount} documents with null workOrderNumber`,
-    );
-
-    console.log("🎉 WorkOrder Index Migration completed successfully!");
+    console.log("🎉 WorkOrder Index Migration completed successfully and aligned with STRICT v4.1");
   } catch (error) {
     console.error("❌ Migration failed:", error);
     process.exit(1);
   } finally {
     // Close connection
-    await mongoose.connection.close();
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
     console.log("🔌 Database connection closed");
   }
 }

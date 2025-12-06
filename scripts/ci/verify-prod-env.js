@@ -90,12 +90,19 @@ requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be fal
   // Redis is REQUIRED for background queues that use requireRedisConnection()
   // Workers call requireRedisConnection() which throws if missing - align CI with runtime behavior
   // This applies regardless of PayTabs config since workers crash on startup without Redis
+  // For preview: make it a warning since CI doesn't have Redis configured
+  // For production: keep as violation since workers WILL crash without Redis
   if (!redisConfigured) {
-    violations.push(
-      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). ' +
+    const redisMsg = 'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). ' +
       'Background queues (package activation retries, ZATCA compliance retries) require Redis and will crash without it. ' +
-      `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
-    );
+      `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`;
+    
+    if (env.VERCEL_ENV === 'production') {
+      violations.push(redisMsg);
+    } else {
+      // Preview deployments: warn but don't block (CI may not have Redis secrets)
+      warnings.push(redisMsg);
+    }
   }
 }
 

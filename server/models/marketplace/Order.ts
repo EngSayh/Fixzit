@@ -112,18 +112,30 @@ const OrderSchema = new Schema<MarketplaceOrder>(
       approverIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    collection: "orders",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
+  },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation
 OrderSchema.plugin(tenantIsolationPlugin);
 OrderSchema.plugin(auditPlugin);
 
-// All indexes MUST be tenant-scoped
-OrderSchema.index({ orgId: 1, buyerUserId: 1, status: 1 });
-OrderSchema.index({ orgId: 1, vendorId: 1, status: 1 });
-OrderSchema.index({ orgId: 1, status: 1, createdAt: -1 });
-OrderSchema.index({ orgId: 1, "source.workOrderId": 1 });
+// Schema-level indexes to mirror centralized createIndexes() definitions
+OrderSchema.index(
+  { orgId: 1, orderNumber: 1 },
+  {
+    unique: true,
+    name: "orders_orgId_orderNumber_unique",
+    partialFilterExpression: { orgId: { $exists: true }, orderNumber: { $exists: true } },
+  },
+);
+OrderSchema.index({ orgId: 1, userId: 1 }, { name: "orders_orgId_userId" });
+OrderSchema.index({ orgId: 1, status: 1 }, { name: "orders_orgId_status" });
+OrderSchema.index({ orgId: 1, createdAt: -1 }, { name: "orders_orgId_createdAt_desc" });
 
 const OrderModel =
   (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||

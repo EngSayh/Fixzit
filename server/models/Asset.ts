@@ -180,6 +180,8 @@ const AssetSchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
@@ -187,13 +189,25 @@ const AssetSchema = new Schema(
 AssetSchema.plugin(tenantIsolationPlugin);
 AssetSchema.plugin(auditPlugin);
 
-// Indexes for performance (orgId added by plugin)
-AssetSchema.index({ orgId: 1, type: 1 });
-AssetSchema.index({ orgId: 1, status: 1 });
-AssetSchema.index({ orgId: 1, "pmSchedule.nextPM": 1 });
-AssetSchema.index({ orgId: 1, "condition.score": 1 });
-// Compound tenant-scoped unique index for code
-AssetSchema.index({ orgId: 1, code: 1 }, { unique: true });
+// Schema-level indexes to mirror centralized createIndexes() definitions
+AssetSchema.index({ orgId: 1, type: 1 }, { name: "assets_orgId_type" });
+AssetSchema.index({ orgId: 1, status: 1 }, { name: "assets_orgId_status" });
+AssetSchema.index(
+  { orgId: 1, "pmSchedule.nextPM": 1 },
+  { name: "assets_orgId_nextPM" },
+);
+AssetSchema.index(
+  { orgId: 1, "condition.score": 1 },
+  { name: "assets_orgId_conditionScore" },
+);
+AssetSchema.index(
+  { orgId: 1, code: 1 },
+  {
+    unique: true,
+    name: "assets_orgId_code_unique",
+    partialFilterExpression: { orgId: { $exists: true }, code: { $exists: true } },
+  },
+);
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createSecureResponse } from "@/server/security/headers";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { verifyWebhookSignature } from "@/config/sendgrid.config";
 import { getClientIp } from "@/lib/security/client-ip";
 
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     // Process events
     const db = await getDatabase();
-    const emailsCollection = db.collection("email_logs");
+    const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
 
     const updates = events.map(async (event) => {
       try {

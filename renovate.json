@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "group:monorepos",
+    ":prConcurrentLimit10",
+    ":prHourlyLimit4"
+  ],
+  "platformAutomerge": true,
+  "rangeStrategy": "bump",
+  "timezone": "UTC",
+  "schedule": ["after 23:00 and before 05:00 every weekday"],
+  "dependencyDashboard": true,
+  "labels": ["dependencies", "renovate"],
+  "enabledManagers": ["npm", "github-actions"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["after 23:00 on sunday"]
+  },
+  "packageRules": [
+    {
+      "description": "Automerge safe patch updates once checks pass",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Group minor devDependency bumps weekly to reduce PR noise",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "dev-minor-weekly",
+      "schedule": ["after 23:00 and before 05:00 on saturday"]
+    },
+    {
+      "description": "Pin GitHub Actions to digests",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "description": "Run pnpm dedupe after updates to keep the lockfile tidy",
+      "matchManagers": ["npm"],
+      "postUpdateOptions": ["pnpmDedupe"]
+    }
+  ]
+}

@@ -57,6 +57,7 @@ export interface IRMAShipping {
 
 export interface IRMA extends Document {
   rmaId: string;
+  orgId: string;
   orderId: string;
   orderNumber: string;
   buyerId: string;
@@ -198,6 +199,7 @@ const RMAShippingSchema = new Schema<IRMAShipping>({
 
 const RMASchema = new Schema<IRMA>({
   rmaId: { type: String, required: true, unique: true, index: true },
+  orgId: { type: String, required: true, index: true },
   orderId: { type: String, required: true, index: true },
   orderNumber: { type: String, required: true },
   buyerId: { type: String, required: true, index: true },
@@ -240,11 +242,18 @@ const RMASchema = new Schema<IRMA>({
 });
 
 // Indexes
-RMASchema.index({ status: 1, createdAt: -1 });
-RMASchema.index({ buyerId: 1, status: 1 });
-RMASchema.index({ sellerId: 1, status: 1 });
-RMASchema.index({ sellerId: 1, createdAt: -1 });
-RMASchema.index({ returnDeadline: 1 });
+RMASchema.index(
+  { orgId: 1, rmaId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orgId: { $exists: true }, rmaId: { $exists: true } },
+  },
+);
+RMASchema.index({ orgId: 1, status: 1, createdAt: -1 });
+RMASchema.index({ orgId: 1, buyerId: 1, status: 1 });
+RMASchema.index({ orgId: 1, sellerId: 1, status: 1 });
+RMASchema.index({ orgId: 1, sellerId: 1, createdAt: -1 });
+RMASchema.index({ orgId: 1, returnDeadline: 1 });
 
 // Methods
 

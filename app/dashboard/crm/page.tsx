@@ -1,31 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { UserCog, Users, FileSignature } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface CRMCounters {
   customers: { leads: number; active: number; contracts: number };
 }
 
 export default function CRMDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.crm");
   const [activeTab, setActiveTab] = useState("customers");
   const [counters, setCounters] = useState<CRMCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const customers =
+          (data.customers as Partial<CRMCounters["customers"]>) ?? {};
         setCounters({
-          customers: data.customers || { leads: 0, active: 0, contracts: 0 },
+          customers: {
+            leads: customers.leads ?? 0,
+            active: customers.active ?? 0,
+            contracts: customers.contracts ?? 0,
+          },
         });
         setLoading(false);
       } catch (error) {
@@ -34,7 +48,8 @@ export default function CRMDashboard() {
       }
     };
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [auto, orgId, status]);
 
   const tabs = [
     {

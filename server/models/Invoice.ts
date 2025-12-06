@@ -220,6 +220,8 @@ const InvoiceSchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
@@ -254,14 +256,25 @@ InvoiceSchema.plugin(encryptionPlugin, {
   },
 });
 
-// Tenant-scoped indexes for performance and data isolation
-InvoiceSchema.index({ orgId: 1, number: 1 }, { unique: true });
-InvoiceSchema.index({ orgId: 1, status: 1 });
-InvoiceSchema.index({ orgId: 1, "recipient.customerId": 1 });
-InvoiceSchema.index({ orgId: 1, issueDate: -1 });
-InvoiceSchema.index({ orgId: 1, dueDate: 1 });
-InvoiceSchema.index({ orgId: 1, "zatca.status": 1 });
-InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
+// Schema-level indexes to mirror centralized createIndexes() definitions
+InvoiceSchema.index(
+  { orgId: 1, number: 1 },
+  {
+    unique: true,
+    name: "invoices_orgId_number_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+InvoiceSchema.index({ orgId: 1 }, { name: "invoices_orgId" });
+InvoiceSchema.index({ orgId: 1, status: 1 }, { name: "invoices_orgId_status" });
+InvoiceSchema.index({ orgId: 1, dueDate: 1 }, { name: "invoices_orgId_dueDate" });
+InvoiceSchema.index({ orgId: 1, customerId: 1 }, { name: "invoices_orgId_customerId" });
+InvoiceSchema.index(
+  { orgId: 1, "recipient.customerId": 1 },
+  { name: "invoices_orgId_recipient_customerId" },
+);
+InvoiceSchema.index({ orgId: 1, issueDate: -1 }, { name: "invoices_orgId_issueDate_desc" });
+InvoiceSchema.index({ orgId: 1, "zatca.status": 1 }, { name: "invoices_orgId_zatca_status" });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 

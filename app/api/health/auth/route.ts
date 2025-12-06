@@ -4,14 +4,27 @@
  *
  * Returns auth configuration status WITHOUT exposing secrets.
  * Use this to debug 500 errors on /api/auth/session in production.
+ * SECURITY: Detailed config is only returned to authorized callers that provide
+ * X-Health-Token matching HEALTH_CHECK_TOKEN. Unauthenticated callers receive
+ * a minimal status payload to avoid recon/fingerprinting.
  */
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { createSecureResponse } from "@/server/security/headers";
 
 export const dynamic = "force-dynamic";
 
 // Ensure this runs in Node.js runtime (not Edge) for consistent behavior
 export const runtime = "nodejs";
+
+function resolveEnvironment() {
+  const vercelEnv = process.env.VERCEL_ENV;
+  const nodeEnv = process.env.NODE_ENV || "development";
+  const isProd = vercelEnv ? vercelEnv === "production" : nodeEnv === "production";
+  const isPreview = vercelEnv === "preview";
+  return { isProd, isPreview, vercelEnv: vercelEnv || "not-set", nodeEnv };
+}
 
 /**
  * Check if an environment variable is set (without exposing its value)
@@ -26,6 +39,9 @@ function checkEnvVar(name: string): { set: boolean; length?: number } {
 
 export async function GET(_request: NextRequest) {
   try {
+    const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
+    const isAuthorized = isAuthorizedHealthRequest(_request);
+
     // Check critical auth environment variables
     const authConfig = {
       // Core Auth (CRITICAL)
@@ -79,13 +95,28 @@ export async function GET(_request: NextRequest) {
 
     const status = criticalMissing.length === 0 ? "healthy" : "unhealthy";
 
+    // Redact details for unauthenticated callers to avoid recon. Only minimal
+    // status + timestamp is exposed publicly.
+    if (!isAuthorized) {
+      return createSecureResponse(
+        {
+          status,
+          timestamp: new Date().toISOString(),
+        },
+        status === "healthy" ? 200 : 503,
+        _request,
+      );
+    }
+
     const response = {
       status,
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "development",
+      environment: nodeEnv,
       vercel: {
         isVercel,
-        env: process.env.VERCEL_ENV || "not-set",
+        env: vercelEnv,
+        isPreview,
+        isProd,
       },
       config: {
         // Only show set/not-set status, never actual values
@@ -143,22 +174,30 @@ export async function GET(_request: NextRequest) {
       criticalMissing,
     });
 
-    return NextResponse.json(response, {
-      status: status === "healthy" ? 200 : 503,
-    });
+    return createSecureResponse(
+      response,
+      status === "healthy" ? 200 : 503,
+      _request,
+    );
   } catch (error) {
-    logger.error("[Health/Auth] Error checking auth config", { error });
-    return NextResponse.json(
+    logger.error("[Health/Auth] Error checking auth config", error as Error);
+    const isAuthorized = isAuthorizedHealthRequest(_request);
+    
+    // Only expose error details to authorized callers to prevent recon
+    return createSecureResponse(
       {
         status: "error",
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-        recommendations: [
-          "Check Vercel function logs for detailed error",
-          "Ensure all environment variables are set correctly",
-        ],
+        ...(isAuthorized && {
+          error: error instanceof Error ? error.message : "Unknown error",
+          recommendations: [
+            "Check Vercel function logs for detailed error",
+            "Ensure all environment variables are set correctly",
+          ],
+        }),
       },
-      { status: 500 },
+      500,
+      _request,
     );
   }
 }

@@ -10,6 +10,7 @@ import { getModel } from "@/types/mongoose-compat";
 export interface ICampaign extends Document {
   _id: mongoose.Types.ObjectId;
   campaignId: string;
+  orgId: string;
 
   // Ownership
   sellerId: mongoose.Types.ObjectId;
@@ -47,6 +48,7 @@ export interface ICampaign extends Document {
 export interface IAdGroup extends Document {
   _id: mongoose.Types.ObjectId;
   adGroupId: string;
+  orgId: string;
 
   // Campaign reference
   campaignId: mongoose.Types.ObjectId;
@@ -69,6 +71,7 @@ export interface IAdGroup extends Document {
 export interface IAd extends Document {
   _id: mongoose.Types.ObjectId;
   adId: string;
+  orgId: string;
 
   // References
   adGroupId: mongoose.Types.ObjectId;
@@ -108,6 +111,7 @@ export interface IAd extends Document {
 export interface IAdTarget extends Document {
   _id: mongoose.Types.ObjectId;
   targetId: string;
+  orgId: string;
 
   // References
   adGroupId: mongoose.Types.ObjectId;
@@ -153,6 +157,11 @@ const CampaignSchema = new Schema<ICampaign>(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
       index: true,
     },
     sellerId: {
@@ -218,6 +227,7 @@ const CampaignSchema = new Schema<ICampaign>(
   {
     timestamps: true,
     collection: "souq_campaigns",
+    autoIndex: false,
   },
 );
 
@@ -233,6 +243,11 @@ const AdGroupSchema = new Schema<IAdGroup>(
     campaignId: {
       type: Schema.Types.ObjectId,
       ref: "SouqCampaign",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
       required: true,
       index: true,
     },
@@ -267,6 +282,7 @@ const AdGroupSchema = new Schema<IAdGroup>(
   {
     timestamps: true,
     collection: "souq_ad_groups",
+    autoIndex: false,
   },
 );
 
@@ -277,6 +293,11 @@ const AdSchema = new Schema<IAd>(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
       index: true,
     },
     adGroupId: {
@@ -337,6 +358,7 @@ const AdSchema = new Schema<IAd>(
   {
     timestamps: true,
     collection: "souq_ads",
+    autoIndex: false,
   },
 );
 
@@ -347,6 +369,11 @@ const AdTargetSchema = new Schema<IAdTarget>(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
       index: true,
     },
     adGroupId: {
@@ -416,23 +443,9 @@ const AdTargetSchema = new Schema<IAdTarget>(
   {
     timestamps: true,
     collection: "souq_ad_targets",
+    autoIndex: false,
   },
 );
-
-// Indexes
-CampaignSchema.index({ sellerId: 1, status: 1 });
-CampaignSchema.index({ startAt: 1, endAt: 1 });
-CampaignSchema.index({ "stats.spend": -1 });
-
-AdGroupSchema.index({ campaignId: 1, status: 1 });
-
-AdSchema.index({ adGroupId: 1, status: 1 });
-AdSchema.index({ productId: 1, status: 1 });
-AdSchema.index({ qualityScore: -1 });
-
-AdTargetSchema.index({ adGroupId: 1, status: 1, isNegative: 1 });
-AdTargetSchema.index({ targetType: 1, status: 1 });
-AdTargetSchema.index({ keyword: 1, matchType: 1 }, { sparse: true });
 
 // Methods
 CampaignSchema.methods.getRemainingBudget = function (): number {

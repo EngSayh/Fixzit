@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Build & Upload Sourcemaps (Sentry)
 
 on:
@@ -31,7 +33,7 @@ jobs:
       - name: 📦 Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for Sentry commit association
+          fetch-depth: 0  # Required for Sentry commit association
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4

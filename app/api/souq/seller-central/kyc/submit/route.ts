@@ -37,9 +37,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     // Submit KYC
     await sellerKYCService.submitKYC({
       sellerId: session.user.id,
+      orgId,
       step,
       data,
     });
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
             : "verification",
     });
   } catch (error) {
-    logger.error("Submit KYC error", { error });
+    logger.error("Submit KYC error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to submit KYC",

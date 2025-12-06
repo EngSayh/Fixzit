@@ -249,8 +249,14 @@ MailboxThreadSchema.plugin(tenantIsolationPlugin);
 MailboxThreadSchema.plugin(auditPlugin);
 
 // Indexes
-MailboxThreadSchema.index({ orgId: 1, threadNumber: 1 }, { unique: true });
-MailboxThreadSchema.index({ orgId: 1, requestNumber: 1 }, { unique: true });
+MailboxThreadSchema.index(
+  { orgId: 1, threadNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+MailboxThreadSchema.index(
+  { orgId: 1, requestNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 MailboxThreadSchema.index({ orgId: 1, "owner.ownerId": 1, status: 1 });
 MailboxThreadSchema.index({ orgId: 1, category: 1, status: 1 });
 MailboxThreadSchema.index({ orgId: 1, "assignedTo.userId": 1, status: 1 });

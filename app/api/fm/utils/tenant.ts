@@ -8,6 +8,8 @@ type TenantResolutionSuccess = {
   source: "header" | "query" | "session";
 };
 
+type TenantFieldName = "orgId";
+
 export type TenantResolutionResult =
   | TenantResolutionSuccess
   | { error: NextResponse };
@@ -36,11 +38,11 @@ export function isCrossTenantMode(tenantId: string): tenantId is typeof CROSS_TE
  * For regular users, returns { orgId: tenantId } filter.
  * 
  * @param tenantId - The resolved tenant ID or CROSS_TENANT_MARKER
- * @param fieldName - The field name to use (default: 'orgId', some collections use 'org_id')
+ * @param fieldName - The field name to use (default: 'orgId', some collections use legacy org id)
  */
 export function buildTenantFilter(
   tenantId: string,
-  fieldName: 'orgId' | 'org_id' = 'orgId'
+  fieldName: TenantFieldName = "orgId",
 ): Record<string, string> {
   if (isCrossTenantMode(tenantId)) {
     // Super Admin cross-tenant mode - no org filter

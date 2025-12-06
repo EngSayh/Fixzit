@@ -13,6 +13,7 @@
 
 import mongoose from "mongoose";
 import { dbConnect } from "../db/mongoose";
+import { COLLECTIONS } from "./utils/collections";
 
 interface IndexResult {
   collection: string;
@@ -42,7 +43,8 @@ async function createATSIndexes() {
 
     // 1. Jobs Collection Indexes
     console.log("📋 Creating indexes for jobs collection...");
-    const jobsCollection = db.collection("jobs");
+    const jobsCollectionName = COLLECTIONS.ATS_JOBS;
+    const jobsCollection = db.collection(jobsCollectionName);
 
     try {
       const start1 = Date.now();
@@ -51,7 +53,7 @@ async function createATSIndexes() {
         { background: true, name: "jobs_orgId_status" },
       );
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "orgId_1_status_1",
         success: true,
         executionTime: Date.now() - start1,
@@ -59,7 +61,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: orgId + status");
     } catch (error: unknown) {
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "orgId_1_status_1",
         success: false,
         error: getErrorMessage(error),
@@ -74,7 +76,7 @@ async function createATSIndexes() {
         { unique: true, background: true, name: "jobs_slug_unique" },
       );
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "slug_1_unique",
         success: true,
         executionTime: Date.now() - start2,
@@ -82,7 +84,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created unique index: slug");
     } catch (error: unknown) {
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "slug_1_unique",
         success: false,
         error: getErrorMessage(error),
@@ -97,7 +99,7 @@ async function createATSIndexes() {
         { background: true, name: "jobs_orgId_createdAt" },
       );
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "orgId_1_createdAt_-1",
         success: true,
         executionTime: Date.now() - start3,
@@ -105,7 +107,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: orgId + createdAt (desc)");
     } catch (error: unknown) {
       results.push({
-        collection: "jobs",
+        collection: jobsCollectionName,
         index: "orgId_1_createdAt_-1",
         success: false,
         error: getErrorMessage(error),
@@ -115,7 +117,8 @@ async function createATSIndexes() {
 
     // 2. Applications Collection Indexes
     console.log("\n📝 Creating indexes for applications collection...");
-    const applicationsCollection = db.collection("applications");
+    const applicationsCollectionName = COLLECTIONS.ATS_APPLICATIONS;
+    const applicationsCollection = db.collection(applicationsCollectionName);
 
     try {
       const start4 = Date.now();
@@ -124,7 +127,7 @@ async function createATSIndexes() {
         { background: true, name: "applications_orgId_stage_createdAt" },
       );
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "orgId_1_stage_1_createdAt_-1",
         success: true,
         executionTime: Date.now() - start4,
@@ -134,7 +137,7 @@ async function createATSIndexes() {
       );
     } catch (error: unknown) {
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "orgId_1_stage_1_createdAt_-1",
         success: false,
         error: getErrorMessage(error),
@@ -153,7 +156,7 @@ async function createATSIndexes() {
         },
       );
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "jobId_1_candidateId_1_unique",
         success: true,
         executionTime: Date.now() - start5,
@@ -161,7 +164,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created unique index: jobId + candidateId");
     } catch (error: unknown) {
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "jobId_1_candidateId_1_unique",
         success: false,
         error: getErrorMessage(error),
@@ -176,7 +179,7 @@ async function createATSIndexes() {
         { background: true, name: "applications_orgId_score" },
       );
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "orgId_1_score_-1",
         success: true,
         executionTime: Date.now() - start6,
@@ -184,7 +187,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: orgId + score (desc)");
     } catch (error: unknown) {
       results.push({
-        collection: "applications",
+        collection: applicationsCollectionName,
         index: "orgId_1_score_-1",
         success: false,
         error: getErrorMessage(error),
@@ -194,7 +197,8 @@ async function createATSIndexes() {
 
     // 3. Interviews Collection Indexes
     console.log("\n📅 Creating indexes for interviews collection...");
-    const interviewsCollection = db.collection("interviews");
+    const interviewsCollectionName = COLLECTIONS.ATS_INTERVIEWS;
+    const interviewsCollection = db.collection(interviewsCollectionName);
 
     try {
       const start7 = Date.now();
@@ -203,7 +207,7 @@ async function createATSIndexes() {
         { background: true, name: "interviews_orgId_scheduledAt" },
       );
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "orgId_1_scheduledAt_1",
         success: true,
         executionTime: Date.now() - start7,
@@ -211,7 +215,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: orgId + scheduledAt");
     } catch (error: unknown) {
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "orgId_1_scheduledAt_1",
         success: false,
         error: getErrorMessage(error),
@@ -226,7 +230,7 @@ async function createATSIndexes() {
         { background: true, name: "interviews_application_status" },
       );
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "applicationId_1_status_1",
         success: true,
         executionTime: Date.now() - start8,
@@ -234,7 +238,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: applicationId + status");
     } catch (error: unknown) {
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "applicationId_1_status_1",
         success: false,
         error: getErrorMessage(error),
@@ -249,7 +253,7 @@ async function createATSIndexes() {
         { background: true, name: "interviews_orgId_status_scheduledAt" },
       );
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "orgId_1_status_1_scheduledAt_1",
         success: true,
         executionTime: Date.now() - start9,
@@ -257,7 +261,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created compound index: orgId + status + scheduledAt");
     } catch (error: unknown) {
       results.push({
-        collection: "interviews",
+        collection: interviewsCollectionName,
         index: "orgId_1_status_1_scheduledAt_1",
         success: false,
         error: getErrorMessage(error),
@@ -267,7 +271,8 @@ async function createATSIndexes() {
 
     // 4. Candidates Collection Indexes
     console.log("\n👤 Creating indexes for candidates collection...");
-    const candidatesCollection = db.collection("candidates");
+    const candidatesCollectionName = COLLECTIONS.ATS_CANDIDATES;
+    const candidatesCollection = db.collection(candidatesCollectionName);
 
     try {
       const start10 = Date.now();
@@ -276,7 +281,7 @@ async function createATSIndexes() {
         { unique: true, background: true, name: "candidates_email_unique" },
       );
       results.push({
-        collection: "candidates",
+        collection: candidatesCollectionName,
         index: "email_1_unique",
         success: true,
         executionTime: Date.now() - start10,
@@ -284,7 +289,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created unique index: email");
     } catch (error: unknown) {
       results.push({
-        collection: "candidates",
+        collection: candidatesCollectionName,
         index: "email_1_unique",
         success: false,
         error: getErrorMessage(error),
@@ -299,7 +304,7 @@ async function createATSIndexes() {
         { background: true, name: "candidates_orgId_createdAt" },
       );
       results.push({
-        collection: "candidates",
+        collection: candidatesCollectionName,
         index: "orgId_1_createdAt_-1",
         success: true,
         executionTime: Date.now() - start11,
@@ -307,7 +312,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created index: orgId + createdAt (desc)");
     } catch (error: unknown) {
       results.push({
-        collection: "candidates",
+        collection: candidatesCollectionName,
         index: "orgId_1_createdAt_-1",
         success: false,
         error: getErrorMessage(error),
@@ -317,7 +322,8 @@ async function createATSIndexes() {
 
     // 5. ATS Settings Collection Indexes
     console.log("\n⚙️  Creating indexes for ats_settings collection...");
-    const settingsCollection = db.collection("ats_settings");
+    const settingsCollectionName = COLLECTIONS.ATS_SETTINGS;
+    const settingsCollection = db.collection(settingsCollectionName);
 
     try {
       const start12 = Date.now();
@@ -326,7 +332,7 @@ async function createATSIndexes() {
         { unique: true, background: true, name: "ats_settings_orgId_unique" },
       );
       results.push({
-        collection: "ats_settings",
+        collection: settingsCollectionName,
         index: "orgId_1_unique",
         success: true,
         executionTime: Date.now() - start12,
@@ -334,7 +340,7 @@ async function createATSIndexes() {
       console.log("  ✓ Created unique index: orgId");
     } catch (error: unknown) {
       results.push({
-        collection: "ats_settings",
+        collection: settingsCollectionName,
         index: "orgId_1_unique",
         success: false,
         error: getErrorMessage(error),

@@ -3,6 +3,13 @@ import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * GET /api/souq/fulfillment/sla/[orderId]
@@ -18,21 +25,53 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = session.user;
 
     const { orderId } = params;
     const orgId = (session.user as { orgId?: string }).orgId;
 
-    // Get order and verify access
-    const order = await SouqOrder.findOne(
-      orgId ? { orderId, orgId } : { orderId },
-    );
+    // 🔒 SECURITY: orgId is required for tenant isolation
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 }
+      );
+    }
+
+    // Get order and verify access (always scoped by orgId)
+    const order = await SouqOrder.findOne({ orderId, orgId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
+    // 🔐 SECURITY: Use canonical Role enum + subRole gating per STRICT v4.1
+    const rawSubRole = ((user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(user.role, normalizedSubRole);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole) ??
+      inferSubRoleFromRole(user.role);
+    
+    // Core admin roles with SLA visibility
+    const isAdminRole = userRole !== null && [
+      Role.SUPER_ADMIN,
+      Role.ADMIN,
+      Role.CORPORATE_OWNER,
+    ].includes(userRole);
+    
+    // TEAM_MEMBER only gets SLA access with ops/support subRole
+    const isOpsSupport = userRole === Role.TEAM_MEMBER && userSubRole !== undefined && [
+      SubRole.OPERATIONS_MANAGER,
+      SubRole.SUPPORT_AGENT,
+    ].includes(userSubRole);
+    
+    const isAdmin = isAdminRole || isOpsSupport;
+    const userId = user.id;
     const isSeller = order.items.some(
-      (item) => item.sellerId?.toString() === session.user.id,
+      (item) => item.sellerId?.toString() === userId,
     );
 
     if (!isAdmin && !isSeller) {
@@ -47,7 +86,7 @@ export async function GET(
       sla,
     });
   } catch (error) {
-    logger.error("SLA check error", { error });
+    logger.error("SLA check error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to check SLA",

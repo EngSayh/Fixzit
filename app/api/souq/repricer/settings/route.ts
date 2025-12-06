@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+import { SouqSeller } from "@/server/models/souq/Seller";
 
 /**
  * GET /api/souq/repricer/settings
@@ -14,8 +15,29 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
     const settings = await AutoRepricerService.getRepricerSettings(
-      session.user.id,
+      seller._id.toString(),
+      orgId,
     );
 
     return NextResponse.json({
@@ -23,7 +45,7 @@ export async function GET(_request: NextRequest) {
       settings,
     });
   } catch (error) {
-    logger.error("Get repricer settings error", { error });
+    logger.error("Get repricer settings error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get repricer settings",
@@ -45,6 +67,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { settings } = body;
 
@@ -55,14 +86,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await AutoRepricerService.enableAutoRepricer(session.user.id, settings);
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    await AutoRepricerService.enableAutoRepricer(
+      seller._id.toString(),
+      settings,
+      orgId,
+    );
 
     return NextResponse.json({
       success: true,
       message: "Auto-repricer settings updated successfully",
     });
   } catch (error) {
-    logger.error("Update repricer settings error", { error });
+    logger.error("Update repricer settings error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to update repricer settings",
@@ -84,14 +130,37 @@ export async function DELETE(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await AutoRepricerService.disableAutoRepricer(session.user.id);
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    await AutoRepricerService.disableAutoRepricer(
+      seller._id.toString(),
+      orgId,
+    );
 
     return NextResponse.json({
       success: true,
       message: "Auto-repricer disabled successfully",
     });
   } catch (error) {
-    logger.error("Disable repricer error", { error });
+    logger.error("Disable repricer error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to disable repricer",

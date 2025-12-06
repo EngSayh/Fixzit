@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDatabase();
-    const coll = db.collection("kb_embeddings");
+    const coll = db.collection(COLLECTIONS.KB_EMBEDDINGS);
 
     const scope: { $and: Array<Record<string, unknown>> } = {
       $and: [

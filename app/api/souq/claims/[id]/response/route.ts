@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  ClaimService,
-  type SellerResponse,
-  type Evidence,
-} from "@/services/souq/claims/claim-service";
+import { ClaimService, type Evidence } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
 /**
@@ -30,6 +24,13 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const { action, message, counterEvidence } = body;
@@ -41,7 +42,7 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id);
+    const claim = await ClaimService.getClaim(params.id, orgId, true);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -76,29 +77,22 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const sellerResponse: SellerResponse = {
-      action,
-      message,
-      respondedAt: new Date(),
-    };
-
-    if (Array.isArray(counterEvidence) && counterEvidence.length) {
-      interface EvidenceInput {
-        type: string;
-        url: string;
-        description?: string;
-        [key: string]: unknown;
-      }
-      const allowedTypes = new Set<Evidence["type"]>([
-        "video",
-        "image",
-        "photo",
-        "document",
-        "tracking_info",
-        "message_screenshot",
-      ]);
-      sellerResponse.counterEvidence = (counterEvidence as EvidenceInput[]).map(
-        (item, idx: number): Evidence => {
+    interface EvidenceInput {
+      type: string;
+      url: string;
+      description?: string;
+      [key: string]: unknown;
+    }
+    const allowedTypes = new Set<Evidence["type"]>([
+      "video",
+      "image",
+      "photo",
+      "document",
+      "tracking_info",
+      "message_screenshot",
+    ]);
+    const evidence = Array.isArray(counterEvidence)
+      ? (counterEvidence as EvidenceInput[]).map((item, idx): Evidence => {
           const normalizedType = allowedTypes.has(item.type as Evidence["type"])
             ? (item.type as Evidence["type"])
             : "document";
@@ -110,31 +104,33 @@ export async function POST(
             description: item.description,
             uploadedAt: new Date(),
           };
-        },
-      );
-    }
+        })
+      : [];
 
-    const newStatus = action === "accept" ? "approved" : "under_review";
+    const proposedSolution =
+      action === "accept" ? ("refund_full" as const) : ("dispute" as const);
 
-    const db = await getDatabase();
-    const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id) }
-      : { claimId: params.id };
-
-    await db.collection("claims").updateOne(filter, {
-      $set: {
-        status: newStatus,
-        sellerResponse,
-        updatedAt: new Date(),
-      },
+    await ClaimService.addSellerResponse({
+      claimId: params.id,
+      orgId,
+      sellerId: session.user.id,
+      responseText: message,
+      action: action as "accept" | "dispute",
+      proposedSolution,
+      evidence,
     });
+
+    const updated = await ClaimService.getClaim(params.id, orgId, true);
 
     return NextResponse.json({
-      status: newStatus,
-      sellerResponse,
+      status: updated?.status ?? "under_investigation",
+      sellerResponse: updated?.sellerResponse,
     });
   } catch (error) {
-    logger.error("[Claims API] Seller response failed", { error });
+    logger.error("[Claims API] Seller response failed", error as Error);
+    // Temporary debug to surface test failures
+    // eslint-disable-next-line no-console
+    console.error("[Claims API] Seller response error", error);
     return NextResponse.json(
       {
         error: "Failed to submit response",

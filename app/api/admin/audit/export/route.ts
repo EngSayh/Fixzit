@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
           // Close stream
           controller.close();
         } catch (error) {
-          logger.error("[AuditExport] Stream error", { error });
+          logger.error("[AuditExport] Stream error", error as Error);
           controller.error(error);
         }
       },
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error("[AuditExport] Error", { error });
+    logger.error("[AuditExport] Error", error as Error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

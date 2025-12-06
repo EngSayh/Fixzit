@@ -60,7 +60,7 @@ interface Notification {
   category?: string;
 }
 
-type NotificationFilter = "all" | "work_orders" | "finance" | "support";
+type NotificationFilter = "all" | "workOrders" | "finance" | "support";
 
 const NOTIFICATION_FILTERS: Array<{
   id: NotificationFilter;
@@ -69,7 +69,7 @@ const NOTIFICATION_FILTERS: Array<{
 }> = [
   { id: "all", labelKey: "notifications.filters.all" },
   {
-    id: "work_orders",
+    id: "workOrders",
     labelKey: "notifications.filters.maintenance",
     category: "maintenance",
   },

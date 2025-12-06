@@ -1,4 +1,4 @@
-import { Schema, type Document } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 
 /**
@@ -42,7 +42,7 @@ export interface IInventory extends Document {
   listingId: string; // Link to SouqListing
   productId: string; // Link to SouqProduct (FSIN)
   sellerId: string;
-  orgId?: string;
+  orgId?: mongoose.Types.ObjectId;
 
   // Stock Levels
   availableQuantity: number; // Sellable units minus reservations
@@ -153,7 +153,7 @@ const InventorySchema = new Schema<IInventory>(
     listingId: { type: String, required: true, index: true },
     productId: { type: String, required: true, index: true },
     sellerId: { type: String, required: true, index: true },
-    orgId: { type: String, index: true },
+    orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
     availableQuantity: { type: Number, required: true, min: 0, default: 0 },
     totalQuantity: { type: Number, required: true, min: 0, default: 0 },
@@ -187,6 +187,7 @@ const InventorySchema = new Schema<IInventory>(
 InventorySchema.index({ listingId: 1, status: 1 });
 InventorySchema.index({ orgId: 1, listingId: 1 });
 InventorySchema.index({ sellerId: 1, fulfillmentType: 1 });
+InventorySchema.index({ orgId: 1, status: 1 });
 InventorySchema.index({ "health.isStranded": 1 });
 InventorySchema.index({ "health.agingDays": -1 });
 

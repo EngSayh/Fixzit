@@ -206,7 +206,7 @@ const users = [
     },
     security: {
       accessLevel: "READ",
-      permissions: ["properties.read", "workorders.create", "workorders.read"],
+      permissions: ["properties:read", "workorders:create", "workorders:read"],
       mfa: {
         enabled: false,
         type: "EMAIL",
@@ -273,7 +273,7 @@ const users = [
     },
     security: {
       accessLevel: "WRITE",
-      permissions: ["marketplace.*", "rfqs.read", "bids.*"],
+      permissions: ["souq:*", "souq:rfq.read", "bids:*"],
       mfa: {
         enabled: false,
         type: "SMS",

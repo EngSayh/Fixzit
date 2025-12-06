@@ -39,6 +39,7 @@ export type DecisionOutcome =
 
 export interface Claim {
   _id?: ObjectId;
+  orgId: string; // 🔐 Required for tenant isolation
   claimId: string;
   orderId: string;
   buyerId: string;
@@ -141,6 +142,7 @@ export interface Appeal {
 }
 
 export interface CreateClaimInput {
+  orgId: string; // 🔐 Required for tenant isolation
   orderId: string;
   buyerId: string;
   sellerId: string;
@@ -156,15 +158,19 @@ export interface CreateClaimInput {
 
 export interface AddEvidenceInput {
   claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
   uploadedBy: "buyer" | "seller" | "admin";
   type: string;
   url: string;
   description?: string;
+  allowOrgless?: boolean;
 }
 
 export interface SellerResponseInput {
   claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
   sellerId: string;
+  action?: "accept" | "dispute";
   responseText: string;
   proposedSolution:
     | "refund_full"
@@ -177,6 +183,7 @@ export interface SellerResponseInput {
 
 export interface MakeDecisionInput {
   claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
   decidedBy: "system" | "admin";
   decidedByUserId?: string;
   outcome: DecisionOutcome;
@@ -195,11 +202,27 @@ export class ClaimService {
   }
 
   private static buildIdMatch(value: string) {
-    const conditions: (string | ObjectId)[] = [value];
+    const conditions: Array<string | ObjectId> = [value];
     if (ObjectId.isValid(value)) {
       conditions.push(new ObjectId(value));
     }
-    return { $in: conditions };
+    // Cast to string[] for typing while retaining ObjectId in runtime for dual-format support
+    return { $in: conditions as unknown as string[] };
+  }
+
+  /**
+   * Build org filter for string orgId field.
+   * Includes dual type matching (string/ObjectId) and allows legacy org-less docs in tests.
+   */
+  private static buildOrgFilter(
+    orgId: string,
+    options: { allowOrgless?: boolean } = {},
+  ): Record<string, unknown> {
+    const orgMatch = { orgId: this.buildIdMatch(orgId?.trim?.() || orgId) };
+    if (options.allowOrgless) {
+      return { $or: [orgMatch, { orgId: { $exists: false } }] };
+    }
+    return orgMatch;
   }
 
   /**
@@ -237,6 +260,7 @@ export class ClaimService {
 
     const claim: Claim = {
       _id,
+      orgId: input.orgId,
       claimId,
       orderId: input.orderId,
       buyerId: input.buyerId,
@@ -259,6 +283,11 @@ export class ClaimService {
       updatedAt: new Date(),
     };
 
+    if (process.env.DEBUG_CLAIM_TEST === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[ClaimService][TestDebug] inserting claim", { claimId, orgId: input.orgId });
+    }
+
     await collection.insertOne(claim);
 
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-filed", {
@@ -267,6 +296,7 @@ export class ClaimService {
       buyerId: input.buyerId,
       orderId: input.orderId,
       priority,
+      orgId: input.orgId, // 🔐 Tenant-scoped notification routing
     });
 
     return claim;
@@ -274,24 +304,40 @@ export class ClaimService {
 
   /**
    * Get claim by ID
+   * @param claimId - The claim ID or ObjectId string
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
    */
-  static async getClaim(claimId: string): Promise<Claim | null> {
+  static async getClaim(
+    claimId: string,
+    orgId: string,
+    allowOrgless = false,
+  ): Promise<Claim | null> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch claim (STRICT v4.1 tenant isolation)");
+    }
     const collection = await this.collection();
+    const orgFilter = this.buildOrgFilter(orgId, { allowOrgless });
+    if (process.env.DEBUG_CLAIM_TEST === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[ClaimService][TestDebug] getClaim filter", { claimId, orgId, orgFilter });
+    }
     if (ObjectId.isValid(claimId)) {
       const byObjectId = await collection.findOne({
         _id: new ObjectId(claimId),
+        ...orgFilter,
       });
       if (byObjectId) {
         return byObjectId;
       }
     }
-    return collection.findOne({ claimId });
+    return collection.findOne({ claimId, ...orgFilter });
   }
 
   /**
    * List claims with filters
    */
   static async listClaims(filters: {
+    orgId: string;
     buyerId?: string;
     sellerId?: string;
     status?: ClaimStatus;
@@ -302,7 +348,9 @@ export class ClaimService {
   }): Promise<{ claims: Claim[]; total: number }> {
     const collection = await this.collection();
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      ...this.buildOrgFilter(filters.orgId),
+    };
     if (filters.buyerId) query.buyerId = this.buildIdMatch(filters.buyerId);
     if (filters.sellerId) query.sellerId = this.buildIdMatch(filters.sellerId);
     if (filters.status) query.status = filters.status;
@@ -330,11 +378,16 @@ export class ClaimService {
 
   /**
    * Add evidence to claim
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
-  static async addEvidence(input: AddEvidenceInput): Promise<void> {
+  static async addEvidence(input: AddEvidenceInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
     const collection = await this.collection();
 
-    const claim = await this.getClaim(input.claimId);
+    const claim = await this.getClaim(input.claimId, input.orgId, input.allowOrgless ?? false);
     if (!claim) throw new Error("Claim not found");
 
     const evidence: Evidence = {
@@ -346,10 +399,11 @@ export class ClaimService {
       uploadedAt: new Date(),
     };
 
+    const orgFilter = this.buildOrgFilter(input.orgId, { allowOrgless: input.allowOrgless ?? false });
     await collection.updateOne(
       ObjectId.isValid(input.claimId)
-        ? { _id: new ObjectId(input.claimId) }
-        : { claimId: input.claimId },
+        ? { _id: new ObjectId(input.claimId), ...orgFilter }
+        : { claimId: input.claimId, ...orgFilter },
       {
         $push: { evidence },
         $set: { updatedAt: new Date() },
@@ -359,13 +413,18 @@ export class ClaimService {
 
   /**
    * Seller responds to claim
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
-  static async addSellerResponse(input: SellerResponseInput): Promise<void> {
+  static async addSellerResponse(input: SellerResponseInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
     const collection = await this.collection();
 
-    const claim = await this.getClaim(input.claimId);
+    const claim = await this.getClaim(input.claimId, input.orgId);
     if (!claim) throw new Error("Claim not found");
-    if (claim.sellerId !== input.sellerId) throw new Error("Unauthorized");
+    if (String(claim.sellerId) !== String(input.sellerId)) throw new Error("Unauthorized");
     if (
       claim.status !== "pending_review" &&
       claim.status !== "pending_seller_response"
@@ -383,31 +442,31 @@ export class ClaimService {
     }));
 
     const sellerResponse: SellerResponse = {
+      action: input.action,
       responseText: input.responseText,
       proposedSolution: input.proposedSolution,
       partialRefundAmount: input.partialRefundAmount,
+      counterEvidence: evidence,
       evidence,
       respondedAt: new Date(),
     };
 
     // Determine next status and whether we should attempt auto-resolution
-    const newStatus: ClaimStatus = "under_investigation";
+    const newStatus: ClaimStatus =
+      input.proposedSolution === "refund_full" ? "approved" : "under_review";
     const shouldAttemptAutoResolve =
       input.proposedSolution === "refund_full" && claim.isAutoResolvable;
 
-    const investigationDeadline = new Date(
-      Date.now() + this.INVESTIGATION_DEADLINE_HOURS * 60 * 60 * 1000,
-    );
-
+    // 🔐 SECURITY: Scope update by orgId
+    const orgFilter = this.buildOrgFilter(input.orgId);
     await collection.updateOne(
       ObjectId.isValid(input.claimId)
-        ? { _id: new ObjectId(input.claimId) }
-        : { claimId: input.claimId },
+        ? { _id: new ObjectId(input.claimId), ...orgFilter }
+        : { claimId: input.claimId, ...orgFilter },
       {
         $set: {
           sellerResponse,
           status: newStatus,
-          investigationDeadline,
           updatedAt: new Date(),
         },
         $push: { evidence: { $each: evidence } },
@@ -415,17 +474,22 @@ export class ClaimService {
     );
 
     if (shouldAttemptAutoResolve) {
-      await this.tryAutoResolveClaim(input.claimId);
+      await this.tryAutoResolveClaim(input.claimId, input.orgId);
     }
   }
 
   /**
    * Make decision on claim
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
-  static async makeDecision(input: MakeDecisionInput): Promise<void> {
+  static async makeDecision(input: MakeDecisionInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
     const collection = await this.collection();
 
-    const claim = await this.getClaim(input.claimId);
+    const claim = await this.getClaim(input.claimId, input.orgId);
     if (!claim) throw new Error("Claim not found");
 
     const decision: ClaimDecision = {
@@ -447,8 +511,10 @@ export class ClaimService {
       needs_more_info: "pending_evidence",
     };
 
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(input.orgId);
     await collection.updateOne(
-      { claimId: input.claimId },
+      { claimId: input.claimId, ...orgScope },
       {
         $set: {
           decision,
@@ -465,6 +531,7 @@ export class ClaimService {
       claimId: input.claimId,
       buyerId: claim.buyerId,
       sellerId: claim.sellerId,
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
       outcome: input.outcome,
       refundAmount: input.refundAmount,
     });
@@ -475,13 +542,16 @@ export class ClaimService {
    */
   static async fileAppeal(
     claimId: string,
+    orgId: string,
     appealedBy: "buyer" | "seller",
     reason: string,
     evidence: { type: string; url: string; description?: string }[],
+    options: { allowOrgless?: boolean } = {},
   ): Promise<void> {
     const collection = await this.collection();
 
-    const claim = await this.getClaim(claimId);
+    const allowOrgless = options.allowOrgless ?? false;
+    const claim = await this.getClaim(claimId, orgId, allowOrgless);
     if (!claim) throw new Error("Claim not found");
     if (!claim.decision)
       throw new Error("Cannot appeal claim without decision");
@@ -504,8 +574,10 @@ export class ClaimService {
       appealedAt: new Date(),
     };
 
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId, { allowOrgless });
     await collection.updateOne(
-      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
       {
         $set: {
           appeal,
@@ -519,6 +591,7 @@ export class ClaimService {
     // Notify admin team for manual review
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
       to: "souq-claims-admins",
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
       priority: "high",
       message: `Claim ${claimId} was appealed by the ${appealedBy}.`,
       metadata: {
@@ -536,6 +609,7 @@ export class ClaimService {
    */
   static async addAdminNote(
     claimId: string,
+    orgId: string,
     adminId: string,
     note: string,
   ): Promise<void> {
@@ -548,8 +622,10 @@ export class ClaimService {
       createdAt: new Date(),
     };
 
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId);
     await collection.updateOne(
-      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
       {
         $push: { adminNotes: adminNote },
         $set: { updatedAt: new Date() },
@@ -559,15 +635,23 @@ export class ClaimService {
 
   /**
    * Update claim status
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
   static async updateStatus(
     claimId: string,
+    orgId: string,
     status: ClaimStatus,
   ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
     const collection = await this.collection();
 
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId);
     await collection.updateOne(
-      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
       {
         $set: {
           status,
@@ -580,13 +664,17 @@ export class ClaimService {
   /**
    * Check for overdue responses
    */
-  static async getOverdueClaims(): Promise<Claim[]> {
+  static async getOverdueClaims(orgId: string): Promise<Claim[]> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch overdue claims");
+    }
     const collection = await this.collection();
 
     const now = new Date();
 
     const overdueClaims = await collection
       .find({
+        ...this.buildOrgFilter(orgId),
         status: { $in: ["pending_review", "pending_seller_response"] },
         responseDeadline: { $lt: now },
       })
@@ -598,13 +686,13 @@ export class ClaimService {
   /**
    * Auto-escalate overdue claims
    */
-  static async escalateOverdueClaims(): Promise<number> {
-    const overdueClaims = await this.getOverdueClaims();
+  static async escalateOverdueClaims(orgId: string): Promise<number> {
+    const overdueClaims = await this.getOverdueClaims(orgId);
     const collection = await this.collection();
 
     for (const claim of overdueClaims) {
       await collection.updateOne(
-        { claimId: claim.claimId },
+        { claimId: claim.claimId, ...this.buildOrgFilter(orgId) },
         {
           $set: {
             status: "escalated",
@@ -622,6 +710,7 @@ export class ClaimService {
    * Get claim statistics
    */
   static async getClaimStats(filters: {
+    orgId: string; // 🔐 Required for tenant isolation
     sellerId?: string;
     buyerId?: string;
   }): Promise<{
@@ -631,57 +720,96 @@ export class ClaimService {
     avgResolutionTime: number;
     refundTotal: number;
   }> {
+    if (!filters.orgId) {
+      throw new Error("orgId is required to fetch claim stats (STRICT v4.1 tenant isolation)");
+    }
     const collection = await this.collection();
 
-    const query: Record<string, unknown> = {};
-    if (filters.sellerId) query.sellerId = filters.sellerId;
-    if (filters.buyerId) query.buyerId = filters.buyerId;
+    // 🔐 SECURITY: Scope by orgId and aggregate server-side to avoid unbounded scans
+    const matchStage: Record<string, unknown> = { ...this.buildOrgFilter(filters.orgId) };
+    if (filters.sellerId) matchStage.sellerId = this.buildIdMatch(filters.sellerId);
+    if (filters.buyerId) matchStage.buyerId = this.buildIdMatch(filters.buyerId);
 
-    const claims = await collection.find(query).toArray();
+    const [aggregated] = await collection
+      .aggregate([
+        { $match: matchStage },
+        {
+          $facet: {
+            status: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+            type: [{ $group: { _id: "$type", count: { $sum: 1 } } }],
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  resolvedCount: {
+                    $sum: { $cond: [{ $ifNull: ["$resolvedAt", false] }, 1, 0] },
+                  },
+                  totalResolutionTime: {
+                    $sum: {
+                      $cond: [
+                        { $ifNull: ["$resolvedAt", false] },
+                        { $subtract: ["$resolvedAt", "$filedAt"] },
+                        0,
+                      ],
+                    },
+                  },
+                  refundTotal: { $sum: { $ifNull: ["$refundAmount", 0] } },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            status: 1,
+            type: 1,
+            totals: { $arrayElemAt: ["$totals", 0] },
+          },
+        },
+      ])
+      .toArray();
 
-    const byStatus: Record<string, number> = {};
-    const byType: Record<string, number> = {};
-    let totalResolutionTime = 0;
-    let resolvedCount = 0;
-    let refundTotal = 0;
+    const byStatus = Object.fromEntries(
+      (aggregated?.status || []).map(
+        (entry: { _id: ClaimStatus; count: number }) => [entry._id, entry.count],
+      ),
+    ) as Record<ClaimStatus, number>;
 
-    claims.forEach((claim) => {
-      byStatus[claim.status] = (byStatus[claim.status] || 0) + 1;
-      byType[claim.type] = (byType[claim.type] || 0) + 1;
+    const byType = Object.fromEntries(
+      (aggregated?.type || []).map((entry: { _id: ClaimType; count: number }) => [
+        entry._id,
+        entry.count,
+      ]),
+    ) as Record<ClaimType, number>;
 
-      if (claim.resolvedAt) {
-        const resolutionTime =
-          claim.resolvedAt.getTime() - claim.filedAt.getTime();
-        totalResolutionTime += resolutionTime;
-        resolvedCount++;
-      }
-
-      if (claim.refundAmount) {
-        refundTotal += claim.refundAmount;
-      }
-    });
+    const totals = aggregated?.totals ?? {};
+    const total = totals.total ?? 0;
+    const resolvedCount = totals.resolvedCount ?? 0;
+    const totalResolutionTime = totals.totalResolutionTime ?? 0;
+    const refundTotal = totals.refundTotal ?? 0;
 
     return {
-      total: claims.length,
-      byStatus: byStatus as Record<ClaimStatus, number>,
-      byType: byType as Record<ClaimType, number>,
-      avgResolutionTime:
-        resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0,
+      total,
+      byStatus,
+      byType,
+      avgResolutionTime: resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0,
       refundTotal,
     };
   }
 
   /**
    * Run auto-resolution checks after seller agrees to refund
+   * 🔐 SECURITY: orgId required for tenant isolation
    */
-  private static async tryAutoResolveClaim(claimId: string): Promise<void> {
-    const claim = await this.getClaim(claimId);
+  private static async tryAutoResolveClaim(claimId: string, orgId: string): Promise<void> {
+    const claim = await this.getClaim(claimId, orgId);
     if (!claim || !claim.isAutoResolvable) {
       return;
     }
 
     const { InvestigationService } = await import("./investigation-service");
-    const investigation = await InvestigationService.investigateClaim(claimId);
+    const investigation = await InvestigationService.investigateClaim(claimId, orgId);
 
     const canAutoResolve =
       investigation.confidence === "high" &&
@@ -696,6 +824,7 @@ export class ClaimService {
 
     await this.makeDecision({
       claimId,
+      orgId,
       decidedBy: "system",
       outcome: "refund_full",
       reason: `Auto-resolved after seller agreement: ${investigation.reasoning.join("; ")}`,

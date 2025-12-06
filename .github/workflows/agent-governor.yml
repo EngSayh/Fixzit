@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Agent Governor CI
 
 on:
@@ -32,6 +34,29 @@ jobs:
         with:
           version: 9
 
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '!node_modules/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -52,6 +77,8 @@ jobs:
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run RBAC v4.1 Tests
+        env:
+          SKIP_GLOBAL_MONGO: "true"
         run: |
           echo "🔒 Running STRICT v4.1 RBAC validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
@@ -61,7 +88,7 @@ jobs:
           echo "✅ RBAC tests passing"
 
       # Note: E2E tests are expensive and run separately in e2e-tests.yml workflow
-      
+
       - name: Build project
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}

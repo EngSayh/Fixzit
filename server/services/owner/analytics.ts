@@ -14,6 +14,7 @@
 
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 export interface AnalyticsPeriod {
   startDate: Date;
@@ -167,7 +168,7 @@ export async function calculateRevenue(
   }
 
   const result = await db
-    .collection("payments")
+    .collection(COLLECTIONS.PAYMENTS)
     .aggregate([
       { $match: matchStage },
       {
@@ -232,7 +233,7 @@ export async function calculateMaintenanceCosts(
   if (options?.perUnit) {
     // Group by unit
     const result = await db
-      .collection("workorders")
+    .collection(COLLECTIONS.WORK_ORDERS)
       .aggregate([
         { $match: matchStage },
         {
@@ -253,7 +254,7 @@ export async function calculateMaintenanceCosts(
   } else {
     // Total maintenance costs
     const result = await db
-      .collection("workorders")
+      .collection(COLLECTIONS.WORK_ORDERS)
       .aggregate([
         { $match: matchStage },
         {
@@ -298,7 +299,7 @@ export async function calculateUtilityCosts(
   }
 
   const result = await db
-    .collection("utilitybills")
+    .collection(COLLECTIONS.UTILITY_BILLS)
     .aggregate([
       { $match: matchStage },
       {
@@ -326,7 +327,7 @@ export async function calculatePortfolioAnalytics(
   const { ownerId, propertyId, period, orgId } = input;
 
   // Get owner details
-  const ownerDoc = await db.collection("owners").findOne({
+  const ownerDoc = await db.collection(COLLECTIONS.OWNERS).findOne({
     _id: ownerId,
     orgId,
   });
@@ -346,7 +347,7 @@ export async function calculatePortfolioAnalytics(
   }
 
   const properties = await db
-    .collection("properties")
+    .collection(COLLECTIONS.PROPERTIES)
     .find(propertyMatch)
     .toArray();
 
@@ -479,7 +480,7 @@ export async function detectUtilityAnomalies(
   const db = (await import("mongoose")).default.connection.db!;
 
   const result = await db
-    .collection("utilitybills")
+    .collection(COLLECTIONS.UTILITY_BILLS)
     .aggregate([
       {
         $match: {

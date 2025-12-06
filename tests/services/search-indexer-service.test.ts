@@ -12,8 +12,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 // Hoist mock functions
-const { mockDeleteAllDocuments, mockAddDocuments, mockDeleteDocument, mockIndex } = vi.hoisted(() => ({
-  mockDeleteAllDocuments: vi.fn().mockResolvedValue({ taskUid: 1 }),
+const { mockDeleteDocuments, mockAddDocuments, mockDeleteDocument, mockIndex } = vi.hoisted(() => ({
+  mockDeleteDocuments: vi.fn().mockResolvedValue({ taskUid: 1 }),
   mockAddDocuments: vi.fn().mockResolvedValue({ taskUid: 2 }),
   mockDeleteDocument: vi.fn().mockResolvedValue({ taskUid: 3 }),
   mockIndex: vi.fn(),
@@ -21,7 +21,7 @@ const { mockDeleteAllDocuments, mockAddDocuments, mockDeleteDocument, mockIndex 
 
 // Setup mockIndex return value after hoisting
 mockIndex.mockReturnValue({
-  deleteAllDocuments: mockDeleteAllDocuments,
+  deleteDocuments: mockDeleteDocuments,
   addDocuments: mockAddDocuments,
   deleteDocument: mockDeleteDocument,
 });
@@ -63,7 +63,7 @@ describe("SearchIndexerService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIndex.mockReturnValue({
-      deleteAllDocuments: mockDeleteAllDocuments,
+      deleteDocuments: mockDeleteDocuments,
       addDocuments: mockAddDocuments,
       deleteDocument: mockDeleteDocument,
     });
@@ -78,13 +78,14 @@ describe("SearchIndexerService", () => {
       await SearchIndexerService.deleteFromIndex("FSIN123", { orgId: "ORG1" });
 
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
-      expect(mockDeleteDocument).toHaveBeenCalledWith("FSIN123");
+      expect(mockDeleteDocument).toHaveBeenCalledWith("ORG1_FSIN123");
       expect(logger.info).toHaveBeenCalledWith(
         "[SearchIndexer] Deleted product from search: FSIN123",
         expect.objectContaining({
           action: "deleteFromIndex",
           component: "SearchIndexerService",
           fsin: "FSIN123",
+          compositeId: "ORG1_FSIN123",
           orgId: "ORG1",
         }),
       );
@@ -127,6 +128,7 @@ describe("SearchIndexerService", () => {
         listingId: "L1",
         productId: "P1",
         sellerId: "S1",
+        orgId: "ORG1",
         price: 100,
         quantity: 10,
         status: "inactive", // Not active
@@ -189,6 +191,7 @@ describe("SearchIndexerService", () => {
         listingId: "L1",
         productId: "P1",
         sellerId: "S1",
+        orgId: "ORG1",
         price: 100,
         quantity: 10,
         status: "active",
@@ -238,18 +241,18 @@ describe("SearchIndexerService", () => {
         "fetchActiveListings"
       ).mockResolvedValue([]);
 
-      const result = await SearchIndexerService.fullReindexProducts();
+      const result = await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
 
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
-      expect(mockDeleteAllDocuments).toHaveBeenCalled();
-      expect(withMeiliResilience).toHaveBeenCalledWith(
-        "products-clear-index",
-        "index",
-        expect.any(Function),
-      );
+      expect(mockDeleteDocuments).toHaveBeenCalledWith({ filter: 'orgId = "ORG1"' });
       expect(result).toEqual({ indexed: 0, errors: 0 });
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Starting full product reindex")
+        "[SearchIndexer] Starting full product reindex for org: ORG1...",
+        expect.objectContaining({
+          component: "SearchIndexerService",
+          action: "fullReindexProducts",
+          orgId: "ORG1",
+        }),
       );
     });
 
@@ -275,12 +278,10 @@ describe("SearchIndexerService", () => {
     });
 
     it("should throw on critical index setup failure", async () => {
-      mockDeleteAllDocuments.mockRejectedValueOnce(
-        new Error("Critical failure")
-      );
+      mockDeleteDocuments.mockRejectedValueOnce(new Error("Critical failure"));
 
       await expect(
-        SearchIndexerService.fullReindexProducts()
+        SearchIndexerService.fullReindexProducts({ orgId: "ORG1" })
       ).rejects.toThrow("Critical failure");
     });
 
@@ -340,25 +341,25 @@ describe("SearchIndexerService", () => {
       mockAddDocuments.mockRejectedValueOnce(new Error("batch-1-failure"));
       mockAddDocuments.mockResolvedValueOnce({ taskUid: 4 });
 
-      const result = await SearchIndexerService.fullReindexProducts();
+      const result = await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
 
       expect(fetchListingsSpy).toHaveBeenNthCalledWith(
         1,
         0,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(fetchListingsSpy).toHaveBeenNthCalledWith(
         2,
         SearchIndexerService.BATCH_SIZE,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(fetchListingsSpy).toHaveBeenNthCalledWith(
         3,
         SearchIndexerService.BATCH_SIZE * 2,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(transformListingsSpy).toHaveBeenCalledTimes(2);
       expect(mockAddDocuments).toHaveBeenCalledTimes(2);
@@ -390,13 +391,14 @@ describe("SearchIndexerService", () => {
         "fetchActiveSellers"
       ).mockResolvedValue([]);
 
-      const result = await SearchIndexerService.fullReindexSellers();
+      const result = await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
 
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.SELLERS);
-      expect(mockDeleteAllDocuments).toHaveBeenCalled();
+      expect(mockDeleteDocuments).toHaveBeenCalledWith({ filter: 'orgId = "ORG1"' });
       expect(result).toEqual({ indexed: 0, errors: 0 });
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Starting full seller reindex")
+        expect.stringContaining("Starting full seller reindex for org: ORG1"),
+        expect.any(Object),
       );
     });
 
@@ -472,10 +474,10 @@ describe("SearchIndexerService", () => {
       mockAddDocuments.mockRejectedValueOnce(new Error("seller-batch-failure"));
       mockAddDocuments.mockResolvedValueOnce({ taskUid: 5 });
 
-      const result = await SearchIndexerService.fullReindexSellers();
+      const result = await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
 
       expect(withMeiliResilience).toHaveBeenCalledWith(
-        "sellers-clear-index",
+        "sellers-clear-org",
         "index",
         expect.any(Function)
       );
@@ -488,19 +490,19 @@ describe("SearchIndexerService", () => {
         1,
         0,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(fetchSellersSpy).toHaveBeenNthCalledWith(
         2,
         SearchIndexerService.BATCH_SIZE,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(fetchSellersSpy).toHaveBeenNthCalledWith(
         3,
         SearchIndexerService.BATCH_SIZE * 2,
         SearchIndexerService.BATCH_SIZE,
-        undefined,
+        "ORG1",
       );
       expect(mockAddDocuments).toHaveBeenCalledTimes(2);
       expect(result).toEqual({ indexed: 1, errors: 1 });

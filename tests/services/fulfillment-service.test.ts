@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { Types } from "mongoose";
-import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqOrder } from "../../server/models/souq/Order";
 
 // Hoist mock setup
 const { mockAramexGetRates, mockSmsaGetRates, mockSplGetRates } = vi.hoisted(() => ({
@@ -17,16 +17,16 @@ const { mockAramexGetRates, mockSmsaGetRates, mockSplGetRates } = vi.hoisted(() 
 }));
 
 // Mock dependencies
-vi.mock("@/lib/queues/setup", () => ({
+vi.mock("../../lib/queues/setup", () => ({
   addJob: vi.fn(async () => undefined),
   QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
 }));
 
-vi.mock("@/lib/logger", () => ({
+vi.mock("../../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock("@/lib/carriers/aramex", () => ({
+vi.mock("../../lib/carriers/aramex", () => ({
   aramexCarrier: {
     name: "Aramex",
     createShipment: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock("@/lib/carriers/aramex", () => ({
   },
 }));
 
-vi.mock("@/lib/carriers/smsa", () => ({
+vi.mock("../../lib/carriers/smsa", () => ({
   smsaCarrier: {
     name: "SMSA",
     createShipment: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock("@/lib/carriers/smsa", () => ({
   },
 }));
 
-vi.mock("@/lib/carriers/spl", () => ({
+vi.mock("../../lib/carriers/spl", () => ({
   splCarrier: {
     name: "SPL",
     createShipment: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock("@/lib/carriers/spl", () => ({
   },
 }));
 
-let fulfillmentService: typeof import("@/services/souq/fulfillment-service").fulfillmentService;
+let fulfillmentService: typeof import("../../services/souq/fulfillment-service").fulfillmentService;
 
 afterEach(async () => {
   await SouqOrder.deleteMany({});
@@ -64,10 +64,109 @@ afterEach(async () => {
 });
 
 beforeAll(async () => {
-  ({ fulfillmentService } = await import("@/services/souq/fulfillment-service"));
+  ({ fulfillmentService } = await import("../../services/souq/fulfillment-service"));
 });
 
 describe("fulfillmentService", () => {
+  describe("multi-tenancy guards", () => {
+    it("should reject fulfillOrder when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.fulfillOrder({
+          orderId: "ORD-no-org",
+          orgId: "",
+          orderItems: [],
+          shippingAddress: {
+            name: "Buyer",
+            phone: "+966500000000",
+            street: "Addr",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          buyerPhone: "+966500000000",
+          buyerEmail: "buyer@example.com",
+        }),
+      ).rejects.toThrow("orgId is required to fulfill order");
+    });
+
+    it("should enforce org scoping when fulfilling an order", async () => {
+      const orderId = "ORD-org-scope";
+      const orgIdA = new Types.ObjectId().toString();
+      const orgIdB = new Types.ObjectId().toString();
+      await SouqOrder.create({
+        orderId,
+        orgId: new Types.ObjectId(orgIdA),
+        customerId: new Types.ObjectId(),
+        customerEmail: "buyer@example.com",
+        customerPhone: "+966500000000",
+        items: [],
+        shippingAddress: {
+          name: "Buyer",
+          phone: "+966500000000",
+          addressLine1: "Street 1",
+          city: "Riyadh",
+          postalCode: "12345",
+          country: "SA",
+        },
+        pricing: {
+          subtotal: 100,
+          shippingFee: 10,
+          tax: 15,
+          discount: 0,
+          total: 125,
+          currency: "SAR",
+        },
+        payment: { method: "card", status: "captured", transactionId: "txn_123" },
+        status: "pending",
+        fulfillmentStatus: "pending",
+        shippingSpeed: "standard",
+      });
+
+      await expect(
+        fulfillmentService.fulfillOrder({
+          orderId,
+          orgId: orgIdB,
+          orderItems: [],
+          shippingAddress: {
+            name: "Buyer",
+            phone: "+966500000000",
+            street: "Addr",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          buyerPhone: "+966500000000",
+          buyerEmail: "buyer@example.com",
+        }),
+      ).rejects.toThrow("Order not found for org");
+    });
+
+    it("should reject generateFBMLabel when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.generateFBMLabel({
+          orderId: "ORD-fbm",
+          sellerId: new Types.ObjectId().toString(),
+          sellerAddress: {
+            name: "Seller",
+            phone: "+966500000000",
+            street: "Seller St",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          carrierName: "spl",
+          orgId: "",
+        }),
+      ).rejects.toThrow("orgId is required to generate FBM label");
+    });
+
+    it("should reject updateTracking when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.updateTracking("TRACK-1", "spl", ""),
+      ).rejects.toThrow("orgId is required to update tracking");
+    });
+  });
+
   describe("getRates", () => {
     it("should aggregate rates from all carriers sorted by cost", async () => {
       const rates = await fulfillmentService.getRates({
@@ -101,9 +200,11 @@ describe("fulfillmentService", () => {
       const sellerId = new Types.ObjectId();
       const listingId = new Types.ObjectId();
       const productId = new Types.ObjectId();
+      const orgId = new Types.ObjectId();
 
       await SouqOrder.create({
         orderId,
+        orgId,
         customerId,
         customerEmail: "buyer@example.com",
         customerPhone: "+966500000000",
@@ -143,7 +244,7 @@ describe("fulfillmentService", () => {
         shippingSpeed: "standard",
       });
 
-      const sla = await fulfillmentService.calculateSLA(orderId);
+      const sla = await fulfillmentService.calculateSLA(orderId, orgId.toString());
 
       expect(sla.currentStatus).toBe("pending");
       expect(sla.isOnTime).toBe(true);
@@ -152,8 +253,17 @@ describe("fulfillmentService", () => {
       expect(["normal", "warning", "critical"]).toContain(sla.urgency);
     });
 
-    it("should throw for non-existent order", async () => {
-      await expect(fulfillmentService.calculateSLA("non-existent-order")).rejects.toThrow("Order not found");
+    it("should throw when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.calculateSLA("any-order", "")
+      ).rejects.toThrow("orgId is required for SLA calculation");
+    });
+
+    it("should throw for non-existent order with valid orgId", async () => {
+      const orgId = new Types.ObjectId().toString();
+      await expect(
+        fulfillmentService.calculateSLA("non-existent-order", orgId)
+      ).rejects.toThrow("Order not found for org");
     });
   });
 });

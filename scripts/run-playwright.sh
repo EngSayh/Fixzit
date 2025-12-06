@@ -17,13 +17,25 @@ trap cleanup EXIT
 # Start with a clean slate as well
 cleanup
 
+# Ensure auth secrets exist for Auth.js JWT encoding in Playwright helpers
+export AUTH_SECRET="${AUTH_SECRET:-playwright-secret}"
+export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-$AUTH_SECRET}"
+export AUTH_SALT="${AUTH_SALT:-authjs.session-token}"
+
 # Prefer running against a built server to avoid dev-mode manifest gaps
 if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
-  pnpm build
-  export PW_WEB_SERVER="pnpm start -- --hostname 0.0.0.0 --port 3000"
+  if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
+    echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
+  else
+    # Ensure a clean build output to avoid stale traces/manifests breaking standalone builds
+    rm -rf .next || true
+    pnpm build
+  fi
+  # Pass host/port directly to next start; leading -- caused Next to treat flags as project dir
+  export PW_WEB_SERVER="pnpm start --hostname 0.0.0.0 --port 3000"
   export PW_WEB_URL="${PW_WEB_URL:-http://localhost:3000}"
 else
-  export PW_WEB_SERVER="${PW_WEB_SERVER:-pnpm dev:webpack -- --hostname 0.0.0.0 --port 3000}"
+  export PW_WEB_SERVER="${PW_WEB_SERVER:-pnpm dev:webpack --hostname 0.0.0.0 --port 3000}"
 fi
 
 CONFIG_FILE="${PLAYWRIGHT_CONFIG:-tests/playwright.config.ts}"

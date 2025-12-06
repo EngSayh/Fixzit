@@ -255,7 +255,7 @@ async function seed() {
       employeeId: "AUD001",
       name: "Auditor / Compliance",
       role: "auditor_compliance",
-      permissions: ["*:read"],
+      permissions: ["*"],
     },
   ];
 

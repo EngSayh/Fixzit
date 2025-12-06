@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ModifyResult, ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { FMErrors } from "@/app/api/fm/errors";
 import {
@@ -96,7 +97,7 @@ export async function POST(
     }
 
     const db = await getDatabase();
-    const collection = db.collection<WorkOrderDocument>("workorders");
+    const collection = db.collection<WorkOrderDocument>(COLLECTIONS.WORK_ORDERS);
     // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
     const workOrder = await collection.findOne({
       _id: new ObjectId(id),
@@ -196,9 +197,9 @@ export async function POST(
     }
 
     // LEGACY-003 FIX: Use orgId for timeline entry
-    await recordTimelineEntry(db, {
+    await recordTimelineEntry({
       workOrderId: workOrder._id?.toString?.() ?? id,
-      tenantId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
+      orgId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
       action: "status_changed",
       description: `Status changed from ${currentStatus} to ${toStatus}`,
       metadata: {
@@ -223,7 +224,7 @@ export async function POST(
         (toStatus === WOStatus.WORK_COMPLETE || toStatus === WOStatus.CLOSED) &&
         workOrder.requesterId
       ) {
-        const requester = await db.collection("users").findOne({
+        const requester = await db.collection(COLLECTIONS.USERS).findOne({
           $or: [
             { _id: new ObjectId(workOrder.requesterId) },
             { email: workOrder.requesterId },
@@ -243,7 +244,7 @@ export async function POST(
       // Notify assignee on new assignment
       if (toStatus === WOStatus.IN_PROGRESS && workOrder.assigneeId) {
         const assignee = await db
-          .collection("users")
+          .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(workOrder.assigneeId) });
         if (assignee?.email) {
           recipients.push({
@@ -291,7 +292,7 @@ export async function POST(
         // Notify managers about SLA breach
         try {
           const managers = await db
-            .collection("users")
+            .collection(COLLECTIONS.USERS)
             .find({
               tenantId,
               role: {

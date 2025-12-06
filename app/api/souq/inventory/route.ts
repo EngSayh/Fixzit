@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import { SouqListing } from "@/server/models/souq/Listing";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
 
 /**
  * GET /api/souq/inventory
@@ -15,6 +37,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
     const searchParams = request.nextUrl.searchParams;
     const sellerId = searchParams.get("sellerId") || session.user.id;
     const status = searchParams.get("status") || undefined;
@@ -24,11 +55,25 @@ export async function GET(request: NextRequest) {
       | undefined;
     const lowStockOnly = searchParams.get("lowStockOnly") === "true";
 
-    // Authorization: Can only view own inventory unless admin
-    if (
-      sellerId !== session.user.id &&
-      !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)
-    ) {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    // Authorization: Can only view own inventory unless admin/ops/support
+    if (sellerId !== session.user.id && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -36,7 +81,7 @@ export async function GET(request: NextRequest) {
       status,
       fulfillmentType,
       lowStockOnly,
-      orgId: (session.user as { orgId?: string }).orgId,
+      orgId: orgIdStr,
     });
 
     return NextResponse.json({
@@ -45,7 +90,7 @@ export async function GET(request: NextRequest) {
       count: inventory.length,
     });
   } catch (error) {
-    logger.error("GET /api/souq/inventory error", { error });
+    logger.error("GET /api/souq/inventory error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -68,6 +113,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
     const body = await request.json();
     const {
       action,
@@ -78,7 +132,23 @@ export async function POST(request: NextRequest) {
       warehouseId,
       binLocation,
       reason,
-    } = body;
+    } = body as {
+      action?: "initialize" | "receive";
+      listingId?: string;
+      productId?: string;
+      quantity?: number;
+      fulfillmentType?: string;
+      warehouseId?: string;
+      binLocation?: string;
+      reason?: string;
+    };
+    const actionType = action ?? "receive";
+    if (!["initialize", "receive"].includes(actionType)) {
+      return NextResponse.json(
+        { error: "Invalid action. Must be initialize or receive" },
+        { status: 400 },
+      );
+    }
 
     // Validation
     if (!listingId || !quantity || quantity <= 0) {
@@ -90,7 +160,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (action === "initialize") {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    const listing = await SouqListing.findOne({
+      listingId,
+      ...buildOrgFilter(orgIdStr),
+    }).select({ sellerId: 1, orgId: 1 });
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found for this organization" },
+        { status: 404 },
+      );
+    }
+
+    const listingSellerId = listing.sellerId?.toString();
+    const isSellerOwner = listingSellerId === session.user.id;
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
+      return NextResponse.json(
+        { error: "Forbidden: listing belongs to another seller" },
+        { status: 403 },
+      );
+    }
+
+    if (!listingSellerId) {
+      return NextResponse.json(
+        { error: "Listing is missing seller ownership" },
+        { status: 400 },
+      );
+    }
+
+    if (actionType === "initialize") {
       // Initialize new inventory
       if (!productId || !fulfillmentType) {
         return NextResponse.json(
@@ -103,12 +219,12 @@ export async function POST(request: NextRequest) {
       }
 
       const inventory = await inventoryService.initializeInventory({
-        listingId,
-        productId,
-        sellerId: session.user.id,
-        orgId: (session.user as { orgId?: string }).orgId,
-        quantity,
-        fulfillmentType,
+        listingId: listingId as string,
+        productId: productId as string,
+        sellerId: listingSellerId,
+        orgId: orgIdStr,
+        quantity: quantity as number,
+        fulfillmentType: fulfillmentType as "FBM" | "FBF",
         warehouseId,
         binLocation,
         performedBy: session.user.id,
@@ -126,11 +242,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Receive additional stock
       const inventory = await inventoryService.receiveStock(
-        listingId,
-        quantity,
+        listingId as string,
+        quantity as number,
         session.user.id,
+        orgIdStr,
         reason,
-        (session.user as { orgId?: string }).orgId,
       );
 
       return NextResponse.json({
@@ -140,7 +256,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    logger.error("POST /api/souq/inventory error", { error });
+    logger.error("POST /api/souq/inventory error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

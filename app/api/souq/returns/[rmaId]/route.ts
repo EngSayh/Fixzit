@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
 
 /**
  * GET /api/souq/returns/[rmaId]
  * Get RMA details
- * Buyer, seller, or admin access
+ * Buyer, seller, or admin access with org scoping
  */
 export async function GET(
   request: NextRequest,
@@ -19,9 +27,61 @@ export async function GET(
 
     const { rmaId } = params;
 
-    // Get RMA
+    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
+        { status: 400 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: Use canonical Role enum with subRole enforcement
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const validatedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, validatedSubRole);
+    const userSubRole =
+      normalizeSubRole(validatedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isAdminRole = userRole !== null && [Role.ADMIN, Role.CORPORATE_OWNER].includes(userRole);
+    const isOpsOrSupport =
+      userRole === Role.TEAM_MEMBER &&
+      !!userSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+    const isAdmin = isPlatformAdmin || isAdminRole || isOpsOrSupport;
+
+    // 🔐 SECURITY: Get org context and scope RMA lookup
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    if (!isPlatformAdmin && !sessionOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     const { SouqRMA } = await import("@/server/models/souq/RMA");
-    const rma = await SouqRMA.findById(rmaId)
+    const { ObjectId } = await import("mongodb");
+    type ObjectIdType = InstanceType<typeof ObjectId>;
+
+    // Helper to match orgId stored as string or ObjectId during migration
+    const buildOrgFilter = (orgId: string) => {
+      const candidates: Array<string | ObjectIdType> = [orgId];
+      if (ObjectId.isValid(orgId)) {
+        candidates.push(new ObjectId(orgId));
+      }
+      return { orgId: { $in: candidates } };
+    };
+
+    // 🔐 SECURITY: Org-scoped RMA lookup prevents cross-tenant metadata leaks
+    // SUPER_ADMIN can access any org's RMA; others must scope to their org
+    const rmaQuery = isPlatformAdmin
+      ? { _id: rmaId }
+      : { _id: rmaId, ...buildOrgFilter(sessionOrgId!) };
+
+    const rma = await SouqRMA.findOne(rmaQuery)
       .populate("orderId")
       .populate("buyerId")
       .populate("sellerId");
@@ -30,10 +90,9 @@ export async function GET(
       return NextResponse.json({ error: "RMA not found" }, { status: 404 });
     }
 
-    // Check access
-    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
-    const isBuyer = rma.buyerId.toString() === session.user.id;
-    const isSeller = rma.sellerId.toString() === session.user.id;
+    // Check access: admin, buyer, or seller
+    const isBuyer = rma.buyerId?.toString() === session.user.id;
+    const isSeller = rma.sellerId?.toString() === session.user.id;
 
     if (!isAdmin && !isBuyer && !isSeller) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -44,7 +103,7 @@ export async function GET(
       rma,
     });
   } catch (error) {
-    logger.error("Get RMA error", { error });
+    logger.error("Get RMA error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get RMA",

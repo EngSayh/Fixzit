@@ -308,7 +308,10 @@ ProjectSchema.index({ orgId: 1, type: 1 });
 ProjectSchema.index({ orgId: 1, "timeline.startDate": 1 });
 ProjectSchema.index({ orgId: 1, "progress.overall": -1 });
 // Compound tenant-scoped unique index for code
-ProjectSchema.index({ orgId: 1, code: 1 }, { unique: true });
+ProjectSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 

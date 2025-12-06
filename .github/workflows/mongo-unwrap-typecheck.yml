@@ -1,3 +1,5 @@
+---
+# yamllint disable rule:line-length rule:truthy
 name: Mongo Unwrap + Typecheck
 
 on:
@@ -11,6 +13,8 @@ permissions:
 jobs:
   mongo-unwrap-typecheck:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

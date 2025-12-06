@@ -32,6 +32,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from '@/domain/fm/fm-lite';
+import { WORK_ORDERS_MODULE_ID } from './navigation/constants';
 
 // ==========================================
 // Types & Interfaces
@@ -59,10 +60,10 @@ export type SubscriptionPlan = typeof SUBSCRIPTION_PLAN_KEYS[number];
 // Badge counts type for dynamic badge values
 export interface BadgeCounts {
   vacant_units?: number;
-  work_orders?: number;
-  pending_work_orders?: number;
-  in_progress_work_orders?: number;
-  urgent_work_orders?: number;
+  workOrders?: number;
+  pendingWorkOrders?: number;
+  inProgressWorkOrders?: number;
+  urgentWorkOrders?: number;
   marketplace_orders?: number;
   open_rfqs?: number;
   marketplace_products?: number;
@@ -139,6 +140,20 @@ export interface NavigationConfig {
     rtlSupport: boolean;
   };
 }
+
+// Canonical module IDs (phase out snake_case)
+export { WORK_ORDERS_MODULE_ID };
+export const WORK_ORDERS_ID = WORK_ORDERS_MODULE_ID;
+export const WORK_ORDERS_ID_LEGACY = 'work_orders'; // temporary alias during migration
+
+// Normalize module identifiers to canonical form
+export const normalizeModuleId = (id?: string | null): string | null => {
+  if (!id) return null;
+  const trimmed = id.trim();
+  if (!trimmed) return null;
+  if (trimmed === WORK_ORDERS_ID_LEGACY) return WORK_ORDERS_ID;
+  return trimmed;
+};
 
 const ROLE_EQUIVALENTS: Record<string, string[]> = {
   MANAGER: ['FM_MANAGER'],
@@ -317,7 +332,8 @@ export type ModuleCategory =
 
 export type ModuleId =
   | 'dashboard'
-  | 'work_orders'
+  | typeof WORK_ORDERS_ID
+  | typeof WORK_ORDERS_ID_LEGACY
   | 'properties'
   | 'tenants'
   | 'finance'
@@ -336,7 +352,8 @@ export type ModuleId =
 
 export const MODULE_PATHS = {
   dashboard: '/fm/dashboard',
-  work_orders: '/fm/work-orders',
+  [WORK_ORDERS_ID]: '/fm/work-orders',
+  [WORK_ORDERS_ID_LEGACY]: '/fm/work-orders', // legacy alias
   properties: '/fm/properties',
   tenants: '/fm/tenants',
   finance: '/fm/finance',
@@ -476,14 +493,14 @@ export const MODULES: readonly ModuleItem[] = [
     order: 1,
   },
   {
-    id: 'work_orders',
+    id: WORK_ORDERS_ID,
     name: 'nav.workOrders',
     fallbackLabel: 'Work Orders',
-    path: MODULE_PATHS.work_orders,
+    path: MODULE_PATHS[WORK_ORDERS_ID],
     icon: Wrench,
     category: 'fm',
     order: 2,
-    badgeKey: 'pending_work_orders',
+    badgeKey: 'pendingWorkOrders',
   },
   {
     id: 'properties',
@@ -584,7 +601,7 @@ export const MODULES: readonly ModuleItem[] = [
 ];
 
 export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
-  work_orders: [
+  [WORK_ORDERS_ID]: [
     { id: 'work-orders-create', name: 'nav.workOrders.create', fallbackLabel: 'Create Work Order', kind: 'query', value: 'create' },
     { id: 'work-orders-track', name: 'nav.workOrders.trackAssign', fallbackLabel: 'Track & Assign', kind: 'query', value: 'track' },
     { id: 'work-orders-preventive', name: 'nav.workOrders.preventive', fallbackLabel: 'Preventive Maintenance', kind: 'query', value: 'preventive' },
@@ -656,7 +673,7 @@ export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
 };
 
 const ALL_MODULE_IDS = MODULES.map((m) => m.id);
-const CORE_PLAN: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'support'];
+const CORE_PLAN: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'properties', 'support'];
 const PRO_PLAN: ModuleId[] = [...CORE_PLAN, 'finance', 'hr', 'crm', 'marketplace', 'reports'];
 const STANDARD_PLAN: ModuleId[] = CORE_PLAN;
 const PREMIUM_PLAN: ModuleId[] = PRO_PLAN;
@@ -675,7 +692,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, readonly ModuleId[]> =
 const fullAccess = ALL_MODULE_IDS;
 const adminCore: ModuleId[] = [
   'dashboard',
-  'work_orders',
+  WORK_ORDERS_ID,
   'properties',
   'finance',
   'hr',
@@ -687,12 +704,12 @@ const adminCore: ModuleId[] = [
   'reports',
   'system',
 ];
-const fmLeadership: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'hr', 'support', 'reports'];
-const propertyOps: ModuleId[] = ['dashboard', 'properties', 'work_orders', 'crm', 'support', 'reports'];
+const fmLeadership: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'properties', 'hr', 'support', 'reports'];
+const propertyOps: ModuleId[] = ['dashboard', 'properties', WORK_ORDERS_ID, 'crm', 'support', 'reports'];
 const financeOnly: ModuleId[] = ['dashboard', 'finance', 'reports', 'support'];
 const hrOnly: ModuleId[] = ['dashboard', 'hr', 'support', 'reports'];
 const procurementOnly: ModuleId[] = ['dashboard', 'marketplace', 'support', 'reports'];
-const technicianOnly: ModuleId[] = ['dashboard', 'work_orders', 'support'];
+const technicianOnly: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'support'];
 const ownerTenant: ModuleId[] = ['dashboard', 'properties', 'support', 'reports'];
 const vendorOnly: ModuleId[] = ['dashboard', 'marketplace', 'support'];
 const customerOnly: ModuleId[] = ['dashboard', 'support'];
@@ -706,7 +723,7 @@ export const ROLE_PERMISSIONS = {
   MANAGER: fmLeadership,
   FM_MANAGER: fmLeadership,
   PROPERTY_MANAGER: propertyOps,
-  TEAM_MEMBER: ['dashboard', 'work_orders', 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
+  TEAM_MEMBER: ['dashboard', WORK_ORDERS_ID, 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
   FINANCE: financeOnly,
   HR: hrOnly,
   PROCUREMENT: procurementOnly,
@@ -791,8 +808,8 @@ const moduleRoles = (...moduleIds: ModuleId[]): NavigationRole[] => {
 const DASHBOARD_ROLES = moduleRoles('dashboard');
 const REPORT_ROLES = moduleRoles('reports');
 const PROPERTIES_ROLES = moduleRoles('properties');
-const WORK_ORDER_ROLES = moduleRoles('work_orders');
-const FACILITY_ROLES = moduleRoles('properties', 'work_orders');
+const WORK_ORDER_ROLES = moduleRoles(WORK_ORDERS_ID);
+const FACILITY_ROLES = moduleRoles('properties', WORK_ORDERS_ID);
 const MARKETPLACE_ROLES = moduleRoles('marketplace');
 const REAL_ESTATE_ROLES = PROPERTIES_ROLES;
 const FINANCE_ROLES = moduleRoles('finance');
@@ -962,52 +979,52 @@ const rawNavigationConfig: NavigationConfig = {
           ],
         },
         {
-          id: 'work_orders',
+          id: WORK_ORDERS_ID,
           label: 'Work Orders',
           labelAr: 'أوامر العمل',
-          href: MODULE_PATHS.work_orders,
+          href: MODULE_PATHS[WORK_ORDERS_ID],
           iconName: 'Wrench',
           roles: WORK_ORDER_ROLES,
           badge: {
-            key: 'work_orders',
+            key: WORK_ORDERS_ID,
             color: 'red',
             variant: 'solid',
             pulse: true,
           },
           children: [
             {
-              id: 'all_work_orders',
+              id: 'allWorkOrders',
               label: 'All Work Orders',
               labelAr: 'جميع أوامر العمل',
-              href: MODULE_PATHS.work_orders,
+              href: MODULE_PATHS[WORK_ORDERS_ID],
             },
             {
-              id: 'pending_work_orders',
+              id: 'pendingWorkOrders',
               label: 'Pending',
               labelAr: 'قيد الانتظار',
-              href: `${MODULE_PATHS.work_orders}?status=pending`,
+              href: `${MODULE_PATHS[WORK_ORDERS_ID]}?status=pending`,
               badge: {
-                key: 'pending_work_orders',
+                key: 'pendingWorkOrders',
                 color: 'yellow',
                 variant: 'solid',
               },
             },
             {
-              id: 'in_progress_work_orders',
+              id: 'inProgressWorkOrders',
               label: 'In Progress',
               labelAr: 'قيد التنفيذ',
-              href: `${MODULE_PATHS.work_orders}?status=in_progress`,
+              href: `${MODULE_PATHS[WORK_ORDERS_ID]}?status=in_progress`,
               badge: {
-                key: 'in_progress_work_orders',
+                key: 'inProgressWorkOrders',
                 color: 'blue',
                 variant: 'solid',
               },
             },
             {
-              id: 'create_work_order',
+              id: 'createWorkOrder',
               label: 'Create Work Order',
               labelAr: 'إنشاء أمر عمل',
-              href: `${MODULE_PATHS.work_orders}/new`,
+              href: `${MODULE_PATHS[WORK_ORDERS_ID]}/new`,
               roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT'],
             },
           ],

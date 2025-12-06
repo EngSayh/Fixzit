@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * POST /api/souq/seller-central/kyc/approve
@@ -14,13 +20,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Admin only
-    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)) {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
-    const { sellerId, approved, rejectionReason } = body;
+    const { sellerId, approved, rejectionReason, targetOrgId } = body;
 
     // Validation
     if (!sellerId || approved === undefined) {
@@ -42,10 +58,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (approved) {
-      await sellerKYCService.approveKYC(sellerId, session.user.id);
+      const sessionOrgId = (session.user as { orgId?: string }).orgId;
+      const effectiveOrgId = isPlatformAdmin
+        ? targetOrgId ?? sessionOrgId
+        : sessionOrgId;
+      if (!effectiveOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
+      await sellerKYCService.approveKYC(sellerId, effectiveOrgId, session.user.id);
     } else {
+      const sessionOrgId = (session.user as { orgId?: string }).orgId;
+      const effectiveOrgId = isPlatformAdmin
+        ? targetOrgId ?? sessionOrgId
+        : sessionOrgId;
+      if (!effectiveOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
       await sellerKYCService.rejectKYC(
         sellerId,
+        effectiveOrgId,
         session.user.id,
         rejectionReason,
       );
@@ -56,7 +93,7 @@ export async function POST(request: NextRequest) {
       message: `KYC ${approved ? "approved" : "rejected"} successfully`,
     });
   } catch (error) {
-    logger.error("Approve/reject KYC error", { error });
+    logger.error("Approve/reject KYC error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to process KYC approval",

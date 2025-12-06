@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { z } from "zod";
@@ -9,6 +10,10 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -123,7 +128,9 @@ export async function POST(req: NextRequest) {
   const { getRedisClient } = await import("@/lib/redis");
   const redis = getRedisClient();
   const ip = getClientIP(req);
-  const rateKey = `incidents:rate:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
+  // SECURITY: Include tenant scope in rate limit key to prevent cross-tenant interference (STRICT v4.1)
+  const rateLimitTenantScope = sessionUser?.orgId ?? "anonymous";
+  const rateKey = `incidents:rate:${rateLimitTenantScope}:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
   const windowSecs = 30; // 30s window
   const maxRequests = 3;
 
@@ -177,11 +184,20 @@ export async function POST(req: NextRequest) {
       );
     }
   }
-  const existing = incidentKey
-    ? await native
-        .collection("error_events")
-        .findOne({ incidentKey, tenantScope })
-    : null;
+  // Align telemetry with org-level tenancy for analytics + isolation
+  const orgScope = tenantScope;
+
+  let existing: Record<string, unknown> | null = null;
+  if (incidentKey) {
+    // Prefer orgId-based dedupe (indexed); fallback to legacy tenantScope-only records
+    existing =
+      (await native
+        .collection(COLLECTIONS.ERROR_EVENTS)
+        .findOne({ incidentKey, orgId: orgScope })) ||
+      (await native
+        .collection(COLLECTIONS.ERROR_EVENTS)
+        .findOne({ incidentKey, tenantScope: orgScope }));
+  }
   if (existing) {
     return NextResponse.json(
       {
@@ -194,7 +210,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Store minimal incident document for indexing/analytics
-  await native.collection("error_events").insertOne({
+  await native.collection(COLLECTIONS.ERROR_EVENTS).insertOne({
+    orgId: orgScope,
     incidentKey,
     incidentId,
     code,
@@ -204,7 +221,7 @@ export async function POST(req: NextRequest) {
     details,
     sessionUser: sessionUser || null,
     clientContext: body?.clientContext || null,
-    tenantScope: sessionUser?.orgId || null,
+    tenantScope,
     createdAt: now,
   });
 
@@ -219,8 +236,20 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
+      const ticketOrgId = sessionUser?.orgId || process.env.SUPPORT_PUBLIC_ORG_ID;
+      if (!ticketOrgId) {
+        return NextResponse.json(
+          {
+            error: "Missing organization context",
+            detail:
+              "Support tickets require an organization. Set SUPPORT_PUBLIC_ORG_ID for anonymous incidents.",
+          },
+          { status: 400 },
+        );
+      }
+      setTenantContext({ orgId: ticketOrgId });
       ticket = await SupportTicket.create({
-        orgId: sessionUser?.orgId || undefined,
+        orgId: ticketOrgId,
         code: ticketCode,
         subject: `[${code}] ${message}`.slice(0, 140),
         module: "Other",
@@ -257,15 +286,23 @@ export async function POST(req: NextRequest) {
       if (_e && typeof _e === "object" && "code" in _e && _e.code === 11000)
         continue; // duplicate code -> retry
       throw _e;
+    } finally {
+      clearTenantContext();
     }
   }
 
   // Persist ticket linkage for dedupe/analytics
   if (ticket) {
     await native
-      .collection("error_events")
+      .collection(COLLECTIONS.ERROR_EVENTS)
       .updateOne(
-        { incidentId, tenantScope },
+        {
+          incidentId,
+          $or: [
+            { orgId: orgScope },
+            { tenantScope: orgScope },
+          ],
+        },
         { $set: { ticketId: ticket.code } },
       );
   }

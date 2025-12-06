@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       ...dashboard,
     });
   } catch (error) {
-    logger.error("Get analytics dashboard error", { error });
+    logger.error("Get analytics dashboard error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get analytics dashboard",

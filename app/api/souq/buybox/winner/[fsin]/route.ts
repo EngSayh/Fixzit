@@ -13,12 +13,17 @@ interface RouteContext {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { fsin } = await context.params;
+    const { searchParams } = new URL(request.url);
+    const orgId = searchParams.get("orgId") || "";
 
     if (!fsin) {
       return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
     }
+    if (!orgId) {
+      return NextResponse.json({ error: "orgId is required" }, { status: 400 });
+    }
 
-    const winner = await BuyBoxService.calculateBuyBoxWinner(fsin);
+    const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, orgId);
 
     if (!winner) {
       return NextResponse.json(
@@ -32,7 +37,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       winner,
     });
   } catch (error) {
-    logger.error("Get Buy Box winner error", { error });
+    logger.error("Get Buy Box winner error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get Buy Box winner",

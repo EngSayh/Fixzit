@@ -65,7 +65,10 @@ export default defineConfig({
           name: "api",
           environment: "node",
           setupFiles: ["./vitest.setup.ts"],
-          include: ["tests/**/api/**/*.test.{ts,tsx}"],
+          include: [
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/app/api/**/*.test.{ts,tsx}", // app router API tests
+          ],
           exclude: baseExcludes,
         },
       }),

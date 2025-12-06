@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ leaveTypes });
   } catch (error) {
-    logger.error("Failed to fetch leave types", { error });
+    logger.error("Failed to fetch leave types", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch leave types" },
       { status: 500 },
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(leaveType, { status: 201 });
   } catch (error) {
-    logger.error("Failed to create leave type", { error });
+    logger.error("Failed to create leave type", error as Error);
     return NextResponse.json(
       { error: "Failed to create leave type" },
       { status: 500 },

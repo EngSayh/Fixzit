@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    logger.error("[POST /api/souq/reviews/[id]/helpful]", { error });
+    logger.error("[POST /api/souq/reviews/[id]/helpful]", error as Error);
     return NextResponse.json(
       { error: "Failed to mark review as helpful" },
       { status: 500 },

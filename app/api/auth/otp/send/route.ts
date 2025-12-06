@@ -21,9 +21,12 @@ import {
   buildOtpKey,
   redactIdentifier,
 } from "@/lib/otp-utils";
+import { isTruthy } from "@/lib/utils/env";
+import type { ObjectId } from "mongodb";
 
 interface UserDocument {
   _id?: { toString: () => string };
+  orgId?: { toString: () => string } | string; // Organization ID for tenant isolation
   email: string;
   username?: string;
   employeeId?: string;
@@ -85,7 +88,7 @@ const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
 // Note: DEMO_AUTH_ENABLED is defined below with demo password configuration
-const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === "true";
+const OFFLINE_MODE = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
 
 const TEST_USER_CONFIG = [
   {
@@ -281,6 +284,24 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Resolve orgId from organization code to enforce tenant scoping for corporate logins
+async function resolveOrgIdFromCompanyCode(
+  companyCode: string,
+): Promise<string | null> {
+  const { Organization } = await import("@/server/models/Organization");
+  const org = await Organization.findOne({ code: companyCode })
+    .select({ _id: 1, orgId: 1 })
+    .lean<{
+      _id?: ObjectId;
+      orgId?: string;
+    }>()
+    .catch(() => null);
+
+  if (!org) return null;
+  const orgId = org.orgId || org._id?.toString();
+  return orgId ?? null;
+}
+
 // Check rate limit (ASYNC for multi-instance Redis support)
 async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
@@ -312,7 +333,11 @@ export async function POST(request: NextRequest) {
     windowMs: 60_000,
   });
   if (ipRateLimited) return ipRateLimited;
-  const clientIp = request.headers.get("x-forwarded-for") || "otp-ip";
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
   // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
   const rl = await smartRateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
   if (!rl.allowed) {
@@ -367,19 +392,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (loginType === "corporate" && !normalizedCompanyCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Company number is required for corporate login",
-        },
-        { status: 400 },
+    // Resolve org scope early to build tenant-scoped OTP key
+    let orgScopeId: string | null = null;
+    const resolvedDefaultOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    if (loginType === "corporate") {
+      if (!normalizedCompanyCode) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Company number is required for corporate login",
+          },
+          { status: 400 },
+        );
+      }
+      await connectToDatabase();
+      const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
+        normalizedCompanyCode,
       );
+
+      if (!resolvedCompanyOrgId) {
+        logger.warn("[OTP] Invalid company code", {
+          identifier: redactIdentifier(loginIdentifier),
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+
+      orgScopeId = resolvedCompanyOrgId;
+    } else {
+      if (!resolvedDefaultOrgId) {
+        logger.error("[OTP] Missing org context for personal login", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+        return NextResponse.json(
+          { success: false, error: "Login temporarily unavailable" },
+          { status: 503 },
+        );
+      }
+      orgScopeId = resolvedDefaultOrgId;
     }
 
-    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
+    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode, orgScopeId);
 
-    // 4. Check rate limit using normalized identifier (ASYNC for multi-instance)
+    // 4. Check rate limit using normalized identifier + org (ASYNC for multi-instance)
     const rateLimitResult = await checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
       logger.warn("[OTP] Rate limit exceeded", { identifier: redactIdentifier(otpKey) });
@@ -410,20 +472,13 @@ export async function POST(request: NextRequest) {
       const { User } = await import("@/server/models/User");
       const bcrypt = await import("bcryptjs");
 
-      // SECURITY: Resolve default organization for public auth flow
-      const resolvedOrgId =
-        process.env.PUBLIC_ORG_ID ||
-        process.env.TEST_ORG_ID ||
-        process.env.DEFAULT_ORG_ID;
-
       if (loginType === "personal") {
         // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-        user = resolvedOrgId
-          ? await User.findOne({ orgId: resolvedOrgId, email: loginIdentifier })
-          : await User.findOne({ email: loginIdentifier });
+        user = await User.findOne({ orgId: orgScopeId, email: loginIdentifier });
       } else {
-        // Corporate login uses username + company code (already scoped by company)
+        // Scope user lookup by both orgId AND company code for defense in depth
         user = await User.findOne({
+          orgId: orgScopeId,
           username: loginIdentifier,
           code: normalizedCompanyCode,
         });
@@ -500,6 +555,9 @@ export async function POST(request: NextRequest) {
     }
 
     const isDemoUser = Boolean(user.__isDemoUser);
+    const userOrgId =
+      (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() ||
+      orgScopeId;
 
     // 7. Check if user is active
     const isUserActive =
@@ -599,12 +657,14 @@ export async function POST(request: NextRequest) {
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     // 11. Store OTP in Redis for multi-instance support
+    // SECURITY: Include orgId in payload for tenant validation during verify (SEC-BLOCKER-001)
     await redisOtpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
       userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
+      orgId: orgScopeId,
       companyCode: normalizedCompanyCode,
     });
 
@@ -613,6 +673,7 @@ export async function POST(request: NextRequest) {
 
     if (!OFFLINE_MODE) {
       const logResult = await logCommunication({
+        orgId: userOrgId || undefined, // SECURITY: Include orgId for tenant isolation (SEC-003)
         userId: user._id?.toString?.() || loginIdentifier,
         channel: "otp",
         type: "otp",
@@ -688,11 +749,34 @@ export async function POST(request: NextRequest) {
       data: responseData,
     });
   } catch (error) {
+    // Enhanced error logging for production debugging - pass Error object for stack trace capture
     logger.error("[OTP] Send OTP error", error as Error);
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log detailed error context for production debugging
+    logger.error("[OTP] Detailed error context", {
+      errorName,
+      errorMessage,
+      stack: errorStack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+    });
+    
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
+        // Include error hint in non-development for debugging (no sensitive data)
+        errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
+          ? "database_connection" 
+          : errorName === "MONGO_DISABLED_FOR_BUILD"
+          ? "build_mode"
+          : "unknown",
+        // In development, include full error details for debugging
+        ...(process.env.NODE_ENV === "development" && { 
+          debug: { name: errorName, message: errorMessage }
+        }),
       },
       { status: 500 },
     );

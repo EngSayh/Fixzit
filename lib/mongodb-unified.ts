@@ -1,9 +1,7 @@
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
-
-const isTruthy = (value?: string): boolean =>
-  value === "true" || value === "1";
+import { isTruthy } from "@/lib/utils/env";
 
 declare global {
   var _mongooseConnection: typeof mongoose | undefined;

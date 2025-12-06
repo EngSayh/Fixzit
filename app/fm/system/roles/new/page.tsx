@@ -16,26 +16,26 @@ import { Shield, Plus } from "lucide-react";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 const PERMISSIONS = [
-  { id: "users.read", label: "View Users", category: "users" },
-  { id: "users.write", label: "Manage Users", category: "users" },
-  { id: "roles.read", label: "View Roles", category: "roles" },
-  { id: "roles.write", label: "Manage Roles", category: "roles" },
-  { id: "workorders.read", label: "View Work Orders", category: "workorders" },
+  { id: "users:read", label: "View Users", category: "users" },
+  { id: "users:write", label: "Manage Users", category: "users" },
+  { id: "roles:read", label: "View Roles", category: "roles" },
+  { id: "roles:write", label: "Manage Roles", category: "roles" },
+  { id: "workorders:read", label: "View Work Orders", category: "workorders" },
   {
-    id: "workorders.write",
+    id: "workorders:write",
     label: "Manage Work Orders",
     category: "workorders",
   },
-  { id: "properties.read", label: "View Properties", category: "properties" },
+  { id: "properties:read", label: "View Properties", category: "properties" },
   {
-    id: "properties.write",
+    id: "properties:write",
     label: "Manage Properties",
     category: "properties",
   },
-  { id: "finance.read", label: "View Finance", category: "finance" },
-  { id: "finance.write", label: "Manage Finance", category: "finance" },
-  { id: "reports.read", label: "View Reports", category: "reports" },
-  { id: "reports.write", label: "Generate Reports", category: "reports" },
+  { id: "finance:read", label: "View Finance", category: "finance" },
+  { id: "finance:write", label: "Manage Finance", category: "finance" },
+  { id: "reports:read", label: "View Reports", category: "reports" },
+  { id: "reports:write", label: "Generate Reports", category: "reports" },
 ];
 
 export default function NewRolePage() {

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
 
 /**
  * POST /api/souq/seller-central/kyc/verify-document
@@ -14,13 +20,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Admin only
-    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)) {
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
-    const { sellerId, documentType, approved, rejectionReason } = body;
+    const { sellerId, documentType, approved, rejectionReason, targetOrgId } = body;
 
     // Validation
     if (!sellerId || !documentType || approved === undefined) {
@@ -41,9 +57,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const effectiveOrgId = isPlatformAdmin ? targetOrgId ?? sessionOrgId : sessionOrgId;
+    if (!effectiveOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     // Verify document
     await sellerKYCService.verifyDocument({
       sellerId,
+      orgId: effectiveOrgId,
       documentType,
       approved,
       verifiedBy: session.user.id,
@@ -55,7 +81,7 @@ export async function POST(request: NextRequest) {
       message: `Document ${approved ? "approved" : "rejected"} successfully`,
     });
   } catch (error) {
-    logger.error("Verify document error", { error });
+    logger.error("Verify document error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to verify document",

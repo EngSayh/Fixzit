@@ -17,6 +17,7 @@ export interface IAgentAuditLog extends Document {
   resource_type: string;
   resource_id?: string;
   orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId
+  targetOrgId?: string; // When acting cross-tenant (platform admin)
   request_path?: string;
   success: boolean;
   error_message?: string;
@@ -70,7 +71,17 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
     resource_type: {
       type: String,
       required: true,
-      enum: ["work_order", "property", "user", "finance_record", "hr_record", "report", "config", "other"],
+      enum: [
+        "work_order",
+        "property",
+        "user",
+        "finance_record",
+        "hr_record",
+        "report",
+        "config",
+        "cross_tenant_action",
+        "other",
+      ],
       description: "Type of resource affected",
     },
     
@@ -86,6 +97,10 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
       required: true,
       index: true,
       description: "Tenant organization ID for multi-tenant isolation",
+    },
+    targetOrgId: {
+      type: String,
+      description: "Target tenant org when acting cross-tenant (platform admin only)",
     },
     
     // HTTP request context
@@ -129,17 +144,10 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
   {
     timestamps: true, // createdAt, updatedAt
     collection: "agent_audit_logs",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   }
 );
-
-// Indexes for query performance (STRICT v4.1 recommendations)
-// AUDIT-2025-11-29: Changed from org_id to orgId
-AgentAuditLogSchema.index({ agent_id: 1, timestamp: -1 }); // Query all actions by agent
-AgentAuditLogSchema.index({ assumed_user_id: 1, timestamp: -1 }); // Query actions on behalf of user
-AgentAuditLogSchema.index({ orgId: 1, timestamp: -1 }); // Tenant-scoped queries
-AgentAuditLogSchema.index({ orgId: 1, resource_type: 1, timestamp: -1 }); // Resource-type specific queries
-AgentAuditLogSchema.index({ orgId: 1, success: 1, timestamp: -1 }); // Failed actions audit
-AgentAuditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 31536000 }); // TTL: 1 year retention
 
 // Virtual for easier querying
 AgentAuditLogSchema.virtual("age_days").get(function () {

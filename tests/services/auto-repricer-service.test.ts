@@ -85,7 +85,8 @@ async function seedListing({
   fsin,
   price = 100,
   quantity = 50,
-} = { sellerId: "", fsin: "" }) {
+  orgId = testOrgId,
+} = { sellerId: "", fsin: "", orgId: testOrgId }) {
   const productId = new Types.ObjectId();
   const listingId = `LST-${nanoid(8)}`;
 
@@ -94,6 +95,7 @@ async function seedListing({
     productId,
     fsin,
     sellerId: new Types.ObjectId(sellerId),
+    orgId,
     price,
     currency: "SAR",
     stockQuantity: quantity,
@@ -135,7 +137,7 @@ describe("AutoRepricerService", () => {
     it("should return empty results when seller not found", async () => {
       const fakeSellerId = new Types.ObjectId().toString();
       
-      const result = await AutoRepricerService.repriceSeller(fakeSellerId);
+      const result = await AutoRepricerService.repriceSeller(fakeSellerId, testOrgId.toString());
       expect(result.repriced).toBe(0);
       expect(result.errors).toBe(0);
       expect(result.listings).toHaveLength(0);
@@ -144,7 +146,7 @@ describe("AutoRepricerService", () => {
     it("should return empty results when repricer is disabled", async () => {
       const { sellerId } = await seedSeller({ repricerEnabled: false });
       
-      const result = await AutoRepricerService.repriceSeller(sellerId);
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
       
       expect(result.repriced).toBe(0);
       expect(result.errors).toBe(0);
@@ -175,7 +177,7 @@ describe("AutoRepricerService", () => {
         autoRepricerSettings: { invalid: "settings" }, // Invalid
       });
 
-      const result = await AutoRepricerService.repriceSeller(sellerId.toString());
+      const result = await AutoRepricerService.repriceSeller(sellerId.toString(), testOrgId.toString());
       
       expect(result.repriced).toBe(0);
     });
@@ -200,7 +202,7 @@ describe("AutoRepricerService", () => {
 
       await seedListing({ sellerId, fsin, price: 100 });
 
-      const result = await AutoRepricerService.repriceSeller(sellerId);
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
       
       // Should return results (repriced or not depending on competition)
       expect(result).toHaveProperty("repriced");
@@ -225,7 +227,7 @@ describe("AutoRepricerService", () => {
 
       const { listingId } = await seedListing({ sellerId, fsin, price: 100 });
 
-      const result = await AutoRepricerService.repriceSeller(sellerId);
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
       
       // If listing was repriced, verify it didn't go below minPrice
       if (result.listings.length > 0) {

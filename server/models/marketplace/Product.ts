@@ -118,30 +118,44 @@ const ProductSchema = new Schema<MarketplaceProduct>(
       default: "ACTIVE",
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    collection: "products",
+    // Disable automatic index creation; indexes are managed in lib/db/collections.ts
+    autoIndex: false,
+  },
 );
 
 // APPLY PLUGINS (BEFORE INDEXES)
 ProductSchema.plugin(tenantIsolationPlugin);
 ProductSchema.plugin(auditPlugin);
 
-// INDEXES (AFTER PLUGINS) - orgId is now added by the plugin
-ProductSchema.index({ orgId: 1, sku: 1 }, { unique: true });
-ProductSchema.index({ orgId: 1, slug: 1 }, { unique: true });
-ProductSchema.index({ orgId: 1, status: 1 });
-ProductSchema.index({ orgId: 1, categoryId: 1 });
-
-// ⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)
-// This was previously a global text index that would search ALL organizations
+// Schema-level indexes to mirror centralized createIndexes() definitions
+// (names/partials match to avoid IndexOptionsConflict).
 ProductSchema.index(
+  { orgId: 1, sku: 1 },
   {
-    orgId: 1,
-    title: "text",
-    summary: "text",
-    brand: "text",
-    standards: "text",
+    unique: true,
+    name: "products_orgId_sku_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
   },
-  { name: "org_text_search" },
+);
+ProductSchema.index(
+  { orgId: 1, slug: 1 },
+  {
+    unique: true,
+    name: "products_orgId_slug_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
+ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
+ProductSchema.index(
+  { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
+  {
+    name: "products_orgId_text_search",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
 );
 
 const ProductModel =

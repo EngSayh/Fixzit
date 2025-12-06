@@ -84,7 +84,7 @@ export async function POST(
 
     return NextResponse.json({ uploadUrl, uploadHeaders, file_storage_key: key, maxSizeBytes }, { status: 200 });
   } catch (error) {
-    logger.error('[Onboarding] Failed to presign upload', { error });
+    logger.error('[Onboarding] Failed to presign upload', error as Error);
     return NextResponse.json({ error: 'Failed to request upload' }, { status: 500 });
   }
 }

@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(metrics);
   } catch (error) {
-    logger.error("Error generating route metrics", { error });
+    logger.error("Error generating route metrics", error as Error);
     return NextResponse.json(
       { error: "Failed to load route metrics" },
       { status: 500 },

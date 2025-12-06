@@ -1,31 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users, Shield, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface SystemCounters {
   system: { users: number; roles: number; tenants: number };
 }
 
 export default function SystemDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.system");
   const [activeTab, setActiveTab] = useState("users");
   const [counters, setCounters] = useState<SystemCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const system =
+          (data.system as Partial<SystemCounters["system"]>) ?? {};
         setCounters({
-          system: data.system || { users: 0, roles: 0, tenants: 0 },
+          system: {
+            users: system.users ?? 0,
+            roles: system.roles ?? 0,
+            tenants: system.tenants ?? 0,
+          },
         });
         setLoading(false);
       } catch (error) {
@@ -34,7 +48,8 @@ export default function SystemDashboard() {
       }
     };
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [auto, orgId, status]);
 
   const tabs = [
     {

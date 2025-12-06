@@ -1,31 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { MessageSquare, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface SupportCounters {
   support: { open: number; pending: number; resolved: number };
 }
 
 export default function SupportDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.support");
   const [activeTab, setActiveTab] = useState("tickets");
   const [counters, setCounters] = useState<SupportCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const support =
+          (data.support as Partial<SupportCounters["support"]>) ?? {};
         setCounters({
-          support: data.support || { open: 0, pending: 0, resolved: 0 },
+          support: {
+            open: support.open ?? 0,
+            pending: support.pending ?? 0,
+            resolved: support.resolved ?? 0,
+          },
         });
         setLoading(false);
       } catch (error) {
@@ -34,7 +48,8 @@ export default function SupportDashboard() {
       }
     };
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [auto, orgId, status]);
 
   const tabs = [
     {

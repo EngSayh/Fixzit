@@ -15,10 +15,12 @@
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**' --ignore-pattern 'tests/playwright-report/**'",
     "lint:prod": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0 --report-unused-disable-directives",
     "lint:prod:fix": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --fix",
+    "lint:inventory-org": "tsx scripts/lint-inventory-orgid.ts",
     "lint:mongo-unwrap": "node tools/check-mongo-unwrap.js",
     "lint:prod:baseline": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --format json -o _artifacts/eslint-baseline.json",
     "lint:scripts": "eslint scripts tools --ext .ts,.tsx,.js,.jsx",
-    "lint:ci": "npm run lint:prod && npm run rbac:client:check && npm run lint:rbac && npm run typecheck",
+    "lint:collections": "node scripts/lint-collections.js",
+    "lint:ci": "npm run lint:prod && npm run lint:inventory-org && npm run rbac:client:check && npm run lint:rbac && npm run typecheck",
     "lint:next": "next lint",
     "lint:rtl": "node scripts/check-rtl-logical.js",
     "lint:rbac": "npx tsx scripts/lint-rbac-parity.ts",
@@ -59,6 +61,7 @@
     "verify:mongo": "tsx scripts/mongo-check.ts",
     "verify:all": "npm run verify:prep && npm run build && concurrently -k -s first \"npm run start\" \"wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo\"",
     "doctor": "npm run lint && npm run typecheck && npm run verify:all",
+    "test:search": "vitest -c vitest.config.api.ts run tests/unit/app/api/search/search-scope.test.ts",
     "test": "npm run test:production",
     "test:production": "npm run test:models && npm run test:e2e",
     "test:fast": "npm run test:ci",
@@ -109,6 +112,7 @@
     "seed:prod-data": "tsx scripts/seed-production-data.ts",
     "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",
     "scripts:backfill:subscription-periods": "tsx scripts/backfill-subscription-periods.ts",
+    "scripts:backfill:ads-bids-orgid": "tsx scripts/backfill-souq-ad-bids-orgid.ts",
     "check:env": "tsx scripts/check-required-env.ts",
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
     "replace:in-file": "tsx scripts/replace-string-in-file.ts",
@@ -283,11 +287,13 @@
       "import-in-the-middle": "1.15.0",
       "require-in-the-middle": "7.5.2",
       "mongodb": "6.21.0",
-      "node-forge": ">=1.3.2"
+      "node-forge": ">=1.3.2",
+      "jws@^3": "3.2.3",
+      "jws@^4": "4.0.1"
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
+    "pre-commit": "pnpm lint:prod && pnpm lint:inventory-org && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
     "pre-push": "pnpm lint:mongo-unwrap && pnpm typecheck"
   }
 }

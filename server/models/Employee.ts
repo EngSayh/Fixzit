@@ -52,7 +52,10 @@ EmployeeSchema.plugin(tenantIsolationPlugin);
 EmployeeSchema.plugin(auditPlugin);
 
 // Tenant-scoped index
-EmployeeSchema.index({ orgId: 1, "personal.email": 1 }, { unique: true });
+EmployeeSchema.index(
+  { orgId: 1, "personal.email": 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 /** @deprecated Use EmployeeDoc from hr.models.ts instead */
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;

@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    logger.error("[GET /api/souq/seller-central/reviews]", { error });
+    logger.error("[GET /api/souq/seller-central/reviews]", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch reviews" },
       { status: 500 },

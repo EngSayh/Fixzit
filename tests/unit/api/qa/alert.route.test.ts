@@ -26,6 +26,13 @@ vi.mock('@/lib/authz', () => ({
     tenantId: 'test-org-id',
   })),
 }));
+vi.mock('@/lib/db/collections', () => ({
+  ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
+  COLLECTIONS: { QA_ALERTS: "qa_alerts" },
+}));
+vi.mock('@/lib/qa/telemetry', () => ({
+  recordQaStorageFailure: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
@@ -36,7 +43,9 @@ let POST: typeof import('@/app/api/qa/alert/route').POST;
 let GET: typeof import('@/app/api/qa/alert/route').GET;
 import { logger } from '@/lib/logger';
 import { requireSuperAdmin } from '@/lib/authz';
+import { ensureQaIndexes } from '@/lib/db/collections';
 import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
 
 // Type helper for building minimal NextRequest-like object
 
@@ -134,10 +143,12 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
+      // Verify ensureQaIndexes is called for index/TTL enforcement
+      expect(ensureQaIndexes).toHaveBeenCalled();
       // Verify logging includes org context (not payload data for PII safety)
       expect(logger.warn).toHaveBeenCalledWith(
         `🚨 QA Alert: ${event}`,
-        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id' })
+        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id', payloadBytes: expect.any(Number) })
       );
 
       // Verify DB interaction
@@ -296,7 +307,7 @@ describe('QA Alert Route', () => {
       expect(insertedDoc?.userId).toBe('test-user-id');
     });
 
-    it('returns 500 on DB insertion error', async () => {
+    it('returns 503 on DB insertion error', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
@@ -311,13 +322,15 @@ describe('QA Alert Route', () => {
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(503);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to process alert' });
+      expect(body).toEqual({ error: 'Alert storage unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to process QA alert:',
-        expect.anything()
+        '[QA Alert] DB unavailable',
+        expect.any(Error),
+        { operation: 'write' }
       );
+      expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'write', expect.any(Error));
     });
 
     it('returns 401 when not authenticated', async () => {
@@ -351,24 +364,36 @@ describe('QA Alert Route', () => {
   });
 
   describe('GET /api/qa/alert', () => {
-    it('returns empty list when no alerts exist', async () => {
-      const mod = vi.mocked(mongodbUnified);
+    // Helper to create GET request with query params
+    function createGetRequest(queryParams?: Record<string, string>) {
+      const url = queryParams
+        ? `http://localhost:3000/api/qa/alert?${new URLSearchParams(queryParams).toString()}`
+        : 'http://localhost:3000/api/qa/alert';
+      return asNextRequest({
+        url,
+        json: async () => ({}),
+        headers: buildHeaders({}),
+        ip: '127.0.0.1',
+      });
+    }
 
-      const toArray = vi.fn().mockResolvedValue([]);
+    // Helper to setup mock DB with chainable find/sort/limit/toArray
+    function setupMockDb(docs: Record<string, unknown>[] = []) {
+      const mod = vi.mocked(mongodbUnified);
+      const toArray = vi.fn().mockResolvedValue(docs);
       const limit = vi.fn().mockReturnValue({ toArray });
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
+      return { mod, toArray, limit, sort, find, collection };
+    }
 
-      const req = asNextRequest({
-        json: async () => ({}),
-        headers: buildHeaders({}),
-        ip: '127.0.0.1',
-      });
+    it('returns empty list when no alerts exist', async () => {
+      const { mod, collection } = setupMockDb([]);
 
-      const res = await GET(req);
+      const res = await GET(createGetRequest());
       const body = await (res as Response).json();
 
       expect(body).toEqual({ alerts: [] });
@@ -377,40 +402,104 @@ describe('QA Alert Route', () => {
     });
 
     it('fetches latest 50 alerts sorted by timestamp desc from DB', async () => {
-      const mod = vi.mocked(mongodbUnified);
-
       const docs = [{ event: 'e1' }, { event: 'e2' }];
+      const { mod, find, sort, limit, toArray } = setupMockDb(docs);
 
-      const toArray = vi.fn().mockResolvedValue(docs);
-      const limit = vi.fn().mockReturnValue({ toArray });
-      const sort = vi.fn().mockReturnValue({ limit });
-      const find = vi.fn().mockReturnValue({ sort });
-      const collection = vi.fn().mockReturnValue({ find });
-
-      const nativeDb = { collection } as any;
-      mod.getDatabase.mockResolvedValue(nativeDb);
-
-      const req = asNextRequest({
-        json: async () => ({}),
-        headers: buildHeaders({}),
-        ip: '127.0.0.1',
-      });
-
-      const res = await GET(req);
+      const res = await GET(createGetRequest());
       const body = await (res as Response).json();
 
       expect(body).toEqual({ alerts: docs });
       expect(mod.getDatabase).toHaveBeenCalledTimes(1);
-
-      expect(collection).toHaveBeenCalledWith('qa_alerts');
-      // Query includes orgId for tenant isolation
-      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
+      // Query includes orgId for tenant isolation with projection (excludes data by default)
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' }, { projection: { data: 0 } });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(50);
       expect(toArray).toHaveBeenCalledTimes(1);
     });
 
-    it('returns 500 when DB query fails', async () => {
+    it('filters by event type within org scope', async () => {
+      const { find } = setupMockDb([]);
+
+      const res = await GET(createGetRequest({ event: 'button_click' }));
+      expect((res as Response).status).toBe(200);
+
+      // Verify both org filter and event filter are applied with projection
+      expect(find).toHaveBeenCalledWith(
+        { orgId: 'test-org-id', event: 'button_click' },
+        { projection: { data: 0 } }
+      );
+    });
+
+    it('returns all alerts when platform admin has no tenantId', async () => {
+      vi.mocked(requireSuperAdmin).mockResolvedValue({
+        id: 'platform-admin',
+        email: 'platform@test.com',
+        role: 'SUPER_ADMIN',
+        tenantId: '', // Platform-level admin
+      });
+
+      const alerts = [{ event: 'platform-event' }];
+      const { find } = setupMockDb(alerts);
+
+      const res = await GET(createGetRequest());
+      const body = await (res as Response).json();
+
+      expect(body).toEqual({ alerts });
+      // Empty query = all alerts (platform-level access) with projection
+      expect(find).toHaveBeenCalledWith({}, { projection: { data: 0 } });
+    });
+
+    it('respects custom limit parameter', async () => {
+      const { limit } = setupMockDb([]);
+
+      await GET(createGetRequest({ limit: '25' }));
+      expect(limit).toHaveBeenCalledWith(25);
+    });
+
+    it('caps limit at 200', async () => {
+      const { limit } = setupMockDb([]);
+
+      await GET(createGetRequest({ limit: '5000' }));
+      expect(limit).toHaveBeenCalledWith(200);
+    });
+
+    it('includes data field when includeData=true is specified', async () => {
+      const alerts = [
+        { event: 'event1', timestamp: new Date(), orgId: 'test-org-id', data: { foo: 'bar' } },
+      ];
+      const { find } = setupMockDb(alerts);
+
+      const res = await GET(createGetRequest({ includeData: 'true' }));
+      expect((res as Response).status).toBe(200);
+      const body = await (res as Response).json();
+
+      expect(body.alerts).toHaveLength(1);
+      expect(body.alerts[0].data).toEqual({ foo: 'bar' });
+      // When includeData=true, projection should be empty (include all fields)
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' }, { projection: {} });
+    });
+
+    it('calls ensureQaIndexes for TTL/index enforcement', async () => {
+      setupMockDb([]);
+
+      await GET(createGetRequest());
+
+      expect(ensureQaIndexes).toHaveBeenCalled();
+    });
+
+    it('uses org-aware rate limit key', async () => {
+      setupMockDb([]);
+
+      await GET(createGetRequest());
+
+      expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+        expect.anything(),
+        'test-org-id',
+        'test-user-id'
+      );
+    });
+
+    it('returns 503 when DB query fails', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
@@ -421,20 +510,296 @@ describe('QA Alert Route', () => {
       const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
+      const res = await GET(createGetRequest());
+      expect((res as Response).status).toBe(503);
+      const body = await (res as Response).json();
+      expect(body).toEqual({ error: 'Alert retrieval unavailable' });
+      expect(logger.error).toHaveBeenCalledWith(
+        '[QA Alert] DB unavailable',
+        expect.any(Error),
+        { operation: 'read' }
+      );
+      expect(recordQaStorageFailure).toHaveBeenCalledWith('alert', 'read', expect.any(Error));
+    });
+
+    it('returns 401 when not authenticated', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+
+      const res = await GET(createGetRequest());
+      expect((res as Response).status).toBe(401);
+    });
+
+    it('returns 429 when rate limited', async () => {
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+
+      const res = await GET(createGetRequest());
+      expect((res as Response).status).toBe(429);
+    });
+  });
+
+  describe('Sanitization Integration', () => {
+    it('sanitizes bearer tokens in alert data before storage', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      // Payload containing a bearer token in a generic field
+      const data = {
+        errorMessage: 'Auth failed with Bearer secretToken123xyz',
+        author: 'John Doe' // Should NOT be redacted (word boundary)
+      };
+
       const req = asNextRequest({
-        json: async () => ({}),
+        json: () => Promise.resolve({ event: 'auth_error', data }),
         headers: buildHeaders({}),
-        ip: '127.0.0.1',
       });
 
-      const res = await GET(req);
-      expect((res as Response).status).toBe(500);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to fetch alerts' });
-      expect(logger.error).toHaveBeenCalledWith(
-        'Failed to fetch QA alerts:',
-        expect.anything()
-      );
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // Bearer token should be redacted in stored data
+      expect(insertedDoc.data.errorMessage).toBe('Auth failed with [REDACTED_BEARER_TOKEN]');
+      // "author" should NOT be redacted (word boundary protection)
+      expect(insertedDoc.data.author).toBe('John Doe');
+    });
+
+    it('sanitizes JWT tokens in alert data before storage', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiIxMjMifQ.signature123abc';
+      const data = { error: `Token validation failed: ${jwt}` };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'token_error', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.data.error).toBe('Token validation failed: [REDACTED_JWT]');
+      expect(insertedDoc.data.error).not.toContain('eyJ');
+    });
+
+    it('sanitizes email addresses in alert data', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = { notification: 'Alert sent to admin@company.com' };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'alert_sent', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.data.notification).toBe('Alert sent to [REDACTED_EMAIL]');
+    });
+
+    it('sanitizes password fields by key name', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = { password: 'supersecret123', username: 'admin' };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'login_failure', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.data.password).toBe('[REDACTED]');
+      expect(insertedDoc.data.username).toBe('admin');
+    });
+
+    it('does NOT redact author field (word boundary check)', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = {
+        author: 'Jane Smith',
+        authority: 'manager',
+        authorized: true,
+        content: 'Normal content'
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'content_alert', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // These should NOT be redacted - word boundary protection
+      expect(insertedDoc.data.author).toBe('Jane Smith');
+      expect(insertedDoc.data.authority).toBe('manager');
+      expect(insertedDoc.data.authorized).toBe(true);
+      expect(insertedDoc.data.content).toBe('Normal content');
+    });
+
+    it('sanitizes MongoDB connection strings in error messages', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = {
+        error: 'Connection failed to mongodb+srv://admin:password123@cluster.mongodb.net/db'
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'db_error', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.data.error).toBe('Connection failed to [REDACTED_MONGO_URI]');
+      expect(insertedDoc.data.error).not.toContain('password123');
+    });
+
+    it('sanitizes deeply nested sensitive data', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = {
+        request: {
+          headers: {
+            authorization: 'Bearer token123',
+          },
+          body: {
+            user: {
+              email: 'user@example.com',
+              password: 'secret'
+            }
+          }
+        }
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'api_error', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // authorization key should be redacted by key name
+      expect(insertedDoc.data.request.headers.authorization).toBe('[REDACTED]');
+      // email in value should be redacted
+      expect(insertedDoc.data.request.body.user.email).toBe('[REDACTED_EMAIL]');
+      // password key should be redacted
+      expect(insertedDoc.data.request.body.user.password).toBe('[REDACTED]');
+    });
+
+    it('sanitizes camelCase token fields (authToken, bearerToken, jwtToken)', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      const data = {
+        authToken: 'secret-auth-token',
+        bearerToken: 'secret-bearer-token',
+        jwtToken: 'secret-jwt-token',
+        accessToken: 'secret-access-token',
+        authorName: 'John Doe', // Should NOT be redacted
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'token_test', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // All camelCase token fields should be redacted
+      expect(insertedDoc.data.authToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.bearerToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.jwtToken).toBe('[REDACTED]');
+      expect(insertedDoc.data.accessToken).toBe('[REDACTED]');
+      // authorName should NOT be redacted
+      expect(insertedDoc.data.authorName).toBe('John Doe');
+    });
+
+    it('sanitizes Bearer tokens with base64 characters (+/=)', async () => {
+      const mod = vi.mocked(mongodbUnified);
+
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
+      const nativeDb = { collection } as any;
+      mod.getDatabase.mockResolvedValue(nativeDb);
+
+      // Real OAuth2/API tokens often contain base64 characters
+      const data = {
+        error: 'Auth failed: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9+abc/def=',
+        apiLog: 'api_key=sk_live_abc123+xyz/456=='
+      };
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'base64_token_test', data }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(200);
+
+      const insertedDoc = insertOne.mock.calls[0][0];
+      // Bearer token with base64 chars should be fully redacted
+      expect(insertedDoc.data.error).toBe('Auth failed: [REDACTED_BEARER_TOKEN]');
+      expect(insertedDoc.data.error).not.toContain('+');
+      expect(insertedDoc.data.error).not.toContain('/');
+      expect(insertedDoc.data.error).not.toContain('=');
+      // API key with base64 chars should be redacted
+      expect(insertedDoc.data.apiLog).toBe('[REDACTED_API_KEY]');
     });
   });
 });

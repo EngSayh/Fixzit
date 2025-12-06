@@ -146,12 +146,15 @@ describe('POST /api/support/incidents', () => {
     redisIncrMock.mockResolvedValue(1);
     redisExpireMock.mockReset();
     redisExpireMock.mockResolvedValue(undefined);
+    delete process.env.SUPPORT_PUBLIC_ORG_ID;
     delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
   });
 
   afterEach(() => {
     randomSpy.mockRestore();
     vi.useRealTimers();
+    delete process.env.SUPPORT_PUBLIC_ORG_ID;
+    delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
   });
 
   function mkReq(body: unknown): NextRequest {
@@ -289,6 +292,7 @@ describe('POST /api/support/incidents', () => {
 
   it('derives requester when userId is absent but email present (anonymous mode)', async () => {
     process.env.ENABLE_ANONYMOUS_INCIDENTS = 'true';
+    process.env.SUPPORT_PUBLIC_ORG_ID = 'org-public';
     getSessionUserMock.mockRejectedValueOnce(new Error('no session'));
     const body = {
       message: 'A thing happened',
@@ -339,5 +343,32 @@ describe('POST /api/support/incidents', () => {
     await POST(mkReq({ message: 'boom' }));
     call = SupportTicket.create.mock.calls[0][0];
     expect(call.messages[0].text).toBe('boom');
+  });
+
+  it('allows anonymous incident with public tenantScope and uses SUPPORT_PUBLIC_ORG_ID for ticket', async () => {
+    process.env.ENABLE_ANONYMOUS_INCIDENTS = 'true';
+    process.env.SUPPORT_PUBLIC_ORG_ID = 'org-public';
+    getSessionUserMock.mockRejectedValueOnce(new Error('no session'));
+
+    await POST(mkReq({ message: 'Anonymous crash', userContext: { email: 'anon@example.com', phone: '123' } }));
+
+    const native = await getDatabase.mock.results[0].value;
+    const insertOne = native.collection('error_events').insertOne;
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantScope: 'public',
+      })
+    );
+
+    expect(SupportTicket.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-public',
+        requester: {
+          name: 'anon',
+          email: 'anon@example.com',
+          phone: '123',
+        },
+      })
+    );
   });
 });

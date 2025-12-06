@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";
+import { isTruthy } from "@/lib/utils/env";
 
 // Vercel Functions database pool management for serverless optimization
 let attachDatabasePool: ((client: unknown) => void) | undefined;
-
-const isTruthy = (value?: string): boolean =>
-  value === "true" || value === "1";
 
 async function loadAttachDatabasePool(): Promise<typeof attachDatabasePool> {
   if (attachDatabasePool !== undefined) return attachDatabasePool;

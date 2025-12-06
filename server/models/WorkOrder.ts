@@ -482,6 +482,9 @@ const WorkOrderSchema = new Schema(
     timestamps: true,
     // Add version key for optimistic locking
     versionKey: "version",
+    // ⚡ CRITICAL: Disable automatic index creation to prevent IndexOptionsConflict
+    // All indexes are managed manually in lib/db/collections.ts for explicit control
+    autoIndex: false,
   },
 );
 
@@ -491,25 +494,21 @@ WorkOrderSchema.plugin(tenantIsolationPlugin, {
 });
 WorkOrderSchema.plugin(auditPlugin);
 
-// Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)
-// CRITICAL FIX: Tenant-scoped unique index for workOrderNumber
-WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
-
-// FIXED: Tenant-scoped indexes
-WorkOrderSchema.index({ orgId: 1, status: 1 });
-WorkOrderSchema.index({ orgId: 1, priority: 1 });
-WorkOrderSchema.index({ orgId: 1, "location.propertyId": 1 });
-WorkOrderSchema.index({ orgId: 1, "assignment.assignedTo.userId": 1 });
-WorkOrderSchema.index({ orgId: 1, "sla.resolutionDeadline": 1 });
-WorkOrderSchema.index({ orgId: 1, "recurrence.nextScheduledDate": 1 });
-
-// CRITICAL FIX: Tenant-scoped text index for search
-WorkOrderSchema.index({
-  orgId: 1,
-  title: "text",
-  description: "text",
-  "work.solutionDescription": "text",
-});
+// ═══════════════════════════════════════════════════════════════════════════
+// INDEX MANAGEMENT NOTE
+// ═══════════════════════════════════════════════════════════════════════════
+// All indexes for this model are managed manually in lib/db/collections.ts
+// using the native MongoDB driver with explicit names and options.
+//
+// See: createIndexes() in lib/db/collections.ts (lines 138-167)
+// Indexes: workorders_orgId_workOrderNumber_unique, workorders_orgId_status,
+//          workorders_orgId_priority, workorders_orgId_propertyId, etc.
+//
+// WHY: This prevents IndexOptionsConflict errors during deployment and ensures
+// consistent org-scoped multi-tenancy (STRICT v4.1 compliance).
+//
+// Schema indexes have been removed to maintain single source of truth.
+// ═══════════════════════════════════════════════════════════════════════════
 
 // State machine validation
 WorkOrderSchema.pre("save", function (next) {
@@ -606,16 +605,18 @@ WorkOrderSchema.virtual("code").get(function (this: WorkOrderDoc) {
   return this.workOrderNumber;
 });
 
-// DB-001: Critical Database Indexes for Performance
-// Fix applied: 2025-11-25T11:00:00+03:00
-WorkOrderSchema.index({ orgId: 1, status: 1, createdAt: -1 }); // List queries
-WorkOrderSchema.index({ orgId: 1, assignedTo: 1, status: 1 }); // Assigned WOs
-WorkOrderSchema.index({ orgId: 1, "location.propertyId": 1, status: 1 }); // Property WOs
-WorkOrderSchema.index({ orgId: 1, unit_id: 1, status: 1 }); // TENANT unit filtering
-// REMOVED: Global unique index on workOrderNumber - use tenant-scoped index at line 496 instead
-// WorkOrderSchema.index({ workOrderNumber: 1 }, { unique: true }); // Bug: breaks multi-tenant isolation
-WorkOrderSchema.index({ orgId: 1, priority: 1, "sla.status": 1 }); // SLA tracking
-WorkOrderSchema.index({ "sla.resolutionDeadline": 1 }, { sparse: true }); // Overdue queries
+// ═══════════════════════════════════════════════════════════════════════════
+// INDEXES REMOVED - Managed centrally in lib/db/collections.ts
+// ═══════════════════════════════════════════════════════════════════════════
+// All WorkOrder indexes are defined in createIndexes() to prevent
+// IndexOptionsConflict errors during deployment. See:
+//   - workorders_orgId_status_createdAt_desc
+//   - workorders_orgId_assignedUser_status  
+//   - workorders_orgId_propertyId_status
+//   - workorders_orgId_unitNumber_status
+//   - workorders_orgId_priority_slaStatus
+//   - workorders_sla_resolutionDeadline
+// ═══════════════════════════════════════════════════════════════════════════
 
 // Ensure virtuals are included in JSON/Object output
 WorkOrderSchema.set("toJSON", { virtuals: true });

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       ...sales,
     });
   } catch (error) {
-    logger.error("Get sales metrics error", { error });
+    logger.error("Get sales metrics error", error as Error);
     return NextResponse.json(
       {
         error: "Failed to get sales metrics",

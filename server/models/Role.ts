@@ -18,6 +18,11 @@ import { getModel, MModel } from "@/types/mongoose-compat";
  */
 const RoleSchema = new Schema(
   {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+    },
     name: {
       type: String,
       unique: true,
@@ -75,10 +80,17 @@ const RoleSchema = new Schema(
 );
 
 // Indexes
-RoleSchema.index({ slug: 1 }, { unique: true });
-RoleSchema.index({ wildcard: 1 });
-RoleSchema.index({ systemReserved: 1 });
-RoleSchema.index({ level: -1 });
+RoleSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+RoleSchema.index(
+  { orgId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+RoleSchema.index({ orgId: 1, wildcard: 1 });
+RoleSchema.index({ orgId: 1, systemReserved: 1 });
+RoleSchema.index({ orgId: 1, level: -1 });
 
 // Pre-save hook to generate slug from name if not provided
 RoleSchema.pre("save", function (next) {
