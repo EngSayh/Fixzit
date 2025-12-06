@@ -13,6 +13,7 @@ import { ObjectId } from "mongodb";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;

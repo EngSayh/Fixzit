@@ -5,8 +5,7 @@ import {
   SellerDocument,
 } from "@/lib/meilisearch";
 import { logger } from "@/lib/logger";
-import type { Filter } from "mongodb";
-import { ObjectId as MongoObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 
 /**
@@ -487,11 +486,10 @@ export class SearchIndexerService {
 
     // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
     // Use dual-type candidates to match both legacy string and ObjectId storage.
-    const { ObjectId } = await import("mongodb");
     const orgCandidates = ObjectId.isValid(orgId)
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
-    const orgFilter = { $in: orgCandidates as Array<string | MongoObjectId> };
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
 
     // Sort by _id for consistent batching under concurrent writes
     // Requires compound index: db.souq_sellers.createIndex({orgId: 1, status: 1, _id: 1})
@@ -528,11 +526,10 @@ export class SearchIndexerService {
 
     // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
     // Use dual-type candidates to match both legacy string and ObjectId storage.
-    const { ObjectId } = await import("mongodb");
     const orgCandidates = ObjectId.isValid(orgId)
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
-    const orgFilter = { $in: orgCandidates as Array<string | MongoObjectId> };
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
 
     const result = await db
       .collection<SouqSeller>("souq_sellers")
@@ -586,7 +583,7 @@ export class SearchIndexerService {
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
     const orgFilterForSellers = {
-      $in: orgCandidatesForSellers as Array<string | MongoObjectId>,
+      $in: orgCandidatesForSellers as Array<string | ObjectId>,
     };
     const sellers = await db
       .collection<SouqSeller>("souq_sellers")

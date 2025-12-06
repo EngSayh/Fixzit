@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-04  
-**Version**: 1.1  
+**Last Updated**: 2025-12-06  
+**Version**: 1.2  
 **Scope**: Database index management across all models
 
 ---
@@ -198,6 +198,95 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 
 **Evidence**:  
 - Current code writes string orgId; legacy rows remain. Queries use `$in` with `[string, ObjectId]`, indicating mixed storage and degraded index usage.
+
+---
+
+### ISSUE-006: souq_sellers orgId Type Mismatch in Queries
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data integrity, Tenant isolation, Correctness  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Added dual string/ObjectId handling (`$in: [string, ObjectId]`) across all souq_sellers queries. Files fixed:
+- `services/souq/settlements/payout-processor.ts` (lines 999-1011) - payout notification seller lookup
+- `services/notifications/seller-notification-service.ts` (lines 149-162) - getSeller function
+- `services/souq/claims/investigation-service.ts` (lines 230-250) - getSellerHistory and getBuyerHistory
+- `services/souq/search-indexer-service.ts` (fetchActiveSellers, fetchSellerById, transformListingsToDocuments)
+
+**Description**:  
+`souq_sellers.orgId` is defined as `ObjectId` in Mongoose schema (`server/models/souq/Seller.ts` line 79), but callers (payout processor, notification service, investigation service) pass string orgId. Queries with `orgId: stringValue` always returned no results, silently breaking:
+- Payout WhatsApp notifications (sellers never notified of payouts)
+- Seller notification lookups
+- Investigation service seller/buyer history
+- Search indexer seller fetches
+
+**Files**:  
+- `server/models/souq/Seller.ts`: Line 79 - `orgId: mongoose.Types.ObjectId`
+- `services/souq/settlements/payout-processor.ts`: Lines 1003-1007 (before fix)
+- `services/notifications/seller-notification-service.ts`: Lines 155-158 (before fix)
+- `services/souq/claims/investigation-service.ts`: Lines 239-240 (before fix)
+- `services/souq/search-indexer-service.ts`: Lines 489-492, 518-522, 561-563 (before fix)
+
+**Evidence (Before Fix)**:
+```typescript
+// payout-processor.ts - would always miss when payout.orgId is string
+const sellerFilter: Filter<Document> = sellerIdObj
+  ? { _id: sellerIdObj, orgId: payout.orgId }  // ❌ String vs ObjectId mismatch
+  : { sellerId: payout.sellerId, orgId: payout.orgId };
+```
+
+**Root Cause**:  
+`souq_sellers` model uses ObjectId for orgId (defined in Mongoose schema), but service layer code passes string orgId from session/request context. MongoDB strict type matching returns no results.
+
+**Impact**:
+- Payout notifications silently failed (sellers never received WhatsApp alerts)
+- Seller lookup for claims investigation returned no seller data
+- Search indexer could not fetch seller details for documents
+- Tenant isolation appeared to work but was actually broken (no data returned)
+
+**Fix Applied**:
+```typescript
+// After fix - dual-type handling
+const orgCandidates = ObjectId.isValid(orgIdStr)
+  ? [orgIdStr, new ObjectId(orgIdStr)]
+  : [orgIdStr];
+const sellerFilter: Filter<Document> = sellerIdObj
+  ? { _id: sellerIdObj, orgId: { $in: orgCandidates } }  // ✅ Matches both types
+  : { sellerId: payout.sellerId, orgId: { $in: orgCandidates } };
+```
+
+---
+
+### ISSUE-007: Withdrawal Thresholds Duplicated Between Services
+
+**Severity**: 🟨 MINOR  
+**Category**: Code quality, Maintainability  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Imported `PAYOUT_CONFIG` from payout-processor.ts into balance-service.ts. Replaced hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` with centralized config values.
+
+**Description**:  
+`balance-service.ts` hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` SAR, while `payout-processor.ts` defined these in `PAYOUT_CONFIG`. If values were changed in one place, the other would drift, causing inconsistent validation between withdrawal requests and payout processing.
+
+**Files**:  
+- `services/souq/settlements/balance-service.ts`: Line 20 (WITHDRAWAL_HOLD_DAYS) and Line 803 (minimumWithdrawal = 500)
+- `services/souq/settlements/payout-processor.ts`: Lines 110-112 (PAYOUT_CONFIG.holdPeriodDays, minimumAmount)
+
+**Root Cause**:  
+Initial implementation duplicated constants without cross-referencing the centralized config.
+
+**Impact**:
+- Risk of validation drift (e.g., withdrawal allows 500 but payout requires 600)
+- Maintenance burden when changing thresholds
+- Potential for customer confusion if withdrawal succeeds but payout fails
+
+**Fix Applied**:
+```typescript
+// balance-service.ts - now imports centralized config
+import { PAYOUT_CONFIG } from "@/services/souq/settlements/payout-processor";
+const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
+const MINIMUM_WITHDRAWAL_AMOUNT = PAYOUT_CONFIG.minimumAmount;
+```
 
 ---
 
