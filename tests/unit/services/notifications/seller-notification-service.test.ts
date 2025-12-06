@@ -45,10 +45,11 @@ const seedSeller = async (orgId: string, seller: Record<string, unknown>) => {
   });
 };
 
-const getNotification = async (sellerId: string, template?: string) => {
+const getNotification = async (sellerId: string, orgId: string, template?: string) => {
   const db = await getDatabase();
   return db.collection("seller_notifications").findOne({
     sellerId,
+    orgId,
     ...(template ? { template } : {}),
   });
 };
@@ -79,7 +80,7 @@ describe("sendSellerNotification status logging", () => {
     });
 
     expect(sendSMS).not.toHaveBeenCalled();
-    const notification = await getNotification("seller-1");
+    const notification = await getNotification("seller-1", orgId);
     expect(notification?.status).toBe("failed");
     expect(notification?.orgId?.toString?.()).toBe(orgId);
   });
@@ -100,7 +101,7 @@ describe("sendSellerNotification status logging", () => {
       campaignName: "C1",
     });
 
-    const notification = await getNotification("seller-1", "BUDGET_LOW");
+    const notification = await getNotification("seller-1", orgId, "BUDGET_LOW");
     expect(notification?.status).toBe("sent");
   });
 
@@ -122,7 +123,7 @@ describe("sendSellerNotification status logging", () => {
     });
 
     expect(sendSMS).toHaveBeenCalledTimes(1);
-    const notification = await getNotification("seller-1", "BUDGET_LOW");
+    const notification = await getNotification("seller-1", orgId, "BUDGET_LOW");
     expect(notification?.status).toBe("sent");
   });
 });

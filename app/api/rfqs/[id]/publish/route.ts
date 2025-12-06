@@ -53,10 +53,10 @@ interface RFQDocument {
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  props: { params: { id: string } },
 ) {
   try {
-    const { id } = await props.params;
+    const { id } = props.params;
     const user = await getSessionUser(req);
     if (!user?.orgId) {
       return createSecureResponse(

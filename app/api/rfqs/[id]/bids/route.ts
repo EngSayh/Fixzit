@@ -4,6 +4,7 @@ import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
+import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -90,6 +91,9 @@ export async function POST(
         req,
       );
     }
+    if (!params?.id || typeof params.id !== "string") {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -97,6 +101,10 @@ export async function POST(
     await connectToDatabase();
 
     const data = submitBidSchema.parse(await req.json());
+
+    if (!Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
 
     const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
 
@@ -190,11 +198,18 @@ export async function GET(
         req,
       );
     }
+    if (!params?.id || typeof params.id !== "string") {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
     await connectToDatabase();
+
+    if (!Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
 
     const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
 
