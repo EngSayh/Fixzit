@@ -840,6 +840,58 @@ const recentReviews = await SouqReview.find(matchStage)
 
 ---
 
+### ISSUE-SOUQ-010: $or Key Collision Bypasses Tenant Isolation in updateOrderStatus
+
+**Severity**: 🟥 CRITICAL (Security)
+**Category**: Security, Correctness
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**:
+In `refund-processor.ts`, the `updateOrderStatus` method was spreading `buildOrgFilter(orgId)` 
+(which returns `{ $or: [...] }`) and then adding another `$or` key for order ID matching. 
+Due to JavaScript object spread behavior, the second `$or` key was **overwriting** the first one,
+completely bypassing tenant isolation.
+
+**Files**:
+- `services/souq/claims/refund-processor.ts`: Line 879
+
+**Evidence**:
+```typescript
+// BROKEN - Second $or overwrites first one, no tenant filter!
+await db.collection('souq_orders').updateOne(
+  { ...buildOrgFilter(orgId), $or: orderIdFilters },  // ← buildOrgFilter.$or gets overwritten
+  { $set: { status, ... } }
+);
+
+// Actually produces this filter (NO tenant isolation):
+{ $or: [{ orderId: "ORD-1" }] }  // orgId filter is GONE!
+```
+
+**Root Cause**:
+When you spread an object containing `$or` and then add another `$or` property, the second 
+`$or` overwrites the first one. This is standard JavaScript object behavior but creates a 
+critical security vulnerability when the org filter is silently discarded.
+
+**Impact**:
+- **CRITICAL SECURITY**: Refund order status updates could affect ANY organization's orders
+- Tenant data could be modified across organization boundaries
+- Complete bypass of STRICT v4.1 tenant isolation
+
+**Resolution**:
+```typescript
+// FIXED - Use $and to combine both $or clauses
+const orgFilter = buildOrgFilter(orgId);
+await db.collection('souq_orders').updateOne(
+  { $and: [orgFilter, { $or: orderIdFilters }] },
+  { $set: { status, ... } }
+);
+```
+
+**Related Test Update**:
+- `tests/services/claims-refund-processor.test.ts`: Updated expectations to match new $and structure
+
+---
+
 ## Next Steps
 
 1. ✅ Complete discovery and issue registration (THIS DOCUMENT)
