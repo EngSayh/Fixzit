@@ -52,13 +52,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { bidId, campaignId, actualCpc, query, category, productId, timestamp, signature } = body;
+    const { bidId, campaignId, orgId, actualCpc, query, category, productId, timestamp, signature } = body;
 
-    if (!bidId || !campaignId || !actualCpc) {
+    if (!bidId || !campaignId || !orgId || !actualCpc) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required fields: bidId, campaignId, actualCpc",
+          error: "Missing required fields: bidId, campaignId, orgId, actualCpc",
         },
         { status: 400 },
       );
@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
 
     // Record click
     await AuctionEngine.recordClick(bidId, campaignId, cpc, {
+      orgId, // Required for tenant isolation (STRICT v4.1)
       query,
       category,
       productId,
