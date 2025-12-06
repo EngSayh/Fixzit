@@ -307,6 +307,36 @@ export async function getSupportCounters(orgId: string) {
 }
 
 // ==========================================
+// APPROVALS MODULE
+// ==========================================
+
+/**
+ * Get approval counters (tenant-scoped)
+ * - pending: approvals awaiting action
+ * - overdue: pending approvals past dueDate
+ * - total: all approvals in org
+ */
+export async function getApprovalCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.FM_APPROVALS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+  const now = new Date();
+
+  const [total, pending, overdue] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "PENDING" }),
+    collection.countDocuments({
+      ...base,
+      status: "PENDING",
+      dueDate: { $lt: now },
+    }),
+  ]);
+
+  return { total, pending, overdue };
+}
+
+// ==========================================
 // SOUQ MARKETPLACE MODULE
 // ==========================================
 
@@ -352,6 +382,25 @@ export async function getMarketplaceCountersForOrg(orgId: string) {
   ]);
 
   return { listings, orders, reviews };
+}
+
+/**
+ * Get RFQ counters for organization
+ */
+export async function getRfqCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.RFQS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, open, awarded, closed] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "OPEN" }),
+    collection.countDocuments({ ...base, status: "AWARDED" }),
+    collection.countDocuments({ ...base, status: "CLOSED" }),
+  ]);
+
+  return { total, open, awarded, closed };
 }
 
 async function getSellerProductIds(
@@ -406,6 +455,9 @@ export async function getAllCounters(orgId: string) {
     support,
     marketplace,
     system,
+    approvals,
+    rfqs,
+    hrApplications,
   ] = await Promise.all([
     getWorkOrderStats(orgId),
     getInvoiceCounters(orgId),
@@ -415,6 +467,9 @@ export async function getAllCounters(orgId: string) {
     getSupportCounters(orgId),
     getMarketplaceCountersForOrg(orgId),
     getSystemCounters(orgId),
+    getApprovalCounters(orgId),
+    getRfqCounters(orgId),
+    getApplicationCounters(orgId),
   ]);
 
   return {
@@ -428,9 +483,38 @@ export async function getAllCounters(orgId: string) {
     customers, // ✅ Add key expected by client
     support,
     marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
     system, // ✅ Add system counters
     lastUpdated: new Date().toISOString(),
   };
+}
+
+// ==========================================
+// ATS MODULE (HR Applications)
+// ==========================================
+
+/**
+ * Get ATS application counters
+ */
+export async function getApplicationCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.ATS_APPLICATIONS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, applied, screening, interview] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, stage: "applied" }),
+    collection.countDocuments({ ...base, stage: "screening" }),
+    collection.countDocuments({ ...base, stage: "interview" }),
+  ]);
+
+  // pending = early pipeline stages (applied + screening + interview)
+  const pending = applied + screening + interview;
+
+  return { total, pending, applied, screening, interview };
 }
 
 // ==========================================

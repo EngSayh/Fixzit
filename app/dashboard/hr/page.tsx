@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users, UserCheck, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface HRCounters {
   employees: { total: number; active: number; on_leave: number };
@@ -13,21 +15,39 @@ interface HRCounters {
 }
 
 export default function HRDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.hr");
   const [activeTab, setActiveTab] = useState("employees");
   const [counters, setCounters] = useState<HRCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const employees =
+          (data.employees as Partial<HRCounters["employees"]>) ?? {};
+        const attendance =
+          (data.attendance as Partial<HRCounters["attendance"]>) ?? {};
         setCounters({
-          employees: data.employees || { total: 0, active: 0, on_leave: 0 },
-          attendance: data.attendance || { present: 0, absent: 0, late: 0 },
+          employees: {
+            total: employees.total ?? 0,
+            active: employees.active ?? 0,
+            on_leave: employees.on_leave ?? 0,
+          },
+          attendance: {
+            present: attendance.present ?? 0,
+            absent: attendance.absent ?? 0,
+            late: attendance.late ?? 0,
+          },
         });
         setLoading(false);
       } catch (error) {
@@ -36,7 +56,8 @@ export default function HRDashboard() {
       }
     };
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [auto, orgId, status]);
 
   const tabs = [
     {

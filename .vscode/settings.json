@@ -17,7 +17,7 @@
   "github-actions.workflows.pinned.refresh.enabled": false,
   "github-actions.org-features": true,
   "github-actions.remote-name": "origin",
-  "github-actions.workflows.validation.enabled": true,
+  "github-actions.workflows.validation.enabled": false,
   "github-actions.workflows.secrets": [
     "AUTH_SECRET",
     "BULLMQ_REDIS_URL",

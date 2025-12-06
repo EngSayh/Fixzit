@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
     const sellerId = session.user.id as string;
 
     // Validate seller has sufficient balance
-    const balance = await SellerBalanceService.getBalance(sellerId);
+    // 🔐 STRICT v4.1: Pass orgId for tenant isolation
+    const balance = await SellerBalanceService.getBalance(sellerId, orgId);
 
     if (amount > balance.available) {
       return NextResponse.json(

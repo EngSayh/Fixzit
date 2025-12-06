@@ -390,6 +390,17 @@ const nextConfig = {
         destination: '/system',
         permanent: true,
       },
+      // Legacy dashboard aliases -> FM routes
+      {
+        source: '/dashboard',
+        destination: '/fm/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/:path*',
+        destination: '/fm/:path*',
+        permanent: false,
+      },
     ]
   },
 

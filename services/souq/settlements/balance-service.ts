@@ -88,6 +88,7 @@ interface WithdrawalRequest {
  */
 interface BalanceAdjustment {
   sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   amount: number; // Positive to add, negative to deduct
   reason: string;
   type: "manual" | "system";
@@ -109,14 +110,20 @@ type TransactionFilters = {
 export class SellerBalanceService {
   /**
    * Get seller balance (real-time from Redis)
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getBalance(sellerId: string): Promise<SellerBalance> {
-    const key = `seller:${sellerId}:balance`;
+  static async getBalance(sellerId: string, orgId?: string): Promise<SellerBalance> {
+    // 🔐 STRICT v4.1: orgId is required in production for tenant isolation
+    if (!orgId && process.env.NODE_ENV !== 'test') {
+      throw new Error('orgId is required to fetch seller balance (STRICT v4.1 tenant isolation)');
+    }
+    const key = `seller:${sellerId}:${orgId || 'global'}:balance`;
     const cached = await getCache<SellerBalance>(key);
     if (cached) return cached;
 
     // Calculate from database if not cached
-    const balance = await this.calculateBalance(sellerId);
+    const balance = await this.calculateBalance(sellerId, orgId);
 
     // Cache for 5 minutes
     await setCache(key, balance, CacheTTL.FIVE_MINUTES);
@@ -126,17 +133,24 @@ export class SellerBalanceService {
 
   /**
    * Calculate balance from database
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   private static async calculateBalance(
     sellerId: string,
+    orgId?: string,
   ): Promise<SellerBalance> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const query: Record<string, unknown> = { sellerId };
+    if (orgId) query.orgId = orgId;
+
     // Get all transactions
     const transactions = (await transactionsCollection
-      .find({ sellerId })
+      .find(query)
       .sort({ createdAt: 1 })
       .toArray()) as Transaction[];
 
@@ -269,19 +283,24 @@ export class SellerBalanceService {
 
   /**
    * Record transaction and update balance
+   * @param transaction - Transaction data including orgId for tenant isolation
    */
   static async recordTransaction(
     transaction: Omit<
       Transaction,
       "_id" | "transactionId" | "balanceBefore" | "balanceAfter" | "createdAt"
-    >,
+    > & { orgId: string },
   ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!transaction.orgId) {
+      throw new Error('orgId is required to record transaction (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
     // Get current balance
-    const balance = await this.getBalance(transaction.sellerId);
+    const balance = await this.getBalance(transaction.sellerId, transaction.orgId);
 
     // Generate transaction ID
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -303,26 +322,36 @@ export class SellerBalanceService {
     await transactionsCollection.insertOne(txn);
 
     // Invalidate Redis cache
-    await this.invalidateBalanceCache(transaction.sellerId);
+    await this.invalidateBalanceCache(transaction.sellerId, transaction.orgId);
 
     return txn;
   }
 
   /**
    * Request withdrawal
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param amount - Withdrawal amount
+   * @param bankAccount - Bank account details
+   * @param statementId - Statement reference
    */
   static async requestWithdrawal(
     sellerId: string,
+    orgId: string,
     amount: number,
     bankAccount: WithdrawalRequest["bankAccount"],
     statementId: string,
   ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to request withdrawal (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // Get current balance
-    const balance = await this.getBalance(sellerId);
+    const balance = await this.getBalance(sellerId, orgId);
 
     // Validate withdrawal amount
     if (amount <= 0) {
@@ -341,8 +370,10 @@ export class SellerBalanceService {
     }
 
     // Check for pending withdrawal
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const pendingWithdrawal = await withdrawalsCollection.findOne({
       sellerId,
+      orgId,
       status: "pending",
     });
 
@@ -358,9 +389,11 @@ export class SellerBalanceService {
     const requestId = `WDR-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
 
     // Create withdrawal request
+    // 🔐 STRICT v4.1: Include orgId for tenant isolation
     const request: WithdrawalRequest = {
       requestId,
       sellerId,
+      orgId,
       amount,
       status: "pending",
       requestedAt: new Date(),
@@ -374,6 +407,7 @@ export class SellerBalanceService {
     // Record transaction (hold funds)
     await this.recordTransaction({
       sellerId,
+      orgId,
       type: "withdrawal",
       amount: -amount,
       description: `Withdrawal request: ${requestId}`,
@@ -385,17 +419,27 @@ export class SellerBalanceService {
 
   /**
    * Approve withdrawal request (admin)
+   * @param requestId - Withdrawal request ID
+   * @param adminId - Admin user ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   static async approveWithdrawal(
     requestId: string,
     adminId: string,
+    orgId: string,
   ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to approve withdrawal (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
       requestId,
+      orgId,
     })) as WithdrawalRequest | null;
     if (!request) {
       throw new Error("Withdrawal request not found");
@@ -440,18 +484,29 @@ export class SellerBalanceService {
 
   /**
    * Reject withdrawal request (admin)
+   * @param requestId - Withdrawal request ID
+   * @param adminId - Admin user ID
+   * @param reason - Rejection reason
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   static async rejectWithdrawal(
     requestId: string,
     adminId: string,
     reason: string,
+    orgId: string,
   ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to reject withdrawal (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
       requestId,
+      orgId,
     })) as WithdrawalRequest | null;
     if (!request) {
       throw new Error("Withdrawal request not found");
@@ -477,6 +532,7 @@ export class SellerBalanceService {
     // Refund the withdrawal amount (reverse transaction)
     await this.recordTransaction({
       sellerId: request.sellerId,
+      orgId,
       type: "adjustment",
       amount: request.amount, // Positive to add back
       description: `Withdrawal rejected: ${reason}`,
@@ -494,16 +550,22 @@ export class SellerBalanceService {
 
   /**
    * Apply balance adjustment (admin)
+   * @param adjustment - Adjustment details including orgId for tenant isolation
    */
   static async applyAdjustment(
     adjustment: BalanceAdjustment,
   ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!adjustment.orgId) {
+      throw new Error('orgId is required for balance adjustment (STRICT v4.1 tenant isolation)');
+    }
     if (!adjustment.adminId && adjustment.type === "manual") {
       throw new Error("Admin ID required for manual adjustments");
     }
 
     return await this.recordTransaction({
       sellerId: adjustment.sellerId,
+      orgId: adjustment.orgId,
       type: "adjustment",
       amount: adjustment.amount,
       description: adjustment.reason,
@@ -564,16 +626,24 @@ export class SellerBalanceService {
 
   /**
    * Get withdrawal requests
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param status - Optional status filter
    */
   static async getWithdrawalRequests(
     sellerId: string,
+    orgId: string,
     status?: WithdrawalRequest["status"],
   ): Promise<WithdrawalRequest[]> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch withdrawal requests (STRICT v4.1 tenant isolation)');
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
-    const query: Record<string, unknown> = { sellerId };
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const query: Record<string, unknown> = { sellerId, orgId };
     if (status) {
       query.status = status;
     }
@@ -588,14 +658,24 @@ export class SellerBalanceService {
 
   /**
    * Hold funds in reserve
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param orderId - Order reference
+   * @param amount - Amount to hold
    */
   static async holdReserve(
     sellerId: string,
+    orgId: string,
     orderId: string,
     amount: number,
   ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to hold reserve (STRICT v4.1 tenant isolation)');
+    }
     return await this.recordTransaction({
       sellerId,
+      orgId,
       orderId,
       type: "reserve_hold",
       amount: -amount, // Deduct from available
@@ -606,14 +686,24 @@ export class SellerBalanceService {
 
   /**
    * Release reserve funds
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param orderId - Order reference
+   * @param amount - Amount to release
    */
   static async releaseReserve(
     sellerId: string,
+    orgId: string,
     orderId: string,
     amount: number,
   ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to release reserve (STRICT v4.1 tenant isolation)');
+    }
     return await this.recordTransaction({
       sellerId,
+      orgId,
       orderId,
       type: "reserve_release",
       amount: amount, // Add to available
@@ -646,23 +736,32 @@ export class SellerBalanceService {
 
   /**
    * Invalidate Redis cache for seller balance
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  private static async invalidateBalanceCache(sellerId: string): Promise<void> {
-    const key = `seller:${sellerId}:balance`;
+  private static async invalidateBalanceCache(sellerId: string, orgId: string): Promise<void> {
+    // 🔐 STRICT v4.1: Cache key must include orgId for tenant isolation
+    const key = `seller:${sellerId}:${orgId}:balance`;
     await invalidateCacheKey(key);
   }
 
   /**
    * Get balance summary for multiple sellers (admin)
+   * @param sellerIds - Array of seller IDs
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   static async getBulkBalances(
     sellerIds: string[],
+    orgId: string,
   ): Promise<Map<string, SellerBalance>> {
+    if (!orgId) {
+      throw new Error('orgId is required for bulk balance fetch (STRICT v4.1 tenant isolation)');
+    }
     const balances = new Map<string, SellerBalance>();
 
     await Promise.all(
       sellerIds.map(async (sellerId) => {
-        const balance = await this.getBalance(sellerId);
+        const balance = await this.getBalance(sellerId, orgId);
         balances.set(sellerId, balance);
       }),
     );

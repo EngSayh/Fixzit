@@ -433,20 +433,27 @@ export class BudgetManager {
 
   /**
    * Get aggregated budget stats for all campaigns
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getCampaignsBudgetSummary(sellerId: string): Promise<{
+  static async getCampaignsBudgetSummary(sellerId: string, orgId: string): Promise<{
     totalDailyBudget: number;
     totalSpentToday: number;
     activeCampaigns: number;
     pausedCampaigns: number;
     campaigns: BudgetStatus[];
   }> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for campaign budget summary (STRICT v4.1 tenant isolation)');
+    }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const campaigns = await db
       .collection("souq_ad_campaigns")
-      .find({ sellerId })
+      .find({ sellerId, orgId })
       .toArray();
 
     let totalDailyBudget = 0;

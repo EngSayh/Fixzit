@@ -15,6 +15,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      logger.warn("Balance request without orgId", { userId: session.user.id });
+      return NextResponse.json({ error: "Organization context required" }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const sellerId =
       searchParams.get("sellerId") || (session.user.id as string);
@@ -29,8 +36,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get balance
-    const balance = await SellerBalanceService.getBalance(sellerId);
+    // Get balance - 🔐 STRICT v4.1: Pass orgId for tenant isolation
+    const balance = await SellerBalanceService.getBalance(sellerId, orgId);
 
     return NextResponse.json({ balance });
   } catch (error) {

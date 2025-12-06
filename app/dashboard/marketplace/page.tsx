@@ -1,52 +1,51 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ShoppingBag, Package, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
 
 interface MarketplaceCounters {
   marketplace: { listings: number; orders: number; reviews: number };
 }
 
 export default function MarketplaceDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.marketplace");
   const [activeTab, setActiveTab] = useState("vendors");
   const [counters, setCounters] = useState<MarketplaceCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
     const abortController = new AbortController();
     let mounted = true;
 
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters", {
+        const data = await fetchOrgCounters(orgId, {
           signal: abortController.signal,
         });
 
-        // Handle auth errors explicitly
-        if (response.status === 401 || response.status === 403) {
-          if (mounted && typeof window !== "undefined") {
-            // User is not authenticated or lacks permission
-            window.location.href =
-              "/login?redirect=" + encodeURIComponent(window.location.pathname);
-          }
-          return;
-        }
-
-        if (!response.ok)
-          throw new Error(auto("Failed to fetch counters", "errors.fetch"));
-        const data = await response.json();
-
         if (mounted) {
+          const marketplace =
+            (data.marketplace as Partial<MarketplaceCounters["marketplace"]>) ??
+            {};
           setCounters({
-            marketplace: data.marketplace || {
-              listings: 0,
-              orders: 0,
-              reviews: 0,
+            marketplace: {
+              listings: marketplace.listings ?? 0,
+              orders: marketplace.orders ?? 0,
+              reviews: marketplace.reviews ?? 0,
             },
           });
           setLoading(false);
@@ -68,7 +67,7 @@ export default function MarketplaceDashboard() {
       mounted = false;
       abortController.abort();
     };
-  }, []);
+  }, [auto, orgId, status]);
 
   const tabs = [
     { id: "vendors", label: auto("Vendors", "tabs.vendors") },

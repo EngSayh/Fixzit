@@ -1,8 +1,7 @@
 {
-  "extends": "./tsconfig.base.json",
-  "include": [
-    "unit/finance/**/*.ts",
-    "../types/vitest.d.ts",
-    "../types/**/*.d.ts"
-  ]
+  // Dedicated config so editors and language services resolve @/* paths in tests
+  "extends": "../tsconfig.vitest.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"]
+  }
 }

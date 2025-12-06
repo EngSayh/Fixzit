@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Wallet, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { fetchOrgCounters } from "@/lib/counters";
 
 // ==========================================
 // TYPES
@@ -31,6 +33,8 @@ interface FinanceCounters {
 // ==========================================
 
 export default function FinanceDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const [activeTab, setActiveTab] = useState("invoices");
   const [counters, setCounters] = useState<FinanceCounters | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,20 +42,34 @@ export default function FinanceDashboard() {
 
   // Fetch counters
   useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/counters");
-        if (!response.ok) throw new Error("Failed to fetch counters");
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const invoices =
+          (data.invoices as Partial<FinanceCounters["invoices"]>) ?? {};
+        const revenue =
+          (data.revenue as Partial<FinanceCounters["revenue"]>) ?? {};
 
-        const data = await response.json();
         setCounters({
-          invoices: data.invoices || {
-            total: 0,
-            unpaid: 0,
-            overdue: 0,
-            paid: 0,
+          invoices: {
+            total: invoices.total ?? 0,
+            unpaid: invoices.unpaid ?? 0,
+            overdue: invoices.overdue ?? 0,
+            paid: invoices.paid ?? 0,
           },
-          revenue: data.revenue || { today: 0, week: 0, month: 0, growth: 0 },
+          revenue: {
+            today: revenue.today ?? 0,
+            week: revenue.week ?? 0,
+            month: revenue.month ?? 0,
+            growth: revenue.growth ?? 0,
+          },
         });
         setLoading(false);
       } catch (error) {
@@ -61,7 +79,8 @@ export default function FinanceDashboard() {
     };
 
     fetchData();
-  }, []);
+    return () => controller.abort();
+  }, [orgId, status]);
 
   // Tabs
   const tabs = [

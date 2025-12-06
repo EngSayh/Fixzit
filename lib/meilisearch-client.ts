@@ -4,6 +4,8 @@ import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 
 let client: MeiliSearch | null = null;
 
+const buildProductId = (orgId: string, id: string) => `${orgId}_${id}`;
+
 /**
  * Get or create the shared Meilisearch client instance
  * @returns MeiliSearch client or null if not configured
@@ -86,9 +88,17 @@ export async function indexProduct(product: {
   const client = getMeiliSearchClient();
   if (!client) return;
 
+  if (!product.orgId) {
+    logger.error("[Meilisearch] orgId is required for product indexing (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
   try {
+    const compositeId = buildProductId(product.orgId, product.id);
     await withMeiliResilience("product-index", "index", () =>
-      client.index("products").addDocuments([product]),
+      client
+        .index("products")
+        .addDocuments([{ ...product, id: compositeId }]),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
@@ -105,6 +115,7 @@ export async function indexProduct(product: {
  */
 export async function updateProduct(
   productId: string,
+  orgId: string,
   updates: Partial<{
     title: string;
     description: string;
@@ -115,9 +126,17 @@ export async function updateProduct(
   const client = getMeiliSearchClient();
   if (!client) return;
 
+  if (!orgId) {
+    logger.error("[Meilisearch] orgId is required for product update (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
   try {
+    const compositeId = buildProductId(orgId, productId);
     await withMeiliResilience("product-update", "index", () =>
-      client.index("products").updateDocuments([{ id: productId, ...updates }]),
+      client
+        .index("products")
+        .updateDocuments([{ id: compositeId, orgId, ...updates }]),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
@@ -130,13 +149,19 @@ export async function updateProduct(
  * Delete a product document from the index
  * @param productId Product ID to delete
  */
-export async function deleteProduct(productId: string): Promise<void> {
+export async function deleteProduct(productId: string, orgId: string): Promise<void> {
   const client = getMeiliSearchClient();
   if (!client) return;
 
+  if (!orgId) {
+    logger.error("[Meilisearch] orgId is required for product delete (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
   try {
+    const compositeId = buildProductId(orgId, productId);
     await withMeiliResilience("product-delete", "index", () =>
-      client.index("products").deleteDocument(productId),
+      client.index("products").deleteDocument(compositeId),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
@@ -166,10 +191,23 @@ export async function bulkIndexProducts(
   if (!client) return;
 
   try {
+    const safeProducts = products
+      .map((product) => {
+        if (!product.orgId) {
+          logger.error(
+            "[Meilisearch] Skipping product without orgId (STRICT v4.1 tenant isolation)",
+            { productId: product.id },
+          );
+          return null;
+        }
+        return { ...product, id: buildProductId(product.orgId, product.id) };
+      })
+      .filter(Boolean) as typeof products;
+
     await withMeiliResilience("product-bulk-index", "index", () =>
-      client.index("products").addDocuments(products),
+      client.index("products").addDocuments(safeProducts),
     );
-    logger.info(`[Meilisearch] Bulk indexed ${products.length} products`);
+    logger.info(`[Meilisearch] Bulk indexed ${safeProducts.length} products`);
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;

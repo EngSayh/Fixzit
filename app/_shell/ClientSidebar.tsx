@@ -1,24 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import Sidebar from "@/components/Sidebar";
 import type { BadgeCounts } from "@/config/navigation";
+import { fetchOrgCounters } from "@/lib/counters";
 import { logger } from "@/lib/logger";
 
-type CounterPayload = Record<string, unknown>;
+type NumericDict = Record<string, number | undefined>;
 
-const countersFetcher = async (url: string, init?: RequestInit) => {
-  const response = await fetch(url, {
-    credentials: "include",
-    signal: init?.signal,
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch counters");
-  }
-  return response.json() as Promise<CounterPayload>;
+type CounterPayload = {
+  workOrders?: {
+    total?: number;
+    open?: number;
+    inProgress?: number;
+    overdue?: number;
+  };
+  finance?: NumericDict;
+  invoices?: NumericDict;
+  hr?: NumericDict;
+  properties?: NumericDict;
+  crm?: NumericDict;
+  support?: NumericDict;
+  marketplace?: NumericDict;
+  approvals?: NumericDict;
+  rfqs?: NumericDict;
+  hrApplications?: NumericDict;
 };
+
+const countersFetcher = async (_key: [string, string]) =>
+  fetchOrgCounters(_key[1]);
 
 const mapCountersToBadgeCounts = (
   counters?: CounterPayload,
@@ -26,66 +38,65 @@ const mapCountersToBadgeCounts = (
   if (!counters || typeof counters !== "object") return undefined;
 
   const value: BadgeCounts = {};
-  const setCount = (key: keyof BadgeCounts, input: unknown) => {
-    if (typeof input === "number" && Number.isFinite(input)) {
-      value[key] = input;
-    }
+  const setCount = (key: keyof BadgeCounts, input?: number) => {
+    if (typeof input === "number" && Number.isFinite(input)) value[key] = input;
   };
 
-  const workOrders = (counters as Record<string, unknown>).workOrders as
-    | Record<string, unknown>
-    | undefined;
-  const finance = (counters as Record<string, unknown>).finance as
-    | Record<string, unknown>
-    | undefined;
-  const invoices = (counters as Record<string, unknown>).invoices as
-    | Record<string, unknown>
-    | undefined;
-  const hr = (counters as Record<string, unknown>).hr as
-    | Record<string, unknown>
-    | undefined;
-  const properties = (counters as Record<string, unknown>).properties as
-    | Record<string, unknown>
-    | undefined;
-  const crm = (counters as Record<string, unknown>).crm as
-    | Record<string, unknown>
-    | undefined;
-  const support = (counters as Record<string, unknown>).support as
-    | Record<string, unknown>
-    | undefined;
-  const marketplace = (counters as Record<string, unknown>).marketplace as
-    | Record<string, unknown>
-    | undefined;
+  const {
+    workOrders,
+    finance,
+    invoices,
+    properties,
+    crm,
+    support,
+    marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
+  } = counters;
 
-  setCount("workOrders", workOrders?.total as number | undefined);
-  setCount("pendingWorkOrders", workOrders?.open as number | undefined);
-  setCount("inProgressWorkOrders", workOrders?.inProgress as number | undefined);
-  setCount("urgentWorkOrders", workOrders?.overdue as number | undefined);
+  // Work Orders - correctly mapped
+  setCount("workOrders", workOrders?.total);
+  setCount("pendingWorkOrders", workOrders?.open);
+  setCount("inProgressWorkOrders", workOrders?.inProgress);
+  setCount("urgentWorkOrders", workOrders?.overdue);
 
+  // Finance - correctly mapped
   const financeSource = finance ?? invoices ?? {};
-  setCount("pending_invoices", financeSource?.unpaid as number | undefined);
-  setCount("overdue_invoices", financeSource?.overdue as number | undefined);
+  setCount("pending_invoices", financeSource?.unpaid);
+  setCount("overdue_invoices", financeSource?.overdue);
 
-  setCount("hr_applications", hr?.probation as number | undefined);
+  // HR Applications - from ATS application counters
+  setCount("hr_applications", hrApplications?.pending);
 
-  setCount("properties_needing_attention", properties?.maintenance as number | undefined);
+  // Properties - correctly mapped
+  setCount("properties_needing_attention", properties?.maintenance);
 
-  setCount("crm_deals", crm?.contracts as number | undefined);
-  setCount("aqar_leads", crm?.leads as number | undefined);
+  // CRM - correctly mapped
+  setCount("crm_deals", crm?.contracts);
+  setCount("aqar_leads", crm?.leads);
 
-  setCount("open_support_tickets", support?.open as number | undefined);
-  setCount("pending_approvals", support?.pending as number | undefined);
+  // Support - open tickets only; pending != approvals
+  setCount("open_support_tickets", support?.open);
 
-  setCount("marketplace_orders", marketplace?.orders as number | undefined);
-  setCount("marketplace_products", marketplace?.listings as number | undefined);
-  setCount("open_rfqs", marketplace?.reviews as number | undefined);
+  // Approvals - workflow approvals
+  setCount("pending_approvals", approvals?.pending);
+
+  // Marketplace - orders and listings; reviews != RFQs
+  setCount("marketplace_orders", marketplace?.orders);
+  setCount("marketplace_products", marketplace?.listings);
+
+  // RFQs - marketplace procurement
+  setCount("open_rfqs", rfqs?.open);
 
   return Object.keys(value).length ? value : undefined;
 };
 
 export default function ClientSidebar() {
-  const { status } = useSession();
-  const isAuthenticated = status === "authenticated";
+  const { data: session, status } = useSession();
+  const sessionUser = session?.user as { orgId?: string } | undefined;
+  const orgId = sessionUser?.orgId;
+  const isAuthenticated = status === "authenticated" && Boolean(orgId);
 
   const { data: counters } = useSWR(
     isAuthenticated ? "/api/counters" : null,
@@ -104,9 +115,54 @@ export default function ClientSidebar() {
     },
   );
 
+  const [liveCounters, setLiveCounters] = useState<CounterPayload | undefined>();
+
+  // Seed live counters from initial fetch
+  useEffect(() => {
+    if (counters) {
+      setLiveCounters(counters);
+    }
+  }, [counters]);
+
+  // Authenticated, org-scoped WebSocket for real-time counters
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    if (!isAuthenticated || !orgId || !wsUrl) return;
+
+    const url = new URL(wsUrl);
+    url.searchParams.set("orgId", orgId);
+
+    const ws = new WebSocket(url.toString());
+
+    ws.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data) as {
+          orgId?: string;
+          data?: CounterPayload;
+        };
+        if (!parsed || parsed.orgId !== orgId || typeof parsed.data !== "object") {
+          return;
+        }
+        setLiveCounters((prev) => ({ ...(prev ?? {}), ...parsed.data }));
+      } catch {
+        // Ignore malformed messages
+      }
+    };
+
+    ws.onerror = (error) => {
+      logger.warn("[Sidebar] Counter WebSocket error", {
+        error,
+        orgId,
+        component: "ClientSidebar",
+      });
+    };
+
+    return () => ws.close();
+  }, [isAuthenticated, orgId]);
+
   const badgeCounts = useMemo(
-    () => mapCountersToBadgeCounts(counters),
-    [counters],
+    () => mapCountersToBadgeCounts(liveCounters ?? counters),
+    [liveCounters, counters],
   );
 
   return <Sidebar badgeCounts={badgeCounts} />;
