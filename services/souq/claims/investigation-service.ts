@@ -527,7 +527,10 @@ export class InvestigationService {
 
     for (const claim of eligibleClaims) {
       try {
-        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
         if (!orgId) continue;
         const investigation = await this.investigateClaim(claim.claimId, orgId);
 
@@ -595,7 +598,10 @@ export class InvestigationService {
 
     const claimsWithInvestigation = await Promise.all(
       claims.map(async (claim) => {
-        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
         if (!orgId) return null;
         const investigation = await this.investigateClaim(claim.claimId, orgId);
         return { ...claim, investigation };

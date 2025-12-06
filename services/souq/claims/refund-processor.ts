@@ -6,7 +6,6 @@ import { validatePayTabsConfig } from '@/config/paytabs.config';
 import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
 import type { Claim as ClaimModel } from './claim-service';
-import { buildSouqOrgFilter } from '../org-scope';
 
 // Vitest globals are available in test runtime; safely access via globalThis to avoid ReferenceError in production
 type ViTestGlobal = { importMock?: <T>(path: string) => Promise<T> } | undefined;
@@ -19,8 +18,41 @@ const getViGlobal = (): ViTestGlobal => {
   }
 };
 
-const buildOrgFilter = (orgId: string, options?: { allowEmpty?: boolean; allowOrgless?: boolean }) =>
-  buildSouqOrgFilter(orgId, { allowOrgless: options?.allowEmpty || options?.allowOrgless });
+const getOrgCandidates = (orgId: string, options?: { allowEmpty?: boolean }) => {
+  const trimmed = typeof orgId === 'string' ? orgId.trim() : orgId;
+  const candidates: Array<string | MongoObjectId> = [];
+  if (trimmed || options?.allowEmpty) {
+    if (trimmed) {
+      candidates.push(trimmed);
+      if (MongoObjectId.isValid(trimmed)) {
+        candidates.push(new MongoObjectId(trimmed));
+      }
+    }
+  }
+  return candidates;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const buildOrgScope = (orgId: string, options?: { allowEmpty?: boolean; allowOrgless?: boolean }): Record<string, any> => {
+  const candidates = getOrgCandidates(orgId, options);
+  if (!candidates.length && !options?.allowOrgless) {
+    throw new Error('orgId is required for tenant isolation (refunds)');
+  }
+  if (options?.allowOrgless && !candidates.length) {
+    return { $or: [{ orgId: { $exists: false } }, { org_id: { $exists: false } }] };
+  }
+  return {
+    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
+  };
+};
+
+const toIdString = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'toString' in value && typeof (value as { toString: () => string }).toString === 'function') {
+    return (value as { toString: () => string }).toString();
+  }
+  return String(value ?? '');
+};
 
 export interface RefundRequest {
   claimId: string;
@@ -200,21 +232,22 @@ export class RefundProcessor {
       throw new Error(`Claim must be approved/resolved for refund. Current status: ${claim.status}`);
     }
     // Validate claim/order/buyer/seller match
-    const claimOrderId = claim.orderId?.toString?.() ?? String(claim.orderId);
-    if (claimOrderId !== request.orderId && claimOrderId !== request.orderId.toString()) {
+    const claimOrderId = toIdString(claim.orderId);
+    const requestOrderId = toIdString(request.orderId);
+    if (claimOrderId !== requestOrderId) {
       throw new Error('Claim orderId does not match refund request orderId');
     }
-    if (claim.buyerId !== request.buyerId) {
+    if (toIdString(claim.buyerId) !== toIdString(request.buyerId)) {
       throw new Error('Claim buyer does not match refund request buyer');
     }
-    if (claim.sellerId !== request.sellerId) {
+    if (toIdString(claim.sellerId) !== toIdString(request.sellerId)) {
       throw new Error('Claim seller does not match refund request seller');
     }
 
     // 🔐 BLOCKER FIX: Idempotency guard - check for existing active/completed refund
     const existingRefund = await collection.findOne({
       claimId: request.claimId,
-      ...buildOrgFilter(request.orgId),
+      ...buildOrgScope(request.orgId),
       status: { $in: ['initiated', 'processing', 'completed', 'failed'] },
     });
     if (existingRefund) {
@@ -262,7 +295,7 @@ export class RefundProcessor {
       orderIdFilters.push({ _id: new MongoObjectId(request.orderId) });
     }
     const order = await db.collection('souq_orders').findOne({
-      ...buildOrgFilter(request.orgId),
+      ...buildOrgScope(request.orgId),
       $or: orderIdFilters,
     }) as { pricing?: { total?: number }; payment?: { transactionId?: string; method?: string; amount?: number } } | null;
 
@@ -323,7 +356,7 @@ export class RefundProcessor {
     const insertResult = await collection.findOneAndUpdate(
       {
         claimId: request.claimId,
-        ...buildOrgFilter(request.orgId),
+        ...buildOrgScope(request.orgId),
       },
       { $setOnInsert: refund },
       { upsert: true, returnDocument: 'after', includeResultMetadata: true }
@@ -417,10 +450,10 @@ export class RefundProcessor {
     // Atomically check and lock to prevent concurrent processing
     // This guards against race conditions from queue + in-process timer or multiple workers
     const collection = await this.collection();
-    const result = await collection.updateOne(
+      const result = await collection.updateOne(
       { 
         refundId: refund.refundId, 
-        ...buildOrgFilter(refund.orgId),
+        ...buildOrgScope(refund.orgId),
         status: { $in: ['initiated', 'processing'] },
         // Add a processing lock flag that's only set during active execution
         processingLock: { $exists: false }
@@ -451,7 +484,7 @@ export class RefundProcessor {
 
       // Clear processing lock on success/pending
       await collection.updateOne(
-        { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+        { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
         { $unset: { processingLock: '' } }
       );
 
@@ -482,7 +515,7 @@ export class RefundProcessor {
       if (refund.retryCount < this.MAX_RETRIES) {
         // Clear lock before scheduling retry
         await collection.updateOne(
-          { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+          { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
           { $unset: { processingLock: '' } }
         );
         
@@ -497,7 +530,7 @@ export class RefundProcessor {
 
       // Clear lock on final failure
       await collection.updateOne(
-        { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+        { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
         { $unset: { processingLock: '' } }
       );
 
@@ -568,7 +601,7 @@ export class RefundProcessor {
     const nextRetryAt = new Date(Date.now() + delayMs);
 
     await collection.updateOne(
-      { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+      { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
       {
         $inc: { retryCount: 1 },
         $set: {
@@ -636,7 +669,7 @@ export class RefundProcessor {
 
     const collection = await this.collection();
     await collection.updateOne(
-      { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+      { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
       {
         $inc: { statusCheckCount: 1 },
         $set: { status: 'processing', nextStatusCheckAt, updatedAt: new Date() },
@@ -716,7 +749,7 @@ export class RefundProcessor {
 
   static async processRetryJob(refundId: string, orgId: string): Promise<void> {
     const latestCollection = await this.collection();
-    const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgFilter(orgId) });
+    const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgScope(orgId) });
 
     if (updatedRefund && updatedRefund.status === 'processing') {
       // If we already have a transactionId, perform a status check instead of re-calling PayTabs refund API
@@ -765,7 +798,7 @@ export class RefundProcessor {
    */
   static async processStatusCheckJob(refundId: string, orgId: string): Promise<void> {
     const collection = await this.collection();
-    const refund = await collection.findOne({ refundId, ...buildOrgFilter(orgId) });
+    const refund = await collection.findOne({ refundId, ...buildOrgScope(orgId) });
 
     if (!refund) {
       logger.warn('[Refunds] Status check skipped - refund not found', { refundId, orgId });
@@ -859,7 +892,7 @@ export class RefundProcessor {
     if (status === 'processing') update.processedAt = new Date();
 
     const collection = await this.collection();
-    await collection.updateOne({ refundId, ...buildOrgFilter(orgId) }, { $set: update });
+    await collection.updateOne({ refundId, ...buildOrgScope(orgId) }, { $set: update });
   }
 
   /**
@@ -878,7 +911,7 @@ export class RefundProcessor {
     }
     // Use $and to combine org filter (which has $or) with orderId filter (which also uses $or).
     // This prevents the second $or from overwriting the first one.
-    const orgFilter = buildOrgFilter(orgId);
+    const orgFilter = buildOrgScope(orgId);
     await db.collection('souq_orders').updateOne(
       { $and: [orgFilter, { $or: orderIdFilters }] },
       {
@@ -992,7 +1025,7 @@ export class RefundProcessor {
    */
   static async getRefund(refundId: string, orgId: string): Promise<Refund | null> {
     const collection = await this.collection();
-    return collection.findOne({ refundId, ...buildOrgFilter(orgId) });
+    return collection.findOne({ refundId, ...buildOrgScope(orgId) });
   }
 
   /**
@@ -1013,7 +1046,7 @@ export class RefundProcessor {
     }
     const collection = await this.collection();
 
-    const query: Record<string, unknown> = { ...buildOrgFilter(filters.orgId) };
+    const query: Record<string, unknown> = { ...buildOrgScope(filters.orgId) };
     if (filters.buyerId) query.buyerId = filters.buyerId;
     if (filters.sellerId) query.sellerId = filters.sellerId;
     if (filters.claimId) query.claimId = filters.claimId;
@@ -1054,7 +1087,7 @@ export class RefundProcessor {
       .find({
         status: 'failed',
         retryCount: { $lt: this.MAX_RETRIES },
-        ...buildOrgFilter(orgId),
+        ...buildOrgScope(orgId),
       })
       .sort({ updatedAt: -1 })
       .limit(batchLimit);
@@ -1116,7 +1149,7 @@ export class RefundProcessor {
     const collection = await this.collection();
 
     // Build match stage with org filter
-    const matchStage: Record<string, unknown> = { ...buildOrgFilter(filters.orgId) };
+    const matchStage: Record<string, unknown> = { ...buildOrgScope(filters.orgId) };
     if (filters.sellerId) matchStage.sellerId = filters.sellerId;
     if (filters.startDate || filters.endDate) {
       matchStage.createdAt = {} as { $gte?: Date; $lte?: Date };
@@ -1268,6 +1301,6 @@ export class RefundProcessor {
     };
 
     // 🔐 Filter by sellerId + orgId to prevent cross-tenant balance mutations
-    await balances.updateOne({ sellerId, ...buildOrgFilter(orgId) }, update, { upsert: true });
+    await balances.updateOne({ sellerId, ...buildOrgScope(orgId) }, update, { upsert: true });
   }
 }

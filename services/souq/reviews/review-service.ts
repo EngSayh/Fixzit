@@ -105,7 +105,7 @@ class ReviewService {
       const order = await SouqOrder.findOne({
         orderId: data.orderId,
         customerId: customerObjectId,
-        orgId: orgObjectId,
+        $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
         "items.productId": productObjectId,
         status: "delivered",
       });
@@ -148,9 +148,10 @@ class ReviewService {
     data: UpdateReviewDto,
   ): Promise<IReview> {
     const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const customerObjectId = this.ensureObjectId(customerId, "customerId");
     const review = await SouqReview.findOne({
       reviewId,
-      customerId,
+      customerId: customerObjectId,
       $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     });
 
@@ -183,9 +184,10 @@ class ReviewService {
    */
   async deleteReview(reviewId: string, orgId: string, customerId: string): Promise<void> {
     const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const customerObjectId = this.ensureObjectId(customerId, "customerId");
     const review = await SouqReview.findOne({
       reviewId,
-      customerId,
+      customerId: customerObjectId,
       $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     });
 
