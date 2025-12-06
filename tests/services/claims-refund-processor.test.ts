@@ -95,6 +95,34 @@ describe("RefundProcessor notifications", () => {
     expect(mockOrderUpdate).toHaveBeenCalled();
   });
 
+  it("updates order status with ObjectId orgId and includes dual $or scope", async () => {
+    const orgObjectId = new ObjectId("60f5f06d2f9f1c3b2a1d4e5f");
+    await RefundProcessor["updateOrderStatus"]({
+      orderId: "ORD-OBJ",
+      orgId: orgObjectId.toString(),
+      status: "refunded",
+    });
+
+    expect(mockOrderUpdate).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callArgs = mockOrderUpdate.mock.calls.at(-1) as any[] | undefined;
+    expect(callArgs).toBeTruthy();
+    const filter = callArgs?.[0] as Record<string, unknown> | undefined;
+    expect(filter).toHaveProperty("$and");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const andArray = (filter as any)?.$and as Array<Record<string, unknown>> | undefined;
+    const orgScope = andArray?.[0] as Record<string, unknown> | undefined;
+    expect(orgScope).toHaveProperty("$or");
+    // Org scope should include both string and ObjectId candidates
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((orgScope as any)?.$or).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ orgId: expect.objectContaining({ $in: expect.arrayContaining([orgObjectId.toString(), orgObjectId]) }) }),
+        expect.objectContaining({ org_id: expect.objectContaining({ $in: expect.arrayContaining([orgObjectId.toString(), orgObjectId]) }) }),
+      ]),
+    );
+  });
+
   it("queues retry job with orgId", async () => {
     const refund = {
       refundId: "REF-2",
@@ -138,7 +166,8 @@ describe("RefundProcessor notifications", () => {
       updatedAt: new Date(),
     };
 
-    mockRefundFindOne.mockResolvedValueOnce(refund);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockRefundFindOne.mockResolvedValueOnce(refund as any);
 
     const executeSpy = vi
       .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
@@ -188,7 +217,8 @@ describe("RefundProcessor notifications", () => {
       updatedAt: new Date(),
     };
 
-    mockRefundFindOne.mockResolvedValueOnce(refund);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockRefundFindOne.mockResolvedValueOnce(refund as any);
 
     const executeSpy = vi
       .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
