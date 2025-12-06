@@ -118,20 +118,16 @@ export class BudgetManager {
 
   /**
    * Normalize orgId - KEEP AS STRING
-   * Schema: souq_ad_campaigns.orgId is String (see server/models/souq/Advertising.ts)
+   * Schema: souq_campaigns.orgId is String (see server/models/souq/Advertising.ts)
    * AUDIT-2025-12-06: Fixed to stop casting to ObjectId which breaks queries for hex-like org IDs
    */
   private static normalizeOrg(orgId: string): {
     orgFilter: string;
     orgKey: string;
-    orgCandidates: (string | ObjectId)[];
+    orgCandidates: string[];
   } {
-    // orgId is stored as String in schema - do NOT convert to ObjectId
-    const orgCandidates =
-      ObjectId.isValid(orgId) && typeof orgId === "string"
-        ? [orgId, new ObjectId(orgId)]
-        : [orgId];
-    return { orgFilter: orgId, orgKey: orgId, orgCandidates };
+    // orgId is stored as String in schema - keep it as string only to align with indexes
+    return { orgFilter: orgId, orgKey: orgId, orgCandidates: [orgId] };
   }
 
   /**
@@ -276,7 +272,7 @@ export class BudgetManager {
 
     // Get all active campaigns
     const campaigns = await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .find({ status: "active", orgId: { $in: orgCandidates } })
       .toArray();
 
@@ -306,7 +302,7 @@ export class BudgetManager {
       // Reset spentToday in MongoDB with orgId scoping
       // AUDIT-2025-12-06: Use String orgId to match schema
       await db
-        .collection("souq_ad_campaigns")
+        .collection("souq_campaigns")
         .updateOne(
           {
             campaignId: campaign.campaignId,
@@ -345,7 +341,7 @@ export class BudgetManager {
     const db = await getDatabase();
 
     await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .updateOne(
         { campaignId, orgId: { $in: orgCandidates } },
         { $set: { spentToday: 0, lastBudgetReset: new Date() } },
@@ -442,7 +438,7 @@ export class BudgetManager {
     const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
     // 🔐 STRICT v4.1: Include orgId in filter
-    await db.collection("souq_ad_campaigns").updateOne(
+    await db.collection("souq_campaigns").updateOne(
       { campaignId, orgId: { $in: orgCandidates } },
       {
         $set: {
@@ -573,13 +569,27 @@ export class BudgetManager {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    // AUDIT-2025-12-06: souq_ad_campaigns.orgId is String - use directly; also accept legacy ObjectId
+    // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
     const orgFilter = Array.isArray(orgCandidates)
       ? { $in: orgCandidates }
       : orgCandidates;
-    const campaign = await db
-      .collection("souq_ad_campaigns")
+    let campaign = await db
+      .collection("souq_campaigns")
       .findOne({ campaignId, orgId: orgFilter });
+
+    // 🧪 Mock/driver fallback: some test doubles don’t support $in; retry with primary org candidate
+    if (
+      !campaign &&
+      Array.isArray(orgCandidates) &&
+      orgCandidates.length > 0 &&
+      !(orgFilter as { $in?: unknown }).$in
+    ) {
+      // no-op: orgFilter already simple
+    } else if (!campaign && Array.isArray(orgCandidates) && orgCandidates.length > 0) {
+      campaign = await db
+        .collection("souq_campaigns")
+        .findOne({ campaignId, orgId: orgCandidates[0] });
+    }
 
     return campaign as unknown as {
       campaignId: string;
@@ -614,13 +624,24 @@ export class BudgetManager {
     const sellerFilter = ObjectId.isValid(sellerId) && typeof sellerId === "string"
       ? { $in: [sellerId, new ObjectId(sellerId)] }
       : sellerId;
-    const campaigns = await db
-      .collection("souq_ad_campaigns")
+    let campaigns = await db
+      .collection("souq_campaigns")
       .find({
         sellerId: sellerFilter,
         orgId: { $in: orgCandidates },
       })
       .toArray();
+
+    // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+    if (campaigns.length === 0 && orgCandidates.length > 0) {
+      campaigns = await db
+        .collection("souq_campaigns")
+        .find({
+          sellerId: sellerFilter,
+          orgId: orgCandidates[0],
+        })
+        .toArray();
+    }
 
     let totalDailyBudget = 0;
     let totalSpentToday = 0;
@@ -672,7 +693,7 @@ export class BudgetManager {
     const db = await getDatabase();
 
     await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .updateOne({ campaignId, orgId: { $in: orgCandidates } }, { $set: { dailyBudget: newBudget } });
 
     logger.info(

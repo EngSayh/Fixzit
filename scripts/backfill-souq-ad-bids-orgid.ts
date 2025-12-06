@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
 async function main() {
   const db = await getDatabase();
   const bids = db.collection("souq_ad_bids");
-  const campaigns = db.collection("souq_ad_campaigns");
+  const campaigns = db.collection("souq_campaigns");
 
   const dryRun = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
 

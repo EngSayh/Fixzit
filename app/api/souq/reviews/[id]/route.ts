@@ -43,7 +43,30 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const session = await auth();
     await connectDb();
     const { id: reviewId } = await context.params;
-    const review = await reviewService.getReviewById(reviewId);
+    // Fetch orgId first to enforce tenant isolation on subsequent fetch
+    const { connection } = await connectDb();
+    const db = connection.db!;
+    const found = await db.collection("souq_reviews").findOne(
+      { reviewId },
+      { projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+
+    // If requester is authenticated with an org, enforce org match
+    const requesterOrg = session?.user?.orgId;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const review = await reviewService.getReviewById(reviewId, orgId || requesterOrg || "");
 
     if (!review) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
@@ -75,14 +98,33 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDb();
-
+    const connection = await connectDb();
     const { id: reviewId } = await context.params;
+    const db = connection.connection.db!;
+    const found = await db.collection("souq_reviews").findOne(
+      { reviewId },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const requesterOrg = session.user.orgId;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const payload = reviewUpdateSchema.parse(body);
 
     const review = await reviewService.updateReview(
       reviewId,
+      orgId || requesterOrg || "",
       session.user.id,
       payload,
     );
@@ -114,10 +156,28 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDb();
-
+    const connection = await connectDb();
     const { id: reviewId } = await context.params;
-    await reviewService.deleteReview(reviewId, session.user.id);
+    const db = connection.connection.db!;
+    const found = await db.collection("souq_reviews").findOne(
+      { reviewId },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const requesterOrg = session.user.orgId;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await reviewService.deleteReview(reviewId, orgId || requesterOrg || "", session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

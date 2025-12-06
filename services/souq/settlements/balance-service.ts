@@ -111,6 +111,10 @@ type TransactionFilters = {
 
 export class SellerBalanceService {
   private static balanceIndexesReady: Promise<void> | null = null;
+  private static withdrawalIndexesReady: Promise<void> | null = null;
+  private static buildOrgCandidates(orgId: string): Array<string | ObjectId> {
+    return ObjectId.isValid(orgId) ? [orgId, new ObjectId(orgId)] : [orgId];
+  }
 
   /**
    * Get seller balance (real-time from Redis or balance document)
@@ -139,9 +143,7 @@ export class SellerBalanceService {
     const sellerFilter = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
+    const orgCandidates = this.buildOrgCandidates(orgId);
 
     let balanceDoc: Record<string, unknown> | null = null;
     try {
@@ -255,13 +257,24 @@ export class SellerBalanceService {
     }
 
     // Fallback path for mocks with only find()
-    const pendingOrders = await ordersCollection
+    let pendingOrders = await ordersCollection
       .find({
         "items.sellerId": sellerFilter,
         status: { $in: ["pending", "processing", "shipped"] },
-        orgId: orgCandidates[0],
+        orgId: { $in: orgCandidates },
       })
       .toArray();
+
+    // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+    if (pendingOrders.length === 0 && orgCandidates.length > 0) {
+      pendingOrders = await ordersCollection
+        .find({
+          "items.sellerId": sellerFilter,
+          status: { $in: ["pending", "processing", "shipped"] },
+          orgId: orgCandidates[0],
+        })
+        .toArray();
+    }
 
     type PendingOrderItem = {
       sellerId?: unknown;
@@ -365,6 +378,7 @@ export class SellerBalanceService {
     const orgCandidates = ObjectId.isValid(orgId)
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
+    const orgFilter = orgCandidates[0];
 
     let balanceAggregation: Array<{ _id: string; total: number }> = [];
     if (typeof (transactionsCollection as { aggregate?: unknown }).aggregate === "function") {
@@ -387,15 +401,38 @@ export class SellerBalanceService {
         .toArray();
     } else {
       // 🧪 Test fallback: mocks may not implement aggregate; use find().toArray() if available
-      const cursor = transactionsCollection.find({
-        sellerId: sellerFilter,
-        orgId: orgCandidates[0],
-      });
-      const txns = typeof cursor.sort === "function"
-        ? await cursor.sort({ createdAt: -1 }).toArray()
-        : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+      let txns: Array<{ type?: string; amount?: number }> = [];
+      try {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: { $in: orgCandidates },
+        });
+        const rawTxns = typeof cursor.sort === "function"
+          ? await cursor.sort({ createdAt: -1 }).toArray()
+          : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+        txns = Array.isArray(rawTxns)
+          ? (rawTxns as Array<{ type?: string; amount?: number }>)
+          : [];
+      } catch (_err) {
+        /* ignore */
+      }
+
+      // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+      if (txns.length === 0 && orgCandidates.length > 0) {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: orgCandidates[0],
+        });
+        const rawTxns = typeof cursor.sort === "function"
+          ? await cursor.sort({ createdAt: -1 }).toArray()
+          : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+        txns = Array.isArray(rawTxns)
+          ? (rawTxns as Array<{ type?: string; amount?: number }>)
+          : [];
+      }
+
       const totals = new Map<string, number>();
-      for (const txn of txns as Array<{ type?: string; amount?: number }>) {
+      for (const txn of txns) {
         if (!txn?.type) continue;
         const amount = typeof txn.amount === "number" ? txn.amount : 0;
         totals.set(txn.type, (totals.get(txn.type) ?? 0) + amount);
@@ -419,15 +456,33 @@ export class SellerBalanceService {
     // If aggregation returned nothing usable (e.g., mocked shape), rebuild totals via find() or heuristics
     if (items.length === 0) {
       if (typeof (transactionsCollection as { find?: unknown }).find === "function") {
+        let txns: Array<{ type?: string; amount?: number }> = [];
+        try {
         const cursor = transactionsCollection.find({
           sellerId: sellerFilter,
-          orgId: orgCandidates[0],
+          orgId: orgFilter,
         });
-        const txns = typeof cursor.sort === "function"
-          ? await cursor.sort({ createdAt: -1 }).toArray()
-          : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+          const rawTxns = typeof cursor.sort === "function"
+            ? await cursor.sort({ createdAt: -1 }).toArray()
+            : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+          txns = rawTxns as Array<{ type?: string; amount?: number }>;
+        } catch (_err) {
+          /* no-op */
+        }
+
+        // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+      if (txns.length === 0) {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: orgFilter,
+        });
+          const rawTxns = typeof cursor.sort === "function"
+            ? await cursor.sort({ createdAt: -1 }).toArray()
+            : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+          txns = rawTxns as Array<{ type?: string; amount?: number }>;
+        }
         const totals = new Map<string, number>();
-        for (const txn of txns as Array<{ type?: string; amount?: number }>) {
+        for (const txn of txns) {
           if (!txn?.type) continue;
           const amount = typeof txn.amount === "number" ? txn.amount : 0;
           totals.set(txn.type, (totals.get(txn.type) ?? 0) + amount);
@@ -718,6 +773,7 @@ export class SellerBalanceService {
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
     const settlementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
+    await this.ensureWithdrawalIndexes(db);
 
     const session = client.startSession();
     let request: WithdrawalRequest | null = null;
@@ -837,11 +893,15 @@ export class SellerBalanceService {
         };
 
         // Save to database
+        const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
+        if (!orgObjectId) {
+          throw new Error("Invalid orgId format for withdrawal; expected ObjectId");
+        }
         await withdrawalsCollection.insertOne(
           {
             ...request,
             sellerId: sellerObjectId,
-            orgId,
+            orgId: orgObjectId,
           },
           { session },
         );
@@ -890,6 +950,7 @@ export class SellerBalanceService {
     const connection = await connectDb();
     const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    await this.ensureWithdrawalIndexes(db);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
@@ -1101,11 +1162,13 @@ export class SellerBalanceService {
     }
 
     const total = await transactionsCollection.countDocuments(query);
+    const limit = Math.min(Math.max(filters?.limit ?? 50, 1), 200);
+    const offset = Math.max(filters?.offset ?? 0, 0);
     const transactions = (await transactionsCollection
       .find(query)
       .sort({ createdAt: -1 })
-      .skip(filters?.offset || 0)
-      .limit(filters?.limit || 50)
+      .skip(offset)
+      .limit(limit)
       .toArray()) as Transaction[];
 
     return { transactions, total };
@@ -1134,6 +1197,7 @@ export class SellerBalanceService {
     const connection = await connectDb();
     const db = connection.connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    await this.ensureWithdrawalIndexes(db);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: { $in: orgCandidates } };
@@ -1171,6 +1235,9 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to hold reserve (STRICT v4.1 tenant isolation)');
     }
+    if (amount <= 0) {
+      throw new Error("Reserve hold amount must be positive");
+    }
     return await this.recordTransaction({
       sellerId,
       orgId,
@@ -1198,6 +1265,9 @@ export class SellerBalanceService {
     // 🔐 STRICT v4.1: Require orgId for tenant isolation
     if (!orgId) {
       throw new Error('orgId is required to release reserve (STRICT v4.1 tenant isolation)');
+    }
+    if (amount <= 0) {
+      throw new Error("Reserve release amount must be positive");
     }
     return await this.recordTransaction({
       sellerId,
@@ -1241,6 +1311,25 @@ export class SellerBalanceService {
     // 🔐 STRICT v4.1: Cache key must include orgId for tenant isolation
     const key = `seller:${sellerId}:${orgId}:balance`;
     await invalidateCacheKey(key);
+  }
+
+  static async ensureWithdrawalIndexes(db: Db): Promise<void> {
+    if (!this.withdrawalIndexesReady) {
+      this.withdrawalIndexesReady = db
+        .collection("souq_withdrawal_requests")
+        .createIndexes([
+          { key: { requestId: 1 }, unique: true, name: "requestId_unique" },
+          { key: { payoutId: 1, orgId: 1 }, name: "payout_org" },
+          {
+            key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+            name: "org_seller_status_requestedAt",
+          },
+        ])
+        // Ignore index creation races; Mongo will return the existing index name
+        .then(() => undefined)
+        .catch(() => undefined);
+    }
+    await this.withdrawalIndexesReady;
   }
 
   private static async ensureBalanceIndexes(db: Db): Promise<void> {

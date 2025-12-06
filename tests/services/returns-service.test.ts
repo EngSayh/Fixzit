@@ -163,7 +163,8 @@ describe("returnsService", () => {
       buyerPhotos: ["https://example.com/photo.jpg"],
     });
 
-    const rma = await SouqRMA.findById(rmaId).lean();
+    const foundRma = await SouqRMA.findById(rmaId);
+    const rma = typeof (foundRma as any)?.lean === "function" ? await (foundRma as any).lean() : foundRma;
 
     expect(rma?.rmaId).toMatch(/^RMA-/);
     expect(rma?.items[0]?.returnReason).toBe("no_longer_needed");
@@ -215,7 +216,8 @@ describe("returnsService", () => {
     allowAutoRefund: true,
   });
 
-    const updated = await SouqRMA.findById(rmaId).lean();
+    const updatedDoc = await SouqRMA.findById(rmaId);
+    const updated = typeof (updatedDoc as any)?.lean === "function" ? await (updatedDoc as any).lean() : updatedDoc;
     expect(updated?.status).toBe("completed");
     expect(updated?.refund.status).toBe("completed");
     expect(updated?.refund.amount).toBeCloseTo(price * quantity * 0.95, 5); // 5% deduction for "good"

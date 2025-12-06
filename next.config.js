@@ -201,11 +201,13 @@ const nextConfig = {
             const manifests = [
               path.join(nextDir, 'routes-manifest.json'),
               path.join(nextDir, 'build-manifest.json'),
+              path.join(nextDir, 'app-build-manifest.json'),
               path.join(nextDir, 'prerender-manifest.json'),
               path.join(nextDir, 'required-server-files.json'),
               path.join(nextDir, 'BUILD_ID'),
               path.join(serverDir, 'pages-manifest.json'),
               path.join(serverDir, 'app-paths-manifest.json'),
+              path.join(serverDir, 'app-build-manifest.json'),
               path.join(serverDir, 'next-font-manifest.json'),
             ];
             const stubs = [

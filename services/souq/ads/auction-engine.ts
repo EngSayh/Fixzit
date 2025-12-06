@@ -462,7 +462,7 @@ export class AuctionEngine {
 
     // CRITICAL: Always filter by orgId to prevent cross-tenant ad serving
     const campaigns = await db
-      .collection<AdCampaign>("souq_ad_campaigns")
+      .collection<AdCampaign>("souq_campaigns")
       .find({
         orgId: context.orgId, // Required for tenant isolation
         type,
@@ -571,7 +571,7 @@ export class AuctionEngine {
     );
 
     // Update campaign spend
-    await db.collection("souq_ad_campaigns").updateOne(
+    await db.collection("souq_campaigns").updateOne(
       { campaignId },
       {
         $inc: { spentToday: actualCpc },

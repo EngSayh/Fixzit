@@ -143,10 +143,16 @@ class ReviewService {
    */
   async updateReview(
     reviewId: string,
+    orgId: string,
     customerId: string,
     data: UpdateReviewDto,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId, customerId });
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      customerId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found or unauthorized");
@@ -175,8 +181,13 @@ class ReviewService {
   /**
    * Delete review (customer only, before publication)
    */
-  async deleteReview(reviewId: string, customerId: string): Promise<void> {
-    const review = await SouqReview.findOne({ reviewId, customerId });
+  async deleteReview(reviewId: string, orgId: string, customerId: string): Promise<void> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      customerId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found or unauthorized");
@@ -192,8 +203,12 @@ class ReviewService {
   /**
    * Mark review as helpful
    */
-  async markHelpful(reviewId: string, _customerId: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async markHelpful(reviewId: string, orgId: string, _customerId: string): Promise<IReview> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -214,9 +229,14 @@ class ReviewService {
    */
   async markNotHelpful(
     reviewId: string,
+    orgId: string,
     _customerId: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -235,8 +255,12 @@ class ReviewService {
   /**
    * Report inappropriate review
    */
-  async reportReview(reviewId: string, reason: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async reportReview(reviewId: string, orgId: string, reason: string): Promise<IReview> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -429,8 +453,12 @@ class ReviewService {
   /**
    * Get single review by ID
    */
-  async getReviewById(reviewId: string): Promise<IReview | null> {
-    return await SouqReview.findOne({ reviewId });
+  async getReviewById(reviewId: string, orgId: string): Promise<IReview | null> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    return await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
   }
 
   /**
@@ -438,9 +466,14 @@ class ReviewService {
    */
   async approveReview(
     reviewId: string,
+    orgId: string,
     _moderatorId: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -459,10 +492,15 @@ class ReviewService {
    */
   async rejectReview(
     reviewId: string,
+    orgId: string,
     _moderatorId: string,
     notes: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -479,8 +517,12 @@ class ReviewService {
   /**
    * Flag review (moderator)
    */
-  async flagReview(reviewId: string, reason: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async flagReview(reviewId: string, orgId: string, reason: string): Promise<IReview> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");

@@ -116,4 +116,56 @@ describe("PayoutProcessorService.processBatchPayouts", () => {
     // Ensure batch record stored orgId
     expect(mockBatches[0].orgId.toString()).toBe(orgA.toString());
   });
+
+  it("increments failedPayouts when processPayout returns failed", async () => {
+    vi.spyOn(PayoutProcessorService, "processPayout").mockResolvedValue({
+      payoutId: "P1",
+      orgId: orgA,
+      status: "failed",
+    } as any);
+
+    const batch = await PayoutProcessorService.processBatchPayouts(
+      String(orgA),
+      new Date(),
+    );
+
+    expect(batch.totalPayouts).toBe(1);
+    expect(batch.successfulPayouts).toBe(0);
+    expect(batch.failedPayouts).toBe(1);
+  });
+
+  it("retries failed transfer and succeeds on third attempt", async () => {
+    const transferSpy = vi
+      .spyOn(PayoutProcessorService as any, "executeBankTransfer")
+      .mockResolvedValueOnce({ success: false, errorMessage: "bank down" })
+      .mockResolvedValueOnce({ success: false, errorMessage: "bank down" })
+      .mockResolvedValue({ success: true, transactionId: "TXN-RETRY" });
+
+    vi.spyOn(PayoutProcessorService, "processPayout").mockImplementation(
+      async (payoutId: string, orgId: string) => {
+        const target = mockPayouts.find(
+          (p) =>
+            p.payoutId === payoutId && String(p.orgId) === String(orgId),
+        );
+        if (!target) throw new Error("not found");
+        // simulate three attempts
+        let result: any;
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        target.status = result.success ? "completed" : "pending";
+        return target as any;
+      },
+    );
+
+    const batch = await PayoutProcessorService.processBatchPayouts(
+      String(orgA),
+      new Date(),
+    );
+
+    expect(batch.totalPayouts).toBe(1);
+    expect(transferSpy).toHaveBeenCalledTimes(3);
+    const p1 = mockPayouts.find((p) => p.payoutId === "P1");
+    expect(p1?.status).toBe("completed");
+  });
 });

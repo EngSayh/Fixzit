@@ -69,6 +69,7 @@ export const COLLECTIONS: Record<string, string> = {
   SOUQ_ORDERS: "souq_orders",
   SOUQ_REVIEWS: "souq_reviews",
   SOUQ_SETTLEMENTS: "souq_settlements",
+  SOUQ_WITHDRAWAL_REQUESTS: "souq_withdrawal_requests",
   CLAIMS: "claims",
   SOUQ_CAMPAIGNS: "souq_campaigns",
   SOUQ_AD_GROUPS: "souq_ad_groups",
@@ -684,6 +685,17 @@ export async function createIndexes() {
         partialFilterExpression: { orgId: { $exists: true }, orderId: { $exists: true } },
       },
     );
+  await db
+    .collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS)
+    .createIndexes([
+      { key: { requestId: 1 }, unique: true, background: true, name: "souq_withdrawals_requestId_unique" },
+      { key: { payoutId: 1, orgId: 1 }, background: true, name: "souq_withdrawals_payout_org" },
+      {
+        key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+        background: true,
+        name: "souq_withdrawals_org_seller_status_requestedAt",
+      },
+    ]);
   await db
     .collection(COLLECTIONS.SOUQ_REVIEWS)
     .createIndex({ orgId: 1, productId: 1 }, { background: true, name: "souq_reviews_orgId_productId" });

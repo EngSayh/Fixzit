@@ -1,17 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Wallet, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { fetchOrgCounters } from "@/lib/counters";
+import { useOrgCounters } from "@/hooks/useOrgCounters";
+import type { CounterPayload } from "@/lib/counters";
 
 // ==========================================
 // TYPES
 // ==========================================
+
+type InvoiceCounters = {
+  total?: number;
+  unpaid?: number;
+  overdue?: number;
+  paid?: number;
+};
+
+type RevenueCounters = {
+  today?: number;
+  week?: number;
+  month?: number;
+  growth?: number; // percentage
+};
 
 interface FinanceCounters {
   invoices: {
@@ -33,61 +48,50 @@ interface FinanceCounters {
 // ==========================================
 
 export default function FinanceDashboard() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const [activeTab, setActiveTab] = useState("invoices");
-  const [counters, setCounters] = useState<FinanceCounters | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
 
-  // Fetch counters
-  useEffect(() => {
-    if (status === "loading") return;
-    if (!orgId) {
-      setCounters(null);
-      setLoading(false);
-      return;
-    }
-    const controller = new AbortController();
-    const fetchData = async () => {
-      try {
-        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
-        const invoices =
-          (data.invoices as Partial<FinanceCounters["invoices"]>) ?? {};
-        const revenue =
-          (data.revenue as Partial<FinanceCounters["revenue"]>) ?? {};
-
-        setCounters({
-          invoices: {
-            total: invoices.total ?? 0,
-            unpaid: invoices.unpaid ?? 0,
-            overdue: invoices.overdue ?? 0,
-            paid: invoices.paid ?? 0,
-          },
-          revenue: {
-            today: revenue.today ?? 0,
-            week: revenue.week ?? 0,
-            month: revenue.month ?? 0,
-            growth: revenue.growth ?? 0,
-          },
-        });
-        setLoading(false);
-      } catch (error) {
-        logger.error("Failed to load finance data:", error as Error);
-        setLoading(false);
-      }
+  const { counters, error: countersError } = useOrgCounters();
+  const financeCounters = useMemo<FinanceCounters | null>(() => {
+    if (!counters || typeof counters !== "object") return null;
+    const countersObj = counters as CounterPayload;
+    const invoices =
+      (countersObj.invoices as InvoiceCounters | undefined) ??
+      (countersObj.finance as InvoiceCounters | undefined) ??
+      {};
+    const revenue = (countersObj.revenue as RevenueCounters | undefined) ?? {};
+    return {
+      invoices: {
+        total: invoices.total ?? 0,
+        unpaid: invoices.unpaid ?? 0,
+        overdue: invoices.overdue ?? 0,
+        paid: invoices.paid ?? 0,
+      },
+      revenue: {
+        today: revenue.today ?? 0,
+        week: revenue.week ?? 0,
+        month: revenue.month ?? 0,
+        growth: revenue.growth ?? 0,
+      },
     };
+  }, [counters]);
 
-    fetchData();
-    return () => controller.abort();
-  }, [orgId, status]);
+  if (loading && (financeCounters || countersError || !orgId)) {
+    setLoading(false);
+    if (countersError) {
+      logger.error("Failed to load finance data:", countersError as Error);
+    }
+  }
 
   // Tabs
   const tabs = [
     {
       id: "invoices",
       label: t("dashboard.finance.tabs.invoices", "Invoices"),
-      count: counters?.invoices.unpaid,
+      count: financeCounters?.invoices.unpaid,
     },
     { id: "payments", label: t("dashboard.finance.tabs.payments", "Payments") },
     { id: "expenses", label: t("dashboard.finance.tabs.expenses", "Expenses") },
@@ -147,7 +151,7 @@ export default function FinanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : counters?.invoices.total || 0}
+                  {loading ? "..." : financeCounters?.invoices.total ?? 0}
                 </div>
               </CardContent>
             </Card>
@@ -162,7 +166,7 @@ export default function FinanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-500">
-                  {loading ? "..." : counters?.invoices.unpaid || 0}
+                    {loading ? "..." : financeCounters?.invoices.unpaid ?? 0}
                 </div>
               </CardContent>
             </Card>
@@ -177,7 +181,7 @@ export default function FinanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-destructive">
-                  {loading ? "..." : counters?.invoices.overdue || 0}
+                    {loading ? "..." : financeCounters?.invoices.overdue ?? 0}
                 </div>
               </CardContent>
             </Card>
@@ -192,7 +196,7 @@ export default function FinanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-success">
-                  {loading ? "..." : counters?.invoices.paid || 0}
+                    {loading ? "..." : financeCounters?.invoices.paid ?? 0}
                 </div>
               </CardContent>
             </Card>
