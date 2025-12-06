@@ -69,7 +69,8 @@ export async function POST(
       .collection(COLLECTIONS.ORDERS)
       .findOne(claimOrgFilter);
     if (!orderForScope) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());

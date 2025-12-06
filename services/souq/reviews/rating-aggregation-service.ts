@@ -3,9 +3,16 @@
  * @module services/souq/reviews/rating-aggregation-service
  */
 
-import { SouqReview } from "@/server/models/souq/Review";
-import { SouqProduct } from "@/server/models/souq/Product";
-import { Types } from "mongoose";
+import { SouqReview, type IReview } from "@/server/models/souq/Review";
+import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
+import { Types, type FilterQuery } from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+// 🔐 STRICT v4.1: Type-safe org filter helpers
+const getReviewOrgFilter = (orgId: string): FilterQuery<IReview> =>
+  buildSouqOrgFilter(orgId) as FilterQuery<IReview>;
+const getProductOrgFilter = (orgId: string): FilterQuery<IProduct> =>
+  buildSouqOrgFilter(orgId) as FilterQuery<IProduct>;
 
 export interface RatingAggregate {
   averageRating: number;
@@ -62,15 +69,13 @@ class RatingAggregationService {
       return cached.data;
     }
 
-    // Fetch published reviews
-    const reviewFilter: Record<string, unknown> = {
-      productId,
+    // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+    const orgFilter = getReviewOrgFilter(orgId);
+    const reviewFilter: FilterQuery<IReview> = {
+      productId: Types.ObjectId.isValid(productId) ? new Types.ObjectId(productId) : productId,
       status: "published",
+      ...orgFilter,
     };
-    const orgFilter = Types.ObjectId.isValid(orgId)
-      ? new Types.ObjectId(orgId)
-      : orgId;
-    reviewFilter.$or = [{ orgId: orgFilter }, { org_id: orgFilter }];
 
     const reviews = await SouqReview.find(reviewFilter)
       .select("rating isVerifiedPurchase")
@@ -131,14 +136,13 @@ class RatingAggregationService {
     orgId: string,
     sellerId: string,
   ): Promise<SellerRatingAggregate> {
-    const orgFilter = Types.ObjectId.isValid(orgId)
-      ? new Types.ObjectId(orgId)
-      : orgId;
-    const sellerFilter = Types.ObjectId.isValid(sellerId)
+    // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+    const orgFilter = getProductOrgFilter(orgId);
+    const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : sellerId;
 
-    const products = await SouqProduct.find({ createdBy: sellerFilter, orgId: orgFilter })
+    const products = await SouqProduct.find({ createdBy: sellerObjectId, ...orgFilter })
       .select("_id")
       .lean();
     if (products.length === 0) {
@@ -154,10 +158,10 @@ class RatingAggregationService {
     }
     const productIds = products.map((p) => p._id);
 
-    // Fetch all reviews for seller's products
-    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+    const reviewOrgFilter = getReviewOrgFilter(orgId);
     const reviews = await SouqReview.find({
-      orgId: orgFilter,
+      ...reviewOrgFilter,
       productId: { $in: productIds },
       status: "published",
     })
@@ -262,14 +266,19 @@ class RatingAggregationService {
    * Get recent reviews for a product
    */
   async getRecentReviews(orgId: string, productId: string, limit: number = 5) {
-    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+    const orgFilter = getReviewOrgFilter(orgId);
+    const MAX_LIMIT = 100; // Prevent unbounded queries
+    const safeLimit = Math.min(limit, MAX_LIMIT);
+    
     return await SouqReview.find({
-      orgId: orgId,
-      productId,
+      ...orgFilter,
+      productId: Types.ObjectId.isValid(productId) ? new Types.ObjectId(productId) : productId,
       status: "published",
     })
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(safeLimit)
+      .lean();
   }
 
   /**

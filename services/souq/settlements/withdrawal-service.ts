@@ -253,26 +253,38 @@ export class WithdrawalService {
 
   /**
    * Get withdrawal by ID
+   * @param withdrawalId - The withdrawal ID to fetch
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getWithdrawal(withdrawalId: string): Promise<Withdrawal | null> {
+  static async getWithdrawal(withdrawalId: string, orgId: string): Promise<Withdrawal | null> {
+    if (!orgId) {
+      throw new Error("orgId is required for withdrawal lookup (STRICT v4.1)");
+    }
     const db = await getDatabase();
     const record = await db
       .collection<Withdrawal>(this.COLLECTION)
-      .findOne({ withdrawalId });
+      .findOne({ withdrawalId, orgId });
     return record || null;
   }
 
   /**
    * Get withdrawals for seller
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param limit - Maximum number of results (default 20)
    */
   static async getSellerWithdrawals(
     sellerId: string,
+    orgId: string,
     limit: number = 20,
   ): Promise<Withdrawal[]> {
+    if (!orgId) {
+      throw new Error("orgId is required for seller withdrawals lookup (STRICT v4.1)");
+    }
     const db = await getDatabase();
     const withdrawals = await db
       .collection<Withdrawal>(this.COLLECTION)
-      .find({ sellerId })
+      .find({ sellerId, orgId })
       .sort({ createdAt: -1 })
       .limit(limit)
       .toArray();
