@@ -38,7 +38,7 @@ export async function POST(
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
     const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
     if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -68,7 +68,7 @@ export async function POST(
       .collection(COLLECTIONS.ORDERS)
       .findOne(claimOrgFilter);
     if (!orderForScope) {
-      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());

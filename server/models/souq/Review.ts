@@ -48,7 +48,6 @@ export interface IReview extends Document {
 
   reportedCount: number;
   reportReasons?: string[];
-  reporters?: mongoose.Types.ObjectId[];
   reporters?: mongoose.Types.ObjectId[]; // 🔐 Track who reported to prevent duplicates
 
   createdAt: Date;
@@ -178,13 +177,6 @@ const ReviewSchema = new Schema<IReview>(
       min: 0,
     },
     reportReasons: [String],
-    reporters: {
-      type: [Schema.Types.ObjectId],
-      ref: "User",
-      default: [],
-      select: false, // do not expose reporter identities by default
-    },
-    // 🔐 STRICT v4.1: Track reporters to prevent duplicate reports and enable rate limiting
     reporters: {
       type: [Schema.Types.ObjectId],
       ref: "User",

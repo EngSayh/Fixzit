@@ -392,6 +392,9 @@ class ReviewService {
       await review.save();
     }
 
+    // 🚫 Privacy: do not return reporter identities to callers
+    delete (review as { reporters?: unknown }).reporters;
+
     return review;
   }
 
