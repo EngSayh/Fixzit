@@ -182,14 +182,14 @@ export class SellerBalanceService {
           available += txn.amount; // Negative amount
           reserved -= txn.amount; // Convert to positive
           break;
-        case "reserve_release":
-          // 🔧 FIX: When releasing reserve, reserved DECREASES and available INCREASES
-          // releaseReserve records a POSITIVE amount, so:
-          // - reserved -= amount (decreases reserved)
-          // - available += amount (increases available)
-          reserved -= txn.amount;
-          available += txn.amount;
+        case "reserve_release": {
+          // 🔧 When releasing reserve, ensure we only reduce reserved and increase available.
+          // Use abs to protect against any negative transaction amount.
+          const releaseAmount = Math.abs(txn.amount);
+          reserved = Math.max(0, reserved - releaseAmount);
+          available += releaseAmount;
           break;
+        }
         case "withdrawal":
           available += txn.amount; // Negative amount
           break;

@@ -78,6 +78,7 @@ interface PayoutRequest {
 interface BatchPayoutJob {
   _id?: ObjectId;
   batchId: string;
+  orgId: string;
   scheduledDate: Date;
   startedAt?: Date;
   completedAt?: Date;
@@ -567,8 +568,12 @@ export class PayoutProcessorService {
    * Process batch payouts
    */
   static async processBatchPayouts(
+    orgId: string,
     scheduledDate: Date,
   ): Promise<BatchPayoutJob> {
+    if (!orgId) {
+      throw new Error("orgId is required for processBatchPayouts (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
     const batchesCollection = db.collection("souq_payout_batches");
@@ -579,6 +584,7 @@ export class PayoutProcessorService {
     // Fetch pending payouts
     const pendingPayouts = (await payoutsCollection
       .find({
+        orgId,
         status: "pending",
         retryCount: { $lt: PAYOUT_CONFIG.maxRetries },
       })
@@ -587,6 +593,7 @@ export class PayoutProcessorService {
     // Create batch job
     const batch: BatchPayoutJob = {
       batchId,
+      orgId,
       scheduledDate,
       startedAt: new Date(),
       status: "processing",
@@ -632,7 +639,7 @@ export class PayoutProcessorService {
     batch.status = "completed";
 
     await batchesCollection.updateOne(
-      { batchId },
+      { batchId, orgId },
       {
         $set: {
           completedAt: batch.completedAt,
@@ -827,11 +834,16 @@ export class PayoutProcessorService {
         "@/lib/integrations/whatsapp"
       );
 
-      // Get seller details for phone number
+      // Get seller details for phone number, scoped by orgId for tenant isolation
       const db = await getDbInstance();
-      const seller = await db.collection("souq_sellers").findOne({
-        _id: new ObjectId(payout.sellerId),
-      });
+      const sellerIdObj = ObjectId.isValid(payout.sellerId)
+        ? new ObjectId(payout.sellerId)
+        : undefined;
+      const seller = await db.collection("souq_sellers").findOne(
+        sellerIdObj
+          ? { _id: sellerIdObj, orgId: payout.orgId }
+          : { sellerId: payout.sellerId, orgId: payout.orgId }
+      );
 
       if (!seller?.contactInfo?.phone) {
         logger.warn(
@@ -901,9 +913,12 @@ export class PayoutProcessorService {
   /**
    * Schedule batch payout job
    */
-  static async scheduleBatchPayout(): Promise<BatchPayoutJob> {
+  static async scheduleBatchPayout(orgId: string): Promise<BatchPayoutJob> {
+    if (!orgId) {
+      throw new Error("orgId is required for scheduleBatchPayout (STRICT v4.1 tenant isolation)");
+    }
     const nextPayoutDate = this.getNextPayoutDate();
-    return await this.processBatchPayouts(nextPayoutDate);
+    return await this.processBatchPayouts(orgId, nextPayoutDate);
   }
 }
 
