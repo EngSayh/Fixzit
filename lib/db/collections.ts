@@ -664,11 +664,21 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "souq_orders_orgId_createdAt" });
+  // Legacy dual-field indexes to keep $or orgId/org_id queries performant during migration
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex({ org_id: 1, createdAt: -1 }, { background: true, name: "souq_orders_org_id_createdAt", sparse: true });
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex(
       { orgId: 1, "items.sellerId": 1, createdAt: -1 },
       { background: true, name: "souq_orders_orgId_seller_createdAt" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { org_id: 1, "items.sellerId": 1, createdAt: -1 },
+      { background: true, name: "souq_orders_org_id_seller_createdAt", sparse: true },
     );
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
@@ -679,12 +689,30 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex(
+      { org_id: 1, status: 1, createdAt: -1 },
+      { background: true, name: "souq_orders_org_id_status_createdAt_desc", sparse: true },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
       { orgId: 1, orderId: 1 },
       {
         unique: true,
         background: true,
         name: "souq_orders_orgId_orderId_unique",
         partialFilterExpression: { orgId: { $exists: true }, orderId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { org_id: 1, orderId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_orders_org_id_orderId_unique",
+        sparse: true,
+        partialFilterExpression: { org_id: { $exists: true }, orderId: { $exists: true } },
       },
     );
   await db

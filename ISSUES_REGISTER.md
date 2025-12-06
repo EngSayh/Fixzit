@@ -294,29 +294,38 @@ const sellerFilter: Filter<Document> = sellerIdObj
 **Category**: Code quality, Maintainability  
 **Status**: ✅ RESOLVED (2025-12-06)
 
-**Resolution**: Imported `PAYOUT_CONFIG` from payout-processor.ts into balance-service.ts. Replaced hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` with centralized config values.
+**Resolution**: Imported `PAYOUT_CONFIG` from settlement-config.ts into balance-service.ts. Replaced hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` with centralized config values.
+
+**UPDATE (2025-12-06)**: Extended fix to `settlement-calculator.ts` which had a separate `FEE_CONFIG.holdPeriodDays = 14` that conflicted with `PAYOUT_CONFIG.holdPeriodDays = 7`. Now uses getter to reference centralized config.
 
 **Description**:  
-`balance-service.ts` hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` SAR, while `payout-processor.ts` defined these in `PAYOUT_CONFIG`. If values were changed in one place, the other would drift, causing inconsistent validation between withdrawal requests and payout processing.
+`balance-service.ts` and `settlement-calculator.ts` had hardcoded hold period values, while `settlement-config.ts` defined these in `PAYOUT_CONFIG`. If values were changed in one place, the others would drift, causing inconsistent validation between withdrawal requests, settlement eligibility, and payout processing.
 
 **Files**:  
-- `services/souq/settlements/balance-service.ts`: Line 20 (WITHDRAWAL_HOLD_DAYS) and Line 803 (minimumWithdrawal = 500)
-- `services/souq/settlements/payout-processor.ts`: Lines 110-112 (PAYOUT_CONFIG.holdPeriodDays, minimumAmount)
+- `services/souq/settlements/balance-service.ts`: Line 20 (WITHDRAWAL_HOLD_DAYS)
+- `services/souq/settlements/settlement-calculator.ts`: Line 26 (FEE_CONFIG.holdPeriodDays) - **now uses getter**
+- `services/souq/settlements/settlement-config.ts`: Lines 10-11 (PAYOUT_CONFIG.holdPeriodDays, minimumAmount)
 
 **Root Cause**:  
 Initial implementation duplicated constants without cross-referencing the centralized config.
 
 **Impact**:
-- Risk of validation drift (e.g., withdrawal allows 500 but payout requires 600)
+- Risk of validation drift (e.g., settlement uses 14 days but payout uses 7 days)
 - Maintenance burden when changing thresholds
-- Potential for customer confusion if withdrawal succeeds but payout fails
+- Potential for orders to be "eligible" for settlement but not for payout
 
 **Fix Applied**:
 ```typescript
-// balance-service.ts - now imports centralized config
-import { PAYOUT_CONFIG } from "@/services/souq/settlements/payout-processor";
-const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
-const MINIMUM_WITHDRAWAL_AMOUNT = PAYOUT_CONFIG.minimumAmount;
+// settlement-calculator.ts - now uses getter to reference centralized config
+import { PAYOUT_CONFIG } from "./settlement-config";
+
+const FEE_CONFIG = {
+  // ...other config...
+  get holdPeriodDays() {
+    return PAYOUT_CONFIG.holdPeriodDays;
+  },
+  minimumPayoutThreshold: PAYOUT_CONFIG.minimumAmount,
+} as const;
 ```
 
 ---

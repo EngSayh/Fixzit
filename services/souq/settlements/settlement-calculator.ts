@@ -8,11 +8,12 @@
  * - Platform Commission: 10% of order value
  * - Payment Gateway Fee: 2.5% of order value
  * - VAT on Commission: 15% of platform commission
- * - Reserve: 20% held for returns/disputes (7-14 days)
+ * - Reserve: 20% held for returns/disputes (see PAYOUT_CONFIG.holdPeriodDays)
  */
 
 import { ObjectId, Filter, Document } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
+import { PAYOUT_CONFIG } from "./settlement-config";
 
 /**
  * Fee configuration
@@ -22,8 +23,11 @@ const FEE_CONFIG = {
   paymentGatewayFeeRate: 0.025, // 2.5%
   vatRate: 0.15, // 15%
   reserveRate: 0.2, // 20%
-  holdPeriodDays: 7, // Days to hold funds post-delivery
-  minimumPayoutThreshold: 500, // SAR
+  // Use centralized holdPeriodDays from PAYOUT_CONFIG to prevent drift
+  get holdPeriodDays() {
+    return PAYOUT_CONFIG.holdPeriodDays;
+  },
+  minimumPayoutThreshold: PAYOUT_CONFIG.minimumAmount, // SAR
 } as const;
 
 /**
@@ -96,6 +100,7 @@ interface SettlementPeriod {
   totalCommissions: number;
   totalFees: number;
   totalRefunds: number;
+  chargebacks: number;
   totalReserves: number;
   netPayout: number;
   orders: SettlementOrder[];
@@ -312,7 +317,7 @@ export class SettlementCalculatorService {
     // Seller payout (order value - total fees)
     const sellerPayout = orderValue - totalFees;
 
-    // Reserve amount (20% of seller payout, held for 7 days)
+    // Reserve amount (20% of seller payout, held for configured hold period)
     const reserveAmount = sellerPayout * FEE_CONFIG.reserveRate;
 
     // Net payout now (80% released immediately after hold period)
@@ -343,7 +348,7 @@ export class SettlementCalculatorService {
 
     // Order must be:
     // 1. Delivered
-    // 2. Past hold period (7 days)
+    // 2. Past hold period (configured in PAYOUT_CONFIG)
     // 3. No active dispute
     // 4. Not already processed
     return (
@@ -652,9 +657,11 @@ export class SettlementCalculatorService {
       ? new ObjectId(sellerId)
       : sellerId;
 
-    // Find orders past reserve period (14 days)
+    // Find orders past reserve period (use configured hold period for consistency)
     const reservePeriodEnd = new Date();
-    reservePeriodEnd.setDate(reservePeriodEnd.getDate() - 14);
+    reservePeriodEnd.setDate(
+      reservePeriodEnd.getDate() - FEE_CONFIG.holdPeriodDays,
+    );
 
     const orders = await ordersCollection
       .find({
@@ -764,7 +771,9 @@ export class SettlementCalculatorService {
         "items.sellerId": orderSellerId,
         status: "delivered",
         deliveredAt: {
-          $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+          $gt: new Date(
+            Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000,
+          ),
         },
         ...orgFilter,
       })
