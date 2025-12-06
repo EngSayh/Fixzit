@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-06  
-**Version**: 1.2  
+**Last Updated**: 2025-01-21  
+**Version**: 1.3  
 **Scope**: Database index management across all models
 
 ---
@@ -326,6 +326,73 @@ const FEE_CONFIG = {
   },
   minimumPayoutThreshold: PAYOUT_CONFIG.minimumAmount,
 } as const;
+```
+
+---
+
+### ISSUE-008: Missing Souq Collection Constants and Indexes
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Data Integrity, Security  
+**Status**: ✅ RESOLVED (2025-01-21)
+
+**Resolution**: Added 10 missing Souq collection constants to `lib/db/collections.ts` and created comprehensive org-scoped indexes for all. Also fixed a TypeScript error in payout-processor.ts.
+
+**Description**:  
+Multiple Souq collections were used throughout the codebase via hardcoded strings (e.g., `db.collection("souq_sellers")`) but were NOT defined in the `COLLECTIONS` constant in `lib/db/collections.ts`. This meant:
+
+1. No TypeScript type safety for collection names
+2. No indexes created by `createIndexes()` for these collections
+3. Missing org-scoping indexes = potential tenant isolation gaps
+4. Risk of typos in collection names going unnoticed
+
+**Missing Collections Found**:
+| Collection | Usage Count | Impact |
+|------------|-------------|--------|
+| `souq_sellers` | 20+ | Critical - seller profiles |
+| `souq_products` | 15+ | Critical - product catalog |
+| `souq_transactions` | 6+ | Critical - ledger |
+| `souq_ad_bids` | 10+ | Campaign bidding |
+| `souq_ad_events` | 5+ | Ad tracking |
+| `souq_ad_stats` | 5+ | Performance stats |
+| `souq_ad_daily_spend` | 2+ | Daily spend tracking |
+| `souq_payout_batches` | 2+ | Batch processing |
+| `souq_settlement_statements` | 2+ | Statement tracking |
+| `souq_withdrawals` | 2+ | Withdrawal requests |
+
+**Files**:
+- `lib/db/collections.ts`: Lines 68-95 (COLLECTIONS constant)
+- `lib/db/collections.ts`: Lines 955-1095 (createIndexes function)
+- `services/souq/settlements/payout-processor.ts`: Line 199 (TypeScript fix)
+
+**Root Cause**:  
+Incremental feature development added new collections without updating the central registry.
+
+**Fix Applied**:
+```typescript
+// Added to COLLECTIONS constant:
+SOUQ_SELLERS: "souq_sellers",
+SOUQ_PRODUCTS: "souq_products",
+SOUQ_TRANSACTIONS: "souq_transactions",
+SOUQ_SETTLEMENT_STATEMENTS: "souq_settlement_statements",
+SOUQ_WITHDRAWALS: "souq_withdrawals",
+SOUQ_PAYOUT_BATCHES: "souq_payout_batches",
+SOUQ_AD_BIDS: "souq_ad_bids",
+SOUQ_AD_EVENTS: "souq_ad_events",
+SOUQ_AD_STATS: "souq_ad_stats",
+SOUQ_AD_DAILY_SPEND: "souq_ad_daily_spend",
+
+// Added org-scoped indexes for each with:
+// - Unique ID indexes with partialFilterExpression
+// - Query optimization indexes (orgId + sellerId, status, etc.)
+// - TTL index on souq_ad_events (90 days)
+```
+
+**Additional Fix**:
+```typescript
+// payout-processor.ts line 199 - extract orgIdStr from normalizeOrgId
+const { orgIdStr, orgCandidates } = normalizeOrgId(orgId);
+// Previously only extracted orgCandidates but used orgIdStr on line 267
 ```
 
 ---

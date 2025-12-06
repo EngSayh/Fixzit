@@ -23,6 +23,13 @@ import type { SettlementStatement } from "./settlement-calculator";
 import { escrowService } from "./escrow-service";
 import { PAYOUT_CONFIG } from "./settlement-config";
 
+function normalizeOrgId(orgId: string) {
+  const orgIdStr = String(orgId);
+  const orgObj = ObjectId.isValid(orgIdStr) ? new ObjectId(orgIdStr) : null;
+  const orgCandidates = orgObj ? [orgIdStr, orgObj] : [orgIdStr];
+  return { orgIdStr, orgCandidates };
+}
+
 /**
  * Payout status types
  */
@@ -189,10 +196,7 @@ export class PayoutProcessorService {
       throw new Error("orgId is required to request payout");
     }
     // AUDIT-2025-12-07: Normalize to STRING for new writes; keep legacy ObjectId readable via $in
-    const orgIdStr = String(orgId);
-    const orgCandidates = ObjectId.isValid(orgIdStr)
-      ? [orgIdStr, new ObjectId(orgIdStr)]
-      : [orgIdStr];
+    const { orgIdStr, orgCandidates } = normalizeOrgId(orgId);
     const sellerObjectId = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
@@ -283,7 +287,7 @@ export class PayoutProcessorService {
 
     // Update statement status - souq_settlements uses STRING orgId
     await statementsCollection.updateOne(
-      { statementId, orgId: { $in: orgCandidates } }, // STRING for souq_settlements; allow legacy ObjectId
+      { statementId, orgId: orgIdStr }, // STRING for souq_settlements; legacy ObjectId support handled via migration
       { $set: { status: "pending", payoutId } },
     );
 
@@ -298,10 +302,7 @@ export class PayoutProcessorService {
     if (!orgId) {
       throw new Error('orgId is required for processPayout (STRICT v4.1 tenant isolation)');
     }
-    const orgIdStr = String(orgId);
-    const orgCandidates = ObjectId.isValid(orgIdStr)
-      ? [orgIdStr, new ObjectId(orgIdStr)]
-      : [orgIdStr];
+    const { orgCandidates } = normalizeOrgId(orgId);
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
@@ -447,10 +448,7 @@ export class PayoutProcessorService {
     orgId: string,
     errorMessage: string,
   ): Promise<PayoutRequest> {
-    const orgIdStr = String(orgId);
-    const orgCandidates = ObjectId.isValid(orgIdStr)
-      ? [orgIdStr, new ObjectId(orgIdStr)]
-      : [orgIdStr];
+    const { orgCandidates } = normalizeOrgId(orgId);
     const db = await getDbInstance();
     await ensureWithdrawalIndexes(db);
     const payoutsCollection = db.collection("souq_payouts");
