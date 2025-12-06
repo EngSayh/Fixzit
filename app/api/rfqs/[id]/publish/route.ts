@@ -71,7 +71,7 @@ export async function POST(
 
     const { RFQ } = await import("@/server/models/RFQ");
     const rfq = await RFQ.findOneAndUpdate(
-      { _id: id, tenantId: user.tenantId, status: "DRAFT" },
+      { _id: id, orgId: user.orgId, status: "DRAFT" },
       {
         $set: {
           status: "PUBLISHED",

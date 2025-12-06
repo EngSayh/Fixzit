@@ -11,7 +11,7 @@
  * - Reserve: 20% held for returns/disputes (7-14 days)
  */
 
-import { ObjectId } from "mongodb";
+import { ObjectId, Filter, Document } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 
 /**
@@ -569,24 +569,38 @@ export class SettlementCalculatorService {
 
   /**
    * Apply adjustment to settlement
+   * @param statementId - The settlement statement ID
+   * @param adjustment - Adjustment details
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
    */
   static async applyAdjustment(
     statementId: string,
     adjustment: Adjustment,
+    orgId: string,
   ): Promise<void> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for applyAdjustment (STRICT v4.1 tenant isolation)");
+    }
+
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const statementsCollection =
       db.collection<SettlementStatement>("souq_settlements");
 
-    // Find statement
-    const statement = await statementsCollection.findOne({ statementId });
+    // Build org filter that handles both orgId and org_id for legacy data
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    // Type assertion needed for MongoDB driver filter compatibility with dual-type $in
+    const orgFilter = { $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] };
+    // Combined filter for tenant-scoped queries (type cast for MongoDB driver compatibility)
+    const queryFilter = { statementId, ...orgFilter } as Filter<Document>;
+
+    // Find statement - scoped by orgId for tenant isolation
+    const statement = await statementsCollection.findOne(queryFilter as Filter<SettlementStatement>);
     if (!statement) {
       throw new Error("Statement not found");
-    }
-    const statementOrgId = statement.orgId?.toString?.();
-    if (!statementOrgId) {
-      throw new Error("orgId missing on statement; cannot apply adjustment securely");
     }
 
     // Create adjustment transaction
@@ -599,9 +613,9 @@ export class SettlementCalculatorService {
       description: `${adjustment.type}: ${adjustment.reason}`,
     };
 
-    // Update statement
+    // Update statement - scoped by orgId for tenant isolation
     await statementsCollection.updateOne(
-      { statementId, orgId: statementOrgId },
+      queryFilter as Filter<SettlementStatement>,
       {
         $push: { transactions: adjustmentTxn },
         $inc: {

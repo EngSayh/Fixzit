@@ -128,9 +128,6 @@ export async function POST(
     });
   } catch (error) {
     logger.error("[Claims API] Seller response failed", error as Error);
-    // Temporary debug to surface test failures
-    // eslint-disable-next-line no-console
-    console.error("[Claims API] Seller response error", error);
     return NextResponse.json(
       {
         error: "Failed to submit response",

@@ -92,7 +92,7 @@ export async function POST(
 
     const data = submitBidSchema.parse(await req.json());
 
-    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
@@ -180,7 +180,7 @@ export async function GET(
     }
     await connectToDatabase();
 
-    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
