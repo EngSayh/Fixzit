@@ -56,7 +56,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const body = await req.json();
     const { reason } = reportSchema.parse(body);
 
-    const review = await reviewService.reportReview(reviewId, orgId || requesterOrg || "", reason);
+    const reporterId = session.user.id;
+    if (!reporterId) {
+      return NextResponse.json({ error: "User context required" }, { status: 403 });
+    }
+
+    const review = await reviewService.reportReview(
+      reviewId,
+      orgId || requesterOrg || "",
+      reporterId,
+      reason,
+    );
     return NextResponse.json(review);
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -71,6 +71,7 @@ export const COLLECTIONS: Record<string, string> = {
   SOUQ_SETTLEMENTS: "souq_settlements",
   SOUQ_WITHDRAWAL_REQUESTS: "souq_withdrawal_requests",
   SOUQ_SELLER_BALANCES: "souq_seller_balances",
+  SOUQ_PAYOUTS: "souq_payouts",
   CLAIMS: "claims",
   SOUQ_CAMPAIGNS: "souq_campaigns",
   SOUQ_AD_GROUPS: "souq_ad_groups",
@@ -687,6 +688,40 @@ export async function createIndexes() {
       },
     );
   await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, settlementId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_settlements_orgId_settlementId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, settlementId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, sellerId: 1, period: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_settlements_orgId_seller_period_unique",
+        partialFilterExpression: { orgId: { $exists: true }, sellerId: { $exists: true }, period: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, status: 1, dueDate: 1 },
+      { background: true, name: "souq_settlements_orgId_status_dueDate" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, createdAt: -1 },
+      { background: true, name: "souq_settlements_orgId_createdAt_desc" },
+    );
+  await db
     .collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS)
     .createIndexes([
       { key: { requestId: 1 }, unique: true, background: true, name: "souq_withdrawals_requestId_unique" },
@@ -697,6 +732,22 @@ export async function createIndexes() {
         name: "souq_withdrawals_org_seller_status_requestedAt",
       },
     ]);
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUTS)
+    .createIndex(
+      { orgId: 1, payoutId: 1 },
+      {
+        background: true,
+        name: "souq_payouts_orgId_payoutId",
+        partialFilterExpression: { orgId: { $exists: true }, payoutId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUTS)
+    .createIndex(
+      { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+      { background: true, name: "souq_payouts_orgId_seller_status_requestedAt_desc" },
+    );
   await db
     .collection(COLLECTIONS.SOUQ_SELLER_BALANCES)
     .createIndex(

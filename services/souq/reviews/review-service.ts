@@ -13,6 +13,8 @@ import { Types, type FilterQuery } from "mongoose";
 
 // 🚀 PERF: Maximum limit for paginated queries to prevent abuse
 const MAX_PAGE_LIMIT = 100;
+// 🛡️ Moderation: Number of unique reports before auto-flagging a review
+const REPORT_FLAG_THRESHOLD = 3;
 
 // 🔐 STRICT v4.1: Roles allowed to moderate reviews
 const MODERATOR_ROLES = new Set([
@@ -251,16 +253,32 @@ class ReviewService {
       throw new Error("Cannot vote on unpublished reviews");
     }
 
-    const alreadyHelpful =
-      review.helpfulVoters?.some((id) => id.equals(voterObjectId)) ?? false;
+    const voterIdStr = voterObjectId.toString();
+    const helpfulSet = new Set(
+      (review.helpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const notHelpfulSet = new Set(
+      (review.notHelpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const alreadyHelpful = helpfulSet.has(voterIdStr);
+    const wasNotHelpful = notHelpfulSet.has(voterIdStr);
+
     if (!alreadyHelpful) {
-      review.helpfulVoters = [...(review.helpfulVoters ?? []), voterObjectId];
-      review.notHelpfulVoters = (review.notHelpfulVoters ?? []).filter(
-        (id) => !id.equals(voterObjectId),
-      );
-      review.helpful += 1;
-      await review.save();
+      helpfulSet.add(voterIdStr);
+      review.helpful = Math.max(0, (review.helpful ?? 0) + 1);
     }
+    if (wasNotHelpful) {
+      notHelpfulSet.delete(voterIdStr);
+      review.notHelpful = Math.max(0, (review.notHelpful ?? 0) - 1);
+    }
+
+    review.helpfulVoters = Array.from(helpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    review.notHelpfulVoters = Array.from(notHelpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    await review.save();
 
     return review;
   }
@@ -287,48 +305,93 @@ class ReviewService {
       throw new Error("Cannot vote on unpublished reviews");
     }
 
-    const alreadyNotHelpful =
-      review.notHelpfulVoters?.some((id) => id.equals(voterObjectId)) ?? false;
+    const voterIdStr = voterObjectId.toString();
+    const helpfulSet = new Set(
+      (review.helpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const notHelpfulSet = new Set(
+      (review.notHelpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const wasHelpful = helpfulSet.has(voterIdStr);
+    const alreadyNotHelpful = notHelpfulSet.has(voterIdStr);
+
     if (!alreadyNotHelpful) {
-      review.notHelpfulVoters = [
-        ...(review.notHelpfulVoters ?? []),
-        voterObjectId,
-      ];
-      review.helpfulVoters = (review.helpfulVoters ?? []).filter(
-        (id) => !id.equals(voterObjectId),
-      );
-      review.notHelpful += 1;
-      await review.save();
+      notHelpfulSet.add(voterIdStr);
+      review.notHelpful = Math.max(0, (review.notHelpful ?? 0) + 1);
     }
+    if (wasHelpful) {
+      helpfulSet.delete(voterIdStr);
+      review.helpful = Math.max(0, (review.helpful ?? 0) - 1);
+    }
+
+    review.helpfulVoters = Array.from(helpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    review.notHelpfulVoters = Array.from(notHelpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    await review.save();
 
     return review;
   }
 
   /**
    * Report inappropriate review
+   * @param reviewId - The review to report
+   * @param orgId - Organization ID for tenant isolation
+   * @param reporterId - ID of the user making the report (for dedup/rate-limit)
+   * @param reason - Reason for reporting
    */
-  async reportReview(reviewId: string, orgId: string, reason: string): Promise<IReview> {
+  async reportReview(
+    reviewId: string,
+    orgId: string,
+    reporterId: string,
+    reason: string,
+  ): Promise<IReview> {
     const orgFilter = getOrgFilter(orgId);
-    const review = await SouqReview.findOne({
-      reviewId,
-      ...orgFilter,
-    });
+    const reporterObjectId = this.ensureObjectId(reporterId, "reporterId");
+
+    // Deduplicate by reporter to prevent spam; only increment count when reporter is new
+    const updated = await SouqReview.findOneAndUpdate(
+      {
+        reviewId,
+        ...orgFilter,
+        reporters: { $ne: reporterObjectId },
+      },
+      {
+        $addToSet: { reporters: reporterObjectId },
+        $push: { reportReasons: { $each: [reason], $slice: -20 } },
+        $inc: { reportedCount: 1 },
+      },
+      { new: true, select: "+reporters" },
+    );
+
+    // If the reporter already exists, fetch current state without mutating counts
+    const review =
+      updated ??
+      (await SouqReview.findOne({
+        reviewId,
+        ...orgFilter,
+      }).select("+reporters"));
 
     if (!review) {
       throw new Error("Review not found");
     }
 
-    // Increment report count
-    review.reportedCount += 1;
-    review.reportReasons = review.reportReasons || [];
-    review.reportReasons.push(reason);
-
-    // Auto-flag if reported multiple times
-    if (review.reportedCount >= 3 && review.status === "published") {
+    // Auto-flag if threshold reached
+    if (review.reportedCount >= REPORT_FLAG_THRESHOLD && review.status === "published") {
       review.status = "flagged";
+      await review.save();
+      const productObjectId = this.ensureObjectId(
+        String(review.productId),
+        "productId",
+      );
+      await this.updateProductAggregates(productObjectId, orgId);
+    } else if (updated) {
+      // Persist the new reason even when not flagging
+      await review.save();
     }
 
-    await review.save();
     return review;
   }
 
@@ -697,7 +760,7 @@ class ReviewService {
 
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
     const recentReviews = await SouqReview.find({
-      productId: productObjectId,
+      productId: { $in: [productObjectId, productId] },
       status: "published",
       ...orgFilter,
     })

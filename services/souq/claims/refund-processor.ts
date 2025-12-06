@@ -185,10 +185,17 @@ export class RefundProcessor {
       this.indexesReady =
         typeof collection.createIndex === 'function'
           ? Promise.all([
+              // Primary indexes for orgId (current standard)
               collection.createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique' }),
               collection.createIndex({ orgId: 1, refundId: 1 }, { name: 'refund_org_refundId' }),
               collection.createIndex({ orgId: 1, status: 1, createdAt: -1 }, { name: 'refund_org_status_createdAt' }),
               collection.createIndex({ orgId: 1, transactionId: 1 }, { name: 'refund_org_txn' }),
+              // 🔐 STRICT v4.1: Legacy org_id indexes to support dual-field org scoping
+              // These ensure queries using $or: [{ orgId }, { org_id }] remain performant
+              collection.createIndex({ org_id: 1, claimId: 1 }, { unique: true, name: 'refund_org_id_claim_unique', sparse: true }),
+              collection.createIndex({ org_id: 1, refundId: 1 }, { name: 'refund_org_id_refundId', sparse: true }),
+              collection.createIndex({ org_id: 1, status: 1, createdAt: -1 }, { name: 'refund_org_id_status_createdAt', sparse: true }),
+              collection.createIndex({ org_id: 1, transactionId: 1 }, { name: 'refund_org_id_txn', sparse: true }),
             ])
               .then(() => undefined)
               .catch((error) => {
