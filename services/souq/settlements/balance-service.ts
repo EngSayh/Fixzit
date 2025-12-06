@@ -15,7 +15,8 @@
 import { ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
-import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+
+const WITHDRAWAL_HOLD_DAYS = 7; // Align with settlement hold period (PAYOUT_CONFIG.holdPeriodDays)
 
 /**
  * Balance types
@@ -150,7 +151,11 @@ export class SellerBalanceService {
     const transactionsCollection = db.collection("souq_transactions");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
-    const query: Record<string, unknown> = { sellerId, orgId };
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: orgFilter };
 
     // Get all transactions
     const transactions = (await transactionsCollection
@@ -208,7 +213,7 @@ export class SellerBalanceService {
       .find({
         "items.sellerId": orderSellerId,
         status: { $in: ["pending", "processing", "shipped"] },
-        orgId, // 🔐 STRICT v4.1: Always filter by orgId for tenant isolation
+        orgId: orgFilter, // 🔐 STRICT v4.1: Always filter by orgId for tenant isolation
       })
       .toArray();
 
@@ -331,7 +336,15 @@ export class SellerBalanceService {
     };
 
     // Save to database
-    await transactionsCollection.insertOne(txn);
+    await transactionsCollection.insertOne({
+      ...txn,
+      sellerId: ObjectId.isValid(transaction.sellerId)
+        ? new ObjectId(transaction.sellerId)
+        : transaction.sellerId,
+      orgId: ObjectId.isValid(transaction.orgId)
+        ? new ObjectId(transaction.orgId)
+        : transaction.orgId,
+    });
 
     // Invalidate Redis cache
     await this.invalidateBalanceCache(transaction.sellerId, transaction.orgId);
@@ -361,6 +374,9 @@ export class SellerBalanceService {
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    const settlementsCollection = db.collection("souq_settlements");
+    const statementsCollection = db.collection("souq_settlements");
+    const payoutsCollection = db.collection("souq_payouts");
 
     // Get current balance
     const balance = await this.getBalance(sellerId, orgId);
@@ -381,6 +397,43 @@ export class SellerBalanceService {
       throw new Error(`Minimum withdrawal amount is ${minimumWithdrawal} SAR`);
     }
 
+    // Validate statement and derive authoritative amount to prevent tampering
+    const statement = await settlementsCollection.findOne({
+      statementId,
+      sellerId,
+      orgId,
+    });
+    if (!statement) {
+      throw new Error("Settlement statement not found for this seller/org");
+    }
+    if ((statement as { status?: string }).status !== "approved") {
+      throw new Error(
+        `Settlement must be approved before withdrawal. Current status: ${(statement as { status?: string }).status || "unknown"}`,
+      );
+    }
+    const netPayout = (statement as { summary?: { netPayout?: number } })?.summary
+      ?.netPayout;
+    if (typeof netPayout !== "number" || netPayout <= 0) {
+      throw new Error("Settlement statement has no payable netPayout amount");
+    }
+
+    // Enforce post-delivery hold period (aligns with settlement-calculator and payout-processor)
+    const periodEndRaw = (statement as { period?: { end?: Date | string } })
+      ?.period?.end;
+    if (periodEndRaw) {
+      const periodEnd = new Date(periodEndRaw);
+      const holdUntil = new Date(periodEnd);
+      holdUntil.setDate(holdUntil.getDate() + WITHDRAWAL_HOLD_DAYS);
+      if (Number.isFinite(holdUntil.getTime()) && Date.now() < holdUntil.getTime()) {
+        throw new Error(
+          `Settlement still in hold period until ${holdUntil.toISOString()}. Try after the hold window.`,
+        );
+      }
+    }
+
+    // Override requested amount with authoritative netPayout to avoid mismatches
+    amount = netPayout;
+
     // Check for pending withdrawal
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const pendingWithdrawal = await withdrawalsCollection.findOne({
@@ -395,6 +448,30 @@ export class SellerBalanceService {
 
     if (!statementId) {
       throw new Error("statementId is required to request withdrawal");
+    }
+
+    // 🔐 STRICT v4.1: Verify statement exists and is approved before creating withdrawal
+    // This is defense-in-depth - callers should also check, but we verify here too
+    const statement = await statementsCollection.findOne({
+      statementId,
+      sellerId,
+      orgId,
+    });
+    if (!statement) {
+      throw new Error("Settlement statement not found for withdrawal");
+    }
+    if (statement.status !== "approved") {
+      throw new Error(`Statement must be approved before withdrawal. Current status: ${statement.status || 'unknown'}`);
+    }
+
+    // If a payout is already in-flight for this statement, do not create another withdrawal
+    const existingPayout = await payoutsCollection.findOne({
+      statementId,
+      orgId,
+      status: { $in: ["pending", "processing"] },
+    });
+    if (existingPayout) {
+      throw new Error("Payout already in progress for this statement");
     }
 
     // Generate request ID
@@ -463,6 +540,9 @@ export class SellerBalanceService {
 
     // Initiate payout (call PayoutProcessorService)
     const bankAccount = this.normalizeBankAccount(request.bankAccount);
+    const { PayoutProcessorService } = await import(
+      "@/services/souq/settlements/payout-processor"
+    );
     const payout = await PayoutProcessorService.requestPayout(
       request.sellerId,
       request.statementId,

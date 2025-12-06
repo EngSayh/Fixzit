@@ -57,7 +57,7 @@ interface SettlementOrder {
   orderId: string;
   listingId: string;
   sellerId: string;
-  orgId?: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   escrowAccountId?: string;
   orderValue: number; // Total amount buyer paid
   itemPrice: number; // Item price
@@ -108,7 +108,7 @@ interface SettlementStatement {
   _id?: ObjectId;
   statementId: string;
   sellerId: string;
-  orgId?: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   escrowAccountId?: string;
   period: {
     start: Date;
@@ -246,7 +246,7 @@ const computeSellerOrderSnapshot = (
     orderId: order._id?.toString?.() ?? "",
     listingId,
     sellerId,
-    orgId: order.orgId?.toString?.(),
+    orgId: order.orgId?.toString?.() || "",
     escrowAccountId,
     orderValue,
     itemPrice: subtotal,
@@ -346,21 +346,28 @@ export class SettlementCalculatorService {
    */
   static async calculatePeriodSettlement(
     sellerId: string,
+    orgId: string,
     startDate: Date,
     endDate: Date,
-    orgId?: string,
   ): Promise<SettlementPeriod> {
+    if (!orgId) {
+      throw new Error("orgId is required for calculatePeriodSettlement (STRICT v4.1 tenant isolation)");
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
 
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
     // Fetch eligible orders for the period
     const orders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         deliveredAt: { $gte: startDate, $lte: endDate },
         status: "delivered",
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -418,15 +425,18 @@ export class SettlementCalculatorService {
    */
   static async generateStatement(
     sellerId: string,
+    orgId: string,
     startDate: Date,
     endDate: Date,
-    orgId?: string,
   ): Promise<SettlementStatement> {
+    if (!orgId) {
+      throw new Error("orgId is required to generate statement (STRICT v4.1 tenant isolation)");
+    }
     const period = await this.calculatePeriodSettlement(
       sellerId,
+      orgId,
       startDate,
       endDate,
-      orgId,
     );
     await connectDb();
     const db = (await connectDb()).connection.db!;
@@ -523,7 +533,7 @@ export class SettlementCalculatorService {
     const statement: SettlementStatement = {
       statementId,
       sellerId,
-      orgId: orgId || period.orders[0]?.orgId,
+      orgId,
       escrowAccountId: period.orders.find(
         (o: SettlementOrder) => o.escrowAccountId,
       )?.escrowAccountId,
@@ -574,6 +584,10 @@ export class SettlementCalculatorService {
     if (!statement) {
       throw new Error("Statement not found");
     }
+    const statementOrgId = statement.orgId?.toString?.();
+    if (!statementOrgId) {
+      throw new Error("orgId missing on statement; cannot apply adjustment securely");
+    }
 
     // Create adjustment transaction
     const adjustmentTxn = {
@@ -587,7 +601,7 @@ export class SettlementCalculatorService {
 
     // Update statement
     await statementsCollection.updateOne(
-      { statementId },
+      { statementId, orgId: statementOrgId },
       {
         $push: { transactions: adjustmentTxn },
         $inc: {
@@ -603,10 +617,16 @@ export class SettlementCalculatorService {
   /**
    * Release reserve for old orders
    */
-  static async releaseReserves(sellerId: string, orgId?: string): Promise<number> {
+  static async releaseReserves(sellerId: string, orgId: string): Promise<number> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
+    if (!orgId) {
+      throw new Error("orgId is required for releaseReserves (STRICT v4.1 tenant isolation)");
+    }
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
 
     // Find orders past reserve period (14 days)
     const reservePeriodEnd = new Date();
@@ -614,10 +634,10 @@ export class SettlementCalculatorService {
 
     const orders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         deliveredAt: { $lte: reservePeriodEnd },
         "settlement.reserveReleased": { $ne: true },
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -630,6 +650,7 @@ export class SettlementCalculatorService {
         orderId: order.orderId,
         listingId: order.listingId,
         sellerId: order.sellerId,
+        orgId: order.orgId,
         orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
@@ -659,7 +680,7 @@ export class SettlementCalculatorService {
    */
   static async getSellerSummary(
     sellerId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<{
     availableBalance: number;
     reservedBalance: number;
@@ -668,16 +689,22 @@ export class SettlementCalculatorService {
     lastPayoutDate?: Date;
     nextPayoutDate?: Date;
   }> {
+    if (!orgId) {
+      throw new Error("orgId is required for getSellerSummary (STRICT v4.1 tenant isolation)");
+    }
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
     const statementsCollection =
       db.collection<SettlementStatement>("souq_settlements");
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
 
     // Calculate available balance (orders past hold period)
     const availableOrders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         status: "delivered",
         deliveredAt: {
           $lte: new Date(
@@ -685,7 +712,7 @@ export class SettlementCalculatorService {
           ),
         },
         "settlement.processed": { $ne: true },
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -697,6 +724,7 @@ export class SettlementCalculatorService {
         orderId: order.orderId,
         listingId: order.listingId,
         sellerId: order.sellerId,
+        orgId: order.orgId,
         orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
@@ -709,12 +737,12 @@ export class SettlementCalculatorService {
     // Calculate reserved balance (orders within hold period)
     const reservedOrders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         status: "delivered",
         deliveredAt: {
           $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         },
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -726,6 +754,7 @@ export class SettlementCalculatorService {
         orderId: order.orderId,
         listingId: order.listingId,
         sellerId: order.sellerId,
+        orgId: order.orgId,
         orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
@@ -738,9 +767,9 @@ export class SettlementCalculatorService {
     // Calculate pending balance (orders not yet delivered)
     const pendingOrders = await ordersCollection
       .find({
-        "items.sellerId": new ObjectId(sellerId),
+        "items.sellerId": orderSellerId,
         status: { $in: ["pending", "processing", "shipped"] },
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -752,6 +781,7 @@ export class SettlementCalculatorService {
         orderId: order.orderId,
         listingId: order.listingId,
         sellerId: order.sellerId,
+        orgId: order.orgId,
         orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
@@ -766,7 +796,7 @@ export class SettlementCalculatorService {
       .find({
         sellerId,
         status: "paid",
-        ...(orgId ? { orgId } : {}),
+        orgId,
       })
       .toArray();
 
@@ -777,7 +807,7 @@ export class SettlementCalculatorService {
 
     // Get last payout date
     const lastStatement = await statementsCollection.findOne(
-      { sellerId, status: "paid" },
+      { sellerId, status: "paid", orgId },
       { sort: { paidAt: -1 } },
     );
 

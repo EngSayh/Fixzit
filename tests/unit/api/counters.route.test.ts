@@ -10,6 +10,10 @@ vi.mock("@/lib/queries", () => ({
   getAllCounters: vi.fn(),
 }));
 
+vi.mock("@/lib/utils/env", () => ({
+  isTruthy: vi.fn().mockReturnValue(false),
+}));
+
 // Import after mocks
 import { auth } from "@/auth";
 import { getAllCounters } from "@/lib/queries";

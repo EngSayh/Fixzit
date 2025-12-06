@@ -16,6 +16,24 @@ import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
 
+function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
+  // Partition budgets by Saudi local day to align with business reporting
+  const now = new Date();
+  const nowKsa = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+  );
+  const dateKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+  }).format(nowKsa);
+  const endOfDay = new Date(nowKsa);
+  endOfDay.setHours(23, 59, 59, 999);
+  const secondsToMidnight = Math.max(
+    60, // Ensure we never set a zero TTL
+    Math.ceil((endOfDay.getTime() - nowKsa.getTime()) / 1000),
+  );
+  return { dateKey, secondsToMidnight };
+}
+
 function createRedisClient(): Redis | null {
   // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
   const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
@@ -62,8 +80,8 @@ function getLocalSpend(key: string): number {
   return entry.spent;
 }
 
-function setLocalSpend(key: string, spent: number) {
-  localBudget.set(key, { spent, expiresAt: Date.now() + DAY_MS });
+function setLocalSpend(key: string, spent: number, ttlMs: number = DAY_MS) {
+  localBudget.set(key, { spent, expiresAt: Date.now() + ttlMs });
 }
 
 function deleteLocalSpend(key: string) {
@@ -125,7 +143,7 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for chargeBudget (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { key, ttlSeconds } = this.getBudgetPartition(campaignId, orgId);
 
     // Fetch daily budget from database
     const campaign = await this.fetchCampaign(campaignId, orgId);
@@ -146,7 +164,7 @@ export class BudgetManager {
       
       if spentNum + amountNum <= budgetNum then
         redis.call('INCRBYFLOAT', KEYS[1], amountNum)
-        redis.call('EXPIRE', KEYS[1], 86400)
+        redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
         return 1
       else
         return 0
@@ -159,6 +177,7 @@ export class BudgetManager {
         key,
         amount.toString(),
         campaign.dailyBudget.toString(),
+        ttlSeconds.toString(),
       );
 
       const success = result === 1;
@@ -172,7 +191,7 @@ export class BudgetManager {
 
     const currentSpent = getLocalSpend(key);
     if (currentSpent + amount <= campaign.dailyBudget) {
-      setLocalSpend(key, currentSpent + amount);
+      setLocalSpend(key, currentSpent + amount, ttlSeconds * 1000);
       await this.checkBudgetThresholds(campaignId, orgId);
       return true;
     }
@@ -188,7 +207,7 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for getBudgetStatus (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgId);
     const spentToday = redis
       ? parseFloat((await redis.get(key)) || "0")
       : getLocalSpend(key);
@@ -240,7 +259,7 @@ export class BudgetManager {
         logger.warn(`[BudgetManager] Skipping reset for campaign ${campaign.campaignId} due to missing orgId`);
         continue;
       }
-      const key = this.getBudgetKey(campaign.campaignId, campaignOrgId);
+      const { key } = this.getBudgetPartition(campaign.campaignId, campaignOrgId);
 
       // Delete Redis key (will start fresh tomorrow)
       if (redis) {
@@ -273,7 +292,7 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for resetCampaignBudget (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgId);
     if (redis) {
       await redis.del(key);
     } else {
@@ -302,6 +321,7 @@ export class BudgetManager {
   ): Promise<void> {
     const status = await this.getBudgetStatus(campaignId, orgId);
     const percentage = status.percentageUsed / 100;
+    const { secondsToMidnight } = getKsaDatePartition();
 
     // Check if we crossed any threshold
     for (const threshold of this.ALERT_THRESHOLDS) {
@@ -316,9 +336,9 @@ export class BudgetManager {
         if (!alreadySent) {
           await this.sendBudgetAlert(campaignId, orgId, threshold);
           if (redis) {
-            await redis.set(alertKey, "1", "EX", DAY_SECONDS); // Don't send again today
+            await redis.set(alertKey, "1", "EX", secondsToMidnight); // Don't send again today (KSA midnight aligned)
           } else {
-            setLocalAlert(alertKey, DAY_SECONDS);
+            setLocalAlert(alertKey, secondsToMidnight);
           }
         }
       }
@@ -448,12 +468,18 @@ export class BudgetManager {
   }
 
   /**
-   * Get budget key for Redis
+   * Get budget key and TTL aligned to Saudi midnight
    * @param orgId - Required for tenant isolation in Redis keys
    */
-  private static getBudgetKey(campaignId: string, orgId: string): string {
-    const today = new Date().toISOString().split("T")[0];
-    return `${this.REDIS_PREFIX}${orgId}:${campaignId}:${today}`;
+  private static getBudgetPartition(
+    campaignId: string,
+    orgId: string,
+  ): { key: string; ttlSeconds: number } {
+    const { dateKey, secondsToMidnight } = getKsaDatePartition();
+    return {
+      key: `${this.REDIS_PREFIX}${orgId}:${campaignId}:${dateKey}`,
+      ttlSeconds: secondsToMidnight,
+    };
   }
 
   /**
@@ -587,15 +613,21 @@ export class BudgetManager {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const now = new Date();
+    const startKsa = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+    );
+    startKsa.setDate(startKsa.getDate() - days);
+    const startDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Riyadh",
+    }).format(startKsa);
 
     const history = await db
       .collection("souq_ad_daily_spend")
       .find({
         campaignId,
         orgId,
-        date: { $gte: startDate.toISOString().split("T")[0] },
+        date: { $gte: startDateStr },
       })
       .sort({ date: 1 })
       .toArray();
