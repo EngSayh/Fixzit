@@ -375,7 +375,6 @@ export class SellerBalanceService {
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
     const settlementsCollection = db.collection("souq_settlements");
-    const statementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
 
     // Get current balance
@@ -448,20 +447,6 @@ export class SellerBalanceService {
 
     if (!statementId) {
       throw new Error("statementId is required to request withdrawal");
-    }
-
-    // 🔐 STRICT v4.1: Verify statement exists and is approved before creating withdrawal
-    // This is defense-in-depth - callers should also check, but we verify here too
-    const statement = await statementsCollection.findOne({
-      statementId,
-      sellerId,
-      orgId,
-    });
-    if (!statement) {
-      throw new Error("Settlement statement not found for withdrawal");
-    }
-    if (statement.status !== "approved") {
-      throw new Error(`Statement must be approved before withdrawal. Current status: ${statement.status || 'unknown'}`);
     }
 
     // If a payout is already in-flight for this statement, do not create another withdrawal
