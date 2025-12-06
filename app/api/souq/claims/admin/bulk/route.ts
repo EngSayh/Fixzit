@@ -8,7 +8,7 @@ import { User } from "@/server/models/User";
 import { Types } from "mongoose";
 import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
-import { isValidObjectId } from "@/lib/utils/object-id";
+import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
 import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
