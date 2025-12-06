@@ -182,28 +182,31 @@ export class RefundProcessor {
     const db = await getDatabase();
     const collection = db.collection<Refund>(this.COLLECTION);
     if (!this.indexesReady) {
-      this.indexesReady =
-        typeof collection.createIndex === 'function'
-          ? Promise.all([
-              // Primary indexes for orgId (current standard)
-              collection.createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique' }),
-              collection.createIndex({ orgId: 1, refundId: 1 }, { name: 'refund_org_refundId' }),
-              collection.createIndex({ orgId: 1, status: 1, createdAt: -1 }, { name: 'refund_org_status_createdAt' }),
-              collection.createIndex({ orgId: 1, transactionId: 1 }, { name: 'refund_org_txn' }),
-              // 🔐 STRICT v4.1: Legacy org_id indexes to support dual-field org scoping
-              // These ensure queries using $or: [{ orgId }, { org_id }] remain performant
-              collection.createIndex({ org_id: 1, claimId: 1 }, { unique: true, name: 'refund_org_id_claim_unique', sparse: true }),
-              collection.createIndex({ org_id: 1, refundId: 1 }, { name: 'refund_org_id_refundId', sparse: true }),
-              collection.createIndex({ org_id: 1, status: 1, createdAt: -1 }, { name: 'refund_org_id_status_createdAt', sparse: true }),
-              collection.createIndex({ org_id: 1, transactionId: 1 }, { name: 'refund_org_id_txn', sparse: true }),
-            ])
-              .then(() => undefined)
-              .catch((error) => {
-                logger.error('[Refunds] Failed to ensure refund indexes', { error });
-              })
-          : Promise.resolve();
+      this.indexesReady = (async () => {
+        if (typeof collection.createIndex !== 'function') return;
+        try {
+          await Promise.all([
+            // Primary indexes for orgId (current standard)
+            collection.createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique', background: true }),
+            collection.createIndex({ orgId: 1, refundId: 1 }, { name: 'refund_org_refundId', background: true }),
+            collection.createIndex({ orgId: 1, status: 1, createdAt: -1 }, { name: 'refund_org_status_createdAt', background: true }),
+            collection.createIndex({ orgId: 1, transactionId: 1 }, { name: 'refund_org_txn', background: true }),
+            // 🔐 STRICT v4.1: Legacy org_id indexes to support dual-field org scoping
+            // These ensure queries using $or: [{ orgId }, { org_id }] remain performant
+            collection.createIndex({ org_id: 1, claimId: 1 }, { unique: true, name: 'refund_org_id_claim_unique', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, refundId: 1 }, { name: 'refund_org_id_refundId', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, status: 1, createdAt: -1 }, { name: 'refund_org_id_status_createdAt', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, transactionId: 1 }, { name: 'refund_org_id_txn', sparse: true, background: true }),
+          ]);
+        } catch (error) {
+          logger.error('[Refunds] Failed to ensure refund indexes', { error });
+          // Allow retry on next access instead of staying stuck with missing indexes
+          this.indexesReady = null;
+          throw error;
+        }
+      })();
     }
-    await this.indexesReady.catch(() => undefined);
+    await this.indexesReady;
     return collection;
   }
 

@@ -1338,31 +1338,43 @@ export class SellerBalanceService {
 
   static async ensureWithdrawalIndexes(db: Db): Promise<void> {
     if (!this.withdrawalIndexesReady) {
-      this.withdrawalIndexesReady = db
-        .collection("souq_withdrawal_requests")
-        .createIndexes([
-          { key: { requestId: 1 }, unique: true, name: "requestId_unique" },
-          { key: { payoutId: 1, orgId: 1 }, name: "payout_org" },
-          {
-            key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
-            name: "org_seller_status_requestedAt",
-          },
-        ])
-        // Ignore index creation races; Mongo will return the existing index name
-        .then(() => undefined)
-        .catch(() => undefined);
+      this.withdrawalIndexesReady = (async () => {
+        try {
+          await db.collection("souq_withdrawal_requests").createIndexes([
+            { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
+            { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
+            {
+              key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+              name: "org_seller_status_requestedAt",
+              background: true,
+            },
+          ]);
+        } catch (error) {
+          logger.error('[BalanceService] Failed to ensure withdrawal indexes', { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.withdrawalIndexesReady = null;
+          throw error; // Fail fast - don't run without critical unique/org indexes
+        }
+      })();
     }
     await this.withdrawalIndexesReady;
   }
 
   private static async ensureBalanceIndexes(db: Db): Promise<void> {
     if (!this.balanceIndexesReady) {
-      this.balanceIndexesReady = db
-        .collection("souq_seller_balances")
-        .createIndex({ orgId: 1, sellerId: 1 }, { unique: true, name: "org_seller_unique" })
-        // Ignore index creation races; Mongo will return the existing index name
-        .then(() => undefined)
-        .catch(() => undefined);
+      this.balanceIndexesReady = (async () => {
+        try {
+          await db.collection("souq_seller_balances").createIndex(
+            { orgId: 1, sellerId: 1 },
+            { unique: true, name: "org_seller_unique", background: true },
+          );
+        } catch (error) {
+          logger.error('[BalanceService] Failed to ensure balance indexes', { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.balanceIndexesReady = null;
+          throw error; // Fail fast - don't run without critical unique/org indexes
+        }
+      })();
     }
     await this.balanceIndexesReady;
   }

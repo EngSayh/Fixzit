@@ -150,18 +150,24 @@ async function getDbInstance() {
 let withdrawalIndexesReady: Promise<void> | null = null;
 async function ensureWithdrawalIndexes(db: Db): Promise<void> {
   if (!withdrawalIndexesReady) {
-    withdrawalIndexesReady = db
-      .collection("souq_withdrawal_requests")
-      .createIndexes([
-        { key: { requestId: 1 }, unique: true, name: "requestId_unique" },
-        { key: { payoutId: 1, orgId: 1 }, name: "payout_org" },
-        {
-          key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
-          name: "org_seller_status_requestedAt",
-        },
-      ])
-      .then(() => undefined)
-      .catch(() => undefined);
+    withdrawalIndexesReady = (async () => {
+      try {
+        await db.collection("souq_withdrawal_requests").createIndexes([
+          { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
+          { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
+          {
+            key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+            name: "org_seller_status_requestedAt",
+            background: true,
+          },
+        ]);
+      } catch (error) {
+        logger.error('[PayoutProcessor] Failed to ensure withdrawal indexes', { error });
+        // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+        withdrawalIndexesReady = null;
+        throw error; // Fail fast - don't run without critical unique/org indexes
+      }
+    })();
   }
   await withdrawalIndexesReady;
 }
