@@ -201,26 +201,78 @@ export async function configureSellersIndex() {
 
 // Initialize all indexes
 export async function initializeSearchIndexes() {
+  const client = getSearchClient();
+
+  // Helper to verify/migrate index primary key using raw info (avoids stale metadata)
+  async function ensureIndexWithPrimaryKey(
+    indexName: string,
+    expectedPrimaryKey: string,
+  ): Promise<void> {
+    let index = client.index(indexName);
+
+    // Attempt to create (harmless if already exists)
+    try {
+      await withMeiliResilience(`create-${indexName}-index`, "index", () =>
+        client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+      );
+      index = client.index(indexName);
+    } catch (_error) {
+      // Index likely exists; continue to validation
+    }
+
+    // Validate current primary key; recreate if mismatched or unset
+    try {
+      const info = await withMeiliResilience(
+        `${indexName}-info`,
+        "index",
+        () => index.getRawInfo(),
+      );
+      const currentPrimaryKey = info.primaryKey;
+
+      if (!currentPrimaryKey || currentPrimaryKey !== expectedPrimaryKey) {
+        logger.warn(
+          `[Meilisearch] Recreating index ${indexName} to enforce primaryKey='${expectedPrimaryKey}' (was '${currentPrimaryKey || "unset"}')`,
+          { indexName, currentPrimaryKey, expectedPrimaryKey },
+        );
+        await withMeiliResilience(`delete-${indexName}-index`, "index", () =>
+          client.deleteIndex(indexName),
+        );
+        await withMeiliResilience(`recreate-${indexName}-index`, "index", () =>
+          client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+        );
+        index = client.index(indexName);
+      } else {
+        logger.info(
+          `[Meilisearch] Index ${indexName} verified with primaryKey='${expectedPrimaryKey}'`,
+        );
+      }
+    } catch (_error) {
+      logger.warn(
+        `[Meilisearch] Could not validate primary key for ${indexName}; forcing recreation`,
+        { error: _error instanceof Error ? _error.message : String(_error) },
+      );
+      await withMeiliResilience(`delete-${indexName}-index`, "index", () =>
+        client.deleteIndex(indexName),
+      );
+      await withMeiliResilience(`recreate-${indexName}-index`, "index", () =>
+        client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+      );
+    }
+  }
+
   try {
-    // Create indexes if they don't exist
-    // Use composite 'id' (orgId_fsin) as primary key for tenant isolation (STRICT v4.1)
-    await withMeiliResilience("create-products-index", "index", () =>
-      getSearchClient().createIndex(INDEXES.PRODUCTS, { primaryKey: "id" }),
-    );
-    // Use composite 'id' (orgId_sellerId) as primary key for tenant isolation (STRICT v4.1)
-    await withMeiliResilience("create-sellers-index", "index", () =>
-      getSearchClient().createIndex(INDEXES.SELLERS, { primaryKey: "id" }),
-    );
+    // 🔐 STRICT v4.1: Verify/migrate indexes with composite 'id' primary key for tenant isolation
+    await ensureIndexWithPrimaryKey(INDEXES.PRODUCTS, "id");
+    await ensureIndexWithPrimaryKey(INDEXES.SELLERS, "id");
 
     // Configure indexes
     await configureProductsIndex();
     await configureSellersIndex();
 
-    logger.info("All search indexes initialized successfully");
+    logger.info("All search indexes initialized and verified successfully");
   } catch (_error) {
-    // Indexes might already exist, configure anyway
-    logger.info("Search indexes already exist, configuring...");
-    await configureProductsIndex();
-    await configureSellersIndex();
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[Meilisearch] Failed to initialize search indexes", error);
+    throw error;
   }
 }

@@ -411,6 +411,7 @@ export class SearchIndexerService {
   /**
    * Fetch active listings from database
    * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   * 📊 Performance: Sorted by _id for consistent batching; requires index {orgId: 1, status: 1, _id: 1}
    */
   private static async fetchActiveListings(
     offset: number,
@@ -424,12 +425,15 @@ export class SearchIndexerService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // Sort by _id for consistent batching under concurrent writes
+    // Requires compound index: db.souq_listings.createIndex({orgId: 1, status: 1, _id: 1})
     const results = await db
       .collection<SouqListing>("souq_listings")
       .find({
         status: "active",
         orgId, // Required for tenant isolation
       })
+      .sort({ _id: 1 }) // Stable sort for consistent pagination
       .skip(offset)
       .limit(limit)
       .toArray();
@@ -465,6 +469,7 @@ export class SearchIndexerService {
   /**
    * Fetch active sellers from database
    * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   * 📊 Performance: Sorted by _id for consistent batching; requires index {orgId: 1, status: 1, _id: 1}
    */
   private static async fetchActiveSellers(
     offset: number,
@@ -478,12 +483,15 @@ export class SearchIndexerService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // Sort by _id for consistent batching under concurrent writes
+    // Requires compound index: db.souq_sellers.createIndex({orgId: 1, status: 1, _id: 1})
     const results = await db
       .collection<SouqSeller>("souq_sellers")
       .find({
         status: "active",
         orgId, // Required for tenant isolation
       })
+      .sort({ _id: 1 }) // Stable sort for consistent pagination
       .skip(offset)
       .limit(limit)
       .toArray();

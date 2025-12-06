@@ -209,26 +209,7 @@ export async function DELETE(
       );
     }
 
-    // 🔐 STRICT v4.1: Only marketplace actors may delete campaigns
-    const allowedRoles = [
-      "seller",
-      "ops",
-      "marketplace_admin",
-      "admin",
-      "super_admin",
-      "ADMIN",
-      "SUPER_ADMIN",
-    ];
-    const userRole =
-      session.user.role?.toLowerCase?.() || session.user.role || "";
-    if (!allowedRoles.some((r) => r.toLowerCase() === userRole.toLowerCase())) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: insufficient role for ads" },
-        { status: 403 },
-      );
-    }
-
-    const orgId = session.user.orgId;
+    // 🔐 STRICT v4.1: Use canonical ALLOWED_AD_ROLES for consistent RBAC enforcement
     const rbac = buildRbacContext(session.user);
     if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
       return NextResponse.json(
@@ -236,6 +217,8 @@ export async function DELETE(
         { status: 403 },
       );
     }
+
+    const orgId = session.user.orgId;
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "Organization required" },

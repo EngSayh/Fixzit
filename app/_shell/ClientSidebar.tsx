@@ -1,613 +1,113 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import type { DefaultSession } from "next-auth";
-import { useTranslation } from "@/contexts/TranslationContext";
+import Sidebar from "@/components/Sidebar";
+import type { BadgeCounts } from "@/config/navigation";
 import { logger } from "@/lib/logger";
-import {
-  Role as CanonicalRole,
-  SubRole,
-  normalizeRole as normalizeFmRole,
-  normalizeSubRole,
-} from "@/lib/rbac/client-roles";
 
-type RoleLabel =
-  | "Super Admin"
-  | "Corporate Admin"
-  | "Corporate Owner"
-  | "Management"
-  | "Finance"
-  | "HR"
-  | "Corporate Employee"
-  | "Property Owner"
-  | "Technician"
-  | "Tenant / End-User";
-type LocalRole = RoleLabel;
+type CounterPayload = Record<string, unknown>;
 
-type Counters = Record<string, number>;
-type SessionUserExtras = DefaultSession["user"] & {
-  role?: string | null;
-  subRole?: string | null;
-  orgId?: string;
-};
-
-type Item = {
-  label: string;
-  path: string;
-  icon?: string;
-  badgeKey?: string;
-  badge?: number;
-};
-
-type Section = {
-  title: string;
-  items: Item[];
-};
-
-const NAV_BASE: Section[] = [
-  {
-    title: "Main",
-    items: [
-      { label: "Dashboard", path: "/dashboard", icon: "🏠" },
-      {
-        label: "Work Orders",
-        path: "/dashboard/work-orders",
-        icon: "🔧",
-        badgeKey: "workOrders",
-      },
-      { label: "Properties", path: "/dashboard/properties", icon: "🏢" },
-    ],
-  },
-  {
-    title: "Finance",
-    items: [
-      {
-        label: "Invoices",
-        path: "/dashboard/finance/invoices",
-        icon: "📑",
-        badgeKey: "invoices",
-      },
-      { label: "Payments", path: "/dashboard/finance/payments", icon: "💳" },
-      { label: "Expenses", path: "/dashboard/finance/expenses", icon: "💸" },
-      { label: "Budgets", path: "/dashboard/finance/budgets", icon: "📊" },
-      { label: "Reports", path: "/dashboard/finance/reports", icon: "📈" },
-    ],
-  },
-  {
-    title: "Human Resources",
-    items: [
-      {
-        label: "Employee Directory",
-        path: "/dashboard/hr/employees",
-        icon: "👥",
-      },
-      {
-        label: "Attendance & Leave",
-        path: "/dashboard/hr/attendance",
-        icon: "🗓️",
-      },
-      { label: "Payroll", path: "/dashboard/hr/payroll", icon: "🧾" },
-      {
-        label: "Recruitment (ATS)",
-        path: "/dashboard/hr/recruitment",
-        icon: "🧑‍💼",
-      },
-      { label: "Training", path: "/dashboard/hr/training", icon: "📚" },
-      {
-        label: "Performance",
-        path: "/dashboard/hr/performance",
-        icon: "🎯",
-      },
-    ],
-  },
-  {
-    title: "Administration",
-    items: [
-      {
-        label: "Delegation of Authority",
-        path: "/dashboard/admin/doa",
-        icon: "🏛️",
-      },
-      {
-        label: "Policies & Procedures",
-        path: "/dashboard/admin/policies",
-        icon: "📜",
-      },
-      {
-        label: "Asset Management",
-        path: "/dashboard/admin/assets",
-        icon: "📦",
-      },
-      {
-        label: "Facilities & Fleet",
-        path: "/dashboard/admin/facilities",
-        icon: "🚚",
-      },
-    ],
-  },
-  {
-    title: "CRM",
-    items: [
-      {
-        label: "Customer Directory",
-        path: "/dashboard/crm/customers",
-        icon: "🗂️",
-      },
-      {
-        label: "Leads & Opportunities",
-        path: "/dashboard/crm/leads",
-        icon: "🌱",
-        badgeKey: "leads",
-      },
-      {
-        label: "Contracts & Renewals",
-        path: "/dashboard/crm/contracts",
-        icon: "📄",
-      },
-      {
-        label: "Feedback & Complaints",
-        path: "/dashboard/crm/feedback",
-        icon: "💬",
-      },
-    ],
-  },
-  {
-    title: "Marketplace",
-    items: [
-      {
-        label: "Vendors & Suppliers",
-        path: "/dashboard/marketplace/vendors",
-        icon: "🏷️",
-      },
-      {
-        label: "Service Catalog",
-        path: "/dashboard/marketplace/catalog",
-        icon: "📚",
-      },
-      {
-        label: "Procurement Requests",
-        path: "/dashboard/marketplace/requests",
-        icon: "🧾",
-      },
-      {
-        label: "Bidding & RFQs",
-        path: "/dashboard/marketplace/rfqs",
-        icon: "📨",
-      },
-    ],
-  },
-  {
-    title: "Support & Helpdesk",
-    items: [
-      { label: "Tickets", path: "/dashboard/support/tickets", icon: "🎧" },
-      {
-        label: "Knowledge Base",
-        path: "/dashboard/support/kb",
-        icon: "📖",
-      },
-      { label: "Live Chat / Bot", path: "/dashboard/support/chat", icon: "⚡" },
-      { label: "SLA Monitoring", path: "/dashboard/support/sla", icon: "⏱️" },
-    ],
-  },
-  {
-    title: "Compliance & Legal",
-    items: [
-      { label: "Contracts", path: "/dashboard/compliance/contracts", icon: "📜" },
-      {
-        label: "Disputes & Claims",
-        path: "/dashboard/compliance/disputes",
-        icon: "⚖️",
-      },
-      { label: "Audit & Risk", path: "/dashboard/compliance/audit", icon: "🛡️" },
-    ],
-  },
-  {
-    title: "Reports & Analytics",
-    items: [
-      {
-        label: "Standard Reports",
-        path: "/dashboard/reports/standard",
-        icon: "📈",
-      },
-      {
-        label: "Custom Reports",
-        path: "/dashboard/reports/custom",
-        icon: "🧮",
-      },
-      {
-        label: "Dashboards",
-        path: "/dashboard/reports/dashboards",
-        icon: "📊",
-      },
-    ],
-  },
-  {
-    title: "System Management",
-    items: [
-      {
-        label: "User Management",
-        path: "/dashboard/system/users",
-        icon: "👤",
-      },
-      {
-        label: "Roles & Permissions",
-        path: "/dashboard/system/roles",
-        icon: "🔐",
-      },
-      {
-        label: "Subscriptions & Billing",
-        path: "/dashboard/system/billing",
-        icon: "💳",
-      },
-      {
-        label: "Integrations",
-        path: "/dashboard/system/integrations",
-        icon: "🔌",
-      },
-      { label: "Settings", path: "/dashboard/system/settings", icon: "⚙️" },
-    ],
-  },
-];
-
-const slugifyKey = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const SECTION_TRANSLATIONS: Record<string, { key: string; fallback: string }> = {
-  "Main": { key: "sidebar.legacy.sections.main", fallback: "Main" },
-  "Finance": { key: "sidebar.legacy.sections.finance", fallback: "Finance" },
-  "Human Resources": { key: "sidebar.legacy.sections.human-resources", fallback: "Human Resources" },
-  "Administration": { key: "sidebar.legacy.sections.administration", fallback: "Administration" },
-  "CRM": { key: "sidebar.legacy.sections.crm", fallback: "CRM" },
-  "Marketplace": { key: "sidebar.legacy.sections.marketplace", fallback: "Marketplace" },
-  "Support & Helpdesk": { key: "sidebar.legacy.sections.support-and-helpdesk", fallback: "Support & Helpdesk" },
-  "Compliance & Legal": { key: "sidebar.legacy.sections.compliance-and-legal", fallback: "Compliance & Legal" },
-  "Reports & Analytics": { key: "sidebar.legacy.sections.reports-and-analytics", fallback: "Reports & Analytics" },
-  "System Management": { key: "sidebar.legacy.sections.system-management", fallback: "System Management" },
-};
-
-const ITEM_TRANSLATIONS: Record<string, { key: string; fallback: string }> = {
-  "Dashboard": { key: "sidebar.legacy.items.dashboard", fallback: "Dashboard" },
-  "Work Orders": { key: "sidebar.legacy.items.work-orders", fallback: "Work Orders" },
-  "Properties": { key: "sidebar.legacy.items.properties", fallback: "Properties" },
-  "Invoices": { key: "sidebar.legacy.items.invoices", fallback: "Invoices" },
-  "Payments": { key: "sidebar.legacy.items.payments", fallback: "Payments" },
-  "Expenses": { key: "sidebar.legacy.items.expenses", fallback: "Expenses" },
-  "Budgets": { key: "sidebar.legacy.items.budgets", fallback: "Budgets" },
-  "Reports": { key: "sidebar.legacy.items.reports", fallback: "Reports" },
-  "Employee Directory": { key: "sidebar.legacy.items.employee-directory", fallback: "Employee Directory" },
-  "Attendance & Leave": { key: "sidebar.legacy.items.attendance-and-leave", fallback: "Attendance & Leave" },
-  "Payroll": { key: "sidebar.legacy.items.payroll", fallback: "Payroll" },
-  "Recruitment (ATS)": { key: "sidebar.legacy.items.recruitment-ats", fallback: "Recruitment (ATS)" },
-  "Training": { key: "sidebar.legacy.items.training", fallback: "Training" },
-  "Performance": { key: "sidebar.legacy.items.performance", fallback: "Performance" },
-  "Delegation of Authority": { key: "sidebar.legacy.items.delegation-of-authority", fallback: "Delegation of Authority" },
-  "Policies & Procedures": { key: "sidebar.legacy.items.policies-and-procedures", fallback: "Policies & Procedures" },
-  "Asset Management": { key: "sidebar.legacy.items.asset-management", fallback: "Asset Management" },
-  "Facilities & Fleet": { key: "sidebar.legacy.items.facilities-and-fleet", fallback: "Facilities & Fleet" },
-  "Customer Directory": { key: "sidebar.legacy.items.customer-directory", fallback: "Customer Directory" },
-  "Leads & Opportunities": { key: "sidebar.legacy.items.leads-and-opportunities", fallback: "Leads & Opportunities" },
-  "Contracts & Renewals": { key: "sidebar.legacy.items.contracts-and-renewals", fallback: "Contracts & Renewals" },
-  "Feedback & Complaints": { key: "sidebar.legacy.items.feedback-and-complaints", fallback: "Feedback & Complaints" },
-  "Vendors & Suppliers": { key: "sidebar.legacy.items.vendors-and-suppliers", fallback: "Vendors & Suppliers" },
-  "Service Catalog": { key: "sidebar.legacy.items.service-catalog", fallback: "Service Catalog" },
-  "Procurement Requests": { key: "sidebar.legacy.items.procurement-requests", fallback: "Procurement Requests" },
-  "Bidding & RFQs": { key: "sidebar.legacy.items.bidding-and-rfqs", fallback: "Bidding & RFQs" },
-  "Tickets": { key: "sidebar.legacy.items.tickets", fallback: "Tickets" },
-  "Knowledge Base": { key: "sidebar.legacy.items.knowledge-base", fallback: "Knowledge Base" },
-  "Live Chat / Bot": { key: "sidebar.legacy.items.live-chat-bot", fallback: "Live Chat / Bot" },
-  "SLA Monitoring": { key: "sidebar.legacy.items.sla-monitoring", fallback: "SLA Monitoring" },
-  "Contracts": { key: "sidebar.legacy.items.contracts", fallback: "Contracts" },
-  "Disputes & Claims": { key: "sidebar.legacy.items.disputes-and-claims", fallback: "Disputes & Claims" },
-  "Audit & Risk": { key: "sidebar.legacy.items.audit-and-risk", fallback: "Audit & Risk" },
-  "Standard Reports": { key: "sidebar.legacy.items.standard-reports", fallback: "Standard Reports" },
-  "Custom Reports": { key: "sidebar.legacy.items.custom-reports", fallback: "Custom Reports" },
-  "Dashboards": { key: "sidebar.legacy.items.dashboards", fallback: "Dashboards" },
-  "User Management": { key: "sidebar.legacy.items.user-management", fallback: "User Management" },
-  "Roles & Permissions": { key: "sidebar.legacy.items.roles-and-permissions", fallback: "Roles & Permissions" },
-  "Subscriptions & Billing": { key: "sidebar.legacy.items.subscriptions-and-billing", fallback: "Subscriptions & Billing" },
-  "Integrations": { key: "sidebar.legacy.items.integrations", fallback: "Integrations" },
-  "Settings": { key: "sidebar.legacy.items.settings", fallback: "Settings" },
-};
-
-const getSectionTranslation = (title: string) =>
-  SECTION_TRANSLATIONS[title] ?? {
-    key: `sidebar.legacy.sections.${slugifyKey(title)}`,
-    fallback: title,
-  };
-
-const getItemTranslation = (label: string) =>
-  ITEM_TRANSLATIONS[label] ?? {
-    key: `sidebar.legacy.items.${slugifyKey(label)}`,
-    fallback: label,
-  };
-
-type LocalizedSection = {
-  id: string;
-  title: string;
-  items: Item[];
-};
-
-type CounterMessage = {
-  key: string;
-  value: number;
-};
-
-const isCounterMessage = (input: unknown): input is CounterMessage => {
-  if (typeof input !== "object" || input === null) {
-    return false;
-  }
-  const maybe = input as Record<string, unknown>;
-  return typeof maybe.key === "string" && typeof maybe.value === "number";
-};
-
-async function fetchCounters(orgId: string): Promise<Counters> {
-  const res = await fetch(`/api/counters?org=${encodeURIComponent(orgId)}`, {
-    cache: "no-store",
+const countersFetcher = async (url: string, init?: RequestInit) => {
+  const response = await fetch(url, {
+    credentials: "include",
+    signal: init?.signal,
   });
-  if (!res.ok) return {};
-  return res.json();
-}
-
-function hasAccess(role: LocalRole, path: string): boolean {
-  if (role === "Super Admin") return true;
-  if (role === "Corporate Admin") return !path.startsWith("/dashboard/system");
-  if (role === "Management")
-    return (
-      path.startsWith("/dashboard/reports") ||
-      path.startsWith("/dashboard/finance") ||
-      path.startsWith("/dashboard/work-orders")
-    );
-  if (role === "Finance") return path.startsWith("/dashboard/finance");
-  if (role === "HR") return path.startsWith("/dashboard/hr");
-  if (role === "Corporate Employee")
-    return path.startsWith("/dashboard/work-orders");
-  if (role === "Property Owner")
-    return (
-      path.startsWith("/dashboard/properties") ||
-      path.startsWith("/dashboard/finance")
-    );
-  if (role === "Corporate Owner")
-    return (
-      path.startsWith("/dashboard/properties") ||
-      path.startsWith("/dashboard/finance") ||
-      path.startsWith("/dashboard/reports")
-    );
-  if (role === "Technician") return path.startsWith("/dashboard/work-orders");
-  if (role === "Tenant / End-User")
-    return path.startsWith("/dashboard/work-orders");
-  return false;
-}
-
-const toDisplayRole = (
-  rawRole?: string | null,
-  rawSubRole?: string | null,
-): RoleLabel => {
-  const subRole = normalizeSubRole(rawSubRole);
-  const role = normalizeFmRole(rawRole) ?? CanonicalRole.GUEST;
-
-  // After normalization, role is always one of the 9 canonical STRICT v4.1 roles
-  switch (role) {
-    case CanonicalRole.SUPER_ADMIN:
-      return "Super Admin";
-    case CanonicalRole.ADMIN:
-      return "Corporate Admin";
-    case CanonicalRole.CORPORATE_OWNER:
-      return "Corporate Owner";
-    case CanonicalRole.PROPERTY_MANAGER:
-      return "Property Owner";
-    case CanonicalRole.TECHNICIAN:
-      return "Technician";
-    case CanonicalRole.TENANT:
-      return "Tenant / End-User";
-    case CanonicalRole.VENDOR:
-      return "Corporate Employee";
-    case CanonicalRole.TEAM_MEMBER:
-      // Sub-role determines the display label for TEAM_MEMBER
-      if (subRole === SubRole.FINANCE_OFFICER) return "Finance";
-      if (subRole === SubRole.HR_OFFICER) return "HR";
-      if (subRole === SubRole.SUPPORT_AGENT) return "Management";
-      if (subRole === SubRole.OPERATIONS_MANAGER) return "Management";
-      return "Management";
-    case CanonicalRole.GUEST:
-    default:
-      return "Corporate Employee";
+  if (!response.ok) {
+    throw new Error("Failed to fetch counters");
   }
+  return response.json() as Promise<CounterPayload>;
+};
+
+const mapCountersToBadgeCounts = (
+  counters?: CounterPayload,
+): BadgeCounts | undefined => {
+  if (!counters || typeof counters !== "object") return undefined;
+
+  const value: BadgeCounts = {};
+  const setCount = (key: keyof BadgeCounts, input: unknown) => {
+    if (typeof input === "number" && Number.isFinite(input)) {
+      value[key] = input;
+    }
+  };
+
+  const workOrders = (counters as Record<string, unknown>).workOrders as
+    | Record<string, unknown>
+    | undefined;
+  const finance = (counters as Record<string, unknown>).finance as
+    | Record<string, unknown>
+    | undefined;
+  const invoices = (counters as Record<string, unknown>).invoices as
+    | Record<string, unknown>
+    | undefined;
+  const hr = (counters as Record<string, unknown>).hr as
+    | Record<string, unknown>
+    | undefined;
+  const properties = (counters as Record<string, unknown>).properties as
+    | Record<string, unknown>
+    | undefined;
+  const crm = (counters as Record<string, unknown>).crm as
+    | Record<string, unknown>
+    | undefined;
+  const support = (counters as Record<string, unknown>).support as
+    | Record<string, unknown>
+    | undefined;
+  const marketplace = (counters as Record<string, unknown>).marketplace as
+    | Record<string, unknown>
+    | undefined;
+
+  setCount("workOrders", workOrders?.total as number | undefined);
+  setCount("pendingWorkOrders", workOrders?.open as number | undefined);
+  setCount("inProgressWorkOrders", workOrders?.inProgress as number | undefined);
+  setCount("urgentWorkOrders", workOrders?.overdue as number | undefined);
+
+  const financeSource = finance ?? invoices ?? {};
+  setCount("pending_invoices", financeSource?.unpaid as number | undefined);
+  setCount("overdue_invoices", financeSource?.overdue as number | undefined);
+
+  setCount("hr_applications", hr?.probation as number | undefined);
+
+  setCount("properties_needing_attention", properties?.maintenance as number | undefined);
+
+  setCount("crm_deals", crm?.contracts as number | undefined);
+  setCount("aqar_leads", crm?.leads as number | undefined);
+
+  setCount("open_support_tickets", support?.open as number | undefined);
+  setCount("pending_approvals", support?.pending as number | undefined);
+
+  setCount("marketplace_orders", marketplace?.orders as number | undefined);
+  setCount("marketplace_products", marketplace?.listings as number | undefined);
+  setCount("open_rfqs", marketplace?.reviews as number | undefined);
+
+  return Object.keys(value).length ? value : undefined;
 };
 
 export default function ClientSidebar() {
-  const pathname = usePathname();
-  const { data: session } = useSession();
-  const { t } = useTranslation();
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
-  const sessionUser = session?.user as SessionUserExtras | undefined;
-  const role: RoleLabel = toDisplayRole(
-    sessionUser?.role,
-    sessionUser?.subRole,
-  );
-  const orgId = sessionUser?.orgId ?? "platform";
-
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const stored = JSON.parse(localStorage.getItem("sidebarCollapsed") || "{}");
-      return Object.entries(stored).reduce((acc, [key, value]) => {
-        const normalized = slugifyKey(key);
-        acc[normalized] = Boolean(value);
-        return acc;
-      }, {} as Record<string, boolean>);
-    } catch {
-      return {};
-    }
-  });
-
-  const [counters, setCounters] = useState<Counters>({});
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("theme") === "dark";
-  });
-
-  useEffect(() => {
-    if (!orgId) return;
-    fetchCounters(orgId).then(setCounters).catch((error) => {
-      // Log counter fetch failures for debugging
-      logger.warn('[Sidebar] Failed to fetch notification counters', { component: 'ClientSidebar', action: 'fetchCounters', error });
-      // Set empty counters as fallback
-      setCounters({});
-    });
-
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-    if (!wsUrl) return;
-
-    const ws = new WebSocket(wsUrl);
-    ws.onmessage = (event) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-      if (!isCounterMessage(parsed)) {
-        return;
-      }
-      setCounters((prev) => ({ ...prev, [parsed.key]: parsed.value }));
-    };
-    return () => ws.close();
-  }, [orgId]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-  }, [isDark]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("sidebarCollapsed", JSON.stringify(collapsed));
-  }, [collapsed]);
-
-  const navSections = useMemo<LocalizedSection[]>(() => {
-    return NAV_BASE.map((section) => {
-      const sectionId = slugifyKey(section.title);
-      const sectionTranslation = getSectionTranslation(section.title);
-      const title = t(sectionTranslation.key, sectionTranslation.fallback);
-      const items = section.items
-        .filter((item) => hasAccess(role, item.path))
-        .map((item) => {
-          const itemTranslation = getItemTranslation(item.label);
-          return {
-            ...item,
-            label: t(itemTranslation.key, itemTranslation.fallback),
-            badge: item.badgeKey ? counters[item.badgeKey] ?? 0 : 0,
-          };
+  const { data: counters } = useSWR(
+    isAuthenticated ? "/api/counters" : null,
+    countersFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000,
+      onError: (error) => {
+        logger.warn("[Sidebar] Failed to fetch counters", {
+          error,
+          component: "ClientSidebar",
+          action: "fetchCounters",
         });
-      return { id: sectionId, title, items };
-    }).filter((section) => section.items.length > 0);
-  }, [role, counters, t]);
-
-  const toggleSection = (id: string) => {
-    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const navHeading = t("sidebar.legacy.heading", "Navigation");
-  const themeLabel = isDark
-    ? t("sidebar.legacy.theme.light", "Light")
-    : t("sidebar.legacy.theme.dark", "Dark");
-
-  return (
-    <aside
-      className="fxz-sidebar h-screen w-64 overflow-hidden flex flex-col"
-      role="navigation"
-      aria-label={navHeading}
-    >
-      {/* Header with gradient accent */}
-      <div className="relative p-4 flex items-center justify-between border-b border-sidebar-border">
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sidebar-primary to-transparent opacity-60" />
-        <span className="font-display font-semibold text-sm text-sidebar-foreground tracking-wide">
-          {navHeading}
-        </span>
-        <button
-          className="fxz-topbar-pill px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground transition-colors"
-          onClick={() => setIsDark((d) => !d)}
-        >
-          {themeLabel}
-        </button>
-      </div>
-      
-      {/* Navigation with custom scrollbar */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
-        {navSections.map((section, sectionIdx) => (
-          <div
-            key={section.id}
-            className="animate-slide-up"
-            style={{ animationDelay: `${sectionIdx * 50}ms` }}
-          >
-            {/* Section title */}
-            <button
-              className="fxz-sidebar-title w-full flex items-center justify-between py-2 group"
-              onClick={() => toggleSection(section.id)}
-            >
-              <span className="flex-1 text-start">{section.title}</span>
-              <span 
-                className={`transition-transform duration-200 text-[10px] opacity-50 group-hover:opacity-80 ${
-                  collapsed[section.id] ? '' : 'rotate-180'
-                } rtl-flip`}
-              >
-                ▾
-              </span>
-            </button>
-            
-            {/* Section items with animation */}
-            <div 
-              className={`overflow-hidden transition-all duration-300 ease-out ${
-                collapsed[section.id] 
-                  ? 'max-h-0 opacity-0' 
-                  : 'max-h-[1000px] opacity-100'
-              }`}
-            >
-              <ul className="space-y-0.5 pb-2">
-                {section.items.map((item, itemIdx) => {
-                  const active = pathname?.startsWith(item.path) ?? false;
-                  return (
-                    <li 
-                      key={item.path}
-                      style={{ animationDelay: `${(sectionIdx * 50) + (itemIdx * 25)}ms` }}
-                    >
-                      <Link
-                        href={item.path}
-                        className={`fxz-sidebar-item ${
-                          active ? 'fxz-sidebar-item-active' : ''
-                        }`}
-                      >
-                        {item.icon && (
-                          <span className="text-base opacity-80 group-hover:opacity-100 transition-opacity">
-                            {item.icon}
-                          </span>
-                        )}
-                        <span className="flex-1 truncate">{item.label}</span>
-                        {item.badge && item.badge > 0 && (
-                          <span className="fxz-sidebar-badge">
-                            {item.badge > 99 ? '99+' : item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        ))}
-      </nav>
-      
-      {/* Footer accent line */}
-      <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
-    </aside>
+      },
+    },
   );
+
+  const badgeCounts = useMemo(
+    () => mapCountersToBadgeCounts(counters),
+    [counters],
+  );
+
+  return <Sidebar badgeCounts={badgeCounts} />;
 }
