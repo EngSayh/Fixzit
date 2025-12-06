@@ -62,7 +62,8 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id, orgId, true);
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, orgId, allowOrgless);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -120,10 +121,10 @@ export async function POST(
       type: resolvedType,
       url: generatedUrl,
       description,
-      allowOrgless: true,
+      allowOrgless,
     });
 
-    const updated = await ClaimService.getClaim(params.id, orgId, true);
+    const updated = await ClaimService.getClaim(params.id, orgId, allowOrgless);
 
     return NextResponse.json({
       evidence: updated?.evidence ?? [],

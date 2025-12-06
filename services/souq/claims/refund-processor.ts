@@ -154,11 +154,15 @@ export class RefundProcessor {
     if (!this.indexesReady) {
       this.indexesReady =
         typeof collection.createIndex === 'function'
-          ? collection
-              .createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique' })
+          ? Promise.all([
+              collection.createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique' }),
+              collection.createIndex({ orgId: 1, refundId: 1 }, { name: 'refund_org_refundId' }),
+              collection.createIndex({ orgId: 1, status: 1, createdAt: -1 }, { name: 'refund_org_status_createdAt' }),
+              collection.createIndex({ orgId: 1, transactionId: 1 }, { name: 'refund_org_txn' }),
+            ])
               .then(() => undefined)
               .catch((error) => {
-                logger.error('[Refunds] Failed to ensure unique index on (orgId, claimId)', { error });
+                logger.error('[Refunds] Failed to ensure refund indexes', { error });
               })
           : Promise.resolve();
     }
@@ -612,8 +616,16 @@ export class RefundProcessor {
   private static async scheduleStatusCheck(refund: Refund): Promise<void> {
     const currentCount = refund.statusCheckCount ?? 0;
     if (currentCount >= this.MAX_STATUS_POLLS) {
+      const failureReason = 'Refund remained pending after multiple status checks';
       await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
-        failureReason: 'Refund remained pending after multiple status checks',
+        failureReason,
+      });
+      // 🔐 MAJOR FIX: Notify parties about the failed refund (no silent failures)
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason,
       });
       return;
     }
@@ -982,6 +994,7 @@ export class RefundProcessor {
 
   /**
    * List refunds with filters
+   * 🔐 MAJOR FIX: Caps limit to 200 to prevent unbounded queries
    */
   static async listRefunds(filters: {
     orgId: string;
@@ -1003,7 +1016,9 @@ export class RefundProcessor {
     if (filters.claimId) query.claimId = filters.claimId;
     if (filters.status) query.status = filters.status;
 
-    const limit = filters.limit || 20;
+    // 🔐 Cap limit to 200 to prevent unbounded queries
+    const MAX_LIMIT = 200;
+    const limit = Math.min(filters.limit ?? 20, MAX_LIMIT);
     const offset = filters.offset || 0;
 
     const [refunds, total] = await Promise.all([
@@ -1024,23 +1039,26 @@ export class RefundProcessor {
 
   /**
    * Retry failed refunds
+   * 🔐 MAJOR FIX: Uses bounded cursor to prevent OOM on large datasets
    */
-  static async retryFailedRefunds(orgId: string): Promise<number> {
+  static async retryFailedRefunds(orgId: string, batchLimit = 100): Promise<number> {
     if (!orgId) {
       throw new Error('orgId is required to retry failed refunds');
     }
     const collection = await this.collection();
-    const failedRefunds = await collection
+    // 🔐 Use cursor with limit to prevent loading all failed refunds into memory
+    const cursor = collection
       .find({
         status: 'failed',
         retryCount: { $lt: this.MAX_RETRIES },
         ...buildOrgFilter(orgId),
       })
-      .toArray();
+      .sort({ updatedAt: -1 })
+      .limit(batchLimit);
 
     let retriedCount = 0;
 
-    for (const refund of failedRefunds) {
+    for await (const refund of cursor) {
       try {
         const result = await this.executeRefund(refund);
 
@@ -1155,7 +1173,7 @@ export class RefundProcessor {
       totalRefunds,
       totalAmount,
       byStatus: byStatus as Record<Refund['status'], number>,
-      avgProcessingTime: processedCount > 0 ? totalProcessingTime / processedCount : 0,
+      avgProcessingTime: successCount > 0 ? totalProcessingTime / successCount : 0,
       successRate: processedCount > 0 ? successCount / processedCount : 0,
     };
   }

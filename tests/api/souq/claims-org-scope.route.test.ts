@@ -132,7 +132,7 @@ describe("Claims routes - org scoping enforcement", () => {
       orgId: orgObjectId,
       pricing: { total: 100 },
     });
-    claimsCollection.updateOne = vi.fn().mockResolvedValue(undefined);
+    updateOneMock.mockResolvedValue(undefined);
 
     const req = makeRequest(
       "https://example.com/api/souq/claims/789/decision",
@@ -147,5 +147,33 @@ describe("Claims routes - org scoping enforcement", () => {
     expect(orderFilter).toMatchObject({
       orgId: expect.any(ObjectId),
     });
+    const updateFilter = updateOneMock.mock.calls[0]?.[0];
+    expect(updateFilter).toMatchObject({ orgId: expect.any(ObjectId) });
+  });
+
+  it("decision route blocks cross-tenant decision when order is not in org", async () => {
+    mockResolveSession.mockReturnValue({
+      user: { id: "admin-1", orgId: "org-A", role: "ADMIN" },
+    });
+    mockGetClaim.mockResolvedValue({
+      claimId: "C4",
+      orderId: "order-x",
+      buyerId: "buyer-2",
+      sellerId: "seller-2",
+      status: "pending_review",
+      refundAmount: 25,
+    });
+    ordersCollection.findOne.mockResolvedValue(null); // No order in this org
+    updateOneMock.mockResolvedValue(undefined);
+
+    const req = makeRequest(
+      "https://example.com/api/souq/claims/999/decision",
+      "POST",
+      { decision: "approve", reasoning: "Invalid item", refundAmount: 25 },
+    );
+
+    const res = await decisionPOST(req, { params: { id: "999" } });
+    expect(res.status).toBe(403);
+    expect(updateOneMock).not.toHaveBeenCalled();
   });
 });

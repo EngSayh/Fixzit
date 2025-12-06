@@ -3,10 +3,11 @@
  * @module services/souq/buybox-service
  */
 
-import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqListing, type IListing } from "@/server/models/souq/Listing";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import type { ISeller } from "@/server/models/souq/Seller";
-import { Types } from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import type { FilterQuery } from "mongoose";
 
 // Type for listing with populated sellerId (lean query result)
 interface IListingPopulated {
@@ -34,21 +35,6 @@ interface IListingPopulated {
 type BuyBoxCandidate = IListingPopulated;
 
 export class BuyBoxService {
-  private static buildOrgFilter(orgId?: string | null) {
-    const normalized = orgId?.toString?.().trim?.();
-    if (!normalized) return {};
-    return {
-      orgId: {
-        $in: [
-          normalized,
-          ...(Types.ObjectId.isValid(normalized)
-            ? [new Types.ObjectId(normalized)]
-            : []),
-        ],
-      },
-    };
-  }
-
   /**
    * Calculate Buy Box winner for a given FSIN
    */
@@ -56,8 +42,8 @@ export class BuyBoxService {
     fsin: string,
     orgId: string,
   ): Promise<IListingPopulated | null> {
-    const orgFilter = this.buildOrgFilter(orgId);
-    const listings = await SouqListing.find({ fsin, ...orgFilter })
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
+    const listings = await SouqListing.find({ fsin, ...orgFilter } as FilterQuery<IListing>)
       .populate("sellerId")
       .lean();
 
@@ -69,7 +55,7 @@ export class BuyBoxService {
     );
 
     if (typedListings.length === 0) {
-      const fallbackListings = await SouqListing.find({ fsin, ...orgFilter })
+      const fallbackListings = await SouqListing.find({ fsin, ...orgFilter } as FilterQuery<IListing>)
         .populate("sellerId")
         .lean();
       typedListings = (fallbackListings as unknown as BuyBoxCandidate[]).filter(
@@ -159,7 +145,7 @@ export class BuyBoxService {
    * Get average price for FSIN from active listings with stock
    */
   private static async getAveragePrice(fsin: string, orgId: string): Promise<number> {
-    const orgFilter = this.buildOrgFilter(orgId);
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
     const result = await SouqListing.aggregate([
       {
         $match: {
@@ -187,9 +173,10 @@ export class BuyBoxService {
     sellerId: string,
     orgId: string,
   ): Promise<void> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<ISeller>;
     const seller = await SouqSeller.findOne({
       _id: sellerId,
-      ...this.buildOrgFilter(orgId),
+      ...orgFilter,
     }).select("orgId");
     if (!seller) {
       return;
@@ -205,8 +192,8 @@ export class BuyBoxService {
     const listings = await SouqListing.find({
       sellerId,
       status: "active",
-      ...this.buildOrgFilter(sellerOrgId as string),
-    });
+      ...(buildSouqOrgFilter(sellerOrgId as string) as FilterQuery<IListing>),
+    } as FilterQuery<IListing>);
 
     for (const listing of listings) {
       if (canCompete) {
@@ -224,11 +211,12 @@ export class BuyBoxService {
    * Recalculate Buy Box for all listings of a product
    */
   static async recalculateBuyBoxForProduct(fsin: string, orgId: string): Promise<void> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
     const listings = await SouqListing.find({
       fsin,
       status: "active",
       availableQuantity: { $gt: 0 },
-      ...this.buildOrgFilter(orgId),
+      ...orgFilter,
     }).populate("sellerId");
 
     for (const listing of listings) {
@@ -246,7 +234,7 @@ export class BuyBoxService {
     options: { condition?: string; sort?: string; orgId: string },
   ) {
     const { condition = "new", sort = "price", orgId } = options;
-    const orgFilter = this.buildOrgFilter(orgId);
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
 
     const query: Record<string, unknown> = {
       fsin,

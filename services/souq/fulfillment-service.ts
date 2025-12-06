@@ -7,31 +7,10 @@ import { splCarrier } from "@/lib/carriers/spl";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import type { IOrder } from "@/server/models/souq/Order";
-import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
 type OrderItem = IOrder["items"][number];
 type FbfShipmentItem = OrderItem & { warehouseId?: string };
-
-// Temporary helper to match orgId stored as string or ObjectId during migration
-const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
-  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
-  const candidates: Array<string | mongoose.Types.ObjectId> = [];
-
-  if (orgString) {
-    const trimmed = orgString.trim();
-    candidates.push(trimmed);
-    if (mongoose.Types.ObjectId.isValid(trimmed)) {
-      candidates.push(new mongoose.Types.ObjectId(trimmed));
-    }
-  }
-
-  if (candidates.length === 0) {
-    return { orgId };
-  }
-
-  // Use $in to support both legacy string and new ObjectId representations
-  return { orgId: { $in: candidates } };
-};
 
 /**
  * Fulfillment Service
@@ -171,9 +150,10 @@ class FulfillmentService {
         throw new Error("orgId is required to fulfill order (tenant scoping)");
       }
 
+      const orgFilter = buildSouqOrgFilter(request.orgId) as Record<string, unknown>;
       const scopedQuery = {
         orderId: request.orderId,
-        ...buildOrgFilter(request.orgId),
+        ...orgFilter,
       };
       const order = await SouqOrder.findOne(scopedQuery);
 
@@ -189,7 +169,7 @@ class FulfillmentService {
       const listingIds = request.orderItems.map((item) => item.listingId);
       const inventories = await SouqInventory.find({
         listingId: { $in: listingIds },
-        ...buildOrgFilter(request.orgId),
+        ...orgFilter,
       }).lean();
 
       // Create a map for O(1) lookup
@@ -403,7 +383,8 @@ class FulfillmentService {
         throw new Error("orgId is required to generate FBM label");
       }
 
-      const order = await SouqOrder.findOne({ orderId, ...buildOrgFilter(orgId) });
+      const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+      const order = await SouqOrder.findOne({ orderId, ...orgFilter });
 
       if (!order) {
         throw new Error(`Order not found for org: ${orderId}`);
@@ -523,7 +504,7 @@ class FulfillmentService {
 
       const order = await SouqOrder.findOne({
         trackingNumber,
-        ...buildOrgFilter(orgId),
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
       });
 
       if (!order) {
@@ -593,9 +574,10 @@ class FulfillmentService {
       throw new Error("orgId is required for SLA calculation");
     }
 
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
     const order = await SouqOrder.findOne({
       orderId,
-      ...buildOrgFilter(orgId),
+      ...orgFilter,
     });
 
     if (!order) {
@@ -669,7 +651,7 @@ class FulfillmentService {
 
       const query: Record<string, unknown> = {
         listingId,
-        ...buildOrgFilter(orgId),
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
       };
 
       const listing = await SouqListing.findOne(query);
@@ -680,7 +662,7 @@ class FulfillmentService {
 
       const inventory = await SouqInventory.findOne({
         listingId,
-        ...buildOrgFilter(orgId),
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
       });
 
       if (!inventory) {
