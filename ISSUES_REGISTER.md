@@ -474,6 +474,44 @@ Based on severity and dependencies:
 
 ---
 
+## Souq Security Issues (2025-01-20)
+
+### ISSUE-SOUQ-001: budget-manager.ts Cross-Tenant Data Leakage
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: Ad spend caps, threshold alerts, and auto-pause logic in `services/souq/ads/budget-manager.ts` were not tenant-isolated. All methods lacked `orgId` parameter, allowing campaigns from different organizations to potentially interact.
+
+**Resolution**: Added `orgId` parameter to all public and private methods. Redis keys now include orgId. All DB queries filter by orgId. See `docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20-SECURITY-FIXES.md` for details.
+
+---
+
+### ISSUE-SOUQ-002: balance-service.ts Pending Orders Query Lacks orgId
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: `getBalance()` and `calculateBalance()` in `services/souq/settlements/balance-service.ts` had optional orgId parameter, allowing potential cross-tenant data leakage. The pending orders query used conditional filtering `...(orgId ? { orgId } : {})`.
+
+**Resolution**: Made orgId required (not optional). Removed conditional filtering. All queries now require orgId. See daily progress report for details.
+
+---
+
+### ISSUE-SOUQ-003: request-payout API Accepts Arbitrary Amounts
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Data Integrity  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: `app/api/souq/settlements/request-payout/route.ts` accepted user-provided `amount` without validating it matched the statement's `netPayout`. This could allow malicious amount manipulation.
+
+**Resolution**: Added validation that amount matches `statement.summary.netPayout`. Fetch statement with orgId filter. Added RBAC checks for payout requests. See daily progress report for details.
+
+---
+
 ## Next Steps
 
 1. ✅ Complete discovery and issue registration (THIS DOCUMENT)
@@ -488,3 +526,4 @@ Based on severity and dependencies:
 
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
+
