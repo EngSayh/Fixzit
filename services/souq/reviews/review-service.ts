@@ -647,34 +647,51 @@ class ReviewService {
     }
 
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
-    const reviews = await SouqReview.find({
+    // 🚀 PERF: Use aggregation instead of loading all reviews into memory
+    const matchStage = {
       status: "published",
       productId: { $in: sellerProductIds },
       $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
-    });
+    };
 
-    const totalReviews = reviews.length;
-    const averageRating =
-      totalReviews > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-        : 0;
+    const [stats] = await SouqReview.aggregate<{
+      totalReviews: number;
+      avgRating: number;
+      pendingResponses: number;
+    }>([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalReviews: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+          pendingResponses: {
+            $sum: { $cond: [{ $not: ["$sellerResponse"] }, 1, 0] },
+          },
+        },
+      },
+    ]);
 
-    const pendingResponses = reviews.filter((r) => !r.sellerResponse).length;
+    const totalReviews = stats?.totalReviews ?? 0;
+    const averageRating = stats?.avgRating ?? 0;
+    const pendingResponses = stats?.pendingResponses ?? 0;
     const responseRate =
       totalReviews > 0
         ? ((totalReviews - pendingResponses) / totalReviews) * 100
         : 0;
 
-    const recentReviews = reviews
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 5);
+    // Fetch only recent 5 reviews using DB sort/limit instead of loading all
+    const recentReviews = await SouqReview.find(matchStage)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
 
     return {
       averageRating,
       totalReviews,
       pendingResponses,
       responseRate,
-      recentReviews,
+      recentReviews: recentReviews as unknown as IReview[],
     };
   }
 
@@ -695,9 +712,11 @@ class ReviewService {
     }
 
     const orgFilter = this.ensureObjectId(orgId, "orgId");
+    // 🔧 FIX: Convert sellerId to ObjectId to match schema type
+    const sellerObjectId = new Types.ObjectId(sellerId);
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
     const products = await SouqProduct.find({
-      createdBy: sellerId,
+      createdBy: sellerObjectId,
       $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     })
       .select("_id")

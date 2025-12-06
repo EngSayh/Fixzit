@@ -30,6 +30,12 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
     # Ensure a clean build output to avoid stale traces/manifests breaking standalone builds
     rm -rf .next || true
     pnpm build
+    # Temporary workaround for Next.js export rename of 500.html in some environments:
+    # Pre-create the export 500 page if not generated to avoid ENOENT during rename.
+    if [[ ! -f ".next/export/500.html" ]]; then
+      mkdir -p .next/export
+      echo "<html><body>500</body></html>" > .next/export/500.html
+    fi
   fi
 
   # Next.js with output: standalone cannot use `next start`.

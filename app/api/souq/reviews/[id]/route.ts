@@ -45,34 +45,44 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const session = await auth();
     const { id: reviewId } = await context.params;
     const searchParams = new URL(req.url).searchParams;
-    const orgIdParam = searchParams.get("orgId");
-    const requesterOrg = session?.user?.orgId;
-    const orgId = orgIdParam ?? requesterOrg ?? "";
-    if (!orgId) {
-      return NextResponse.json(
-        { error: "Organization context required" },
-        { status: 403 },
-      );
+    const orgIdParam = searchParams.get("orgId") ?? session?.user?.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 400 });
     }
-    if (!ObjectId.isValid(orgId)) {
+    if (!ObjectId.isValid(orgIdParam)) {
       return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
     }
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
+    const requesterOrg = session?.user?.orgId;
+    if (requesterOrg && requesterOrg !== orgIdParam) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const orgCandidates = [orgIdParam, new ObjectId(orgIdParam)];
 
-    // Fetch review scoped by org to prevent cross-tenant access
+    // Fetch review scoped by org to prevent cross-tenant access or enumeration
     const { connection } = await connectDb();
     const db = connection.db!;
-    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
-      { projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 } },
-    );
+    const baseFilter = { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] };
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(baseFilter, {
+      projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 },
+    });
     if (!found) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
+    const orgFromDoc =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.();
+    if (!orgFromDoc) {
+      return NextResponse.json(
+        { error: "Review missing org context" },
+        { status: 404 },
+      );
+    }
 
-    // If requester has org, enforce match with provided orgId
+    // If requester has org, enforce match with provided or document orgId
+    const orgId = orgIdParam ?? orgFromDoc;
     if (requesterOrg && orgId && requesterOrg !== orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

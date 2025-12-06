@@ -44,13 +44,18 @@ export class InvestigationService {
     if (!claim) throw new Error("Claim not found");
 
     // Collect investigation data
-    const [fraudIndicators, trackingInfo, sellerHistory, buyerHistory] =
-      await Promise.all([
-        this.detectFraudIndicators(claim, orgId),
-        this.getTrackingInfo({ orderId: claim.orderId, orgId }),
-        this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
-        this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
-      ]);
+    const [trackingInfo, sellerHistory, buyerHistory] = await Promise.all([
+      this.getTrackingInfo({ orderId: claim.orderId, orgId }),
+      this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
+      this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
+    ]);
+    const fraudIndicators = await this.detectFraudIndicators({
+      claim,
+      orgId,
+      trackingInfo,
+      sellerHistory,
+      buyerHistory,
+    });
 
     // Calculate fraud score
     const fraudScore = this.calculateFraudScore(fraudIndicators, claim);
@@ -75,55 +80,49 @@ export class InvestigationService {
   /**
    * Detect fraud indicators
    */
-  private static async detectFraudIndicators(
-    claim: Claim,
-    orgId: string,
-  ): Promise<FraudIndicators> {
+  private static async detectFraudIndicators(params: {
+    claim: Claim;
+    orgId: string;
+    trackingInfo: { status: string; deliveredAt?: Date };
+    sellerHistory: {
+      claimRate: number;
+      rating: number;
+      totalOrders: number;
+      totalClaims: number;
+    };
+    buyerHistory: { claimCount: number; claimRate: number; totalOrders: number };
+  }): Promise<FraudIndicators> {
+    const { claim, orgId, trackingInfo, sellerHistory, buyerHistory } = params;
+    const orgCandidates = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+
     // Check for multiple claims from same buyer in short period
     const claimsCollection = await this.claimsCollection();
     const recentClaims = await claimsCollection.countDocuments({
       buyerId: claim.buyerId,
-      orgId,
+      orgId: { $in: orgCandidates },
       filedAt: {
         $gte: new Date(
           Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
         ),
       },
-    });
+    } as Parameters<typeof claimsCollection.countDocuments>[0]);
 
-    // Check order delivery status
-    const db = await getDatabase();
-    const order = await db
-      .collection("souq_orders")
-      .findOne({
-        orderId: claim.orderId,
-        orgId,
-      });
     const trackingShowsDelivered =
-      order?.deliveryStatus === "delivered" && order?.deliveredAt !== undefined;
+      trackingInfo.status === "delivered" && trackingInfo.deliveredAt !== undefined;
 
     // Check reporting timeline
-    const daysSinceDelivery = order?.deliveredAt
-      ? (Date.now() - new Date(order.deliveredAt).getTime()) /
+    const daysSinceDelivery = trackingInfo.deliveredAt
+      ? (Date.now() - new Date(trackingInfo.deliveredAt).getTime()) /
         (1000 * 60 * 60 * 24)
       : 0;
     const lateReporting = daysSinceDelivery > this.LATE_REPORTING_DAYS;
 
-    // Check seller history
-    const sellerStats = await this.getSellerHistory({
-      sellerId: claim.sellerId,
-      orgId,
-    });
     const sellerHistoryGood =
-      sellerStats.claimRate < 0.05 && sellerStats.rating >= 4.0; // <5% claim rate, 4+ stars
-
-    // Check buyer history
-    const buyerStats = await this.getBuyerHistory({
-      buyerId: claim.buyerId,
-      orgId,
-    });
+      sellerHistory.claimRate < 0.05 && sellerHistory.rating >= 4.0; // <5% claim rate, 4+ stars
     const buyerHistoryPoor =
-      buyerStats.claimCount > 10 && buyerStats.claimRate > 0.15; // >10 claims, >15% rate
+      buyerHistory.claimCount > 10 && buyerHistory.claimRate > 0.15; // >10 claims, >15% rate
 
     return {
       multipleClaimsInShortPeriod: recentClaims >= 3,
@@ -206,9 +205,14 @@ export class InvestigationService {
   }): Promise<{ status: string; deliveredAt?: Date }> {
     const { orderId, orgId } = params;
     const db = await getDatabase();
+    const orgCandidates = orgId && MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : orgId
+        ? [orgId]
+        : [];
     const order = await db
       .collection("souq_orders")
-      .findOne(orgId ? { orderId, orgId } : { orderId });
+      .findOne(orgCandidates.length > 0 ? { orderId, orgId: { $in: orgCandidates } } : { orderId });
 
     if (!order) return { status: "unknown" };
 

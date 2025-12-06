@@ -39,3 +39,10 @@ export async function findWithOrgFallback<TSchema extends Document = Document>(
 
   return results;
 }
+
+/**
+ * Build a dual-type org filter (string + ObjectId) for direct use in queries.
+ */
+export function buildOrgFilter(orgId: string): { $in: OrgCandidates } {
+  return { $in: buildOrgCandidates(orgId) };
+}

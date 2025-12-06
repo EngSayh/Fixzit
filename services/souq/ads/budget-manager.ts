@@ -47,18 +47,17 @@ function createRedisClient(): Redis | null {
   // Without Redis, budget limits are not shared across instances, enabling overspend
   const isProduction = process.env.NODE_ENV === "production";
   const isTest = process.env.NODE_ENV === "test";
-  const allowFallback = process.env.BUDGET_ALLOW_MEMORY_FALLBACK === "true";
   // During Next.js build we can allow fallback to avoid blocking build artifacts, runtime must still enforce.
   const isBuildPhase =
     process.env.NEXT_PHASE === "phase-production-build" ||
     process.env.DISABLE_MONGODB_FOR_BUILD === "true";
   
   if (!redisUrl && !redisHost) {
-    if (isProduction && !allowFallback && !isBuildPhase) {
-      // Fail closed in production runtime - budget enforcement MUST be reliable
+    if (isProduction && !isBuildPhase) {
+      // Fail closed in production runtime—do NOT allow memory fallback
       throw new Error(
         "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
-        "Set BULLMQ_REDIS_URL/REDIS_URL or BUDGET_ALLOW_MEMORY_FALLBACK=true to allow degraded mode."
+        "Set BULLMQ_REDIS_URL/REDIS_URL; in-memory fallback is disabled in production.",
       );
     }
     if (!isTest) {
