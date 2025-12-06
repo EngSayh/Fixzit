@@ -1,0 +1,109 @@
+#!/usr/bin/env tsx
+/**
+ * Update SuperAdmin Credentials
+ * 
+ * Updates the SuperAdmin account with username/password authentication.
+ * Twilio does not support KSA, so OTP is disabled for SuperAdmin.
+ * 
+ * SuperAdmin Credentials:
+ * - Username: EngSayh
+ * - Password: EngSayh@1985
+ * - Email: superadmin@fixzit.co
+ */
+
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { User } from '@/server/models/User';
+import bcrypt from 'bcryptjs';
+
+const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
+const NEW_USERNAME = 'EngSayh';
+const NEW_PASSWORD = 'EngSayh@1985';
+
+async function updateSuperAdminCredentials() {
+  console.log('🔐 Updating SuperAdmin credentials...\n');
+
+  try {
+    // Connect to database
+    await connectToDatabase();
+    console.log('✅ Connected to database\n');
+
+    // Find super admin user
+    const user = await User.findOne({ email: SUPERADMIN_EMAIL });
+
+    if (!user) {
+      console.error(`❌ SuperAdmin user not found: ${SUPERADMIN_EMAIL}`);
+      console.error('   Run: pnpm exec tsx scripts/seed-test-users.ts');
+      process.exit(1);
+    }
+
+    console.log('✅ Found SuperAdmin user');
+    console.log('   ID:', user._id);
+    console.log('   Current Role:', user.role || user.professional?.role);
+    console.log('   Current Username:', user.username || 'NOT SET');
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(NEW_PASSWORD, 12);
+
+    // Update user with new credentials
+    const updateResult = await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          username: NEW_USERNAME,
+          password: hashedPassword,
+          status: 'ACTIVE',
+          isActive: true,
+          isSuperAdmin: true,
+          role: 'SUPER_ADMIN',
+          'professional.role': 'SUPER_ADMIN',
+          // Disable OTP requirement for SuperAdmin (Twilio doesn't support KSA)
+          'preferences.otpDisabled': true,
+          'security.locked': false,
+          'security.lockReason': null,
+          'security.lockTime': null,
+          'security.loginAttempts': 0,
+        },
+      },
+    );
+
+    if (updateResult.modifiedCount > 0 || updateResult.matchedCount > 0) {
+      console.log('\n✅ SuperAdmin credentials updated successfully!\n');
+    } else {
+      console.log('\n⚠️  No changes made (user may already have correct credentials)\n');
+    }
+
+    // Verify the update
+    const updatedUser = await User.findOne({ email: SUPERADMIN_EMAIL });
+    if (updatedUser) {
+      const passwordValid = await bcrypt.compare(NEW_PASSWORD, updatedUser.password);
+      
+      console.log('📋 Updated SuperAdmin Details:');
+      console.log('   ═══════════════════════════════════════════');
+      console.log('   Email:    ', SUPERADMIN_EMAIL);
+      console.log('   Username: ', updatedUser.username);
+      console.log('   Password: ', passwordValid ? '✅ VERIFIED' : '❌ FAILED');
+      console.log('   Role:     ', updatedUser.role || updatedUser.professional?.role);
+      console.log('   Status:   ', updatedUser.status);
+      console.log('   OTP:      ', updatedUser.preferences?.otpDisabled ? '❌ DISABLED' : '✅ ENABLED');
+      console.log('   ═══════════════════════════════════════════\n');
+
+      if (passwordValid) {
+        console.log('🎉 LOGIN CREDENTIALS:');
+        console.log('   ═══════════════════════════════════════════');
+        console.log('   📧 Email:    superadmin@fixzit.co');
+        console.log('   👤 Username: EngSayh');
+        console.log('   🔑 Password: EngSayh@1985');
+        console.log('   ═══════════════════════════════════════════\n');
+        console.log('   Login URL: https://fixzit.co/login\n');
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  } finally {
+    process.exit(0);
+  }
+}
+
+updateSuperAdminCredentials();

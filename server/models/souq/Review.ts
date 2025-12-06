@@ -34,6 +34,8 @@ export interface IReview extends Document {
 
   helpful: number;
   notHelpful: number;
+  helpfulVoters?: mongoose.Types.ObjectId[];
+  notHelpfulVoters?: mongoose.Types.ObjectId[];
 
   sellerResponse?: {
     content: string;
@@ -43,9 +45,12 @@ export interface IReview extends Document {
 
   status: "pending" | "published" | "rejected" | "flagged";
   moderationNotes?: string;
+  moderatedBy?: mongoose.Types.ObjectId;
+  moderatedAt?: Date;
 
   reportedCount: number;
   reportReasons?: string[];
+  reporters?: mongoose.Types.ObjectId[]; // 🔐 Track who reported to prevent duplicates
 
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +143,18 @@ const ReviewSchema = new Schema<IReview>(
       default: 0,
       min: 0,
     },
+    helpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
+    notHelpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
     sellerResponse: {
       content: {
         type: String,
@@ -156,12 +173,27 @@ const ReviewSchema = new Schema<IReview>(
       index: true,
     },
     moderationNotes: String,
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      select: false, // hide reviewer identity by default
+    },
+    moderatedAt: {
+      type: Date,
+      select: false,
+    },
     reportedCount: {
       type: Number,
       default: 0,
       min: 0,
     },
     reportReasons: [String],
+    reporters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false, // Hide from normal queries for privacy
+    },
     publishedAt: Date,
   },
   {
@@ -172,9 +204,13 @@ const ReviewSchema = new Schema<IReview>(
 
 ReviewSchema.index({ productId: 1, status: 1, createdAt: -1 });
 ReviewSchema.index({ productId: 1, rating: 1, createdAt: -1 });
-ReviewSchema.index({ customerId: 1, productId: 1 }, { unique: true });
+// 🔐 STRICT v4.1: Unique index must be org-scoped to prevent cross-tenant collisions
+ReviewSchema.index({ orgId: 1, customerId: 1, productId: 1 }, { unique: true });
 ReviewSchema.index({ rating: 1, status: 1 });
 ReviewSchema.index({ helpful: -1, status: 1 });
+// 🚀 PERF: Compound indexes for high-traffic query patterns (ISSUE-SOUQ-012)
+ReviewSchema.index({ orgId: 1, productId: 1, status: 1, createdAt: -1 });
+ReviewSchema.index({ orgId: 1, productId: 1 });
 
 export const SouqReview = getModel<IReview>("SouqReview", ReviewSchema);
 

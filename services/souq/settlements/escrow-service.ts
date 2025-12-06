@@ -389,11 +389,14 @@ export class EscrowService {
     await account.save();
 
     if (input.releaseId) {
-      await EscrowRelease.findByIdAndUpdate(input.releaseId, {
-        status: EscrowReleaseStatus.RELEASED,
-        releaseTransactionId: transaction._id,
-        releasedAt: new Date(),
-      });
+      await EscrowRelease.findOneAndUpdate(
+        { _id: input.releaseId, orgId: input.orgId },
+        {
+          status: EscrowReleaseStatus.RELEASED,
+          releaseTransactionId: transaction._id,
+          releasedAt: new Date(),
+        },
+      );
     }
 
     await emitEscrowEvent("escrow.released", {

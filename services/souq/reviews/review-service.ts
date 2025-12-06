@@ -5,10 +5,38 @@
 
 import { SouqReview, type IReview } from "@/server/models/souq/Review";
 import { SouqOrder } from "@/server/models/souq/Order";
-import { SouqProduct } from "@/server/models/souq/Product";
+import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { nanoid } from "nanoid";
 import type mongoose from "mongoose";
-import { Types } from "mongoose";
+import { Types, type FilterQuery } from "mongoose";
+
+// 🚀 PERF: Maximum limit for paginated queries to prevent abuse
+const MAX_PAGE_LIMIT = 100;
+// 🛡️ Moderation: Number of unique reports before auto-flagging a review
+const REPORT_FLAG_THRESHOLD = 3;
+
+// 🔐 STRICT v4.1: Roles allowed to moderate reviews
+const MODERATOR_ROLES = new Set([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "CORPORATE_ADMIN",
+  "SOUQ_ADMIN",
+  "MARKETPLACE_MODERATOR",
+]);
+
+// Helper to validate moderator role
+const assertModeratorRole = (role: string | undefined | null): void => {
+  if (!role || !MODERATOR_ROLES.has(role.toUpperCase())) {
+    throw new Error("Unauthorized: Moderator role required");
+  }
+};
+
+// Helper to cast org filter to Mongoose FilterQuery type
+const getOrgFilter = (orgId: string): FilterQuery<IReview> =>
+  buildSouqOrgFilter(orgId) as FilterQuery<IReview>;
+const getProductOrgFilter = (orgId: string): FilterQuery<IProduct> =>
+  buildSouqOrgFilter(orgId) as FilterQuery<IProduct>;
 
 export interface CreateReviewDto {
   productId: string;
@@ -69,15 +97,21 @@ class ReviewService {
    * Submit a new review
    */
   async submitReview(orgId: string, data: CreateReviewDto): Promise<IReview> {
+    // 🔐 STRICT v4.1: Validate rating is provided before range check
+    if (data.rating == null) {
+      throw new Error("Rating is required");
+    }
     this.assertRatingRange(data.rating);
 
     const orgObjectId = this.ensureObjectId(orgId, "orgId");
     const productObjectId = this.ensureObjectId(data.productId, "productId");
     const customerObjectId = this.ensureObjectId(data.customerId, "customerId");
+    // 🔐 STRICT v4.1: Use shared org filter for consistency across Souq services
+    const orgFilter = getOrgFilter(orgId);
 
     const product = await SouqProduct.findOne({
       _id: productObjectId,
-      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+      ...orgFilter,
     }).select("fsin isActive");
     if (!product) {
       throw new Error("Product not found");
@@ -90,7 +124,7 @@ class ReviewService {
     const existingReview = await SouqReview.findOne({
       customerId: customerObjectId,
       productId: productObjectId,
-      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+      ...orgFilter,
     });
 
     if (existingReview) {
@@ -105,7 +139,7 @@ class ReviewService {
       const order = await SouqOrder.findOne({
         orderId: data.orderId,
         customerId: customerObjectId,
-        orgId: orgObjectId,
+        ...orgFilter,
         "items.productId": productObjectId,
         status: "delivered",
       });
@@ -143,10 +177,18 @@ class ReviewService {
    */
   async updateReview(
     reviewId: string,
+    orgId: string,
     customerId: string,
     data: UpdateReviewDto,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId, customerId });
+    const customerObjectId = this.ensureObjectId(customerId, "customerId");
+    // 🔐 STRICT v4.1: Use shared org filter for consistency
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      customerId: customerObjectId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found or unauthorized");
@@ -175,8 +217,15 @@ class ReviewService {
   /**
    * Delete review (customer only, before publication)
    */
-  async deleteReview(reviewId: string, customerId: string): Promise<void> {
-    const review = await SouqReview.findOne({ reviewId, customerId });
+  async deleteReview(reviewId: string, orgId: string, customerId: string): Promise<void> {
+    const customerObjectId = this.ensureObjectId(customerId, "customerId");
+    // 🔐 STRICT v4.1: Use shared org filter for consistency
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      customerId: customerObjectId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found or unauthorized");
@@ -192,8 +241,14 @@ class ReviewService {
   /**
    * Mark review as helpful
    */
-  async markHelpful(reviewId: string, _customerId: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async markHelpful(reviewId: string, orgId: string, customerId: string): Promise<IReview> {
+    // 🔐 STRICT v4.1: Use shared org filter for consistency
+    const orgFilter = getOrgFilter(orgId);
+    const voterObjectId = this.ensureObjectId(customerId, "customerId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    }).select("+helpfulVoters +notHelpfulVoters");
 
     if (!review) {
       throw new Error("Review not found");
@@ -202,8 +257,31 @@ class ReviewService {
       throw new Error("Cannot vote on unpublished reviews");
     }
 
-    // Increment helpful count (in production, track who voted to prevent duplicates)
-    review.helpful += 1;
+    const voterIdStr = voterObjectId.toString();
+    const helpfulSet = new Set(
+      (review.helpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const notHelpfulSet = new Set(
+      (review.notHelpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const alreadyHelpful = helpfulSet.has(voterIdStr);
+    const wasNotHelpful = notHelpfulSet.has(voterIdStr);
+
+    if (!alreadyHelpful) {
+      helpfulSet.add(voterIdStr);
+      review.helpful = Math.max(0, (review.helpful ?? 0) + 1);
+    }
+    if (wasNotHelpful) {
+      notHelpfulSet.delete(voterIdStr);
+      review.notHelpful = Math.max(0, (review.notHelpful ?? 0) - 1);
+    }
+
+    review.helpfulVoters = Array.from(helpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    review.notHelpfulVoters = Array.from(notHelpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
     await review.save();
 
     return review;
@@ -214,9 +292,15 @@ class ReviewService {
    */
   async markNotHelpful(
     reviewId: string,
-    _customerId: string,
+    orgId: string,
+    customerId: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    const orgFilter = getOrgFilter(orgId);
+    const voterObjectId = this.ensureObjectId(customerId, "customerId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    }).select("+helpfulVoters +notHelpfulVoters");
 
     if (!review) {
       throw new Error("Review not found");
@@ -225,8 +309,31 @@ class ReviewService {
       throw new Error("Cannot vote on unpublished reviews");
     }
 
-    // Increment not helpful count
-    review.notHelpful += 1;
+    const voterIdStr = voterObjectId.toString();
+    const helpfulSet = new Set(
+      (review.helpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const notHelpfulSet = new Set(
+      (review.notHelpfulVoters ?? []).map((id) => id.toString()),
+    );
+    const wasHelpful = helpfulSet.has(voterIdStr);
+    const alreadyNotHelpful = notHelpfulSet.has(voterIdStr);
+
+    if (!alreadyNotHelpful) {
+      notHelpfulSet.add(voterIdStr);
+      review.notHelpful = Math.max(0, (review.notHelpful ?? 0) + 1);
+    }
+    if (wasHelpful) {
+      helpfulSet.delete(voterIdStr);
+      review.helpful = Math.max(0, (review.helpful ?? 0) - 1);
+    }
+
+    review.helpfulVoters = Array.from(helpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
+    review.notHelpfulVoters = Array.from(notHelpfulSet).map(
+      (id) => new Types.ObjectId(id),
+    );
     await review.save();
 
     return review;
@@ -234,37 +341,86 @@ class ReviewService {
 
   /**
    * Report inappropriate review
+   * @param reviewId - The review to report
+   * @param orgId - Organization ID for tenant isolation
+   * @param reporterId - ID of the user making the report (for dedup/rate-limit)
+   * @param reason - Reason for reporting
    */
-  async reportReview(reviewId: string, reason: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async reportReview(
+    reviewId: string,
+    orgId: string,
+    reporterId: string,
+    reason: string,
+  ): Promise<IReview> {
+    const orgFilter = getOrgFilter(orgId);
+    const reporterObjectId = this.ensureObjectId(reporterId, "reporterId");
+
+    // Deduplicate by reporter to prevent spam; only increment count when reporter is new
+    const updated = await SouqReview.findOneAndUpdate(
+      {
+        reviewId,
+        ...orgFilter,
+        reporters: { $ne: reporterObjectId },
+      },
+      {
+        $addToSet: { reporters: reporterObjectId },
+        $push: { reportReasons: { $each: [reason], $slice: -20 } },
+        $inc: { reportedCount: 1 },
+      },
+      { new: true, select: "+reporters" },
+    );
+
+    // If the reporter already exists, fetch current state without mutating counts
+    const review =
+      updated ??
+      (await SouqReview.findOne({
+        reviewId,
+        ...orgFilter,
+      }).select("+reporters"));
 
     if (!review) {
       throw new Error("Review not found");
     }
 
-    // Increment report count
-    review.reportedCount += 1;
-    review.reportReasons = review.reportReasons || [];
-    review.reportReasons.push(reason);
-
-    // Auto-flag if reported multiple times
-    if (review.reportedCount >= 3 && review.status === "published") {
+    // Auto-flag if threshold reached
+    if (review.reportedCount >= REPORT_FLAG_THRESHOLD && review.status === "published") {
       review.status = "flagged";
+      await review.save();
+      const productObjectId = this.ensureObjectId(
+        String(review.productId),
+        "productId",
+      );
+      await this.updateProductAggregates(productObjectId, orgId);
+    } else if (updated) {
+      // Persist the new reason even when not flagging
+      await review.save();
     }
 
-    await review.save();
+    // 🚫 Privacy: do not return reporter identities to callers
+    delete (review as { reporters?: unknown }).reporters;
+
     return review;
   }
 
   /**
    * Seller responds to review
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async respondToReview(
+    orgId: string,
     reviewId: string,
     sellerId: string,
     content: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for respondToReview (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -284,11 +440,11 @@ class ReviewService {
       String(review.productId),
       "productId",
     );
-    const orgObjectId = this.ensureObjectId(String(reviewOrgId), "orgId");
+    const reviewOrgFilter = getProductOrgFilter(String(reviewOrgId));
 
     const product = await SouqProduct.findOne({
       _id: productObjectId,
-      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+      ...reviewOrgFilter,
     }).select("createdBy");
     if (!Types.ObjectId.isValid(sellerId)) {
       throw new Error("Invalid seller id");
@@ -315,12 +471,19 @@ class ReviewService {
 
   /**
    * Get reviews for seller (all their products)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getSellerReviews(
+    orgId: string,
     sellerId: string,
     filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
-    const sellerProductIds = await this.getSellerProductIds(sellerId);
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerReviews (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = getOrgFilter(orgId);
+    const sellerProductIds = await this.getSellerProductIds(orgId, sellerId);
     if (sellerProductIds.length === 0) {
       return {
         reviews: [],
@@ -340,9 +503,10 @@ class ReviewService {
       status,
     } = filters;
 
-    // Build query (simplified - would join with products to find seller's products)
+    // Build query - 🔐 STRICT v4.1: Include org filter for tenant isolation
     const query: Record<string, unknown> = {
       productId: { $in: sellerProductIds },
+      ...orgFilter,
     };
 
     if (rating) query.rating = rating;
@@ -358,28 +522,39 @@ class ReviewService {
     }
 
     // Execute query
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(limit ?? 20, MAX_PAGE_LIMIT);
+    const currentPage = Math.max(page ?? 1, 1);
+    const skip = (currentPage - 1) * safeLimit;
     const [reviews, total] = await Promise.all([
-      SouqReview.find(query).sort(sortOptions).skip(skip).limit(limit),
+      SouqReview.find(query).sort(sortOptions).skip(skip).limit(safeLimit).lean(),
       SouqReview.countDocuments(query),
     ]);
 
     return {
-      reviews,
+      reviews: reviews as unknown as IReview[],
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: currentPage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     };
   }
 
   /**
    * Get product reviews (public)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getProductReviews(
     productId: string,
+    orgId: string,
     filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getProductReviews (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = getOrgFilter(orgId);
+    const productObjectId = this.ensureObjectId(productId, "productId");
+
     const {
       rating,
       verifiedOnly,
@@ -390,8 +565,9 @@ class ReviewService {
 
     // Build query
     const query: Record<string, unknown> = {
-      productId,
+      productId: { $in: [productId, productObjectId] },
       status: "published", // Only show published reviews
+      ...orgFilter,
     };
 
     if (rating) query.rating = rating;
@@ -406,36 +582,52 @@ class ReviewService {
     }
 
     // Execute query
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(limit ?? 20, MAX_PAGE_LIMIT);
+    const currentPage = Math.max(page ?? 1, 1);
+    const skip = (currentPage - 1) * safeLimit;
     const [reviews, total] = await Promise.all([
-      SouqReview.find(query).sort(sortOptions).skip(skip).limit(limit),
+      SouqReview.find(query).sort(sortOptions).skip(skip).limit(safeLimit).lean(),
       SouqReview.countDocuments(query),
     ]);
 
     return {
-      reviews,
+      reviews: reviews as unknown as IReview[],
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: currentPage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     };
   }
 
   /**
    * Get single review by ID
    */
-  async getReviewById(reviewId: string): Promise<IReview | null> {
-    return await SouqReview.findOne({ reviewId });
+  async getReviewById(reviewId: string, orgId: string): Promise<IReview | null> {
+    const orgFilter = getOrgFilter(orgId);
+    return await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    });
   }
 
   /**
    * Approve review (moderator)
+   * 🔐 STRICT v4.1: Requires moderator role validation
    */
   async approveReview(
     reviewId: string,
-    _moderatorId: string,
+    orgId: string,
+    moderatorId: string,
+    moderatorRole: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    // 🔐 STRICT v4.1: Validate moderator has appropriate role
+    assertModeratorRole(moderatorRole);
+    
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -443,21 +635,34 @@ class ReviewService {
 
     review.status = "published";
     review.publishedAt = new Date();
+    // 🔐 AUDIT: Record who approved the review
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
-    await this.updateProductAggregates(review.productId);
+    await this.updateProductAggregates(review.productId, orgId);
 
     return review;
   }
 
   /**
    * Reject review (moderator)
+   * 🔐 STRICT v4.1: Requires moderator role validation
    */
   async rejectReview(
     reviewId: string,
-    _moderatorId: string,
+    orgId: string,
+    moderatorId: string,
+    moderatorRole: string,
     notes: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    // 🔐 STRICT v4.1: Validate moderator has appropriate role
+    assertModeratorRole(moderatorRole);
+    
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -465,17 +670,37 @@ class ReviewService {
 
     review.status = "rejected";
     review.moderationNotes = notes;
+    // 🔐 AUDIT: Record who rejected the review
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
-    await this.updateProductAggregates(review.productId);
+    await this.updateProductAggregates(review.productId, orgId);
 
     return review;
   }
 
   /**
    * Flag review (moderator)
+   * 🔐 STRICT v4.1: Requires moderator role validation
    */
-  async flagReview(reviewId: string, reason: string): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+  async flagReview(
+    reviewId: string,
+    orgId: string,
+    moderatorId: string,
+    moderatorRole: string,
+    reason: string,
+  ): Promise<IReview> {
+    // 🔐 STRICT v4.1: Validate moderator has appropriate role
+    assertModeratorRole(moderatorRole);
+    
+    if (!reason) {
+      throw new Error("Flag reason is required");
+    }
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne({
+      reviewId,
+      ...orgFilter,
+    });
 
     if (!review) {
       throw new Error("Review not found");
@@ -483,8 +708,11 @@ class ReviewService {
 
     review.status = "flagged";
     review.moderationNotes = reason;
+    // 🔐 AUDIT: Record who flagged the review
+    review.moderatedBy = new Types.ObjectId(moderatorId);
+    review.moderatedAt = new Date();
     await review.save();
-    await this.updateProductAggregates(review.productId);
+    await this.updateProductAggregates(review.productId, orgId);
 
     return review;
   }
@@ -492,8 +720,9 @@ class ReviewService {
   /**
    * Get review statistics for a product
    */
-  async getReviewStats(productId: string): Promise<ReviewStats> {
+  async getReviewStats(productId: string, orgId: string): Promise<ReviewStats> {
     const productObjectId = this.ensureObjectId(productId, "productId");
+    const orgFilter = getOrgFilter(orgId);
     const [stats] = await SouqReview.aggregate<{
       totalReviews: number;
       totalRating: number;
@@ -504,7 +733,13 @@ class ReviewService {
       star4: number;
       star5: number;
     }>([
-      { $match: { productId: productObjectId, status: "published" } },
+      {
+        $match: {
+          productId: { $in: [productObjectId, productId] },
+          status: "published",
+          ...orgFilter,
+        },
+      },
       {
         $group: {
           _id: "$productId",
@@ -535,9 +770,11 @@ class ReviewService {
       totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
     const recentReviews = await SouqReview.find({
-      productId: productObjectId,
+      productId: { $in: [productObjectId, productId] },
       status: "published",
+      ...orgFilter,
     })
       .sort({ createdAt: -1 })
       .limit(5);
@@ -553,9 +790,15 @@ class ReviewService {
 
   /**
    * Get seller review statistics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  async getSellerReviewStats(sellerId: string): Promise<SellerReviewStats> {
-    const sellerProductIds = await this.getSellerProductIds(sellerId);
+  async getSellerReviewStats(orgId: string, sellerId: string): Promise<SellerReviewStats> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerReviewStats (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = getOrgFilter(orgId);
+    const sellerProductIds = await this.getSellerProductIds(orgId, sellerId);
     if (sellerProductIds.length === 0) {
       return {
         averageRating: 0,
@@ -566,44 +809,79 @@ class ReviewService {
       };
     }
 
-    const reviews = await SouqReview.find({
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    // 🚀 PERF: Use aggregation instead of loading all reviews into memory
+    const matchStage = {
       status: "published",
       productId: { $in: sellerProductIds },
-    });
+      ...orgFilter,
+    };
 
-    const totalReviews = reviews.length;
-    const averageRating =
-      totalReviews > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-        : 0;
+    const [stats] = await SouqReview.aggregate<{
+      totalReviews: number;
+      avgRating: number;
+      pendingResponses: number;
+    }>([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalReviews: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+          pendingResponses: {
+            $sum: { $cond: [{ $not: ["$sellerResponse"] }, 1, 0] },
+          },
+        },
+      },
+    ]);
 
-    const pendingResponses = reviews.filter((r) => !r.sellerResponse).length;
+    const totalReviews = stats?.totalReviews ?? 0;
+    const averageRating = stats?.avgRating ?? 0;
+    const pendingResponses = stats?.pendingResponses ?? 0;
     const responseRate =
       totalReviews > 0
         ? ((totalReviews - pendingResponses) / totalReviews) * 100
         : 0;
 
-    const recentReviews = reviews
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 5);
+    // Fetch only recent 5 reviews using DB sort/limit instead of loading all
+    const recentReviews = await SouqReview.find(matchStage)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
 
     return {
       averageRating,
       totalReviews,
       pendingResponses,
       responseRate,
-      recentReviews,
+      recentReviews: recentReviews as unknown as IReview[],
     };
   }
 
+  /**
+   * Get product IDs for a seller within an org
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
   private async getSellerProductIds(
+    orgId: string,
     sellerId: string,
   ): Promise<mongoose.Types.ObjectId[]> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerProductIds (STRICT v4.1 tenant isolation)');
+    }
     if (!sellerId || !Types.ObjectId.isValid(sellerId)) {
       return [];
     }
 
-    const products = await SouqProduct.find({ createdBy: sellerId })
+    const orgFilter = getOrgFilter(orgId);
+    // 🔧 FIX: Convert sellerId to ObjectId to match schema type
+    const sellerObjectId = new Types.ObjectId(sellerId);
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    const products = await SouqProduct.find({
+      createdBy: sellerObjectId,
+      ...orgFilter,
+    })
       .select("_id")
       .lean();
     return products.map((product) => product._id);
@@ -627,7 +905,9 @@ class ReviewService {
 
   private async updateProductAggregates(
     productId: mongoose.Types.ObjectId,
+    orgId: string,
   ): Promise<void> {
+    const orgFilter = getOrgFilter(orgId);
     const [stats] = await SouqReview.aggregate<{
       totalReviews: number;
       totalRating: number;
@@ -637,7 +917,7 @@ class ReviewService {
       star4: number;
       star5: number;
     }>([
-      { $match: { productId, status: "published" } },
+      { $match: { productId, status: "published", ...orgFilter } },
       {
         $group: {
           _id: "$productId",
@@ -665,7 +945,7 @@ class ReviewService {
       totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
 
     await SouqProduct.updateOne(
-      { _id: productId },
+      { _id: productId, ...orgFilter },
       {
         $set: {
           averageRating,

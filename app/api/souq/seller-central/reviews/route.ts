@@ -27,6 +27,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
     await connectDb();
 
     const { searchParams } = new URL(req.url);
@@ -39,7 +48,7 @@ export async function GET(req: NextRequest) {
       status: searchParams.get("status") ?? undefined,
     });
 
-    const result = await reviewService.getSellerReviews(session.user.id, {
+    const result = await reviewService.getSellerReviews(orgId, session.user.id, {
       page: filters.page,
       limit: filters.limit,
       rating: filters.rating,

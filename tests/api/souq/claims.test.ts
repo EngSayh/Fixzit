@@ -622,7 +622,8 @@ describe("Claims API - Core Functionality", () => {
         },
       );
 
-      expect(response.status).toBe(403);
+      // 🔐 STRICT v4.1: Non-admin gets 404 (not 403) to prevent info leakage about claims they can't access
+      expect(response.status).toBe(404);
     });
 
     it("should calculate seller protection eligibility", async () => {
@@ -1037,6 +1038,7 @@ describe("Claims API - Core Functionality", () => {
         },
       );
 
+      // Claim found but user is not buyer/seller - returns 403 Forbidden
       expect(response.status).toBe(403);
     });
   });

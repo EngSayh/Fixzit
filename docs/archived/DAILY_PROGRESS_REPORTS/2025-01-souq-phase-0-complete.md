@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 - `validateFSIN(fsin)` - Format + check digit validation
 - `formatFSIN(fsin)` - Display format with dashes
 - `parseFSIN(fsin)` - Extract components
-- `generateUniqueFSIN()` - Database-aware (async)
+- `generateUniqueFSIN(orgId)` - Database-aware (async, tenant-scoped)
 
 **Collision Probability**: < 0.001% for 1M products (11 digits = 100B combinations)
 

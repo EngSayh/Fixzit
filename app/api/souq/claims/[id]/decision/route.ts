@@ -28,17 +28,19 @@ export async function POST(
     }
 
     const db = await getDatabase();
+    // 🔐 STRICT v4.1: Include orgId in admin record lookup for tenant isolation
     const adminRecord = ObjectId.isValid(session.user.id)
       ? await db
           .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(session.user.id) })
-      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id });
+          .findOne({ _id: new ObjectId(session.user.id), orgId: userOrgId })
+      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id, orgId: userOrgId });
 
     const role = (adminRecord?.role || session.user.role || "").toUpperCase();
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
     const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
     if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about admin endpoints
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -68,10 +70,8 @@ export async function POST(
       .collection(COLLECTIONS.ORDERS)
       .findOne(claimOrgFilter);
     if (!orderForScope) {
-      return NextResponse.json(
-        { error: "Forbidden: claim does not belong to your organization" },
-        { status: 403 },
-      );
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());

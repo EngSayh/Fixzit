@@ -54,10 +54,7 @@ export async function GET(
         .catch(() => null);
     }
     if (!order) {
-      return NextResponse.json(
-        { error: "Forbidden: order not found in your organization" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
@@ -124,10 +121,7 @@ export async function PUT(
       : { orderId: orderIdValue, ...orgFilter };
     const order = await db.collection(COLLECTIONS.ORDERS).findOne(orderFilter);
     if (!order) {
-      return NextResponse.json(
-        { error: "Forbidden: claim does not belong to your organization" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     // Only buyer can withdraw

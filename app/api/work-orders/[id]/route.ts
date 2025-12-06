@@ -7,6 +7,7 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import type { Ability } from "@/server/rbac/workOrdersPolicy";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
+import { Types } from "mongoose";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { deleteObject } from "@/lib/storage/s3";
@@ -61,11 +62,14 @@ function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  props: { params: { id: string } },
 ): Promise<NextResponse> {
   const user = await requireAbility("VIEW")(req);
   if (user instanceof NextResponse) return user;
-  const { id } = await props.params;
+  const { id } = props.params;
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
 
   // Basic rate limit to avoid hot path abuse
   const clientIp = getClientIP(req);
@@ -80,7 +84,7 @@ export async function GET(
   const scopedQuery =
     user.isSuperAdmin === true
       ? { _id: id }
-      : { _id: id, orgId: user.orgId };
+      : { _id: id, orgId: { $in: [user.orgId, new Types.ObjectId(user.orgId)] } };
 
   const wo = await WorkOrder.findOne(scopedQuery).lean();
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
@@ -127,10 +131,13 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  props: { params: { id: string } },
 ): Promise<NextResponse> {
-  const { id } = await props.params;
+  const { id } = props.params;
   const workOrderId = id || req.url.split('/').pop() || '';
+  if (!workOrderId || !Types.ObjectId.isValid(workOrderId)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
   const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
   const user = await requireAbility(ability)(req);
   if (user instanceof NextResponse) return user;
@@ -141,7 +148,7 @@ export async function PATCH(
   const scopedQuery =
     user.isSuperAdmin === true
       ? { _id: workOrderId }
-      : { _id: workOrderId, orgId: user.orgId };
+      : { _id: workOrderId, orgId: { $in: [user.orgId, new Types.ObjectId(user.orgId)] } };
 
   // Validate property existence if provided
   if (updates.propertyId) {

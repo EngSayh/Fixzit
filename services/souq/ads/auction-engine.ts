@@ -246,8 +246,8 @@ export class AuctionEngine {
     bid: AdBid,
     context: AuctionContext,
   ): Promise<number> {
-    // Fetch historical performance
-    const stats = await this.fetchBidStats(bid.bidId);
+    // Fetch historical performance - scoped by orgId for tenant isolation
+    const stats = await this.fetchBidStats(bid.bidId, context.orgId);
 
     // CTR component (0-1)
     const ctr =
@@ -259,8 +259,8 @@ export class AuctionEngine {
     // Relevance component (0-1)
     const relevanceScore = this.calculateRelevanceScore(bid, context);
 
-    // Landing page quality (0-1)
-    const lpqScore = await this.calculateLandingPageQuality(bid.productId);
+    // Landing page quality (0-1) - scoped by orgId for tenant isolation
+    const lpqScore = await this.calculateLandingPageQuality(bid.productId, context.orgId);
 
     // Normalize relevance/lpq to the same 0-10 scale before weighting so CTR
     // does not dominate simply because of scale differences.
@@ -303,16 +303,22 @@ export class AuctionEngine {
   /**
    * Calculate Landing Page Quality (0-1)
    * Based on product rating, reviews, conversion rate
+   * @param productId - The product FSIN
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
    */
   private static async calculateLandingPageQuality(
     productId: string,
+    orgId: string,
   ): Promise<number> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // Build org filter for tenant isolation - handles both orgId and org_id for legacy data
+    const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
+
     const product = await db
       .collection("souq_products")
-      .findOne({ fsin: productId });
+      .findOne({ fsin: productId, ...orgFilter });
 
     if (!product) return 0.5; // Default quality
 
@@ -462,7 +468,7 @@ export class AuctionEngine {
 
     // CRITICAL: Always filter by orgId to prevent cross-tenant ad serving
     const campaigns = await db
-      .collection<AdCampaign>("souq_ad_campaigns")
+      .collection<AdCampaign>("souq_campaigns")
       .find({
         orgId: context.orgId, // Required for tenant isolation
         type,
@@ -476,8 +482,10 @@ export class AuctionEngine {
 
   /**
    * Fetch bid performance statistics
+   * @param bidId - The bid ID
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
    */
-  private static async fetchBidStats(bidId: string): Promise<{
+  private static async fetchBidStats(bidId: string, orgId: string): Promise<{
     impressions: number;
     clicks: number;
     conversions: number;
@@ -486,7 +494,10 @@ export class AuctionEngine {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const stats = await db.collection("souq_ad_stats").findOne({ bidId });
+    // Build org filter for tenant isolation - handles both orgId and org_id for legacy data
+    const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
+
+    const stats = await db.collection("souq_ad_stats").findOne({ bidId, ...orgFilter });
 
     return {
       impressions: stats?.impressions || 0,
@@ -522,7 +533,7 @@ export class AuctionEngine {
 
     // Update aggregated stats (scoped by bidId which is unique per campaign)
     await db.collection("souq_ad_stats").updateOne(
-      { bidId },
+      { bidId, orgId: context.orgId },
       {
         $inc: { impressions: 1 },
         $setOnInsert: { clicks: 0, conversions: 0, spend: 0, orgId: context.orgId },
@@ -559,7 +570,7 @@ export class AuctionEngine {
 
     // Update aggregated stats (scoped by bidId which is unique per campaign)
     await db.collection("souq_ad_stats").updateOne(
-      { bidId },
+      { bidId, orgId: context.orgId },
       {
         $inc: {
           clicks: 1,
@@ -571,8 +582,8 @@ export class AuctionEngine {
     );
 
     // Update campaign spend
-    await db.collection("souq_ad_campaigns").updateOne(
-      { campaignId },
+    await db.collection("souq_campaigns").updateOne(
+      { campaignId, orgId: context.orgId },
       {
         $inc: { spentToday: actualCpc },
       },
@@ -586,12 +597,14 @@ export class AuctionEngine {
     bidId: string,
     campaignId: string,
     orderValue: number,
+    orgId: string,
   ): Promise<void> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     await db.collection("souq_ad_events").insertOne({
       eventType: "conversion",
+      orgId,
       bidId,
       campaignId,
       orderValue,
@@ -600,12 +613,13 @@ export class AuctionEngine {
 
     // Update aggregated stats
     await db.collection("souq_ad_stats").updateOne(
-      { bidId },
+      { bidId, orgId },
       {
         $inc: {
           conversions: 1,
           revenue: orderValue,
         },
+        $setOnInsert: { orgId },
       },
       { upsert: true },
     );

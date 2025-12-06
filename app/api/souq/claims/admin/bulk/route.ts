@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const invalidIds = claimIds.filter((id: unknown) => !isValidObjectId(id));
+    const invalidIds = claimIds.filter((id: unknown) => !isValidObjectId(id as string));
     if (invalidIds.length > 0) {
       return NextResponse.json(
         { error: `Invalid claimIds: ${invalidIds.join(",")}` },

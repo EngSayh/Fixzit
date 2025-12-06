@@ -1,31 +1,11 @@
 /**
- * SMS Service - Multi-Provider Integration for Saudi Market
+ * SMS Service - Twilio Integration for Saudi Market
  *
  * Provides SMS functionality for notifications, OTP, and alerts.
- * Supports multiple SMS providers:
- * - Unifonic (recommended for Saudi Arabia)
- * - Twilio (limited KSA support)
- * - Mock (development/testing)
- *
- * Configuration:
- *   SMS_PROVIDER=twilio|unifonic|mock (default: auto-detect)
- *   SMS_DEV_MODE=true|false (force mock mode)
- *
- * For Saudi Arabia operations, set SMS_PROVIDER=unifonic
+ * Supports Saudi Arabian phone number formats.
  */
 
-import {
-  sendSMS as providerSendSMS,
-  sendOTP as providerSendOTP,
-  sendBulkSMS as providerSendBulkSMS,
-  getSMSStatus as providerGetSMSStatus,
-  testSMSConfiguration as providerTestSMSConfiguration,
-  isSMSDevModeEnabled as providerIsSMSDevModeEnabled,
-  formatSaudiPhoneNumber,
-  isValidSaudiPhone,
-  getSMSProvider,
-  getCurrentProviderName,
-} from "@/lib/sms-providers";
+import { logger } from "@/lib/logger";
 import {
   executeWithRetry,
   withTimeout,
@@ -33,21 +13,27 @@ import {
 } from "@/lib/resilience";
 import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 
-// Re-export provider utilities for backward compatibility
-export { formatSaudiPhoneNumber, isValidSaudiPhone, getSMSProvider, getCurrentProviderName };
+const NODE_ENV = process.env.NODE_ENV || "development";
+const SMS_DEV_MODE_ENABLED =
+  process.env.SMS_DEV_MODE === "true" ||
+  (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
-/**
- * @deprecated Use SMSResult from @/lib/sms-providers instead
- */
+const twilioBreaker = getCircuitBreaker("twilio");
+const twilioResilience = SERVICE_RESILIENCE.twilio;
+
+function hasTwilioConfiguration(): boolean {
+  return Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_PHONE_NUMBER,
+  );
+}
+
 interface SMSResult {
   success: boolean;
   messageSid?: string;
   error?: string;
 }
-
-// Legacy Twilio resilience exports for backward compatibility
-const twilioBreaker = getCircuitBreaker("twilio");
-const twilioResilience = SERVICE_RESILIENCE.twilio;
 
 export type TwilioOperationLabel =
   | "sms-send"
@@ -55,9 +41,6 @@ export type TwilioOperationLabel =
   | "sms-config-test"
   | "whatsapp-send";
 
-/**
- * @deprecated Use provider abstraction instead
- */
 export async function withTwilioResilience<T>(
   label: TwilioOperationLabel,
   operation: () => Promise<T>,
@@ -83,31 +66,123 @@ export async function withTwilioResilience<T>(
 }
 
 /**
- * Send SMS using the configured provider
- * Uses Unifonic for Saudi Arabia, Twilio as fallback, Mock for dev mode
+ * Format phone number to E.164 format (+966XXXXXXXXX)
+ * Handles common Saudi phone number formats
+ */
+function formatSaudiPhoneNumber(phone: string): string {
+  // Remove all spaces, dashes, and parentheses
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+
+  // If already in E.164 format
+  if (cleaned.startsWith("+966")) {
+    return cleaned;
+  }
+
+  // Remove leading zeros
+  if (cleaned.startsWith("00966")) {
+    return "+" + cleaned.substring(2);
+  }
+
+  if (cleaned.startsWith("966")) {
+    return "+" + cleaned;
+  }
+
+  if (cleaned.startsWith("0")) {
+    return "+966" + cleaned.substring(1);
+  }
+
+  // Assume local number
+  return "+966" + cleaned;
+}
+
+/**
+ * Validate Saudi phone number
+ * Saudi mobile numbers: +966 5XX XXX XXXX (9 digits after country code)
+ */
+function isValidSaudiPhone(phone: string): boolean {
+  const formatted = formatSaudiPhoneNumber(phone);
+  // Saudi mobile numbers start with +966 5 and have 9 digits total after country code
+  return /^\+9665\d{8}$/.test(formatted);
+}
+
+/**
+ * Send SMS via Twilio (or mocked console output in dev mode)
  */
 export async function sendSMS(to: string, message: string): Promise<SMSResult> {
-  const result = await providerSendSMS(to, message);
+  const twilioConfigured = hasTwilioConfiguration();
+  const formattedPhone = formatSaudiPhoneNumber(to);
 
-  // Map to legacy SMSResult format for backward compatibility
-  return {
-    success: result.success,
-    messageSid: result.messageId,
-    error: result.error,
-  };
+  if (!isValidSaudiPhone(formattedPhone)) {
+    const error = `Invalid Saudi phone number format: ${to}`;
+    logger.warn("[SMS] Invalid phone number", { to, formattedPhone });
+    return { success: false, error };
+  }
+
+  if (!twilioConfigured && !SMS_DEV_MODE_ENABLED) {
+    const error =
+      "Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER";
+    logger.warn("[SMS] Configuration missing", { to: formattedPhone });
+    return { success: false, error };
+  }
+
+  if (SMS_DEV_MODE_ENABLED) {
+    const messageSid = `dev-${Date.now()}`;
+    logger.info("[SMS] Dev mode enabled - SMS not sent via Twilio", {
+      to: formattedPhone,
+      preview: message,
+      messageSid,
+      twilioConfigured,
+    });
+    return { success: true, messageSid };
+  }
+
+  try {
+    const { default: twilio } = await import("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID!,
+      process.env.TWILIO_AUTH_TOKEN!,
+    );
+
+    const result = await withTwilioResilience("sms-send", () =>
+      client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: formattedPhone,
+      }),
+    );
+
+    logger.info("[SMS] Message sent successfully", {
+      to: formattedPhone,
+      messageSid: result.sid,
+      status: result.status,
+    });
+
+    return {
+      success: true,
+      messageSid: result.sid,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[SMS] Send failed", {
+      error: errorMessage,
+      to: formattedPhone,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
 }
 
 /**
  * Send OTP (One-Time Password) via SMS
  */
 export async function sendOTP(to: string, code: string): Promise<SMSResult> {
-  const result = await providerSendOTP(to, code);
-
-  return {
-    success: result.success,
-    messageSid: result.messageId,
-    error: result.error,
-  };
+  const message = `Your Fixzit verification code is: ${code}. Valid for 5 minutes. Do not share this code.`;
+  return sendSMS(to, message);
 }
 
 /**
@@ -119,24 +194,37 @@ export async function sendBulkSMS(
   message: string,
   options?: { delayMs?: number },
 ): Promise<{ sent: number; failed: number; results: SMSResult[] }> {
-  const bulkResult = await providerSendBulkSMS(recipients, message, options);
+  const results: SMSResult[] = [];
+  let sent = 0;
+  let failed = 0;
 
-  // Map to legacy format
-  const results: SMSResult[] = bulkResult.results.map((r) => ({
-    success: r.success,
-    messageSid: r.messageId,
-    error: r.error,
-  }));
+  for (const recipient of recipients) {
+    const result = await sendSMS(recipient, message);
+    results.push(result);
 
-  return {
-    sent: bulkResult.sent,
-    failed: bulkResult.failed,
-    results,
-  };
+    if (result.success) {
+      sent++;
+    } else {
+      failed++;
+    }
+
+    // Add delay between messages to avoid rate limiting
+    if (options?.delayMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+    }
+  }
+
+  logger.info("[SMS] Bulk send completed", {
+    total: recipients.length,
+    sent,
+    failed,
+  });
+
+  return { sent, failed, results };
 }
 
 /**
- * Get SMS delivery status from current provider
+ * Get SMS delivery status from Twilio
  */
 export async function getSMSStatus(messageSid: string): Promise<{
   status: string;
@@ -145,36 +233,74 @@ export async function getSMSStatus(messageSid: string): Promise<{
   errorCode?: number;
   errorMessage?: string;
 } | null> {
-  const result = await providerGetSMSStatus(messageSid);
-
-  if (!result) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    logger.warn("[SMS] Cannot check status - Twilio not configured");
     return null;
   }
 
-  return {
-    status: result.status,
-    dateCreated: result.createdAt,
-    dateSent: result.sentAt,
-    errorCode:
-      typeof result.errorCode === "number"
-        ? result.errorCode
-        : result.errorCode
-          ? parseInt(result.errorCode, 10) || undefined
-          : undefined,
-    errorMessage: result.errorMessage,
-  };
+  try {
+    const { default: twilio } = await import("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+    );
+
+    const message = await withTwilioResilience("sms-status", () =>
+      client.messages(messageSid).fetch(),
+    );
+
+    return {
+      status: message.status,
+      dateCreated: new Date(message.dateCreated),
+      dateSent: message.dateSent ? new Date(message.dateSent) : undefined,
+      errorCode: message.errorCode || undefined,
+      errorMessage: message.errorMessage || undefined,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SMS] Status check failed", { error, messageSid });
+    return null;
+  }
 }
 
 /**
  * Test SMS configuration
  */
 export async function testSMSConfiguration(): Promise<boolean> {
-  return providerTestSMSConfiguration();
+  if (!hasTwilioConfiguration()) {
+    logger.error("[SMS] Configuration test failed - missing credentials");
+    return false;
+  }
+
+  try {
+    const { default: twilio } = await import("twilio");
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!accountSid || !authToken) {
+      logger.error("[SMS] Configuration test failed - missing credentials");
+      return false;
+    }
+
+    const client = twilio(accountSid, authToken);
+
+    // Validate credentials by fetching account info
+    await withTwilioResilience("sms-config-test", () =>
+      client.api.accounts(accountSid).fetch(),
+    );
+
+    logger.info("[SMS] Configuration test passed");
+    return true;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SMS] Configuration test failed", { error });
+    return false;
+  }
 }
 
-/**
- * Check if SMS dev mode is enabled
- */
 export function isSMSDevModeEnabled(): boolean {
-  return providerIsSMSDevModeEnabled();
+  return SMS_DEV_MODE_ENABLED;
 }
+
+export { formatSaudiPhoneNumber, isValidSaudiPhone };

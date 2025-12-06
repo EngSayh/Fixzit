@@ -31,7 +31,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const body = await req.json();
     const { content } = sellerResponseSchema.parse(body);
 
+    // 🔐 STRICT v4.1: orgId is required for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    }
+
     const review = await reviewService.respondToReview(
+      orgId,
       reviewId,
       session.user.id,
       content,

@@ -17,20 +17,12 @@ import { SouqReview } from "@/server/models/souq/Review";
 import { SouqTransaction } from "@/server/models/souq/Transaction";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
-// Helper to match orgId stored as string or ObjectId
-const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
-  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
-  const candidates: Array<string | mongoose.Types.ObjectId> = [];
-  if (orgString) {
-    const trimmed = orgString.trim();
-    candidates.push(trimmed);
-    if (mongoose.Types.ObjectId.isValid(trimmed)) {
-      candidates.push(new mongoose.Types.ObjectId(trimmed));
-    }
-  }
-  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
-};
+// 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+// Handles both orgId and legacy org_id fields with proper ObjectId matching
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) =>
+  buildSouqOrgFilter(orgId.toString()) as Record<string, unknown>;
 
 const parseSellerObjectId = (sellerId: string): mongoose.Types.ObjectId => {
   if (!mongoose.Types.ObjectId.isValid(sellerId)) {

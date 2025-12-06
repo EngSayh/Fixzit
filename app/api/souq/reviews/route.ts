@@ -11,6 +11,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { SouqReview } from "@/server/models/souq/Review";
+import { ObjectId } from "mongodb";
 
 const reviewCreateSchema = z.object({
   productId: z.string().min(1),
@@ -103,6 +104,16 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDb();
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
 
     const { searchParams } = new URL(request.url);
     const parsed = reviewListQuerySchema.parse({
@@ -115,6 +126,7 @@ export async function GET(request: NextRequest) {
 
     const query: Record<string, unknown> = {
       customerId: session.user.id,
+      $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
     };
 
     if (parsed.status) query.status = parsed.status;

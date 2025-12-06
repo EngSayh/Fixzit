@@ -358,7 +358,7 @@ pnpm test:e2e
 const exists = await SouqProduct.findOne({ fsin: metadata.fsin });
 if (exists) {
   // Regenerate FSIN
-  metadata = await generateUniqueFSIN();
+  metadata = await generateUniqueFSIN(orgId);
 }
 ```
 

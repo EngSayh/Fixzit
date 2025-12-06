@@ -1,7 +1,7 @@
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
 import { logger } from "@/lib/logger";
-import { ObjectId as MongoObjectId } from "mongodb";
+import { ObjectId as MongoObjectId, type Filter } from "mongodb";
 
 export interface InvestigationResult {
   claimId: string;
@@ -29,8 +29,8 @@ export class InvestigationService {
   private static MULTIPLE_CLAIMS_PERIOD = 30; // days
   private static LATE_REPORTING_DAYS = 14; // days after delivery
   private static async claimsCollection() {
-    const db = await getDatabase();
-    return db.collection<Claim>("claims");
+    // Use ClaimService.ensureIndexes to guarantee index bootstrap before heavy queries
+    return ClaimService.ensureIndexes();
   }
 
   /**
@@ -44,13 +44,18 @@ export class InvestigationService {
     if (!claim) throw new Error("Claim not found");
 
     // Collect investigation data
-    const [fraudIndicators, trackingInfo, sellerHistory, buyerHistory] =
-      await Promise.all([
-        this.detectFraudIndicators(claim, orgId),
-        this.getTrackingInfo({ orderId: claim.orderId, orgId }),
-        this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
-        this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
-      ]);
+    const [trackingInfo, sellerHistory, buyerHistory] = await Promise.all([
+      this.getTrackingInfo({ orderId: claim.orderId, orgId }),
+      this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
+      this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
+    ]);
+    const fraudIndicators = await this.detectFraudIndicators({
+      claim,
+      orgId,
+      trackingInfo,
+      sellerHistory,
+      buyerHistory,
+    });
 
     // Calculate fraud score
     const fraudScore = this.calculateFraudScore(fraudIndicators, claim);
@@ -75,55 +80,56 @@ export class InvestigationService {
   /**
    * Detect fraud indicators
    */
-  private static async detectFraudIndicators(
-    claim: Claim,
-    orgId: string,
-  ): Promise<FraudIndicators> {
+  private static async detectFraudIndicators(params: {
+    claim: Claim;
+    orgId: string;
+    trackingInfo: { status: string; deliveredAt?: Date };
+    sellerHistory: {
+      claimRate: number;
+      rating: number;
+      totalOrders: number;
+      totalClaims: number;
+    };
+    buyerHistory: { claimCount: number; claimRate: number; totalOrders: number };
+  }): Promise<FraudIndicators> {
+    const { claim, orgId, trackingInfo, sellerHistory, buyerHistory } = params;
+    const orgCandidates = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    // Cast to Filter<Claim> to handle mixed string/ObjectId candidates
+    const orgScope = {
+      $or: [
+        { orgId: { $in: orgCandidates } },
+        { org_id: { $in: orgCandidates } },
+      ],
+    } as Filter<Claim>;
+
     // Check for multiple claims from same buyer in short period
     const claimsCollection = await this.claimsCollection();
     const recentClaims = await claimsCollection.countDocuments({
       buyerId: claim.buyerId,
-      orgId,
+      ...orgScope,
       filedAt: {
         $gte: new Date(
           Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
         ),
       },
-    });
+    } as Filter<Claim>);
 
-    // Check order delivery status
-    const db = await getDatabase();
-    const order = await db
-      .collection("souq_orders")
-      .findOne({
-        orderId: claim.orderId,
-        orgId,
-      });
     const trackingShowsDelivered =
-      order?.deliveryStatus === "delivered" && order?.deliveredAt !== undefined;
+      trackingInfo.status === "delivered" && trackingInfo.deliveredAt !== undefined;
 
     // Check reporting timeline
-    const daysSinceDelivery = order?.deliveredAt
-      ? (Date.now() - new Date(order.deliveredAt).getTime()) /
+    const daysSinceDelivery = trackingInfo.deliveredAt
+      ? (Date.now() - new Date(trackingInfo.deliveredAt).getTime()) /
         (1000 * 60 * 60 * 24)
       : 0;
     const lateReporting = daysSinceDelivery > this.LATE_REPORTING_DAYS;
 
-    // Check seller history
-    const sellerStats = await this.getSellerHistory({
-      sellerId: claim.sellerId,
-      orgId,
-    });
     const sellerHistoryGood =
-      sellerStats.claimRate < 0.05 && sellerStats.rating >= 4.0; // <5% claim rate, 4+ stars
-
-    // Check buyer history
-    const buyerStats = await this.getBuyerHistory({
-      buyerId: claim.buyerId,
-      orgId,
-    });
+      sellerHistory.claimRate < 0.05 && sellerHistory.rating >= 4.0; // <5% claim rate, 4+ stars
     const buyerHistoryPoor =
-      buyerStats.claimCount > 10 && buyerStats.claimRate > 0.15; // >10 claims, >15% rate
+      buyerHistory.claimCount > 10 && buyerHistory.claimRate > 0.15; // >10 claims, >15% rate
 
     return {
       multipleClaimsInShortPeriod: recentClaims >= 3,
@@ -202,13 +208,22 @@ export class InvestigationService {
    */
   private static async getTrackingInfo(params: {
     orderId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{ status: string; deliveredAt?: Date }> {
     const { orderId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch tracking info (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
+    const orgCandidates = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
     const order = await db
       .collection("souq_orders")
-      .findOne(orgId ? { orderId, orgId } : { orderId });
+      .findOne({
+        orderId,
+        $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
+      });
 
     if (!order) return { status: "unknown" };
 
@@ -223,7 +238,7 @@ export class InvestigationService {
    */
   private static async getSellerHistory(params: {
     sellerId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{
     claimRate: number;
     rating: number;
@@ -231,12 +246,32 @@ export class InvestigationService {
     totalClaims: number;
   }> {
     const { sellerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch seller history (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
+
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
-      db.collection("claims").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
-      db.collection("souq_sellers").findOne(orgId ? { sellerId, orgId } : { sellerId }),
+      db.collection("souq_orders").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("souq_sellers").findOne({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
     ]);
 
     return {
@@ -252,14 +287,31 @@ export class InvestigationService {
    */
   private static async getBuyerHistory(params: {
     buyerId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{ claimCount: number; claimRate: number; totalOrders: number }> {
     const { buyerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch buyer history (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_orders.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
+
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
-      db.collection("claims").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
+      db.collection("souq_orders").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
     ]);
 
     return {
@@ -454,21 +506,43 @@ export class InvestigationService {
   /**
    * Auto-resolve eligible claims
    */
-  static async autoResolveClaims(): Promise<number> {
+  static async autoResolveClaims(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error("orgId is required for auto-resolve (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
+
     // Get claims eligible for auto-resolution
+    // 🔐 LIMIT: Process in batches to prevent unbounded memory usage
+    const BATCH_LIMIT = 200;
     const claimsCollection = await this.claimsCollection();
     const eligibleClaims = await claimsCollection
       .find({
+        ...orgScope,
         status: "under_investigation",
         isAutoResolvable: true,
       })
+      .sort({ filedAt: 1 })
+      .limit(BATCH_LIMIT)
       .toArray();
 
     let resolvedCount = 0;
 
     for (const claim of eligibleClaims) {
       try {
-        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
         if (!orgId) continue;
         const investigation = await this.investigateClaim(claim.claimId, orgId);
 
@@ -509,20 +583,40 @@ export class InvestigationService {
   /**
    * Get claims requiring manual review
    */
-  static async getClaimsRequiringReview(): Promise<
+  static async getClaimsRequiringReview(orgId: string): Promise<
     Array<Claim & { investigation: InvestigationResult }>
   > {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch claims for review (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
+    // 🔐 LIMIT: Cap results to prevent unbounded memory usage for large tenants
+    const REVIEW_LIMIT = 100;
     const claimsCollection = await this.claimsCollection();
     const claims = await claimsCollection
       .find({
+        ...orgScope,
         status: { $in: ["under_investigation", "escalated"] },
       })
       .sort({ priority: -1, filedAt: 1 })
+      .limit(REVIEW_LIMIT)
       .toArray();
 
     const claimsWithInvestigation = await Promise.all(
       claims.map(async (claim) => {
-        const orgId = (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ?? "";
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
         if (!orgId) return null;
         const investigation = await this.investigateClaim(claim.claimId, orgId);
         return { ...claim, investigation };

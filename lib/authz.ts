@@ -23,8 +23,9 @@ export async function requireSuperAdmin(
   const payload = await verifyToken(token);
 
   if (!payload || payload.role !== "SUPER_ADMIN") {
-    throw new Response(JSON.stringify({ error: "FORBIDDEN" }), {
-      status: 403,
+    // 🔐 STRICT v4.1: Return 404 (not 403) to hide admin-only endpoints from non-admins
+    throw new Response(JSON.stringify({ error: "Not found" }), {
+      status: 404,
       headers: { "Content-Type": "application/json" },
     });
   }

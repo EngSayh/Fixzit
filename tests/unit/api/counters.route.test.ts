@@ -10,10 +10,14 @@ vi.mock("@/lib/queries", () => ({
   getAllCounters: vi.fn(),
 }));
 
-// Import after mocks
-import { auth } from "@/auth";
-import { getAllCounters } from "@/lib/queries";
-import { GET } from "@/app/api/counters/route";
+vi.mock("@/lib/utils/env", () => ({
+  isTruthy: vi.fn().mockReturnValue(false),
+}));
+
+let auth: typeof import("@/auth").auth;
+let getAllCounters: typeof import("@/lib/queries").getAllCounters;
+let isTruthy: typeof import("@/lib/utils/env").isTruthy;
+let GET: typeof import("@/app/api/counters/route").GET;
 
 describe("GET /api/counters", () => {
   const mockCounters = {
@@ -23,8 +27,16 @@ describe("GET /api/counters", () => {
     hrApplications: { pending: 7 },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetAllMocks();
+    vi.resetModules();
+    process.env.ALLOW_OFFLINE_MONGODB = "false";
+    ({ auth } = await import("@/auth"));
+    ({ getAllCounters } = await import("@/lib/queries"));
+    ({ isTruthy } = await import("@/lib/utils/env"));
+    const route = await import("@/app/api/counters/route");
+    GET = route.GET;
+    (isTruthy as vi.Mock).mockReturnValue(false);
   });
 
   it("returns counters including approvals, rfqs, and hrApplications for authenticated org", async () => {
@@ -35,6 +47,9 @@ describe("GET /api/counters", () => {
 
     const res = (await GET()) as NextResponse;
     const json = await res.json();
+
+    // Debug assertion path visibility during development
+    // console.log({ status: res.status, json });
 
     expect(res.status).toBe(200);
     expect(getAllCounters).toHaveBeenCalledWith("org1");

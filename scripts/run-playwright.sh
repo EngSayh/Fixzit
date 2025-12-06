@@ -30,10 +30,29 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
     # Ensure a clean build output to avoid stale traces/manifests breaking standalone builds
     rm -rf .next || true
     pnpm build
+    # Temporary workaround for Next.js export rename of 500.html in some environments:
+    # Pre-create the export 500 page if not generated to avoid ENOENT during rename.
+    if [[ ! -f ".next/export/500.html" ]]; then
+      mkdir -p .next/export
+      echo "<html><body>500</body></html>" > .next/export/500.html
+    fi
   fi
-  # Pass host/port directly to next start; leading -- caused Next to treat flags as project dir
-  export PW_WEB_SERVER="pnpm start --hostname 0.0.0.0 --port 3000"
-  export PW_WEB_URL="${PW_WEB_URL:-http://localhost:3000}"
+
+  # Next.js with output: standalone cannot use `next start`.
+  # Serve the standalone bundle directly and ensure static assets are present.
+  STANDALONE_DIR=".next/standalone"
+  STATIC_SRC=".next/static"
+  STATIC_DEST="$STANDALONE_DIR/.next/static"
+  mkdir -p "$(dirname "$STATIC_DEST")"
+  if [[ -d "$STATIC_SRC" ]]; then
+    rm -rf "$STATIC_DEST" || true
+    cp -R "$STATIC_SRC" "$STATIC_DEST"
+  fi
+
+  export PORT="${PORT:-3000}"
+  export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+  export PW_WEB_SERVER="PORT=$PORT HOSTNAME=$HOSTNAME node $STANDALONE_DIR/server.js"
+  export PW_WEB_URL="${PW_WEB_URL:-http://localhost:$PORT}"
 else
   export PW_WEB_SERVER="${PW_WEB_SERVER:-pnpm dev:webpack --hostname 0.0.0.0 --port 3000}"
 fi

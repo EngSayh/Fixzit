@@ -64,16 +64,31 @@ export const COLLECTIONS: Record<string, string> = {
   PERMISSIONS: "permissions",
   API_KEYS: "api_keys",
   INVOICE_COUNTERS: "invoice_counters",
-  // Souq marketplace collections
+  // Souq marketplace collections - Core
+  SOUQ_SELLERS: "souq_sellers",
+  SOUQ_PRODUCTS: "souq_products",
   SOUQ_LISTINGS: "souq_listings",
   SOUQ_ORDERS: "souq_orders",
   SOUQ_REVIEWS: "souq_reviews",
+  // Souq marketplace collections - Settlements & Payouts
+  SOUQ_TRANSACTIONS: "souq_transactions",
   SOUQ_SETTLEMENTS: "souq_settlements",
+  SOUQ_SETTLEMENT_STATEMENTS: "souq_settlement_statements",
+  SOUQ_WITHDRAWAL_REQUESTS: "souq_withdrawal_requests",
+  SOUQ_WITHDRAWALS: "souq_withdrawals",
+  SOUQ_SELLER_BALANCES: "souq_seller_balances",
+  SOUQ_PAYOUTS: "souq_payouts",
+  SOUQ_PAYOUT_BATCHES: "souq_payout_batches",
   CLAIMS: "claims",
+  // Souq marketplace collections - Advertising
   SOUQ_CAMPAIGNS: "souq_campaigns",
   SOUQ_AD_GROUPS: "souq_ad_groups",
   SOUQ_ADS: "souq_ads",
   SOUQ_AD_TARGETS: "souq_ad_targets",
+  SOUQ_AD_BIDS: "souq_ad_bids",
+  SOUQ_AD_EVENTS: "souq_ad_events",
+  SOUQ_AD_STATS: "souq_ad_stats",
+  SOUQ_AD_DAILY_SPEND: "souq_ad_daily_spend",
   SOUQ_FEE_SCHEDULES: "souq_fee_schedules",
   SOUQ_RMAS: "souq_rmas",
   SOUQ_REFUNDS: "souq_refunds",
@@ -661,11 +676,21 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "souq_orders_orgId_createdAt" });
+  // Legacy dual-field indexes to keep $or orgId/org_id queries performant during migration
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex({ org_id: 1, createdAt: -1 }, { background: true, name: "souq_orders_org_id_createdAt", sparse: true });
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex(
       { orgId: 1, "items.sellerId": 1, createdAt: -1 },
       { background: true, name: "souq_orders_orgId_seller_createdAt" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { org_id: 1, "items.sellerId": 1, createdAt: -1 },
+      { background: true, name: "souq_orders_org_id_seller_createdAt", sparse: true },
     );
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
@@ -676,12 +701,102 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_ORDERS)
     .createIndex(
+      { org_id: 1, status: 1, createdAt: -1 },
+      { background: true, name: "souq_orders_org_id_status_createdAt_desc", sparse: true },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
       { orgId: 1, orderId: 1 },
       {
         unique: true,
         background: true,
         name: "souq_orders_orgId_orderId_unique",
         partialFilterExpression: { orgId: { $exists: true }, orderId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { org_id: 1, orderId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_orders_org_id_orderId_unique",
+        sparse: true,
+        partialFilterExpression: { org_id: { $exists: true }, orderId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, settlementId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_settlements_orgId_settlementId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, settlementId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, sellerId: 1, period: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_settlements_orgId_seller_period_unique",
+        partialFilterExpression: { orgId: { $exists: true }, sellerId: { $exists: true }, period: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, status: 1, dueDate: 1 },
+      { background: true, name: "souq_settlements_orgId_status_dueDate" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENTS)
+    .createIndex(
+      { orgId: 1, createdAt: -1 },
+      { background: true, name: "souq_settlements_orgId_createdAt_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS)
+    .createIndexes([
+      { key: { requestId: 1 }, unique: true, background: true, name: "souq_withdrawals_requestId_unique" },
+      { key: { payoutId: 1, orgId: 1 }, background: true, name: "souq_withdrawals_payout_org" },
+      {
+        key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+        background: true,
+        name: "souq_withdrawals_org_seller_status_requestedAt",
+      },
+    ]);
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUTS)
+    .createIndex(
+      { orgId: 1, payoutId: 1 },
+      {
+        background: true,
+        name: "souq_payouts_orgId_payoutId",
+        partialFilterExpression: { orgId: { $exists: true }, payoutId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUTS)
+    .createIndex(
+      { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+      { background: true, name: "souq_payouts_orgId_seller_status_requestedAt_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SELLER_BALANCES)
+    .createIndex(
+      { orgId: 1, sellerId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_seller_balances_org_seller_unique",
+        partialFilterExpression: { orgId: { $exists: true }, sellerId: { $exists: true } },
       },
     );
   await db
@@ -847,6 +962,202 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_REFUNDS)
     .createIndex({ orgId: 1, nextRetryAt: 1 }, { background: true, name: "souq_refunds_orgId_nextRetryAt" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_SELLERS - Seller profiles with org-scoped uniqueness
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_SELLERS)
+    .createIndex(
+      { orgId: 1, sellerId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_sellers_orgId_sellerId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, sellerId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SELLERS)
+    .createIndex({ orgId: 1, status: 1, _id: 1 }, { background: true, name: "souq_sellers_orgId_status_id" });
+  await db
+    .collection(COLLECTIONS.SOUQ_SELLERS)
+    .createIndex({ orgId: 1, "bankInfo.verified": 1 }, { background: true, name: "souq_sellers_orgId_bankVerified" });
+  await db
+    .collection(COLLECTIONS.SOUQ_SELLERS)
+    .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "souq_sellers_orgId_createdAt_desc" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_PRODUCTS - Product catalog with org-scoped FSIN uniqueness
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_PRODUCTS)
+    .createIndex(
+      { orgId: 1, fsin: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_products_orgId_fsin_unique",
+        partialFilterExpression: { orgId: { $exists: true }, fsin: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_PRODUCTS)
+    .createIndex({ orgId: 1, createdBy: 1, isActive: 1 }, { background: true, name: "souq_products_orgId_createdBy_isActive" });
+  await db
+    .collection(COLLECTIONS.SOUQ_PRODUCTS)
+    .createIndex({ orgId: 1, isActive: 1 }, { background: true, name: "souq_products_orgId_isActive" });
+  await db
+    .collection(COLLECTIONS.SOUQ_PRODUCTS)
+    .createIndex({ orgId: 1, category: 1, isActive: 1 }, { background: true, name: "souq_products_orgId_category_isActive" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_TRANSACTIONS - Transaction ledger with org-scoped uniqueness
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_TRANSACTIONS)
+    .createIndex(
+      { orgId: 1, transactionId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_transactions_orgId_transactionId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, transactionId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_TRANSACTIONS)
+    .createIndex({ orgId: 1, sellerId: 1, createdAt: -1 }, { background: true, name: "souq_transactions_orgId_seller_createdAt_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_TRANSACTIONS)
+    .createIndex({ orgId: 1, type: 1, createdAt: -1 }, { background: true, name: "souq_transactions_orgId_type_createdAt_desc" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_SETTLEMENT_STATEMENTS - Statement tracking
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENT_STATEMENTS)
+    .createIndex(
+      { orgId: 1, statementId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_settlement_statements_orgId_statementId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, statementId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_SETTLEMENT_STATEMENTS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_settlement_statements_orgId_seller_status" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_WITHDRAWALS - Withdrawal requests
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_WITHDRAWALS)
+    .createIndex(
+      { orgId: 1, withdrawalId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_withdrawals_orgId_withdrawalId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, withdrawalId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_WITHDRAWALS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1, createdAt: -1 }, { background: true, name: "souq_withdrawals_orgId_seller_status_createdAt_desc" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_PAYOUT_BATCHES - Batch payout processing
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUT_BATCHES)
+    .createIndex(
+      { orgId: 1, batchId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_payout_batches_orgId_batchId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, batchId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_PAYOUT_BATCHES)
+    .createIndex({ orgId: 1, status: 1, createdAt: -1 }, { background: true, name: "souq_payout_batches_orgId_status_createdAt_desc" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_AD_BIDS - Ad bidding with org-scoped uniqueness
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_BIDS)
+    .createIndex(
+      { orgId: 1, bidId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ad_bids_orgId_bidId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, bidId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_BIDS)
+    .createIndex({ orgId: 1, campaignId: 1, status: 1 }, { background: true, name: "souq_ad_bids_orgId_campaign_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_BIDS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_ad_bids_orgId_seller_status" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_AD_EVENTS - Ad event tracking with TTL
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_EVENTS)
+    .createIndex({ orgId: 1, bidId: 1, eventType: 1, timestamp: -1 }, { background: true, name: "souq_ad_events_orgId_bid_type_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_EVENTS)
+    .createIndex({ orgId: 1, campaignId: 1, timestamp: -1 }, { background: true, name: "souq_ad_events_orgId_campaign_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_EVENTS)
+    .createIndex({ timestamp: 1 }, { background: true, expireAfterSeconds: 7776000, name: "souq_ad_events_ttl_90days" }); // 90 day TTL
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_AD_STATS - Ad performance statistics
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_STATS)
+    .createIndex(
+      { orgId: 1, bidId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ad_stats_orgId_bidId_unique",
+        partialFilterExpression: { orgId: { $exists: true }, bidId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_STATS)
+    .createIndex({ orgId: 1, campaignId: 1 }, { background: true, name: "souq_ad_stats_orgId_campaign" });
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_STATS)
+    .createIndex({ orgId: 1, sellerId: 1, date: -1 }, { background: true, name: "souq_ad_stats_orgId_seller_date_desc" });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔐 STRICT v4.1: SOUQ_AD_DAILY_SPEND - Daily spend tracking
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_DAILY_SPEND)
+    .createIndex(
+      { orgId: 1, campaignId: 1, date: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "souq_ad_daily_spend_orgId_campaign_date_unique",
+        partialFilterExpression: { orgId: { $exists: true }, campaignId: { $exists: true }, date: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_AD_DAILY_SPEND)
+    .createIndex({ orgId: 1, sellerId: 1, date: -1 }, { background: true, name: "souq_ad_daily_spend_orgId_seller_date_desc" });
 
   // Help Articles - STRICT v4.1: slug unique per org
   await db

@@ -13,6 +13,7 @@ import { SouqCategory } from "@/server/models/souq/Category";
 import { SouqBrand } from "@/server/models/souq/Brand";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
+import { Types } from "mongoose";
 
 interface LocalizedField {
   en?: string;
@@ -84,6 +85,13 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (!Types.ObjectId.isValid(orgId)) {
+      return NextResponse.json(
+        { error: "Invalid organization id" },
+        { status: 400 },
+      );
+    }
+    const orgObjectId = new Types.ObjectId(orgId);
 
     await connectDb();
 
@@ -159,7 +167,10 @@ export async function POST(request: NextRequest) {
     let finalFsin = fsin;
 
     // Check for collision (extremely rare)
-    const existingProduct = await SouqProduct.findOne({ fsin: finalFsin });
+    const existingProduct = await SouqProduct.findOne({
+      fsin: finalFsin,
+      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+    });
     if (existingProduct) {
       // Regenerate FSIN
       const { fsin: newFsin } = generateFSIN();
@@ -171,7 +182,7 @@ export async function POST(request: NextRequest) {
     const product = new SouqProduct({
       fsin: finalFsin,
       ...validated,
-      orgId,
+      orgId: orgObjectId,
       createdBy: session.user.id,
       isActive: true,
     });
@@ -288,6 +299,18 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession();
+    if (!session?.user?.orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    if (!Types.ObjectId.isValid(session.user.orgId)) {
+      return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+    }
+    const orgObjectId = new Types.ObjectId(session.user.orgId);
+
     await connectDb();
 
     const { searchParams } = new URL(request.url);
@@ -302,6 +325,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status"); // 'active' | 'inactive' | 'all'
 
     const query: Record<string, unknown> = {};
+
+    query.$or = [{ orgId: orgObjectId }, { org_id: orgObjectId }];
 
     if (categoryId) query.categoryId = categoryId;
     if (brandId) query.brandId = brandId;

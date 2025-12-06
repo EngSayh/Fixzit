@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-04  
-**Version**: 1.1  
+**Last Updated**: 2025-01-21  
+**Version**: 1.3  
 **Scope**: Database index management across all models
 
 ---
@@ -128,10 +128,12 @@ The Product text search index (lines 155-166 in Product.ts, lines 209-218 in col
 
 **Severity**: 🟥 CRITICAL  
 **Category**: Correctness, Deployment, Security  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Property.ts already has `autoIndex: false` set (line 239) and schema-level indexes have been removed. Comment in file indicates "All Property indexes live in lib/db/collections.ts (createIndexes()) to keep a single source of truth."
 
 **Description**:  
-`server/models/Property.ts` defines 5 indexes via Mongoose schema (lines 246-260) that are ALSO defined manually in `lib/db/collections.ts` (lines 221-242). Same conflict pattern as ISSUE-001 and ISSUE-002.
+~~`server/models/Property.ts` defines 5 indexes via Mongoose schema (lines 246-260) that are ALSO defined manually in `lib/db/collections.ts` (lines 221-242). Same conflict pattern as ISSUE-001 and ISSUE-002.~~
 
 **Files**:
 - `server/models/Property.ts`: Lines 246-260 (schema indexes)
@@ -164,6 +166,234 @@ await db.collection(COLLECTIONS.PROPERTIES).createIndex(
 
 **Recommended Fix**:  
 Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). Keep manual definitions in collections.ts including the 2dsphere geospatial index. Set `autoIndex: false`.
+
+---
+
+## 🟧 MAJOR - Data Consistency / Tenant Isolation
+
+### ISSUE-005: Mixed orgId Storage in Souq Payouts/Withdrawals
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data integrity, Performance, Tenant isolation  
+**Status**: OPEN  
+
+**Description**:  
+`souq_payouts` historically stored `orgId` as ObjectId while `souq_settlements` and current code paths write `orgId` as string. This mixed storage forces `$in` queries with dual types, reduces index selectivity, and can duplicate tenant rows. Withdrawals reference payouts by `orgId`, so drift causes lookup misses and uneven performance.
+
+**Files / Scripts**:  
+- `services/souq/settlements/payout-processor.ts` (uses `$in` for mixed types; canonical writes now string)  
+- `services/souq/settlements/balance-service.ts` (withdrawal lookups with `$in`)  
+- Migration added: `scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`
+
+**Impact**:  
+- Index scans and poor selectivity on `orgId` in payouts/withdrawals.  
+- Potential duplicate tenant rows and inconsistent payout batching when orgId types differ.  
+- Operational drift if not backfilled; `$in` guards remain a performance workaround.
+
+**Recommended Fix**:  
+1) Run the normalization migration in all environments:  
+   - Dry run: `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts --dry-run`  
+   - Execute: `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`  
+2) Ensure indexes exist: `souq_payouts` `{ orgId: 1, payoutId: 1 }`, `souq_withdrawal_requests` `{ orgId: 1, requestId: 1 }`.  
+3) After data is clean, simplify queries to string-only orgId and add schema-level validation to reject ObjectId orgIds going forward.  
+4) Wire migration into deploy/CI runbooks to prevent drift.
+
+**Evidence**:  
+- Current code writes string orgId; legacy rows remain. Queries use `$in` with `[string, ObjectId]`, indicating mixed storage and degraded index usage.
+- **2025-03-xx (local)**: Dry-run + execution completed on local fallback DB, processed=0/updated=0 (no legacy rows here). Still required in staging/prod with real data.
+
+---
+
+## 🟨 MINOR - Operational Monitoring (Canary)
+
+### ISSUE-006: Ledger Sign-Validation Canary Warnings
+
+**Severity**: 🟨 MINOR  
+**Category**: Operations, Observability, Finance  
+**Status**: OPEN (Canary)  
+
+**Description**:  
+Temporary warnings added in `services/souq/settlements/balance-service.ts` to log and reject mis-signed ledger transactions (debited types must be negative; releases/credits positive). Purpose is to surface any legacy callers during a canary window.
+
+**Impact**:  
+None to correctness (guards already enforce). Potential log noise if legacy callers exist.
+
+**Recommended Actions**:  
+1) Monitor logs for `[SellerBalance] Rejected transaction due to non-negative debit amount` and reserve_release warnings during canary.  
+2) If no mis-signed callers by **2025-03-31**, remove/downgrade these warnings (TODOs embedded in code).  
+3) If warnings appear, fix offending callers/jobs to send correctly signed amounts, then re-run canary.
+
+**Files**:  
+- `services/souq/settlements/balance-service.ts` (recordTransaction sign validation)
+
+**Notes**:  
+- Warnings are tagged with sellerId/orgId and optional correlationId (requestId/payoutId) for triage.  
+- No further code changes needed once callers are clean; remove warnings after target date.
+
+---
+
+### ISSUE-006: souq_sellers orgId Type Mismatch in Queries
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data integrity, Tenant isolation, Correctness  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Added dual string/ObjectId handling (`$in: [string, ObjectId]`) across all souq_sellers queries. Files fixed:
+- `services/souq/settlements/payout-processor.ts` (lines 999-1011) - payout notification seller lookup
+- `services/notifications/seller-notification-service.ts` (lines 149-162) - getSeller function
+- `services/souq/claims/investigation-service.ts` (lines 230-250) - getSellerHistory and getBuyerHistory
+- `services/souq/search-indexer-service.ts` (fetchActiveSellers, fetchSellerById, transformListingsToDocuments)
+
+**Description**:  
+`souq_sellers.orgId` is defined as `ObjectId` in Mongoose schema (`server/models/souq/Seller.ts` line 79), but callers (payout processor, notification service, investigation service) pass string orgId. Queries with `orgId: stringValue` always returned no results, silently breaking:
+- Payout WhatsApp notifications (sellers never notified of payouts)
+- Seller notification lookups
+- Investigation service seller/buyer history
+- Search indexer seller fetches
+
+**Files**:  
+- `server/models/souq/Seller.ts`: Line 79 - `orgId: mongoose.Types.ObjectId`
+- `services/souq/settlements/payout-processor.ts`: Lines 1003-1007 (before fix)
+- `services/notifications/seller-notification-service.ts`: Lines 155-158 (before fix)
+- `services/souq/claims/investigation-service.ts`: Lines 239-240 (before fix)
+- `services/souq/search-indexer-service.ts`: Lines 489-492, 518-522, 561-563 (before fix)
+
+**Evidence (Before Fix)**:
+```typescript
+// payout-processor.ts - would always miss when payout.orgId is string
+const sellerFilter: Filter<Document> = sellerIdObj
+  ? { _id: sellerIdObj, orgId: payout.orgId }  // ❌ String vs ObjectId mismatch
+  : { sellerId: payout.sellerId, orgId: payout.orgId };
+```
+
+**Root Cause**:  
+`souq_sellers` model uses ObjectId for orgId (defined in Mongoose schema), but service layer code passes string orgId from session/request context. MongoDB strict type matching returns no results.
+
+**Impact**:
+- Payout notifications silently failed (sellers never received WhatsApp alerts)
+- Seller lookup for claims investigation returned no seller data
+- Search indexer could not fetch seller details for documents
+- Tenant isolation appeared to work but was actually broken (no data returned)
+
+**Fix Applied**:
+```typescript
+// After fix - dual-type handling
+const orgCandidates = ObjectId.isValid(orgIdStr)
+  ? [orgIdStr, new ObjectId(orgIdStr)]
+  : [orgIdStr];
+const sellerFilter: Filter<Document> = sellerIdObj
+  ? { _id: sellerIdObj, orgId: { $in: orgCandidates } }  // ✅ Matches both types
+  : { sellerId: payout.sellerId, orgId: { $in: orgCandidates } };
+```
+
+---
+
+### ISSUE-007: Withdrawal Thresholds Duplicated Between Services
+
+**Severity**: 🟨 MINOR  
+**Category**: Code quality, Maintainability  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Imported `PAYOUT_CONFIG` from settlement-config.ts into balance-service.ts. Replaced hardcoded `WITHDRAWAL_HOLD_DAYS = 7` and `minimumWithdrawal = 500` with centralized config values.
+
+**UPDATE (2025-12-06)**: Extended fix to `settlement-calculator.ts` which had a separate `FEE_CONFIG.holdPeriodDays = 14` that conflicted with `PAYOUT_CONFIG.holdPeriodDays = 7`. Now uses getter to reference centralized config.
+
+**Description**:  
+`balance-service.ts` and `settlement-calculator.ts` had hardcoded hold period values, while `settlement-config.ts` defined these in `PAYOUT_CONFIG`. If values were changed in one place, the others would drift, causing inconsistent validation between withdrawal requests, settlement eligibility, and payout processing.
+
+**Files**:  
+- `services/souq/settlements/balance-service.ts`: Line 20 (WITHDRAWAL_HOLD_DAYS)
+- `services/souq/settlements/settlement-calculator.ts`: Line 26 (FEE_CONFIG.holdPeriodDays) - **now uses getter**
+- `services/souq/settlements/settlement-config.ts`: Lines 10-11 (PAYOUT_CONFIG.holdPeriodDays, minimumAmount)
+
+**Root Cause**:  
+Initial implementation duplicated constants without cross-referencing the centralized config.
+
+**Impact**:
+- Risk of validation drift (e.g., settlement uses 14 days but payout uses 7 days)
+- Maintenance burden when changing thresholds
+- Potential for orders to be "eligible" for settlement but not for payout
+
+**Fix Applied**:
+```typescript
+// settlement-calculator.ts - now uses getter to reference centralized config
+import { PAYOUT_CONFIG } from "./settlement-config";
+
+const FEE_CONFIG = {
+  // ...other config...
+  get holdPeriodDays() {
+    return PAYOUT_CONFIG.holdPeriodDays;
+  },
+  minimumPayoutThreshold: PAYOUT_CONFIG.minimumAmount,
+} as const;
+```
+
+---
+
+### ISSUE-008: Missing Souq Collection Constants and Indexes
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Data Integrity, Security  
+**Status**: ✅ RESOLVED (2025-01-21)
+
+**Resolution**: Added 10 missing Souq collection constants to `lib/db/collections.ts` and created comprehensive org-scoped indexes for all. Also fixed a TypeScript error in payout-processor.ts.
+
+**Description**:  
+Multiple Souq collections were used throughout the codebase via hardcoded strings (e.g., `db.collection("souq_sellers")`) but were NOT defined in the `COLLECTIONS` constant in `lib/db/collections.ts`. This meant:
+
+1. No TypeScript type safety for collection names
+2. No indexes created by `createIndexes()` for these collections
+3. Missing org-scoping indexes = potential tenant isolation gaps
+4. Risk of typos in collection names going unnoticed
+
+**Missing Collections Found**:
+| Collection | Usage Count | Impact |
+|------------|-------------|--------|
+| `souq_sellers` | 20+ | Critical - seller profiles |
+| `souq_products` | 15+ | Critical - product catalog |
+| `souq_transactions` | 6+ | Critical - ledger |
+| `souq_ad_bids` | 10+ | Campaign bidding |
+| `souq_ad_events` | 5+ | Ad tracking |
+| `souq_ad_stats` | 5+ | Performance stats |
+| `souq_ad_daily_spend` | 2+ | Daily spend tracking |
+| `souq_payout_batches` | 2+ | Batch processing |
+| `souq_settlement_statements` | 2+ | Statement tracking |
+| `souq_withdrawals` | 2+ | Withdrawal requests |
+
+**Files**:
+- `lib/db/collections.ts`: Lines 68-95 (COLLECTIONS constant)
+- `lib/db/collections.ts`: Lines 955-1095 (createIndexes function)
+- `services/souq/settlements/payout-processor.ts`: Line 199 (TypeScript fix)
+
+**Root Cause**:  
+Incremental feature development added new collections without updating the central registry.
+
+**Fix Applied**:
+```typescript
+// Added to COLLECTIONS constant:
+SOUQ_SELLERS: "souq_sellers",
+SOUQ_PRODUCTS: "souq_products",
+SOUQ_TRANSACTIONS: "souq_transactions",
+SOUQ_SETTLEMENT_STATEMENTS: "souq_settlement_statements",
+SOUQ_WITHDRAWALS: "souq_withdrawals",
+SOUQ_PAYOUT_BATCHES: "souq_payout_batches",
+SOUQ_AD_BIDS: "souq_ad_bids",
+SOUQ_AD_EVENTS: "souq_ad_events",
+SOUQ_AD_STATS: "souq_ad_stats",
+SOUQ_AD_DAILY_SPEND: "souq_ad_daily_spend",
+
+// Added org-scoped indexes for each with:
+// - Unique ID indexes with partialFilterExpression
+// - Query optimization indexes (orgId + sellerId, status, etc.)
+// - TTL index on souq_ad_events (90 days)
+```
+
+**Additional Fix**:
+```typescript
+// payout-processor.ts line 199 - extract orgIdStr from normalizeOrgId
+const { orgIdStr, orgCandidates } = normalizeOrgId(orgId);
+// Previously only extracted orgCandidates but used orgIdStr on line 267
+```
 
 ---
 
@@ -471,6 +701,301 @@ Based on severity and dependencies:
 7. **ISSUE-007** (Remove redundant schema indexes) - Moderate cleanup
 8. **ISSUE-008** (Test coverage) - Moderate reliability
 9. **ISSUE-009** (Vendor/Tenant verification) - Minor documentation
+
+---
+
+## Souq Security Issues (2025-01-20)
+
+### ISSUE-SOUQ-001: budget-manager.ts Cross-Tenant Data Leakage
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: Ad spend caps, threshold alerts, and auto-pause logic in `services/souq/ads/budget-manager.ts` were not tenant-isolated. All methods lacked `orgId` parameter, allowing campaigns from different organizations to potentially interact.
+
+**Resolution**: Added `orgId` parameter to all public and private methods. Redis keys now include orgId. All DB queries filter by orgId. See `docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20-SECURITY-FIXES.md` for details.
+
+---
+
+### ISSUE-SOUQ-002: balance-service.ts Pending Orders Query Lacks orgId
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: `getBalance()` and `calculateBalance()` in `services/souq/settlements/balance-service.ts` had optional orgId parameter, allowing potential cross-tenant data leakage. The pending orders query used conditional filtering `...(orgId ? { orgId } : {})`.
+
+**Resolution**: Made orgId required (not optional). Removed conditional filtering. All queries now require orgId. See daily progress report for details.
+
+---
+
+### ISSUE-SOUQ-003: request-payout API Accepts Arbitrary Amounts
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Data Integrity  
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**: `app/api/souq/settlements/request-payout/route.ts` accepted user-provided `amount` without validating it matched the statement's `netPayout`. This could allow malicious amount manipulation.
+
+**Resolution**: Added validation that amount matches `statement.summary.netPayout`. Fetch statement with orgId filter. Added RBAC checks for payout requests. See daily progress report for details.
+
+---
+
+## Souq Security Issues (2025-12-06)
+
+### ISSUE-SOUQ-004: balance-service.ts Writes orgId as ObjectId Instead of String
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Data Integrity, Schema Consistency  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `requestWithdrawal()` in `services/souq/settlements/balance-service.ts` (lines 896-905) was forcing `orgId` to ObjectId and throwing for non-ObjectId values, then inserting as ObjectId. This conflicted with the schema migration (`scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`) that standardizes `orgId` to string. This caused:
+- Withdrawals to fail for tenants using string org keys
+- Downstream updates using string filters to miss inserted records
+- Payout linkage failures and desync
+
+**Files**:
+- `services/souq/settlements/balance-service.ts`: Lines 896-905
+
+**Resolution**: Changed to write `orgId` as string (`String(orgId)`) instead of ObjectId. Removed the ObjectId validation that was throwing errors. Kept `orgCandidates` dual-filter pattern for reads.
+
+```typescript
+// BEFORE (buggy):
+const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
+if (!orgObjectId) {
+  throw new Error("Invalid orgId format for withdrawal; expected ObjectId");
+}
+await withdrawalsCollection.insertOne({ ...request, orgId: orgObjectId }, { session });
+
+// AFTER (fixed):
+const orgIdStr = String(orgId);
+await withdrawalsCollection.insertOne({ ...request, orgId: orgIdStr }, { session });
+```
+
+---
+
+### ISSUE-SOUQ-005: budget-manager.ts Redis Fails Open in Production
+
+**Severity**: 🟧 MAJOR  
+**Category**: Reliability, Budget Integrity  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `createRedisClient()` in `services/souq/ads/budget-manager.ts` (lines 38-69) silently fell back to in-memory budget tracking when Redis was not configured. In multi-instance production deployments, this meant:
+- Budget limits not shared across instances
+- Auto-pause and threshold alerts not triggered reliably
+- Risk of budget overspend without detection
+
+**Files**:
+- `services/souq/ads/budget-manager.ts`: Lines 38-69
+
+**Resolution**: Now throws an error in production if Redis is not configured. Added `BUDGET_ALLOW_MEMORY_FALLBACK=true` environment variable to explicitly allow degraded mode. Test environments continue to use in-memory fallback silently.
+
+```typescript
+// BEFORE (fail-open):
+if (!redisUrl && !redisHost) {
+  logger.warn("[BudgetManager] Redis not configured. Falling back to in-memory...");
+  return null;
+}
+
+// AFTER (fail-closed in production):
+if (!redisUrl && !redisHost) {
+  if (isProduction && !allowFallback) {
+    throw new Error("[BudgetManager] Redis is REQUIRED for ad budget enforcement in production.");
+  }
+  return null;
+}
+```
+
+---
+
+### ISSUE-SOUQ-006: budget-manager.ts N+1 Query in getCampaignsBudgetSummary
+
+**Severity**: 🟨 MINOR  
+**Category**: Performance  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getCampaignsBudgetSummary()` in `services/souq/ads/budget-manager.ts` (lines 650-680) performed N+1 Redis calls by calling `getBudgetStatus()` for each campaign in a loop. For sellers with many campaigns, this added significant latency and Redis load.
+
+**Files**:
+- `services/souq/ads/budget-manager.ts`: Lines 650-680
+
+**Resolution**: Replaced per-campaign `getBudgetStatus()` calls with batch Redis `mget()` for all partition keys at once. Falls back to individual calls if batch fails.
+
+```typescript
+// BEFORE (N+1):
+for (const campaign of campaigns) {
+  const status = await this.getBudgetStatus(campaign.campaignId, orgKey);
+  budgetStatuses.push(status);
+}
+
+// AFTER (batched):
+const partitionKeys = campaigns.map(c => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`);
+const spentValues = await redis.mget(...partitionKeys);
+for (let i = 0; i < campaigns.length; i++) {
+  const spentToday = parseFloat(spentValues[i]!) || 0;
+  // ... calculate status from batched value
+}
+```
+
+---
+
+### ISSUE-SOUQ-007: request-payout API Uses Plain orgId in Update Filters
+
+**Severity**: 🟨 MINOR  
+**Category**: Data Integrity, Consistency  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `app/api/souq/settlements/request-payout/route.ts` (lines 188-189, 213-214) used plain `{ orgId }` in `updateOne()` filters instead of `{ orgId: { $in: orgCandidates } }`. This could cause updates to miss records if there was type drift between string and ObjectId.
+
+**Files**:
+- `app/api/souq/settlements/request-payout/route.ts`: Lines 188-189, 213-214
+
+**Resolution**: Changed both update filters to use `{ orgId: { $in: orgCandidates } }` pattern for consistency with the rest of the codebase.
+
+---
+
+### ISSUE-SOUQ-008: getSellerProductIds Queries createdBy with String Instead of ObjectId
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Correctness, Data Integrity  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getSellerProductIds()` in `services/souq/reviews/review-service.ts` (line 699) queried `createdBy: sellerId` using a **string** value, but the `SouqProduct` schema defines `createdBy` as `Schema.Types.ObjectId` (line 159 in `server/models/souq/Product.ts`). This caused:
+- All seller product lookups to return **zero** products
+- Seller review dashboards showing "no reviews" for all sellers
+- Seller review stats returning empty results
+- Seller response flows completely broken
+
+**Files**:
+- `services/souq/reviews/review-service.ts`: Line 699
+- `server/models/souq/Product.ts`: Lines 158-163 (createdBy defined as ObjectId)
+
+**Evidence (Before Fix)**:
+```typescript
+// BROKEN - sellerId is string, createdBy expects ObjectId
+const products = await SouqProduct.find({
+  createdBy: sellerId,  // ❌ String vs ObjectId mismatch - never matches!
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+}).select("_id").lean();
+```
+
+**Resolution**: 
+```typescript
+// FIXED - Convert sellerId to ObjectId before querying
+const sellerObjectId = new Types.ObjectId(sellerId);
+const products = await SouqProduct.find({
+  createdBy: sellerObjectId,  // ✅ ObjectId matches schema
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+}).select("_id").lean();
+```
+
+---
+
+### ISSUE-SOUQ-009: getSellerReviewStats Loads Unbounded Reviews Into Memory
+
+**Severity**: 🟧 MAJOR  
+**Category**: Performance, Scalability  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getSellerReviewStats()` in `services/souq/reviews/review-service.ts` (lines 649-669) loaded ALL published reviews into memory, sorted them in JavaScript, and computed stats in JavaScript. For high-volume sellers this could:
+- Exhaust Node.js memory
+- Cause endpoint timeouts
+- Create poor performance for all users during stats calculation
+
+**Files**:
+- `services/souq/reviews/review-service.ts`: Lines 649-669
+
+**Evidence (Before Fix)**:
+```typescript
+// INEFFICIENT - loads ALL reviews into memory
+const reviews = await SouqReview.find({
+  status: "published",
+  productId: { $in: sellerProductIds },
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+});  // ❌ No limit, no lean()
+
+const totalReviews = reviews.length;
+const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;  // ❌ JS calculation
+const pendingResponses = reviews.filter((r) => !r.sellerResponse).length;  // ❌ JS filter
+const recentReviews = reviews.sort((a, b) => ...).slice(0, 5);  // ❌ JS sort + slice
+```
+
+**Resolution**: 
+```typescript
+// OPTIMIZED - Use MongoDB aggregation for stats
+const [stats] = await SouqReview.aggregate([
+  { $match: matchStage },
+  {
+    $group: {
+      _id: null,
+      totalReviews: { $sum: 1 },
+      avgRating: { $avg: "$rating" },
+      pendingResponses: {
+        $sum: { $cond: [{ $not: ["$sellerResponse"] }, 1, 0] },
+      },
+    },
+  },
+]);
+
+// Use DB sort/limit for recent reviews instead of loading all
+const recentReviews = await SouqReview.find(matchStage)
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .lean();
+```
+
+---
+
+### ISSUE-SOUQ-010: $or Key Collision Bypasses Tenant Isolation in updateOrderStatus
+
+**Severity**: 🟥 CRITICAL (Security)
+**Category**: Security, Correctness
+**Status**: ✅ RESOLVED (2025-01-20)
+
+**Description**:
+In `refund-processor.ts`, the `updateOrderStatus` method was spreading `buildOrgFilter(orgId)` 
+(which returns `{ $or: [...] }`) and then adding another `$or` key for order ID matching. 
+Due to JavaScript object spread behavior, the second `$or` key was **overwriting** the first one,
+completely bypassing tenant isolation.
+
+**Files**:
+- `services/souq/claims/refund-processor.ts`: Line 879
+
+**Evidence**:
+```typescript
+// BROKEN - Second $or overwrites first one, no tenant filter!
+await db.collection('souq_orders').updateOne(
+  { ...buildOrgFilter(orgId), $or: orderIdFilters },  // ← buildOrgFilter.$or gets overwritten
+  { $set: { status, ... } }
+);
+
+// Actually produces this filter (NO tenant isolation):
+{ $or: [{ orderId: "ORD-1" }] }  // orgId filter is GONE!
+```
+
+**Root Cause**:
+When you spread an object containing `$or` and then add another `$or` property, the second 
+`$or` overwrites the first one. This is standard JavaScript object behavior but creates a 
+critical security vulnerability when the org filter is silently discarded.
+
+**Impact**:
+- **CRITICAL SECURITY**: Refund order status updates could affect ANY organization's orders
+- Tenant data could be modified across organization boundaries
+- Complete bypass of STRICT v4.1 tenant isolation
+
+**Resolution**:
+```typescript
+// FIXED - Use $and to combine both $or clauses
+const orgFilter = buildOrgFilter(orgId);
+await db.collection('souq_orders').updateOne(
+  { $and: [orgFilter, { $or: orderIdFilters }] },
+  { $set: { status, ... } }
+);
+```
+
+**Related Test Update**:
+- `tests/services/claims-refund-processor.test.ts`: Updated expectations to match new $and structure
 
 ---
 

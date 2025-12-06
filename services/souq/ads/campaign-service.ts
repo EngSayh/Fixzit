@@ -196,7 +196,7 @@ export class CampaignService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection("souq_ad_campaigns").insertOne(campaign);
+    await db.collection("souq_campaigns").insertOne(campaign);
     await db.collection("souq_ad_bids").insertMany(bids);
 
     logger.info(`[CampaignService] Created campaign: ${campaignId}`);
@@ -217,7 +217,7 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId, orgId });
 
     const existingCampaign = this.ensureOwnership(campaign, sellerId, "update");
@@ -250,11 +250,11 @@ export class CampaignService {
     };
 
     await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .updateOne({ campaignId, orgId }, { $set: updateDoc });
 
     const updated = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId, orgId });
 
     if (!updated) {
@@ -278,7 +278,7 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "delete");
 
@@ -286,7 +286,7 @@ export class CampaignService {
     await db.collection("souq_ad_bids").deleteMany({ campaignId, orgId });
 
     // Delete campaign scoped by orgId
-    await db.collection("souq_ad_campaigns").deleteOne({ campaignId, orgId });
+    await db.collection("souq_campaigns").deleteOne({ campaignId, orgId });
 
     logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
   }
@@ -299,7 +299,7 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .findOne({ campaignId, orgId });
 
     if (!campaign) return null;
@@ -338,7 +338,7 @@ export class CampaignService {
     if (filters?.type) query.type = filters.type;
 
     const campaigns = await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .find(query)
       .sort({ createdAt: -1 })
       .toArray();
@@ -386,7 +386,7 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "stats");
 
@@ -454,7 +454,7 @@ export class CampaignService {
     }
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId: bid.campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "update bid");
 
@@ -488,7 +488,7 @@ export class CampaignService {
     }
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId: bid.campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "toggle bid");
 
@@ -524,7 +524,7 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_ad_campaigns")
+      .collection<Campaign>("souq_campaigns")
       .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "add keyword");
 
@@ -755,7 +755,7 @@ export class CampaignService {
     }
 
     const campaigns = await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .find(campaignQuery)
       .toArray();
 

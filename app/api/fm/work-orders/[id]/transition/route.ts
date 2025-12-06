@@ -224,7 +224,9 @@ export async function POST(
         (toStatus === WOStatus.WORK_COMPLETE || toStatus === WOStatus.CLOSED) &&
         workOrder.requesterId
       ) {
+        // 🔐 STRICT v4.1: Include orgId in user lookup for tenant isolation
         const requester = await db.collection(COLLECTIONS.USERS).findOne({
+          orgId,
           $or: [
             { _id: new ObjectId(workOrder.requesterId) },
             { email: workOrder.requesterId },
@@ -243,9 +245,10 @@ export async function POST(
 
       // Notify assignee on new assignment
       if (toStatus === WOStatus.IN_PROGRESS && workOrder.assigneeId) {
+        // 🔐 STRICT v4.1: Include orgId in user lookup for tenant isolation
         const assignee = await db
           .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(workOrder.assigneeId) });
+          .findOne({ _id: new ObjectId(workOrder.assigneeId), orgId });
         if (assignee?.email) {
           recipients.push({
             userId: workOrder.assigneeId,

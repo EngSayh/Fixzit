@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import Sidebar from "@/components/Sidebar";
 import type { BadgeCounts } from "@/config/navigation";
-import { fetchOrgCounters } from "@/lib/counters";
+import { useOrgCounters } from "@/hooks/useOrgCounters";
 import { logger } from "@/lib/logger";
 
 type NumericDict = Record<string, number | undefined>;
@@ -28,9 +27,6 @@ type CounterPayload = {
   rfqs?: NumericDict;
   hrApplications?: NumericDict;
 };
-
-const countersFetcher = async (_key: [string, string]) =>
-  fetchOrgCounters(_key[1]);
 
 const mapCountersToBadgeCounts = (
   counters?: CounterPayload,
@@ -97,32 +93,26 @@ export default function ClientSidebar() {
   const sessionUser = session?.user as { orgId?: string } | undefined;
   const orgId = sessionUser?.orgId;
   const isAuthenticated = status === "authenticated" && Boolean(orgId);
-
-  const { data: counters } = useSWR(
-    isAuthenticated ? "/api/counters" : null,
-    countersFetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000,
-      onError: (error) => {
-        logger.warn("[Sidebar] Failed to fetch counters", {
-          error,
-          component: "ClientSidebar",
-          action: "fetchCounters",
-        });
-      },
-    },
-  );
+  const { counters, error: countersError } = useOrgCounters();
 
   const [liveCounters, setLiveCounters] = useState<CounterPayload | undefined>();
 
   // Seed live counters from initial fetch
   useEffect(() => {
     if (counters) {
-      setLiveCounters(counters);
+      setLiveCounters(counters as CounterPayload);
     }
   }, [counters]);
+
+  useEffect(() => {
+    if (countersError) {
+      logger.warn("[Sidebar] Failed to fetch counters", {
+        error: countersError,
+        component: "ClientSidebar",
+        action: "fetchCounters",
+      });
+    }
+  }, [countersError]);
 
   // Authenticated, org-scoped WebSocket for real-time counters
   useEffect(() => {

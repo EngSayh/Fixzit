@@ -160,6 +160,13 @@ class FulfillmentService {
       if (!order) {
         throw new Error(`Order not found for org: ${request.orderId}`);
       }
+      if (
+        order.orgId &&
+        request.orgId &&
+        order.orgId.toString() !== request.orgId.toString()
+      ) {
+        throw new Error(`Order not found for org: ${request.orderId}`);
+      }
 
       // Group items by fulfillment type
       const fbfItems: FbfShipmentItem[] = [];
@@ -581,6 +588,9 @@ class FulfillmentService {
     });
 
     if (!order) {
+      throw new Error(`Order not found for org: ${orderId}`);
+    }
+    if (order.orgId && order.orgId.toString() !== orgId.toString()) {
       throw new Error(`Order not found for org: ${orderId}`);
     }
 

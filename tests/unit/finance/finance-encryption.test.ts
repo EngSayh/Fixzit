@@ -133,6 +133,10 @@ describe("Finance Model PII Encryption", () => {
       // Import Invoice model after mongoose is connected and env is set
       const mod = await import("@/server/models/Invoice");
       Invoice = mod.Invoice as mongoose.Model<mongoose.Document>;
+      // Fallback collection for tests if Mongoose hasn't attached it
+      if (!(Invoice as any).collection || !(Invoice as any).collection.findOne) {
+        (Invoice as any).collection = mongoose.connection.collection("invoices");
+      }
     });
 
     it("should encrypt issuer PII fields on save", async () => {
@@ -307,6 +311,9 @@ describe("Finance Model PII Encryption", () => {
       // Import model after mongoose is connected and env is set
       const mod = await import("@/server/models/FMFinancialTransaction");
       FMFinancialTransaction = mod.FMFinancialTransaction as mongoose.Model<mongoose.Document>;
+      if (!(FMFinancialTransaction as any).collection || !(FMFinancialTransaction as any).collection.findOne) {
+        (FMFinancialTransaction as any).collection = mongoose.connection.collection("fmfinancialtransactions");
+      }
     });
 
     it("should encrypt paymentDetails fields on save", async () => {

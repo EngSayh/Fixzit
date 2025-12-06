@@ -1,6 +1,7 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, type Collection } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
 
 // Claim Types
 export type ClaimType =
@@ -196,9 +197,57 @@ export class ClaimService {
   private static SELLER_RESPONSE_DEADLINE_HOURS = 48;
   private static INVESTIGATION_DEADLINE_HOURS = 72;
   private static AUTO_RESOLVE_THRESHOLD = 50; // SAR
+  private static indexesReady: Promise<void> | null = null;
 
-  private static async collection() {
-    return (await getDatabase()).collection<Claim>(this.COLLECTION);
+  private static async collection(): Promise<Collection<Claim>> {
+    const collection = (await getDatabase()).collection<Claim>(this.COLLECTION);
+    if (!this.indexesReady) {
+      this.indexesReady = (async () => {
+        if (typeof collection.createIndex !== "function") return;
+        try {
+          await Promise.all([
+            // Tenant + identity
+            collection.createIndex({ orgId: 1, claimId: 1 }, { name: "claims_org_claimId", background: true }),
+            collection.createIndex({ org_id: 1, claimId: 1 }, { name: "claims_orgLegacy_claimId", background: true }),
+            // Auto-resolution / review flows (status + filedAt/priority)
+            collection.createIndex(
+              { orgId: 1, status: 1, isAutoResolvable: 1, filedAt: 1 },
+              { name: "claims_org_status_auto_filed", background: true },
+            ),
+            collection.createIndex(
+              { org_id: 1, status: 1, isAutoResolvable: 1, filedAt: 1 },
+              { name: "claims_orgLegacy_status_auto_filed", background: true },
+            ),
+            collection.createIndex(
+              { orgId: 1, status: 1, priority: -1, filedAt: 1 },
+              { name: "claims_org_status_priority_filed", background: true },
+            ),
+            collection.createIndex(
+              { org_id: 1, status: 1, priority: -1, filedAt: 1 },
+              { name: "claims_orgLegacy_status_priority_filed", background: true },
+            ),
+            // Listing / pagination
+            collection.createIndex({ orgId: 1, createdAt: -1 }, { name: "claims_org_createdAt", background: true }),
+            collection.createIndex({ org_id: 1, createdAt: -1 }, { name: "claims_orgLegacy_createdAt", background: true }),
+          ]);
+        } catch (error) {
+          logger.error("[Claims] Failed to ensure claim indexes", { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.indexesReady = null;
+          throw error; // Fail fast - don't run without critical org-scoped indexes
+        }
+      })();
+    }
+    await this.indexesReady;
+    return collection;
+  }
+
+  /**
+   * Ensure indexes are created and return the collection.
+   * Exposed for services that need a guaranteed indexed collection (e.g., investigation-service).
+   */
+  static async ensureIndexes(): Promise<Collection<Claim>> {
+    return this.collection();
   }
 
   private static buildIdMatch(value: string) {

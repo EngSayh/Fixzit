@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
 
     const { RFQ } = await import("@/server/models/RFQ");
     const rfq = await RFQ.create({
-      tenantId: user.orgId,
+      orgId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -217,7 +218,9 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: Record<string, unknown> = { tenantId: user.orgId };
+    const orgCandidates =
+      Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+    const match: Record<string, unknown> = { orgId: { $in: orgCandidates } };
 
     if (status) match.status = status;
     if (category) match.category = category;

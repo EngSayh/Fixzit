@@ -5,6 +5,7 @@ import {
   SellerDocument,
 } from "@/lib/meilisearch";
 import { logger } from "@/lib/logger";
+import { ObjectId, type Filter } from "mongodb";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 
 /**
@@ -483,14 +484,23 @@ export class SearchIndexerService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
+
     // Sort by _id for consistent batching under concurrent writes
     // Requires compound index: db.souq_sellers.createIndex({orgId: 1, status: 1, _id: 1})
     const results = await db
       .collection<SouqSeller>("souq_sellers")
-      .find({
-        status: "active",
-        orgId, // Required for tenant isolation
-      })
+      .find(
+        {
+          status: "active",
+          orgId: orgFilter, // Dual-type for tenant isolation
+        } as Filter<SouqSeller>,
+      )
       .sort({ _id: 1 }) // Stable sort for consistent pagination
       .skip(offset)
       .limit(limit)
@@ -514,12 +524,21 @@ export class SearchIndexerService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
+
     const result = await db
       .collection<SouqSeller>("souq_sellers")
-      .findOne({
-        sellerId,
-        orgId, // Required for tenant isolation
-      });
+      .findOne(
+        {
+          sellerId,
+          orgId: orgFilter, // Dual-type for tenant isolation
+        } as Filter<SouqSeller>,
+      );
 
     return result;
   }
@@ -557,9 +576,23 @@ export class SearchIndexerService {
       .find({ fsin: { $in: productIds }, orgId }) // Tenant-scoped lookup
       .toArray();
 
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidatesForSellers = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilterForSellers = {
+      $in: orgCandidatesForSellers as Array<string | ObjectId>,
+    };
     const sellers = await db
       .collection<SouqSeller>("souq_sellers")
-      .find({ sellerId: { $in: sellerIds }, orgId }) // Tenant-scoped lookup
+      .find(
+        {
+          sellerId: { $in: sellerIds },
+          orgId: orgFilterForSellers,
+        } as Filter<SouqSeller>, // Dual-type for tenant isolation
+      )
       .toArray();
 
     // Create lookup maps

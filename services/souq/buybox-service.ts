@@ -187,7 +187,11 @@ export class BuyBoxService {
     }
 
     // Check if seller can compete in Buy Box (uses type-safe method)
-    const canCompete = seller.canCompeteInBuyBox();
+    const canCompete =
+      typeof (seller as { canCompeteInBuyBox?: () => boolean }).canCompeteInBuyBox ===
+      "function"
+        ? (seller as { canCompeteInBuyBox: () => boolean }).canCompeteInBuyBox()
+        : false;
 
     const listings = await SouqListing.find({
       sellerId,
@@ -258,16 +262,19 @@ export class BuyBoxService {
       .populate("sellerId", "legalName tradeName accountHealth")
       .sort(sortQuery);
 
-    if (offers.length === 0) {
-      const fallbackOffers = await SouqListing.find({ fsin, ...orgFilter })
-        .populate("sellerId", "legalName tradeName accountHealth")
-        .sort(sortQuery);
-      if (fallbackOffers.length > 0) {
-        return fallbackOffers;
-      }
-      return [];
+    const list = (offers.length > 0
+      ? offers
+      : await SouqListing.find({ fsin, ...orgFilter })
+          .populate("sellerId", "legalName tradeName accountHealth")
+          .sort(sortQuery)) as Array<IListing & { _id: unknown; price: number }>;
+
+    if (sort === "price") {
+      list.sort((a, b) => {
+        if (a.price !== b.price) return a.price - b.price;
+        return String(a._id).localeCompare(String(b._id));
+      });
     }
 
-    return offers;
+    return list;
   }
 }

@@ -301,9 +301,9 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
           success: false,
         });
 
-        return res.status(403).json({
-          error: "Forbidden",
-          message: "Super Admin access required",
+        // 🔐 STRICT v4.1: Return 404 (not 403) to hide admin-only endpoints from non-admins
+        return res.status(404).json({
+          error: "Not found",
         });
       }
 

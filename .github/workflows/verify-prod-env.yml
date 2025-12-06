@@ -40,6 +40,12 @@ jobs:
       # PayTabs secrets (required for payment processing)
       PAYTABS_PROFILE_ID: ${{ secrets.PAYTABS_PROFILE_ID }}
       PAYTABS_SERVER_KEY: ${{ secrets.PAYTABS_SERVER_KEY }}
+      # SADAD/SPAN (optional; validated when ENABLE_SADAD_PAYOUTS=true)
+      ENABLE_SADAD_PAYOUTS: ${{ secrets.ENABLE_SADAD_PAYOUTS || vars.ENABLE_SADAD_PAYOUTS }}
+      SADAD_SPAN_MODE: ${{ secrets.SADAD_SPAN_MODE || vars.SADAD_SPAN_MODE }}
+      SADAD_API_KEY: ${{ secrets.SADAD_API_KEY }}
+      SADAD_API_SECRET: ${{ secrets.SADAD_API_SECRET }}
+      SADAD_API_ENDPOINT: ${{ secrets.SADAD_API_ENDPOINT }}
       # ZATCA secrets (required for Saudi e-invoicing)
       ZATCA_API_KEY: ${{ secrets.ZATCA_API_KEY }}
       ZATCA_SELLER_NAME: ${{ secrets.ZATCA_SELLER_NAME }}
@@ -131,9 +137,10 @@ jobs:
           else
             echo "Status: FAILED" >> "$GITHUB_STEP_SUMMARY"
             echo >> "$GITHUB_STEP_SUMMARY"
-            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> "$GITHUB_STEP_SUMMARY"
-            echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
-            echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
-            echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
-            echo "- REDIS_URL / BULLMQ_REDIS_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- REDIS_URL / BULLMQ_REDIS_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- (Optional, required when ENABLE_SADAD_PAYOUTS=true): SADAD_API_KEY, SADAD_API_SECRET, SADAD_API_ENDPOINT, SADAD_SPAN_MODE" >> "$GITHUB_STEP_SUMMARY"
           fi

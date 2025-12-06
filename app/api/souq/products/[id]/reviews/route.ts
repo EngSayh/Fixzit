@@ -28,7 +28,22 @@ const productReviewFiltersSchema = z.object({
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const { id: productId } = await context.params;
-    await connectDb();
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    
+    // Fetch product to get orgId for tenant-scoped queries
+    const product = await db.collection("souq_products").findOne(
+      { productId },
+      { projection: { orgId: 1 } }
+    );
+    const orgId = (product as { orgId?: string })?.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Product orgId missing; cannot fetch tenant-scoped reviews" },
+        { status: 404 },
+      );
+    }
+    
     const { searchParams } = new URL(req.url);
     const filters = productReviewFiltersSchema.parse({
       page: searchParams.get("page") ?? undefined,
@@ -39,7 +54,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     });
 
     // Get reviews
-    const reviews = await reviewService.getProductReviews(productId, {
+    const reviews = await reviewService.getProductReviews(productId, orgId, {
       page: filters.page,
       limit: filters.limit,
       rating: filters.rating,
@@ -48,9 +63,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
     });
 
     // Get stats
-    const stats = await reviewService.getReviewStats(productId);
-    const distribution =
-      await ratingAggregationService.getRatingDistribution(productId);
+    const stats = await reviewService.getReviewStats(productId, orgId);
+    const distribution = await ratingAggregationService.getRatingDistribution(productId, orgId);
 
     return NextResponse.json({
       ...reviews,

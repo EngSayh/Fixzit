@@ -9,12 +9,32 @@
  * - Budget reset at midnight (Saudi time)
  */
 
+import { ObjectId } from "mongodb";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
+
+function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
+  // Partition budgets by Saudi local day to align with business reporting
+  const now = new Date();
+  const nowKsa = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+  );
+  const dateKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+  }).format(nowKsa);
+  const endOfDay = new Date(nowKsa);
+  endOfDay.setHours(23, 59, 59, 999);
+  const secondsToMidnight = Math.max(
+    60, // Ensure we never set a zero TTL
+    Math.ceil((endOfDay.getTime() - nowKsa.getTime()) / 1000),
+  );
+  return { dateKey, secondsToMidnight };
+}
 
 function createRedisClient(): Redis | null {
   // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
@@ -23,10 +43,30 @@ function createRedisClient(): Redis | null {
   const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
   const redisPassword =
     process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+  
+  // 🔐 STRICT v4.1: Redis is REQUIRED for production budget enforcement
+  // Without Redis, budget limits are not shared across instances, enabling overspend
+  const isProduction = process.env.NODE_ENV === "production";
+  const isTest = process.env.NODE_ENV === "test";
+  // During Next.js build we can allow fallback to avoid blocking build artifacts, runtime must still enforce.
+  const isBuildPhase =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.DISABLE_MONGODB_FOR_BUILD === "true";
+  
   if (!redisUrl && !redisHost) {
-    logger.warn(
-      "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking.",
-    );
+    if (isProduction && !isBuildPhase) {
+      // Fail closed in production runtime—do NOT allow memory fallback
+      throw new Error(
+        "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
+        "Set BULLMQ_REDIS_URL/REDIS_URL; in-memory fallback is disabled in production.",
+      );
+    }
+    if (!isTest) {
+      logger.warn(
+        "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking. " +
+        "⚠️ Budget limits will NOT be shared across instances - risk of overspend.",
+      );
+    }
     return null;
   }
 
@@ -62,8 +102,8 @@ function getLocalSpend(key: string): number {
   return entry.spent;
 }
 
-function setLocalSpend(key: string, spent: number) {
-  localBudget.set(key, { spent, expiresAt: Date.now() + DAY_MS });
+function setLocalSpend(key: string, spent: number, ttlMs: number = DAY_MS) {
+  localBudget.set(key, { spent, expiresAt: Date.now() + ttlMs });
 }
 
 function deleteLocalSpend(key: string) {
@@ -98,6 +138,20 @@ export class BudgetManager {
   private static ALERT_THRESHOLDS = [0.75, 0.9, 1.0]; // 75%, 90%, 100%
 
   /**
+   * Normalize orgId - KEEP AS STRING
+   * Schema: souq_campaigns.orgId is String (see server/models/souq/Advertising.ts)
+   * AUDIT-2025-12-06: Fixed to stop casting to ObjectId which breaks queries for hex-like org IDs
+   */
+  private static normalizeOrg(orgId: string): {
+    orgFilter: string;
+    orgKey: string;
+    orgCandidates: string[];
+  } {
+    // orgId is stored as String in schema - keep it as string only to align with indexes
+    return { orgFilter: orgId, orgKey: orgId, orgCandidates: [orgId] };
+  }
+
+  /**
    * Check if campaign has budget available for a click
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
@@ -125,11 +179,19 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for chargeBudget (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key, ttlSeconds } = this.getBudgetPartition(campaignId, orgKey);
 
     // Fetch daily budget from database
-    const campaign = await this.fetchCampaign(campaignId, orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
     if (!campaign) return false;
+    // Do not charge if campaign is paused/inactive
+    if (campaign.status !== "active") {
+      logger.warn(
+        `[BudgetManager] Charge blocked; campaign ${campaignId} is ${campaign.status}`,
+      );
+      return false;
+    }
 
     // Guard against zero/negative budget
     if (!campaign.dailyBudget || campaign.dailyBudget <= 0) {
@@ -146,7 +208,7 @@ export class BudgetManager {
       
       if spentNum + amountNum <= budgetNum then
         redis.call('INCRBYFLOAT', KEYS[1], amountNum)
-        redis.call('EXPIRE', KEYS[1], 86400)
+        redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
         return 1
       else
         return 0
@@ -159,12 +221,13 @@ export class BudgetManager {
         key,
         amount.toString(),
         campaign.dailyBudget.toString(),
+        ttlSeconds.toString(),
       );
 
       const success = result === 1;
 
       if (success) {
-        await this.checkBudgetThresholds(campaignId, orgId);
+        await this.checkBudgetThresholds(campaignId, orgKey);
       }
 
       return success;
@@ -172,8 +235,8 @@ export class BudgetManager {
 
     const currentSpent = getLocalSpend(key);
     if (currentSpent + amount <= campaign.dailyBudget) {
-      setLocalSpend(key, currentSpent + amount);
-      await this.checkBudgetThresholds(campaignId, orgId);
+      setLocalSpend(key, currentSpent + amount, ttlSeconds * 1000);
+      await this.checkBudgetThresholds(campaignId, orgKey);
       return true;
     }
 
@@ -188,12 +251,13 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for getBudgetStatus (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgKey);
     const spentToday = redis
       ? parseFloat((await redis.get(key)) || "0")
       : getLocalSpend(key);
 
-    const campaign = await this.fetchCampaign(campaignId, orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
     if (!campaign) {
       throw new Error(`Campaign not found: ${campaignId} in org ${orgId}`);
@@ -223,24 +287,31 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required to reset budgets (STRICT v4.1 tenant isolation)');
     }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     // Get all active campaigns
     const campaigns = await db
-      .collection("souq_ad_campaigns")
-      .find({ status: "active", orgId })
+      .collection("souq_campaigns")
+      .find({ status: "active", orgId: { $in: orgCandidates } })
       .toArray();
 
     let resetCount = 0;
 
     for (const campaign of campaigns) {
-      const campaignOrgId = campaign.orgId?.toString() || orgId;
-      if (!campaignOrgId) {
+      // AUDIT-2025-12-06: campaign.orgId is String per schema - normalize to string key but allow legacy ObjectId
+      const campaignOrgKey =
+        typeof campaign.orgId === "string"
+          ? campaign.orgId
+          : campaign.orgId
+            ? String(campaign.orgId)
+            : undefined;
+      if (!campaignOrgKey) {
         logger.warn(`[BudgetManager] Skipping reset for campaign ${campaign.campaignId} due to missing orgId`);
         continue;
       }
-      const key = this.getBudgetKey(campaign.campaignId, campaignOrgId);
+      const { key } = this.getBudgetPartition(campaign.campaignId, campaignOrgKey);
 
       // Delete Redis key (will start fresh tomorrow)
       if (redis) {
@@ -250,17 +321,23 @@ export class BudgetManager {
       }
 
       // Reset spentToday in MongoDB with orgId scoping
+      // AUDIT-2025-12-06: Use String orgId to match schema
       await db
-        .collection("souq_ad_campaigns")
+        .collection("souq_campaigns")
         .updateOne(
-          { campaignId: campaign.campaignId, orgId: campaign.orgId },
+          {
+            campaignId: campaign.campaignId,
+            orgId: {
+              $in: this.normalizeOrg(campaignOrgKey).orgCandidates,
+            },
+          },
           { $set: { spentToday: 0, lastBudgetReset: new Date() } },
         );
 
       resetCount++;
     }
 
-    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets for org ${orgId}`);
+    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets for org ${orgKey}`);
 
     return { reset: resetCount };
   }
@@ -273,7 +350,8 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for resetCampaignBudget (STRICT v4.1 tenant isolation)');
     }
-    const key = this.getBudgetKey(campaignId, orgId);
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgKey);
     if (redis) {
       await redis.del(key);
     } else {
@@ -284,13 +362,13 @@ export class BudgetManager {
     const db = await getDatabase();
 
     await db
-      .collection("souq_ad_campaigns")
+      .collection("souq_campaigns")
       .updateOne(
-        { campaignId, orgId },
+        { campaignId, orgId: { $in: orgCandidates } },
         { $set: { spentToday: 0, lastBudgetReset: new Date() } },
       );
 
-    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId} in org ${orgId}`);
+    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId} in org ${orgKey}`);
   }
 
   /**
@@ -300,13 +378,15 @@ export class BudgetManager {
     campaignId: string,
     orgId: string,
   ): Promise<void> {
-    const status = await this.getBudgetStatus(campaignId, orgId);
+    const { orgKey } = this.normalizeOrg(orgId);
+    const status = await this.getBudgetStatus(campaignId, orgKey);
     const percentage = status.percentageUsed / 100;
+    const { secondsToMidnight } = getKsaDatePartition();
 
     // Check if we crossed any threshold
     for (const threshold of this.ALERT_THRESHOLDS) {
       if (percentage >= threshold) {
-        const alertKey = `${this.REDIS_PREFIX}alert:${orgId}:${campaignId}:${threshold}`;
+        const alertKey = `${this.REDIS_PREFIX}alert:${orgKey}:${campaignId}:${threshold}`;
         const alreadySent = redis
           ? await redis.get(alertKey)
           : hasLocalAlert(alertKey)
@@ -316,9 +396,9 @@ export class BudgetManager {
         if (!alreadySent) {
           await this.sendBudgetAlert(campaignId, orgId, threshold);
           if (redis) {
-            await redis.set(alertKey, "1", "EX", DAY_SECONDS); // Don't send again today
+            await redis.set(alertKey, "1", "EX", secondsToMidnight); // Don't send again today (KSA midnight aligned)
           } else {
-            setLocalAlert(alertKey, DAY_SECONDS);
+            setLocalAlert(alertKey, secondsToMidnight);
           }
         }
       }
@@ -338,7 +418,8 @@ export class BudgetManager {
     orgId: string,
     threshold: number,
   ): Promise<void> {
-    const campaign = await this.fetchCampaign(campaignId, orgId);
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
     if (!campaign) return;
 
     const percentage = Math.round(threshold * 100);
@@ -349,7 +430,7 @@ export class BudgetManager {
 
     await this.enqueueSellerAlert({
       sellerId: campaign.sellerId,
-      orgId,
+      orgId: orgKey,
       template: "souq_ad_budget_alert",
       internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} reached ${percentage}% of its budget`,
@@ -374,11 +455,12 @@ export class BudgetManager {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const campaign = await this.fetchCampaign(campaignId, orgId);
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
     // 🔐 STRICT v4.1: Include orgId in filter
-    await db.collection("souq_ad_campaigns").updateOne(
-      { campaignId, orgId },
+    await db.collection("souq_campaigns").updateOne(
+      { campaignId, orgId: { $in: orgCandidates } },
       {
         $set: {
           status: "paused",
@@ -392,7 +474,7 @@ export class BudgetManager {
 
     await this.enqueueSellerAlert({
       sellerId: campaign?.sellerId || "unknown",
-      orgId,
+      orgId: orgKey,
       template: "souq_ad_campaign_paused",
       internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} paused (${reason})`,
@@ -405,7 +487,7 @@ export class BudgetManager {
 
   private static async enqueueSellerAlert(params: {
     sellerId: string;
-    orgId?: string;
+    orgId: string; // 🔐 STRICT v4.1: orgId is now REQUIRED
     template: string;
     internalAudience: string;
     subject: string;
@@ -413,33 +495,61 @@ export class BudgetManager {
   }): Promise<void> {
     const { sellerId, template, internalAudience, subject, data, orgId: providedOrgId } = params;
 
-    // 🔐 Tenant-specific routing: Prefer provided orgId, otherwise fetch from seller
-    let orgId: string | undefined = providedOrgId;
+    // 🔐 STRICT v4.1: Require orgId to prevent cross-tenant notification leakage
+    if (!providedOrgId) {
+      throw new Error('orgId is required for enqueueSellerAlert (STRICT v4.1 tenant isolation)');
+    }
+
+    // 🔐 STRICT v4.1: Verify seller belongs to this org before sending notifications
+    // This prevents cross-tenant metadata leakage and ensures correct branding
+    let orgId: string = providedOrgId;
     try {
-      if (!orgId) {
-        const { SouqSeller } = await import("@/server/models/souq/Seller");
-        const seller = await SouqSeller.findById(sellerId).select("orgId").lean();
-        orgId = seller?.orgId?.toString();
+      const { SouqSeller } = await import("@/server/models/souq/Seller");
+      const orgCandidates = ObjectId.isValid(providedOrgId)
+        ? [providedOrgId, new ObjectId(providedOrgId)]
+        : [providedOrgId];
+      const sellerFilter = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
+      // 🔐 FIX: Use findOne with orgId scoping instead of findById
+      const seller = await SouqSeller.findOne({
+        _id: sellerFilter,
+        orgId: { $in: orgCandidates },
+      })
+        .select("orgId")
+        .lean();
+      
+      if (!seller) {
+        logger.warn(`[BudgetManager] Seller ${sellerId} not found in org ${providedOrgId}, skipping alert`, {
+          sellerId,
+          orgId: providedOrgId,
+          component: "BudgetManager",
+          action: "enqueueSellerAlert",
+        });
+        return; // Don't send notification if seller doesn't belong to this org
       }
+      orgId = seller.orgId ? String(seller.orgId) : providedOrgId;
     } catch (error) {
-      logger.warn(`[BudgetManager] Could not fetch orgId for seller ${sellerId}`, {
+      logger.error(`[BudgetManager] Failed to verify seller org for ${sellerId}`, {
         error,
         sellerId,
+        orgId: providedOrgId,
         component: "BudgetManager",
         action: "enqueueSellerAlert",
       });
+      // 🔐 STRICT v4.1: Fail-safe - don't send notification if we can't verify tenant
+      return;
     }
+    const orgKey = orgId;
 
     await Promise.all([
       addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: sellerId,
-        orgId, // 🔐 Tenant-specific routing for branding/templates
+        orgId: orgKey, // 🔐 Tenant-specific routing for branding/templates
         template,
         data,
       }),
       addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
         to: internalAudience,
-        orgId, // 🔐 Include for audit/routing
+        orgId: orgKey, // 🔐 Include for audit/routing
         priority: "normal",
         message: subject,
         metadata: data,
@@ -448,34 +558,51 @@ export class BudgetManager {
   }
 
   /**
-   * Get budget key for Redis
+   * Get budget key and TTL aligned to Saudi midnight
    * @param orgId - Required for tenant isolation in Redis keys
    */
-  private static getBudgetKey(campaignId: string, orgId: string): string {
-    const today = new Date().toISOString().split("T")[0];
-    return `${this.REDIS_PREFIX}${orgId}:${campaignId}:${today}`;
+  private static getBudgetPartition(
+    campaignId: string,
+    orgId: string,
+  ): { key: string; ttlSeconds: number } {
+    const { dateKey, secondsToMidnight } = getKsaDatePartition();
+    return {
+      key: `${this.REDIS_PREFIX}${orgId}:${campaignId}:${dateKey}`,
+      ttlSeconds: secondsToMidnight,
+    };
   }
 
   /**
    * Fetch campaign from database
    * @param orgId - Required for STRICT v4.1 tenant isolation
+   * AUDIT-2025-12-06: orgId is String per schema - do NOT convert to ObjectId
    */
-  private static async fetchCampaign(campaignId: string, orgId: string): Promise<{
+  private static async fetchCampaign(
+    campaignId: string,
+    orgCandidates: string | ObjectId | (string | ObjectId)[],
+  ): Promise<{
     campaignId: string;
     orgId: string;
     dailyBudget: number;
     status: string;
     sellerId: string;
   } | null> {
-    if (!orgId) {
+    if (
+      !orgCandidates ||
+      (Array.isArray(orgCandidates) && orgCandidates.length === 0)
+    ) {
       throw new Error('orgId is required for fetchCampaign (STRICT v4.1 tenant isolation)');
     }
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const campaign = await db
-      .collection("souq_ad_campaigns")
-      .findOne({ campaignId, orgId });
+    // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      { campaignId } as Record<string, unknown>,
+      Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
+    );
+    const campaign = campaigns[0] ?? null;
 
     return campaign as unknown as {
       campaignId: string;
@@ -502,14 +629,21 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required for campaign budget summary (STRICT v4.1 tenant isolation)');
     }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
-    const campaigns = await db
-      .collection("souq_ad_campaigns")
-      .find({ sellerId, orgId })
-      .toArray();
+    const sellerFilter = ObjectId.isValid(sellerId) && typeof sellerId === "string"
+      ? { $in: [sellerId, new ObjectId(sellerId)] }
+      : sellerId;
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      {
+        sellerId: sellerFilter,
+      } as Record<string, unknown>,
+      orgCandidates,
+    );
 
     let totalDailyBudget = 0;
     let totalSpentToday = 0;
@@ -518,14 +652,64 @@ export class BudgetManager {
 
     const budgetStatuses: BudgetStatus[] = [];
 
-    for (const campaign of campaigns) {
-      const status = await this.getBudgetStatus(campaign.campaignId, orgId);
+    // 🚀 PERF: Batch Redis reads instead of N+1 per-campaign calls
+    // Build partition keys for all campaigns at once
+    const { dateKey } = getKsaDatePartition();
+    type CampaignDoc = { campaignId?: string; status?: string; dailyBudget?: number };
+    const partitionKeys = (campaigns as CampaignDoc[]).map(
+      (c) => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
+    );
+
+    // Batch fetch all spend values in one Redis call (mget)
+    let spentValues: (string | null)[] = [];
+    if (redis && partitionKeys.length > 0) {
+      try {
+        spentValues = await redis.mget(...partitionKeys);
+      } catch (error) {
+        logger.warn("[BudgetManager] Redis mget failed, falling back to per-campaign fetch", { error });
+        // Fallback to individual calls if mget fails
+        spentValues = [];
+      }
+    }
+
+    // Process campaigns using batched data where available
+    const typedCampaigns = campaigns as CampaignDoc[];
+    for (let i = 0; i < typedCampaigns.length; i++) {
+      const campaign = typedCampaigns[i];
+      const dailyBudget = campaign.dailyBudget || 0;
+      
+      // Use batched value if available, otherwise fall back to individual fetch
+      let spentToday: number;
+      if (spentValues.length > 0 && spentValues[i] !== null && spentValues[i] !== undefined) {
+        spentToday = parseFloat(spentValues[i]!) || 0;
+      } else if (redis) {
+        // Fallback for missing batched values
+        const val = await redis.get(partitionKeys[i]);
+        spentToday = val ? parseFloat(val) : 0;
+      } else {
+        spentToday = getLocalSpend(partitionKeys[i]);
+      }
+
+      const remainingBudget = Math.max(0, dailyBudget - spentToday);
+      const isActive = campaign.status === "active" && remainingBudget > 0;
+      const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
+
+      const status: BudgetStatus = {
+        campaignId: campaign.campaignId || "",
+        dailyBudget,
+        spentToday,
+        remainingBudget,
+        percentageUsed,
+        isActive,
+        lastReset: dateKey,
+      };
+
       budgetStatuses.push(status);
 
-      totalDailyBudget += status.dailyBudget;
-      totalSpentToday += status.spentToday;
+      totalDailyBudget += dailyBudget;
+      totalSpentToday += spentToday;
 
-      if (status.isActive) {
+      if (isActive) {
         activeCampaigns++;
       } else if (campaign.status === "paused") {
         pausedCampaigns++;
@@ -556,15 +740,16 @@ export class BudgetManager {
       throw new Error("Daily budget must be at least 10 SAR");
     }
 
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     await db
-      .collection("souq_ad_campaigns")
-      .updateOne({ campaignId, orgId }, { $set: { dailyBudget: newBudget } });
+      .collection("souq_campaigns")
+      .updateOne({ campaignId, orgId: { $in: orgCandidates } }, { $set: { dailyBudget: newBudget } });
 
     logger.info(
-      `[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`,
+      `[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR (org ${orgKey})`,
     );
   }
 
@@ -584,18 +769,26 @@ export class BudgetManager {
     if (!orgId) {
       throw new Error('orgId is required to fetch spend history (STRICT v4.1 tenant isolation)');
     }
+    const { orgCandidates } = this.normalizeOrg(orgId);
+    const boundedDays = Math.min(Math.max(days, 1), 90);
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const now = new Date();
+    const startKsa = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+    );
+    startKsa.setDate(startKsa.getDate() - boundedDays);
+    const startDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Riyadh",
+    }).format(startKsa);
 
     const history = await db
       .collection("souq_ad_daily_spend")
       .find({
         campaignId,
-        orgId,
-        date: { $gte: startDate.toISOString().split("T")[0] },
+        orgId: { $in: orgCandidates },
+        date: { $gte: startDateStr },
       })
       .sort({ date: 1 })
       .toArray();

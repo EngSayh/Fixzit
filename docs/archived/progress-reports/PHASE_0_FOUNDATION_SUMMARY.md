@@ -121,7 +121,7 @@ SOUQ_FEATURE_BUY_BOX=false
 - `validateFSIN(fsin)` - Format and check digit validation
 - `formatFSIN(fsin)` - Display format with dashes
 - `parseFSIN(fsin)` - Extract components (prefix, sequence, check digit)
-- `generateUniqueFSIN()` - Database-aware generation (async)
+- `generateUniqueFSIN(orgId)` - Database-aware generation (async, tenant-scoped)
 
 **Usage Example**:
 

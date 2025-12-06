@@ -20,13 +20,20 @@ const ProjectBidSchema = new Schema(
     // orgId: { type: String, required: true, index: true },
 
     // References
-    projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
+    rfqId: {
+      type: Schema.Types.ObjectId,
+      ref: "RFQ",
+      required: true,
+      index: true,
+    },
+    rfqCode: { type: String },
+    projectId: { type: Schema.Types.ObjectId, ref: "Project" },
     contractorId: {
       type: Schema.Types.ObjectId,
       ref: "Contractor",
-      required: true,
     },
     vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" }, // Alternative if using Vendor model
+    vendorName: String,
 
     // Bidder Information
     bidder: {
@@ -41,6 +48,9 @@ const ProjectBidSchema = new Schema(
     // Bid Details
     bidAmount: { type: Number, required: true },
     currency: { type: String, default: "SAR" },
+    validityText: String, // e.g. "30 days"
+    deliveryTimeDays: Number, // lead time/delivery ETA in days
+    paymentTermsNote: String, // freeform payment terms
 
     // Pricing Breakdown
     breakdown: [
@@ -220,8 +230,17 @@ const ProjectBidSchema = new Schema(
 
     // Status
     status: { type: String, enum: BidStatus, default: "DRAFT" },
-    submittedAt: Date,
+    submittedAt: { type: Date, default: Date.now },
     expiresAt: Date,
+    technicalProposal: String,
+    commercialProposal: String,
+    alternates: [
+      {
+        description: String,
+        priceAdjustment: Number,
+      },
+    ],
+    exceptions: [String],
 
     // Award Details (if accepted)
     award: {
@@ -266,6 +285,11 @@ ProjectBidSchema.index({ projectId: 1, status: 1 });
 ProjectBidSchema.index({ contractorId: 1, status: 1 });
 ProjectBidSchema.index({ bidAmount: 1 });
 ProjectBidSchema.index({ submittedAt: 1 });
+ProjectBidSchema.index(
+  { orgId: 1, rfqId: 1, vendorId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+ProjectBidSchema.index({ orgId: 1, rfqId: 1, status: 1, submittedAt: -1 });
 
 // Plugins
 ProjectBidSchema.plugin(tenantIsolationPlugin);
