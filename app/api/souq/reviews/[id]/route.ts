@@ -10,6 +10,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { ObjectId } from "mongodb";
 
 type RouteContext = {
   params: Promise<{
@@ -43,30 +44,40 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     const { id: reviewId } = await context.params;
-    // Fetch orgId first to enforce tenant isolation on subsequent fetch
+    const searchParams = new URL(req.url).searchParams;
+    const orgIdParam = searchParams.get("orgId");
+    const requesterOrg = session?.user?.orgId;
+    const orgId = orgIdParam ?? requesterOrg ?? "";
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    if (!ObjectId.isValid(orgId)) {
+      return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+    }
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+
+    // Fetch review scoped by org to prevent cross-tenant access
     const { connection } = await connectDb();
     const db = connection.db!;
     const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId },
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
       { projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 } },
     );
     if (!found) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
-    const orgId =
-      typeof found.orgId === "string"
-        ? found.orgId
-        : typeof found.org_id === "string"
-          ? found.org_id
-          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
 
-    // If requester is authenticated with an org, enforce org match
-    const requesterOrg = session?.user?.orgId;
+    // If requester has org, enforce match with provided orgId
     if (requesterOrg && orgId && requesterOrg !== orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const review = await reviewService.getReviewById(reviewId, orgId || requesterOrg || "");
+    const review = await reviewService.getReviewById(reviewId, orgId);
 
     if (!review) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
@@ -101,8 +112,18 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     const connection = await connectDb();
     const { id: reviewId } = await context.params;
     const db = connection.connection.db!;
+    const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgIdParam)
+      ? [orgIdParam, new ObjectId(orgIdParam)]
+      : [orgIdParam];
     const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId },
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
       { projection: { orgId: 1, org_id: 1 } },
     );
     if (!found) {
@@ -159,8 +180,18 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     const connection = await connectDb();
     const { id: reviewId } = await context.params;
     const db = connection.connection.db!;
+    const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgIdParam)
+      ? [orgIdParam, new ObjectId(orgIdParam)]
+      : [orgIdParam];
     const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId },
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
       { projection: { orgId: 1, org_id: 1 } },
     );
     if (!found) {

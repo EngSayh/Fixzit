@@ -6,6 +6,7 @@
  */
 
 import { randomBytes } from "crypto";
+import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 
 export interface FSINMetadata {
@@ -234,14 +235,24 @@ export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
  * @returns Promise<boolean> true if exists, false otherwise
  * @throws Error if database query fails (prevents duplicate FSINs during outages)
  */
-export async function fsinExists(_fsin: string): Promise<boolean> {
+export async function fsinExists(_fsin: string, orgId: string): Promise<boolean> {
+  if (!orgId) {
+    throw new Error("orgId is required to check FSIN uniqueness (STRICT v4.1)");
+  }
+  if (!ObjectId.isValid(orgId)) {
+    throw new Error("Invalid orgId for FSIN uniqueness check");
+  }
+  const orgFilter = new ObjectId(orgId);
   try {
     const { SouqProduct } = await import("@/server/models/souq/Product");
     const { connectDb } = await import("@/lib/mongodb-unified");
 
     await connectDb();
 
-    const product = await SouqProduct.findOne({ fsin: _fsin })
+    const product = await SouqProduct.findOne({
+      fsin: _fsin,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    })
       .select("_id")
       .lean();
     return !!product;
@@ -268,8 +279,8 @@ export async function fsinExists(_fsin: string): Promise<boolean> {
  * ⚠️ RACE CONDITION: This check-then-insert pattern is NOT atomic.
  * Two concurrent requests can both pass fsinExists() and insert the same FSIN.
  *
- * ✅ REQUIRED FIX: Add unique index on SouqProduct.fsin field:
- *    souqProductSchema.index({ fsin: 1 }, { unique: true });
+ * ✅ REQUIRED FIX: Add org-scoped unique index on SouqProduct.fsin field:
+ *    souqProductSchema.index({ orgId: 1, fsin: 1 }, { unique: true });
  *
  * Then handle duplicate key errors (code 11000) in product creation:
  *    try { await SouqProduct.create({ fsin, ... }) }
@@ -279,15 +290,19 @@ export async function fsinExists(_fsin: string): Promise<boolean> {
  * @returns Promise<FSINMetadata>
  */
 export async function generateUniqueFSIN(
+  orgId: string,
   maxRetries = 5,
 ): Promise<FSINMetadata> {
+  if (!orgId) {
+    throw new Error("orgId is required to generate a unique FSIN (STRICT v4.1)");
+  }
   let attempts = 0;
 
   while (attempts < maxRetries) {
     const metadata = generateFSIN();
 
     // Check if FSIN already exists
-    const exists = await fsinExists(metadata.fsin);
+    const exists = await fsinExists(metadata.fsin, orgId);
 
     if (!exists) {
       return metadata;

@@ -55,7 +55,8 @@ type SeedOrder = {
 };
 
 // Test organization ID (replace with your actual test org ID)
-const TEST_ORG_ID = "org-test-001";
+// Must be a valid ObjectId string for product/org scoping
+const TEST_ORG_ID = "507f1f77bcf86cd799439011";
 const TEST_SELLER_ID = "6740b53c5b1a08c748eec97f"; // Valid MongoDB ObjectId format
 
 // Sample product data matching the Product schema
@@ -275,6 +276,7 @@ async function seedProducts(): Promise<SeedProduct[]> {
 
     products.push({
       fsin,
+      orgId: TEST_ORG_ID,
       title: template.title,
       description: template.description,
       categoryId: template.categoryId,
@@ -290,7 +292,7 @@ async function seedProducts(): Promise<SeedProduct[]> {
   }
 
   // Clear existing test products
-  await SouqProduct.deleteMany({ createdBy: TEST_SELLER_ID });
+  await SouqProduct.deleteMany({ createdBy: TEST_SELLER_ID, orgId: TEST_ORG_ID });
 
   // Insert new products
   const insertedProducts = (await SouqProduct.insertMany(

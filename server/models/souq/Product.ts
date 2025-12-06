@@ -9,6 +9,7 @@ import { getModel, MModel } from "@/types/mongoose-compat";
 export interface IProduct extends Document {
   _id: mongoose.Types.ObjectId;
   fsin: string; // Fixzit Standard Item Number (unique)
+  orgId: mongoose.Types.ObjectId;
 
   // Basic Info
   title: Record<string, string>; // { en: '...', ar: '...' }
@@ -68,9 +69,14 @@ const ProductSchema = new Schema<IProduct>(
     fsin: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
+      index: true, // uniqueness enforced per-tenant via compound index below
       uppercase: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
     },
     title: {
       type: Map,
@@ -191,7 +197,9 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 // Indexes for performance
-ProductSchema.index({ fsin: 1, isActive: 1 });
+ProductSchema.index({ orgId: 1, fsin: 1 }, { unique: true });
+ProductSchema.index({ orgId: 1, isActive: 1 });
+ProductSchema.index({ orgId: 1, createdBy: 1, isActive: 1 });
 ProductSchema.index({ categoryId: 1, brandId: 1 });
 ProductSchema.index({ createdBy: 1, isActive: 1 });
 ProductSchema.index({

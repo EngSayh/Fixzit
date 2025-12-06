@@ -369,11 +369,14 @@ class AnalyticsService {
         (period === "last_7_days" ? 7 : period === "last_90_days" ? 90 : 30),
     );
 
+    // 🔐 STRICT v4.1: Org-scope the listing query to prevent cross-tenant reads
+    const listingOrgFilter = buildSouqOrgFilter(orgId);
     const listings = await SouqListing.find({
       sellerId,
       status: "active",
       stockQuantity: { $lte: 10 }, // Low stock threshold
-    }).select("productId stockQuantity");
+      ...listingOrgFilter,
+    } as mongoose.FilterQuery<typeof SouqListing>).select("productId stockQuantity");
 
     for (const listing of listings) {
       const product = products.find(

@@ -282,13 +282,23 @@ class ReviewService {
 
   /**
    * Seller responds to review
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async respondToReview(
+    orgId: string,
     reviewId: string,
     sellerId: string,
     content: string,
   ): Promise<IReview> {
-    const review = await SouqReview.findOne({ reviewId });
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for respondToReview (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const review = await SouqReview.findOne({
+      reviewId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    });
 
     if (!review) {
       throw new Error("Review not found");

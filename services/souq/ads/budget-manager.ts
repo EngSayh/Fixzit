@@ -13,7 +13,6 @@ import { ObjectId } from "mongodb";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
-import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
@@ -49,10 +48,14 @@ function createRedisClient(): Redis | null {
   const isProduction = process.env.NODE_ENV === "production";
   const isTest = process.env.NODE_ENV === "test";
   const allowFallback = process.env.BUDGET_ALLOW_MEMORY_FALLBACK === "true";
+  // During Next.js build we can allow fallback to avoid blocking build artifacts, runtime must still enforce.
+  const isBuildPhase =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.DISABLE_MONGODB_FOR_BUILD === "true";
   
   if (!redisUrl && !redisHost) {
-    if (isProduction && !allowFallback) {
-      // Fail closed in production - budget enforcement MUST be reliable
+    if (isProduction && !allowFallback && !isBuildPhase) {
+      // Fail closed in production runtime - budget enforcement MUST be reliable
       throw new Error(
         "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
         "Set BULLMQ_REDIS_URL/REDIS_URL or BUDGET_ALLOW_MEMORY_FALLBACK=true to allow degraded mode."
@@ -594,12 +597,18 @@ export class BudgetManager {
     const db = await getDatabase();
 
     // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
-    const campaigns = await findWithOrgFallback(
-      db.collection("souq_campaigns"),
-      { campaignId } as Record<string, unknown>,
-      Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
-    );
-    const campaign = campaigns[0] ?? null;
+    // 🔒 Deterministic: prefer findOne with $in and projection/limit to avoid non-deterministic picks if duplicates exist
+    const orgList = Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates];
+    const campaign =
+      (await db.collection("souq_campaigns").findOne(
+        { campaignId, orgId: { $in: orgList } },
+        { projection: { campaignId: 1, orgId: 1, dailyBudget: 1, status: 1, sellerId: 1 } },
+      )) ||
+      // 🧪 Mock/driver fallback: retry with primary org when $in unsupported
+      (await db.collection("souq_campaigns").findOne(
+        { campaignId, orgId: orgList[0] },
+        { projection: { campaignId: 1, orgId: 1, dailyBudget: 1, status: 1, sellerId: 1 } },
+      ));
 
     return campaign as unknown as {
       campaignId: string;
@@ -778,6 +787,7 @@ export class BudgetManager {
       throw new Error('orgId is required to fetch spend history (STRICT v4.1 tenant isolation)');
     }
     const { orgCandidates } = this.normalizeOrg(orgId);
+    const boundedDays = Math.min(Math.max(days, 1), 90);
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -785,7 +795,7 @@ export class BudgetManager {
     const startKsa = new Date(
       now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
     );
-    startKsa.setDate(startKsa.getDate() - days);
+    startKsa.setDate(startKsa.getDate() - boundedDays);
     const startDateStr = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Riyadh",
     }).format(startKsa);

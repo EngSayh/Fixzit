@@ -15,6 +15,7 @@
 import { ClientSession, Db, ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
+import { logger } from "@/lib/logger";
 import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
 
@@ -631,12 +632,40 @@ export class SellerBalanceService {
         ["withdrawal", "commission", "gateway_fee", "vat", "refund", "chargeback", "reserve_hold"].includes(type) &&
         amount >= 0
       ) {
+        logger.warn("[SellerBalance] Rejected transaction due to non-negative debit amount", {
+          type,
+          amount,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "amount_must_be_negative",
+          env: process.env.NODE_ENV,
+        });
         throw new Error(`${type} amount must be negative`);
       }
       if (type === "reserve_release" && amount <= 0) {
+        logger.warn("[SellerBalance] Rejected transaction due to non-positive reserve_release", {
+          type,
+          amount,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "reserve_release_positive",
+          env: process.env.NODE_ENV,
+        });
         throw new Error("reserve_release amount must be positive");
       }
       if (type === "reserve_release" && reservedBefore < amount) {
+        logger.warn("[SellerBalance] Rejected reserve_release exceeding reserved balance", {
+          type,
+          amount,
+          reservedBefore,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "reserve_release_exceeds_reserved",
+          env: process.env.NODE_ENV,
+        });
         throw new Error(
           `Cannot release more than reserved. Reserved: ${reservedBefore} SAR, requested release: ${amount} SAR`,
         );

@@ -170,6 +170,14 @@ vi.mock("@/lib/redis", () => ({
   CacheTTL: { FIVE_MINUTES: 300 },
 }));
 
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
 
 const orgId = new ObjectId();
