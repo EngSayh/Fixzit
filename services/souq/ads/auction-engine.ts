@@ -15,6 +15,7 @@
 
 interface AdCampaign {
   campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   sellerId: string;
   type: "sponsored_products" | "sponsored_brands" | "product_display";
   status: "active" | "paused" | "ended";
@@ -26,6 +27,7 @@ interface AdCampaign {
 interface AdBid {
   bidId: string;
   campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   targetType: "keyword" | "category" | "product" | "asin";
   targetValue: string; // keyword text, category ID, or product FSIN
   bidAmount: number; // Max CPC bid
@@ -100,7 +102,10 @@ export class AuctionEngine {
       if (campaign.spentToday >= campaign.dailyBudget) continue;
 
       // Always read the latest bids from the canonical collection
-      const campaignBids = await this.fetchCampaignBids(campaign.campaignId);
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
       if (campaignBids.length === 0) continue;
 
       // Get matching bids for this search
@@ -174,7 +179,10 @@ export class AuctionEngine {
     for (const campaign of campaigns) {
       if (campaign.spentToday >= campaign.dailyBudget) continue;
 
-      const campaignBids = await this.fetchCampaignBids(campaign.campaignId);
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
       if (campaignBids.length === 0) continue;
 
       const matchingBids = this.getMatchingBids(campaignBids, context);
@@ -426,13 +434,16 @@ export class AuctionEngine {
   /**
    * Fetch the most recent bids for a campaign from the canonical collection
    */
-  private static async fetchCampaignBids(campaignId: string): Promise<AdBid[]> {
+  private static async fetchCampaignBids(
+    campaignId: string,
+    orgId: string,
+  ): Promise<AdBid[]> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const bids = await db
       .collection<AdBid>("souq_ad_bids")
-      .find({ campaignId })
+      .find({ campaignId, orgId }) // Tenant isolation (STRICT v4.1)
       .toArray();
 
     return bids;

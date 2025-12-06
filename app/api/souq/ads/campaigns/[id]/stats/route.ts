@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * GET /api/souq/ads/campaigns/[id]/stats
@@ -18,6 +43,14 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
+      );
+    }
+
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads stats)" },
+        { status: 403 },
       );
     }
 

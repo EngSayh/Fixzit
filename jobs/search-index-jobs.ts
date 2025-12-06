@@ -10,6 +10,18 @@ const bullRedisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
 const bullRedisPassword =
   process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
 const hasBullRedisConfig = Boolean(bullRedisUrl || bullRedisHost);
+const DEFAULT_SEARCH_ORG_ID =
+  process.env.DEFAULT_ORG_ID || process.env.PUBLIC_ORG_ID;
+
+const resolveOrgId = (orgId?: string): string => {
+  const effectiveOrgId = orgId || DEFAULT_SEARCH_ORG_ID;
+  if (!effectiveOrgId) {
+    throw new Error(
+      "[SearchIndex] orgId is required for indexing jobs (STRICT v4.1 tenant isolation)",
+    );
+  }
+  return effectiveOrgId;
+};
 
 const connection = hasBullRedisConfig
   ? bullRedisUrl
@@ -47,7 +59,7 @@ export const searchIndexQueue = connection
 interface FullReindexJob {
   type: "full_reindex";
   target: "products" | "sellers" | "all";
-  orgId?: string;
+  orgId: string;
 }
 
 interface IncrementalUpdateJob {
@@ -84,11 +96,19 @@ export async function scheduleFullReindex() {
     );
     return;
   }
+  const defaultOrgId = DEFAULT_SEARCH_ORG_ID;
+  if (!defaultOrgId) {
+    logger.warn(
+      "[SearchIndex] Skipping scheduled full reindex - DEFAULT_ORG_ID/PUBLIC_ORG_ID not set (STRICT v4.1 tenant isolation)",
+    );
+    return;
+  }
   await searchIndexQueue.add(
     "full_reindex",
     {
       type: "full_reindex",
       target: "all",
+      orgId: defaultOrgId,
     } as FullReindexJob,
     {
       repeat: {
@@ -113,12 +133,13 @@ export async function triggerFullReindex(
     logger.warn("[SearchIndex] Cannot trigger reindex - Redis not configured");
     return null;
   }
+  const resolvedOrgId = resolveOrgId(orgId);
   const job = await searchIndexQueue.add(
     "full_reindex",
     {
       type: "full_reindex",
       target,
-      orgId,
+      orgId: resolvedOrgId,
     } as FullReindexJob,
     {
       priority: 1, // High priority for manual trigger
@@ -214,9 +235,17 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
 
     switch (data.type) {
       case "full_reindex": {
+        if (!data.orgId) {
+          throw new Error(
+            "orgId missing for full_reindex job (STRICT v4.1 tenant isolation)",
+          );
+        }
+        // Extract after guard check to satisfy TypeScript narrowing
+        const reindexOrgId: string = data.orgId;
+        
         if (data.target === "products" || data.target === "all") {
           const result = await SearchIndexerService.fullReindexProducts({
-            orgId: data.orgId,
+            orgId: reindexOrgId,
           });
           await job.updateProgress(50);
           logger.info(`[SearchIndex] Products reindexed: ${result.indexed}`);
@@ -224,7 +253,7 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
 
         if (data.target === "sellers" || data.target === "all") {
           const result = await SearchIndexerService.fullReindexSellers({
-            orgId: data.orgId,
+            orgId: reindexOrgId,
           });
           await job.updateProgress(100);
           logger.info(`[SearchIndex] Sellers reindexed: ${result.indexed}`);

@@ -522,51 +522,78 @@ export default function ClientSidebar() {
 
   return (
     <aside
-      className="h-screen w-64 border-r bg-[var(--light-surface)] dark:bg-[var(--dark-surface)]"
+      className="fxz-sidebar h-screen w-64 overflow-hidden flex flex-col"
       role="navigation"
       aria-label={navHeading}
     >
-      <div className="p-3 flex items-center justify-between border-b">
-        <span className="font-semibold text-sm">{navHeading}</span>
+      {/* Header with gradient accent */}
+      <div className="relative p-4 flex items-center justify-between border-b border-sidebar-border">
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sidebar-primary to-transparent opacity-60" />
+        <span className="font-display font-semibold text-sm text-sidebar-foreground tracking-wide">
+          {navHeading}
+        </span>
         <button
-          className="text-xs text-slate-500"
+          className="fxz-topbar-pill px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground transition-colors"
           onClick={() => setIsDark((d) => !d)}
         >
           {themeLabel}
         </button>
       </div>
-      <nav className="p-2 space-y-2">
-        {navSections.map((section) => (
+      
+      {/* Navigation with custom scrollbar */}
+      <nav className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
+        {navSections.map((section, sectionIdx) => (
           <div
             key={section.id}
+            className="animate-slide-up"
+            style={{ animationDelay: `${sectionIdx * 50}ms` }}
           >
+            {/* Section title */}
             <button
-              className="w-full flex items-center justify-between ps-2 pe-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide"
+              className="fxz-sidebar-title w-full flex items-center justify-between py-2 group"
               onClick={() => toggleSection(section.id)}
             >
-              <span>{section.title}</span>
-              <span className="rtl-flip">
-                {collapsed[section.id] ? "▸" : "▾"}
+              <span className="flex-1 text-start">{section.title}</span>
+              <span 
+                className={`transition-transform duration-200 text-[10px] opacity-50 group-hover:opacity-80 ${
+                  collapsed[section.id] ? '' : 'rotate-180'
+                } rtl-flip`}
+              >
+                ▾
               </span>
             </button>
-            {!collapsed[section.id] && (
-              <ul className="mt-1 space-y-1">
-                {section.items.map((item) => {
+            
+            {/* Section items with animation */}
+            <div 
+              className={`overflow-hidden transition-all duration-300 ease-out ${
+                collapsed[section.id] 
+                  ? 'max-h-0 opacity-0' 
+                  : 'max-h-[1000px] opacity-100'
+              }`}
+            >
+              <ul className="space-y-0.5 pb-2">
+                {section.items.map((item, itemIdx) => {
                   const active = pathname?.startsWith(item.path) ?? false;
                   return (
-                    <li key={item.path}>
+                    <li 
+                      key={item.path}
+                      style={{ animationDelay: `${(sectionIdx * 50) + (itemIdx * 25)}ms` }}
+                    >
                       <Link
                         href={item.path}
-                        className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
-                          active
-                            ? "bg-[var(--primary)] text-white"
-                            : "text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        className={`fxz-sidebar-item ${
+                          active ? 'fxz-sidebar-item-active' : ''
                         }`}
                       >
-                        <span>{item.label}</span>
+                        {item.icon && (
+                          <span className="text-base opacity-80 group-hover:opacity-100 transition-opacity">
+                            {item.icon}
+                          </span>
+                        )}
+                        <span className="flex-1 truncate">{item.label}</span>
                         {item.badge && item.badge > 0 && (
-                          <span className="ms-2 rounded-full bg-destructive/90 text-white text-xs px-2">
-                            {item.badge}
+                          <span className="fxz-sidebar-badge">
+                            {item.badge > 99 ? '99+' : item.badge}
                           </span>
                         )}
                       </Link>
@@ -574,10 +601,13 @@ export default function ClientSidebar() {
                   );
                 })}
               </ul>
-            )}
+            </div>
           </div>
         ))}
       </nav>
+      
+      {/* Footer accent line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
     </aside>
   );
 }

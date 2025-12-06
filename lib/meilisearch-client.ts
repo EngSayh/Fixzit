@@ -9,15 +9,18 @@ let client: MeiliSearch | null = null;
  * @returns MeiliSearch client or null if not configured
  */
 export function getMeiliSearchClient(): MeiliSearch | null {
-  if (
-    !client &&
-    process.env.MEILISEARCH_HOST &&
-    process.env.MEILISEARCH_API_KEY
-  ) {
-    client = new MeiliSearch({
-      host: process.env.MEILISEARCH_HOST,
-      apiKey: process.env.MEILISEARCH_API_KEY,
-    });
+  // Canonical env vars (STRICT): MEILI_HOST / MEILI_MASTER_KEY
+  const host =
+    process.env.MEILI_HOST ||
+    process.env.MEILISEARCH_HOST || // backwards compatibility
+    "";
+  const apiKey =
+    process.env.MEILI_MASTER_KEY ||
+    process.env.MEILISEARCH_API_KEY || // backwards compatibility
+    "";
+
+  if (!client && host && apiKey) {
+    client = new MeiliSearch({ host, apiKey });
   }
   return client;
 }

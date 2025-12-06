@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * POST /api/souq/ads/campaigns
@@ -19,6 +44,13 @@ export async function POST(request: NextRequest) {
     }
 
     const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
     if (!userOrgId) {
       return NextResponse.json(
         { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
@@ -98,6 +130,13 @@ export async function GET(request: NextRequest) {
     }
 
     const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
     if (!userOrgId) {
       return NextResponse.json(
         { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },

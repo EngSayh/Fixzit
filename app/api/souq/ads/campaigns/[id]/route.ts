@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
 
 /**
  * GET /api/souq/ads/campaigns/[id]
@@ -21,6 +46,13 @@ export async function GET(
       );
     }
 
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
     const orgId = session.user.orgId;
     if (!orgId) {
       return NextResponse.json(
@@ -82,6 +114,13 @@ export async function PUT(
       );
     }
 
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
     const userOrgId = session.user.orgId;
     if (!userOrgId) {
       return NextResponse.json(
@@ -170,7 +209,33 @@ export async function DELETE(
       );
     }
 
+    // 🔐 STRICT v4.1: Only marketplace actors may delete campaigns
+    const allowedRoles = [
+      "seller",
+      "ops",
+      "marketplace_admin",
+      "admin",
+      "super_admin",
+      "ADMIN",
+      "SUPER_ADMIN",
+    ];
+    const userRole =
+      session.user.role?.toLowerCase?.() || session.user.role || "";
+    if (!allowedRoles.some((r) => r.toLowerCase() === userRole.toLowerCase())) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: insufficient role for ads" },
+        { status: 403 },
+      );
+    }
+
     const orgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "Organization required" },

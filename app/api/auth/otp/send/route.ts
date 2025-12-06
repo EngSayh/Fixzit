@@ -754,12 +754,26 @@ export async function POST(request: NextRequest) {
     
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorName = error instanceof Error ? error.name : "UnknownError";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log detailed error context for production debugging
+    logger.error("[OTP] Detailed error context", {
+      errorName,
+      errorMessage,
+      stack: errorStack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+    });
     
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
-        // In development, include error details for debugging
+        // Include error hint in non-development for debugging (no sensitive data)
+        errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
+          ? "database_connection" 
+          : errorName === "MONGO_DISABLED_FOR_BUILD"
+          ? "build_mode"
+          : "unknown",
+        // In development, include full error details for debugging
         ...(process.env.NODE_ENV === "development" && { 
           debug: { name: errorName, message: errorMessage }
         }),

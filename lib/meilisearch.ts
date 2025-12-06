@@ -36,6 +36,7 @@ export const INDEXES = {
 
 // Product document interface
 export interface ProductDocument {
+  id: string; // Composite key: {orgId}_{fsin} for tenant isolation
   fsin: string;
   orgId: string; // Required for tenant isolation
   title: string;
@@ -56,6 +57,7 @@ export interface ProductDocument {
 
 // Seller document interface
 export interface SellerDocument {
+  id: string; // Composite key: {orgId}_{sellerId} for tenant isolation
   sellerId: string;
   orgId: string; // Required for tenant isolation
   tradeName: string;
@@ -102,7 +104,9 @@ export async function configureProductsIndex() {
 
       // Attributes to display
       displayedAttributes: [
+        "id",
         "fsin",
+        "orgId",
         "title",
         "brand",
         "category",
@@ -158,12 +162,19 @@ export async function configureSellersIndex() {
     index.updateSettings({
       searchableAttributes: ["tradeName", "legalName"],
 
-      filterableAttributes: ["accountHealth", "rating", "badges"],
+      filterableAttributes: [
+        "orgId", // Required for tenant isolation (STRICT v4.1)
+        "accountHealth",
+        "rating",
+        "badges",
+      ],
 
       sortableAttributes: ["rating", "totalOrders", "createdAt"],
 
       displayedAttributes: [
+        "id",
         "sellerId",
+        "orgId",
         "tradeName",
         "legalName",
         "accountHealth",
@@ -192,11 +203,13 @@ export async function configureSellersIndex() {
 export async function initializeSearchIndexes() {
   try {
     // Create indexes if they don't exist
+    // Use composite 'id' (orgId_fsin) as primary key for tenant isolation (STRICT v4.1)
     await withMeiliResilience("create-products-index", "index", () =>
-      getSearchClient().createIndex(INDEXES.PRODUCTS, { primaryKey: "fsin" }),
+      getSearchClient().createIndex(INDEXES.PRODUCTS, { primaryKey: "id" }),
     );
+    // Use composite 'id' (orgId_sellerId) as primary key for tenant isolation (STRICT v4.1)
     await withMeiliResilience("create-sellers-index", "index", () =>
-      getSearchClient().createIndex(INDEXES.SELLERS, { primaryKey: "sellerId" }),
+      getSearchClient().createIndex(INDEXES.SELLERS, { primaryKey: "id" }),
     );
 
     // Configure indexes

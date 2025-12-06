@@ -28,7 +28,7 @@ interface SouqListing {
   listingId: string;
   productId: string;
   sellerId: string;
-  orgId?: string;
+  orgId: string; // Required for tenant isolation
   price: number;
   quantity: number;
   status: string;
@@ -52,7 +52,7 @@ interface SouqProduct {
 
 interface SouqSeller {
   sellerId: string;
-  orgId?: string;
+  orgId: string; // Required for tenant isolation
   tradeName: string;
   legalName?: string;
   accountHealth: {
@@ -73,16 +73,25 @@ export class SearchIndexerService {
   static readonly BATCH_SIZE = BATCH_SIZE;
 
   /**
-   * Full reindex of all products
+   * Full reindex of all products for a specific organization
    * Run daily at 2 AM via BullMQ cron job
+   * 🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure
    */
-  static async fullReindexProducts(options?: {
-    orgId?: string;
+  static async fullReindexProducts(options: {
+    orgId: string; // Required for tenant isolation (STRICT v4.1)
   }): Promise<{
     indexed: number;
     errors: number;
   }> {
-    logger.info("[SearchIndexer] Starting full product reindex...");
+    if (!options.orgId) {
+      throw new Error('orgId is required for fullReindexProducts (STRICT v4.1 tenant isolation)');
+    }
+
+    logger.info(`[SearchIndexer] Starting full product reindex for org: ${options.orgId}...`, {
+      component: "SearchIndexerService",
+      action: "fullReindexProducts",
+      orgId: options.orgId,
+    });
 
     let indexed = 0;
     let errors = 0;
@@ -91,18 +100,18 @@ export class SearchIndexerService {
     try {
       const index = searchClient.index(INDEXES.PRODUCTS);
 
-      // Clear existing index
-      await withMeiliResilience("products-clear-index", "index", () =>
-        index.deleteAllDocuments(),
+      // 🔐 STRICT v4.1: Tenant-safe deletion - only delete docs for THIS org
+      await withMeiliResilience("products-clear-org", "index", () =>
+        index.deleteDocuments({ filter: `orgId = "${options.orgId}"` }),
       );
-      logger.info("[SearchIndexer] Cleared existing product index");
+      logger.info(`[SearchIndexer] Cleared product index for org: ${options.orgId}`);
 
-      // Fetch all active listings in batches
+      // Fetch all active listings in batches for this org
       while (true) {
         const listings = await this.fetchActiveListings(
           offset,
           BATCH_SIZE,
-          options?.orgId,
+          options.orgId, // Required for tenant isolation
         );
         if (listings.length === 0) break;
 
@@ -214,21 +223,34 @@ export class SearchIndexerService {
   /**
    * Remove product from index
    * Triggered on listing deletion or deactivation
+   * Uses composite id (orgId_fsin) for tenant-safe deletion (STRICT v4.1)
    */
   static async deleteFromIndex(
     fsin: string,
     options: { orgId: string },
   ): Promise<void> {
     try {
+      if (!options.orgId) {
+        logger.error("[SearchIndexer] Cannot delete without orgId - tenant isolation required", {
+          component: "SearchIndexerService",
+          action: "deleteFromIndex",
+          fsin,
+        });
+        throw new Error("orgId is required for deleteFromIndex (STRICT v4.1 tenant isolation)");
+      }
+
+      // Use composite id for tenant-safe deletion
+      const compositeId = `${options.orgId}_${fsin}`;
       const index = searchClient.index(INDEXES.PRODUCTS);
       await withMeiliResilience("product-delete", "index", () =>
-        index.deleteDocument(fsin),
+        index.deleteDocument(compositeId),
       );
 
       logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`, {
         component: "SearchIndexerService",
         action: "deleteFromIndex",
         fsin,
+        compositeId,
         orgId: options.orgId,
       });
     } catch (_error) {
@@ -246,15 +268,24 @@ export class SearchIndexerService {
   }
 
   /**
-   * Full reindex of all sellers
+   * Full reindex of all sellers for a specific organization
+   * 🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure
    */
-  static async fullReindexSellers(options?: {
-    orgId?: string;
+  static async fullReindexSellers(options: {
+    orgId: string; // Required for tenant isolation (STRICT v4.1)
   }): Promise<{
     indexed: number;
     errors: number;
   }> {
-    logger.info("[SearchIndexer] Starting full seller reindex...");
+    if (!options.orgId) {
+      throw new Error('orgId is required for fullReindexSellers (STRICT v4.1 tenant isolation)');
+    }
+
+    logger.info(`[SearchIndexer] Starting full seller reindex for org: ${options.orgId}...`, {
+      component: "SearchIndexerService",
+      action: "fullReindexSellers",
+      orgId: options.orgId,
+    });
 
     let indexed = 0;
     let errors = 0;
@@ -263,18 +294,18 @@ export class SearchIndexerService {
     try {
       const index = searchClient.index(INDEXES.SELLERS);
 
-      // Clear existing index
-      await withMeiliResilience("sellers-clear-index", "index", () =>
-        index.deleteAllDocuments(),
+      // 🔐 STRICT v4.1: Tenant-safe deletion - only delete docs for THIS org
+      await withMeiliResilience("sellers-clear-org", "index", () =>
+        index.deleteDocuments({ filter: `orgId = "${options.orgId}"` }),
       );
-      logger.info("[SearchIndexer] Cleared existing seller index");
+      logger.info(`[SearchIndexer] Cleared seller index for org: ${options.orgId}`);
 
-      // Fetch all active sellers in batches
+      // Fetch all active sellers in batches for this org
       while (true) {
         const sellers = await this.fetchActiveSellers(
           offset,
           BATCH_SIZE,
-          options?.orgId,
+          options.orgId, // Required for tenant isolation
         );
         if (sellers.length === 0) break;
 
@@ -379,12 +410,17 @@ export class SearchIndexerService {
 
   /**
    * Fetch active listings from database
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
    */
   private static async fetchActiveListings(
     offset: number,
     limit: number,
-    orgId?: string,
+    orgId: string, // Required for tenant isolation
   ): Promise<SouqListing[]> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchActiveListings (STRICT v4.1 tenant isolation)');
+    }
+
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -392,7 +428,7 @@ export class SearchIndexerService {
       .collection<SouqListing>("souq_listings")
       .find({
         status: "active",
-        ...(orgId ? { orgId } : {}),
+        orgId, // Required for tenant isolation
       })
       .skip(offset)
       .limit(limit)
@@ -403,11 +439,16 @@ export class SearchIndexerService {
 
   /**
    * Fetch single listing by ID
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
    */
   private static async fetchListingById(
     listingId: string,
-    orgId?: string,
+    orgId: string, // Required for tenant isolation
   ): Promise<SouqListing | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchListingById (STRICT v4.1 tenant isolation)');
+    }
+
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -415,7 +456,7 @@ export class SearchIndexerService {
       .collection<SouqListing>("souq_listings")
       .findOne({
         listingId,
-        ...(orgId ? { orgId } : {}),
+        orgId, // Required for tenant isolation
       });
 
     return result;
@@ -423,12 +464,17 @@ export class SearchIndexerService {
 
   /**
    * Fetch active sellers from database
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
    */
   private static async fetchActiveSellers(
     offset: number,
     limit: number,
-    orgId?: string,
+    orgId: string, // Required for tenant isolation
   ): Promise<SouqSeller[]> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchActiveSellers (STRICT v4.1 tenant isolation)');
+    }
+
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -436,7 +482,7 @@ export class SearchIndexerService {
       .collection<SouqSeller>("souq_sellers")
       .find({
         status: "active",
-        ...(orgId ? { orgId } : {}),
+        orgId, // Required for tenant isolation
       })
       .skip(offset)
       .limit(limit)
@@ -447,11 +493,16 @@ export class SearchIndexerService {
 
   /**
    * Fetch single seller by ID
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
    */
   private static async fetchSellerById(
     sellerId: string,
-    orgId?: string,
+    orgId: string, // Required for tenant isolation
   ): Promise<SouqSeller | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchSellerById (STRICT v4.1 tenant isolation)');
+    }
+
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -459,7 +510,7 @@ export class SearchIndexerService {
       .collection<SouqSeller>("souq_sellers")
       .findOne({
         sellerId,
-        ...(orgId ? { orgId } : {}),
+        orgId, // Required for tenant isolation
       });
 
     return result;
@@ -472,6 +523,20 @@ export class SearchIndexerService {
   private static async transformListingsToDocuments(
     listings: SouqListing[],
   ): Promise<ProductDocument[]> {
+    if (!listings.length) return [];
+
+    // All listings are fetched per-org; enforce single-org invariant defensively
+    const orgIds = Array.from(new Set(listings.map((l) => l.orgId).filter(Boolean)));
+    if (orgIds.length !== 1) {
+      logger.error("[SearchIndexer] Listings batch spans multiple orgs - refusing to index to prevent cross-tenant leakage", {
+        component: "SearchIndexerService",
+        action: "transformListingsToDocuments",
+        orgIds,
+      });
+      return [];
+    }
+    const orgId = orgIds[0];
+
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
@@ -481,12 +546,12 @@ export class SearchIndexerService {
 
     const products = await db
       .collection<SouqProduct>("souq_products")
-      .find({ fsin: { $in: productIds } })
+      .find({ fsin: { $in: productIds }, orgId }) // Tenant-scoped lookup
       .toArray();
 
     const sellers = await db
       .collection<SouqSeller>("souq_sellers")
-      .find({ sellerId: { $in: sellerIds } })
+      .find({ sellerId: { $in: sellerIds }, orgId }) // Tenant-scoped lookup
       .toArray();
 
     // Create lookup maps
@@ -511,6 +576,20 @@ export class SearchIndexerService {
           return null;
         }
 
+        // STRICT v4.1: Reject listings without orgId to prevent cross-tenant data exposure
+        if (!listing.orgId) {
+          logger.error(
+            `[SearchIndexer] Listing ${listing.listingId} missing orgId - skipping to prevent cross-tenant exposure`,
+            {
+              component: "SearchIndexerService",
+              action: "transformListingsToDocuments",
+              listingId: listing.listingId,
+              fsin: product.fsin,
+            },
+          );
+          return null;
+        }
+
         // Calculate badges
         const badges: string[] = [];
         if (listing.fulfillmentMethod === "FBF") badges.push("fbf");
@@ -519,8 +598,9 @@ export class SearchIndexerService {
         if (product.badges.includes("best_seller")) badges.push("best-seller");
 
         return {
+          id: `${listing.orgId}_${product.fsin}`, // Composite key for tenant isolation (STRICT v4.1)
           fsin: product.fsin,
-          orgId: listing.orgId || "", // Required for tenant isolation
+          orgId: listing.orgId,
           title: product.title,
           description: product.description,
           brand: product.brand,
@@ -542,22 +622,42 @@ export class SearchIndexerService {
 
   /**
    * Transform sellers to Meilisearch documents
+   * Generates composite id for tenant-safe indexing (STRICT v4.1)
    */
   private static transformSellersToDocuments(
     sellers: SouqSeller[],
   ): SellerDocument[] {
-    return sellers.map((seller) => ({
-      sellerId: seller.sellerId,
-      orgId: seller.orgId?.toString?.() || "", // Required for tenant isolation
-      tradeName: seller.tradeName,
-      legalName: seller.legalName || seller.tradeName,
-      accountHealth: seller.accountHealth.overall,
-      rating: seller.ratings.overall,
-      totalOrders: seller.ratings.totalOrders,
-      onTimeShippingRate: seller.accountHealth.onTimeShippingRate,
-      odr: seller.accountHealth.odr,
-      badges: seller.badges,
-      createdAt: new Date(seller.createdAt).getTime(),
-    }));
+    return sellers
+      .map((seller) => {
+        // STRICT v4.1: Reject sellers without orgId to prevent cross-tenant data exposure
+        if (!seller.orgId) {
+          logger.error(
+            `[SearchIndexer] Seller ${seller.sellerId} missing orgId - skipping to prevent cross-tenant exposure`,
+            {
+              component: "SearchIndexerService",
+              action: "transformSellersToDocuments",
+              sellerId: seller.sellerId,
+            },
+          );
+          return null;
+        }
+
+        const orgId = seller.orgId.toString();
+        return {
+          id: `${orgId}_${seller.sellerId}`, // Composite key for tenant isolation (STRICT v4.1)
+          sellerId: seller.sellerId,
+          orgId,
+          tradeName: seller.tradeName,
+          legalName: seller.legalName || seller.tradeName,
+          accountHealth: seller.accountHealth.overall,
+          rating: seller.ratings.overall,
+          totalOrders: seller.ratings.totalOrders,
+          onTimeShippingRate: seller.accountHealth.onTimeShippingRate,
+          odr: seller.accountHealth.odr,
+          badges: seller.badges,
+          createdAt: new Date(seller.createdAt).getTime(),
+        };
+      })
+      .filter((doc): doc is SellerDocument => doc !== null);
   }
 }
