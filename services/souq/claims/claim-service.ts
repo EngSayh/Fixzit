@@ -170,6 +170,7 @@ export interface SellerResponseInput {
   claimId: string;
   orgId: string; // 🔐 Required for tenant isolation
   sellerId: string;
+  action?: "accept" | "dispute";
   responseText: string;
   proposedSolution:
     | "refund_full"
@@ -421,7 +422,7 @@ export class ClaimService {
 
     const collection = await this.collection();
 
-    const claim = await this.getClaim(input.claimId, input.orgId, input.allowOrgless ?? false);
+    const claim = await this.getClaim(input.claimId, input.orgId);
     if (!claim) throw new Error("Claim not found");
     if (String(claim.sellerId) !== String(input.sellerId)) throw new Error("Unauthorized");
     if (
@@ -441,9 +442,11 @@ export class ClaimService {
     }));
 
     const sellerResponse: SellerResponse = {
+      action: input.action,
       responseText: input.responseText,
       proposedSolution: input.proposedSolution,
       partialRefundAmount: input.partialRefundAmount,
+      counterEvidence: evidence,
       evidence,
       respondedAt: new Date(),
     };
@@ -453,13 +456,6 @@ export class ClaimService {
       input.proposedSolution === "refund_full" ? "approved" : "under_review";
     const shouldAttemptAutoResolve =
       input.proposedSolution === "refund_full" && claim.isAutoResolvable;
-
-    const investigationDeadline =
-      newStatus === "under_investigation"
-        ? new Date(
-            Date.now() + this.INVESTIGATION_DEADLINE_HOURS * 60 * 60 * 1000,
-          )
-        : undefined;
 
     // 🔐 SECURITY: Scope update by orgId
     const orgFilter = this.buildOrgFilter(input.orgId);
@@ -471,7 +467,6 @@ export class ClaimService {
         $set: {
           sellerResponse,
           status: newStatus,
-          investigationDeadline,
           updatedAt: new Date(),
         },
         $push: { evidence: { $each: evidence } },

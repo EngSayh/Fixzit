@@ -166,18 +166,18 @@ export class RefundProcessor {
     const order = await db.collection('souq_orders').findOne({
       ...buildOrgFilter(request.orgId),
       $or: orderIdFilters,
-    }) as { pricing?: { total?: number }; payment?: { transactionId?: string; method?: string } } | null;
+    }) as { pricing?: { total?: number }; payment?: { transactionId?: string; method?: string; amount?: number } } | null;
 
     if (!order) {
       throw new Error(`Order not found for refund: ${request.orderId}`);
     }
 
-    const maxAllowed = order.pricing?.total ?? 0;
+    const orderTotal = order.pricing?.total ?? null;
     if (request.amount <= 0) {
       throw new Error("Refund amount must be greater than 0");
     }
-    if (request.amount > maxAllowed) {
-      throw new Error(`Refund amount (${request.amount}) exceeds order total (${maxAllowed})`);
+    if (orderTotal !== null && request.amount > orderTotal) {
+      throw new Error(`Refund amount (${request.amount}) exceeds order total (${orderTotal})`);
     }
 
     // 🔐 Validate payment details exist for gateway call
@@ -186,6 +186,12 @@ export class RefundProcessor {
     }
     if (!order.payment?.method) {
       throw new Error("Order payment method missing - cannot process refund");
+    }
+    if (request.originalPaymentMethod && request.originalPaymentMethod !== order.payment.method) {
+      throw new Error("Payment method mismatch between request and order");
+    }
+    if (request.originalTransactionId && request.originalTransactionId !== order.payment.transactionId) {
+      throw new Error("Payment transactionId mismatch between request and order");
     }
 
     const collection = await this.collection();
@@ -202,8 +208,8 @@ export class RefundProcessor {
       orgId: request.orgId, // 🔐 Tenant context for notifications
       amount: request.amount,
       reason: request.reason,
-      paymentMethod: request.originalPaymentMethod,
-      originalTransactionId: request.originalTransactionId,
+      paymentMethod: order.payment.method,
+      originalTransactionId: order.payment.transactionId,
       status: 'initiated',
       retryCount: 0,
       createdAt: new Date(),
@@ -832,12 +838,13 @@ export class RefundProcessor {
       $set: { updatedAt: new Date() },
       $setOnInsert: {
         sellerId,
+        orgId,
         availableBalance: 0,
         transactions: [],
       },
     };
 
-    // 🔐 Filter by both sellerId AND orgId to prevent cross-tenant balance mutations
-    await balances.updateOne({ sellerId, orgId }, update, { upsert: true });
+    // 🔐 Filter by sellerId + orgId to prevent cross-tenant balance mutations
+    await balances.updateOne({ sellerId, ...buildOrgFilter(orgId) }, update, { upsert: true });
   }
 }
