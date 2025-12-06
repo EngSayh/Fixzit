@@ -38,7 +38,8 @@ export async function POST(
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
     const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
     if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about admin endpoints
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const body = await request.json();
