@@ -184,7 +184,8 @@ describe("Claims routes - org scoping enforcement", () => {
     );
 
     const res = await decisionPOST(req, { params: { id: "999" } });
-    expect(res.status).toBe(403);
+    // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about resources in other orgs
+    expect(res.status).toBe(404);
     expect(updateOneMock).not.toHaveBeenCalled();
   });
 });
