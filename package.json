@@ -64,6 +64,8 @@
     "test:search": "vitest -c vitest.config.api.ts run tests/unit/app/api/search/search-scope.test.ts",
     "test": "npm run test:production",
     "test:production": "npm run test:models && npm run test:e2e",
+    "test:counters": "vitest -c vitest.config.ts --project client run tests/unit/counters.test.ts",
+    "test:counters-api": "vitest -c vitest.config.ts --project server run tests/server/api/counters.contract.test.ts",
     "test:fast": "npm run test:ci",
     "test:legacy": "vitest -c vitest.config.api.ts run",
     "test:models": "vitest -c vitest.config.models.ts run",

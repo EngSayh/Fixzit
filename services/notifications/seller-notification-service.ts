@@ -146,10 +146,15 @@ const translateTemplate = (
 /**
  * Get seller details from database
  */
-async function getSeller(sellerId: string): Promise<SellerDetails | null> {
+async function getSeller(
+  sellerId: string,
+  orgId: string,
+): Promise<SellerDetails | null> {
   try {
     const db = await getDatabase();
-    const seller = await db.collection("souq_sellers").findOne({ sellerId });
+    const seller = await db
+      .collection("souq_sellers")
+      .findOne({ sellerId, orgId });
 
     if (!seller) {
       logger.warn("[SellerNotification] Seller not found", { sellerId });
@@ -256,11 +261,15 @@ async function sendSMS(to: string, message: string): Promise<void> {
  */
 export async function sendSellerNotification<T extends TemplateKey>(
   sellerId: string,
+  orgId: string,
   template: T,
   data: TemplatePayloads[T],
 ): Promise<void> {
   try {
-    const seller = await getSeller(sellerId);
+    if (!orgId) {
+      throw new Error("[SellerNotification] orgId is required for tenant isolation");
+    }
+    const seller = await getSeller(sellerId, orgId);
 
     if (!seller) {
       logger.warn(
@@ -283,7 +292,7 @@ export async function sendSellerNotification<T extends TemplateKey>(
     }
 
     // Log notification in database for tracking
-    await logNotification(sellerId, template, data, locale);
+    await logNotification(sellerId, orgId, template, data, locale);
 
     logger.info("[SellerNotification] Notification sent", {
       sellerId,
@@ -305,6 +314,7 @@ export async function sendSellerNotification<T extends TemplateKey>(
  */
 async function logNotification(
   sellerId: string,
+  orgId: string,
   template: string,
   data: Record<string, unknown>,
   locale: string,
@@ -313,6 +323,7 @@ async function logNotification(
     const db = await getDatabase();
     await db.collection("seller_notifications").insertOne({
       sellerId,
+      orgId,
       template,
       data,
       locale,

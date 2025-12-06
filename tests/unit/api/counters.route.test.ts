@@ -17,7 +17,8 @@ vi.mock("@/lib/utils/env", () => ({
 // Import after mocks
 import { auth } from "@/auth";
 import { getAllCounters } from "@/lib/queries";
-import { GET } from "@/app/api/counters/route";
+
+let GET: typeof import("@/app/api/counters/route").GET;
 
 describe("GET /api/counters", () => {
   const mockCounters = {
@@ -27,8 +28,11 @@ describe("GET /api/counters", () => {
     hrApplications: { pending: 7 },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetAllMocks();
+    vi.resetModules();
+    const route = await import("@/app/api/counters/route");
+    GET = route.GET;
   });
 
   it("returns counters including approvals, rfqs, and hrApplications for authenticated org", async () => {

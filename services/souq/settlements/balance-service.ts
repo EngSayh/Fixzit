@@ -115,20 +115,26 @@ export class SellerBalanceService {
    * @param sellerId - The seller ID
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  static async getBalance(sellerId: string, orgId: string): Promise<SellerBalance> {
+  static async getBalance(
+    sellerId: string,
+    orgId: string,
+    options?: { bypassCache?: boolean },
+  ): Promise<SellerBalance> {
     // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
     if (!orgId) {
       throw new Error('orgId is required to fetch seller balance (STRICT v4.1 tenant isolation)');
     }
     const key = `seller:${sellerId}:${orgId}:balance`;
-    const cached = await getCache<SellerBalance>(key);
+    const cached = options?.bypassCache ? null : await getCache<SellerBalance>(key);
     if (cached) return cached;
 
     // Calculate from database if not cached
     const balance = await this.calculateBalance(sellerId, orgId);
 
-    // Cache for 5 minutes
-    await setCache(key, balance, CacheTTL.FIVE_MINUTES);
+    // Cache for 5 minutes (unless bypassing cache)
+    if (!options?.bypassCache) {
+      await setCache(key, balance, CacheTTL.FIVE_MINUTES);
+    }
 
     return balance;
   }
@@ -316,15 +322,20 @@ export class SellerBalanceService {
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
-    // Get current balance
-    const balance = await this.getBalance(transaction.sellerId, transaction.orgId);
+    // Get current balance (fresh read to avoid stale cached balance for writes)
+    const balance = await this.getBalance(transaction.sellerId, transaction.orgId, {
+      bypassCache: true,
+    });
 
     // Generate transaction ID
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    // Calculate new balance
+    // Calculate new balance and guard against overdraft
     const balanceBefore = balance.available;
     const balanceAfter = balanceBefore + transaction.amount;
+    if (balanceAfter < 0) {
+      throw new Error("Insufficient available balance for this transaction");
+    }
 
     // Create transaction record
     const txn: Transaction = {
@@ -371,53 +382,60 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to request withdrawal (STRICT v4.1 tenant isolation)');
     }
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const sellerObjectId = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
     const settlementsCollection = db.collection("souq_settlements");
     const payoutsCollection = db.collection("souq_payouts");
 
-    // Get current balance
-    const balance = await this.getBalance(sellerId, orgId);
-
-    // Validate withdrawal amount
-    if (amount <= 0) {
-      throw new Error("Withdrawal amount must be positive");
-    }
-
-    if (amount > balance.available) {
-      throw new Error(
-        `Insufficient balance. Available: ${balance.available} SAR`,
-      );
-    }
-
-    const minimumWithdrawal = 500; // SAR
-    if (amount < minimumWithdrawal) {
-      throw new Error(`Minimum withdrawal amount is ${minimumWithdrawal} SAR`);
-    }
+    // Get current balance (fresh read to avoid stale cached balance for debits)
+    const balance = await this.getBalance(sellerId, orgId, { bypassCache: true });
+    const requestedAmount = amount;
 
     // Validate statement and derive authoritative amount to prevent tampering
-    const statement = await settlementsCollection.findOne({
+    const settlementDoc = await settlementsCollection.findOne({
       statementId,
-      sellerId,
-      orgId,
+      sellerId: sellerObjectId,
+      orgId: orgObjectId,
     });
-    if (!statement) {
+    if (!settlementDoc) {
       throw new Error("Settlement statement not found for this seller/org");
     }
-    if ((statement as { status?: string }).status !== "approved") {
+    if ((settlementDoc as { status?: string }).status !== "approved") {
       throw new Error(
-        `Settlement must be approved before withdrawal. Current status: ${(statement as { status?: string }).status || "unknown"}`,
+        `Settlement must be approved before withdrawal. Current status: ${(settlementDoc as { status?: string }).status || "unknown"}`,
       );
     }
-    const netPayout = (statement as { summary?: { netPayout?: number } })?.summary
+    const netPayout = (settlementDoc as { summary?: { netPayout?: number } })?.summary
       ?.netPayout;
     if (typeof netPayout !== "number" || netPayout <= 0) {
       throw new Error("Settlement statement has no payable netPayout amount");
     }
 
+    // 🔧 FIX: Use authoritative netPayout as the withdrawal amount BEFORE validation
+    // This prevents bypassing balance check when netPayout > user-supplied amount
+    const withdrawalAmount = netPayout;
+    const minimumWithdrawal = 500; // SAR
+
+    // Validate withdrawal amount against available balance (using authoritative amount)
+    if (withdrawalAmount <= 0) {
+      throw new Error("Withdrawal amount must be positive");
+    }
+    
+    if (withdrawalAmount > balance.available) {
+      throw new Error(
+        `Insufficient balance for payout. Available: ${balance.available} SAR, Required: ${withdrawalAmount} SAR`,
+      );
+    }
+
+    if (withdrawalAmount < minimumWithdrawal) {
+      throw new Error(`Minimum withdrawal amount is ${minimumWithdrawal} SAR. Payout amount: ${withdrawalAmount} SAR`);
+    }
+
     // Enforce post-delivery hold period (aligns with settlement-calculator and payout-processor)
-    const periodEndRaw = (statement as { period?: { end?: Date | string } })
+    const periodEndRaw = (settlementDoc as { period?: { end?: Date | string } })
       ?.period?.end;
     if (periodEndRaw) {
       const periodEnd = new Date(periodEndRaw);
@@ -430,14 +448,11 @@ export class SellerBalanceService {
       }
     }
 
-    // Override requested amount with authoritative netPayout to avoid mismatches
-    amount = netPayout;
-
     // Check for pending withdrawal
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const pendingWithdrawal = await withdrawalsCollection.findOne({
-      sellerId,
-      orgId,
+      sellerId: sellerObjectId,
+      orgId: orgObjectId,
       status: "pending",
     });
 
@@ -452,7 +467,7 @@ export class SellerBalanceService {
     // If a payout is already in-flight for this statement, do not create another withdrawal
     const existingPayout = await payoutsCollection.findOne({
       statementId,
-      orgId,
+      orgId: orgObjectId,
       status: { $in: ["pending", "processing"] },
     });
     if (existingPayout) {
@@ -468,7 +483,7 @@ export class SellerBalanceService {
       requestId,
       sellerId,
       orgId,
-      amount,
+      amount: withdrawalAmount,
       status: "pending",
       requestedAt: new Date(),
       bankAccount,
@@ -476,16 +491,20 @@ export class SellerBalanceService {
     };
 
     // Save to database
-    await withdrawalsCollection.insertOne(request);
+    await withdrawalsCollection.insertOne({
+      ...request,
+      sellerId: sellerObjectId,
+      orgId: orgObjectId,
+    });
 
     // Record transaction (hold funds)
     await this.recordTransaction({
       sellerId,
       orgId,
       type: "withdrawal",
-      amount: -amount,
+      amount: -withdrawalAmount,
       description: `Withdrawal request: ${requestId}`,
-      metadata: { requestId },
+      metadata: { requestId, requestedAmount },
     });
 
     return request;
@@ -506,6 +525,7 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to approve withdrawal (STRICT v4.1 tenant isolation)');
     }
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
@@ -513,7 +533,7 @@ export class SellerBalanceService {
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
       requestId,
-      orgId,
+      orgId: orgObjectId,
     })) as WithdrawalRequest | null;
     if (!request) {
       throw new Error("Withdrawal request not found");
@@ -528,10 +548,27 @@ export class SellerBalanceService {
     const { PayoutProcessorService } = await import(
       "@/services/souq/settlements/payout-processor"
     );
+    const orgIdValue = (request as { orgId?: unknown }).orgId;
+    const sellerIdValue = (request as { sellerId?: unknown }).sellerId;
+    const payoutOrgId =
+      typeof orgIdValue === "string"
+        ? orgIdValue
+        : orgIdValue
+          ? String(orgIdValue)
+          : orgId;
+    const payoutSellerId =
+      typeof sellerIdValue === "string"
+        ? sellerIdValue
+        : sellerIdValue
+          ? String(sellerIdValue)
+          : "";
+    if (!payoutSellerId) {
+      throw new Error("Withdrawal request is missing sellerId");
+    }
     const payout = await PayoutProcessorService.requestPayout(
-      request.sellerId,
+      payoutSellerId,
       request.statementId,
-      request.orgId || "",
+      payoutOrgId,
       bankAccount,
     );
 
@@ -541,7 +578,7 @@ export class SellerBalanceService {
     // Update status with payout reference
     // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
     await withdrawalsCollection.updateOne(
-      { requestId, orgId },
+      { requestId, orgId: orgObjectId },
       {
         $set: {
           status: payoutStatus,
@@ -577,6 +614,7 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to reject withdrawal (STRICT v4.1 tenant isolation)');
     }
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
@@ -584,7 +622,7 @@ export class SellerBalanceService {
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
       requestId,
-      orgId,
+      orgId: orgObjectId,
     })) as WithdrawalRequest | null;
     if (!request) {
       throw new Error("Withdrawal request not found");
@@ -597,7 +635,7 @@ export class SellerBalanceService {
     // Update status
     // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
     await withdrawalsCollection.updateOne(
-      { requestId, orgId },
+      { requestId, orgId: orgObjectId },
       {
         $set: {
           status: "rejected",
@@ -672,11 +710,16 @@ export class SellerBalanceService {
       throw new Error("orgId is required to fetch transaction history");
     }
 
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const transactionsCollection = db.collection("souq_transactions");
 
-    const query: Record<string, unknown> = { sellerId, orgId };
+    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: orgFilter };
 
     if (filters?.type) {
       query.type = filters.type;
@@ -717,12 +760,16 @@ export class SellerBalanceService {
     if (!orgId) {
       throw new Error('orgId is required to fetch withdrawal requests (STRICT v4.1 tenant isolation)');
     }
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
-    const query: Record<string, unknown> = { sellerId, orgId };
+    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: orgFilter };
     if (status) {
       query.status = status;
     }

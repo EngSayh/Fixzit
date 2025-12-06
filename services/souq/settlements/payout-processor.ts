@@ -16,6 +16,7 @@
 import { ObjectId } from "mongodb";
 import type { Document, Filter } from "mongodb";
 import { Types } from "mongoose";
+import { createHash } from "crypto";
 import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import type { SettlementStatement } from "./settlement-calculator";
@@ -283,29 +284,22 @@ export class PayoutProcessorService {
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
 
-    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
-    const payout = (await payoutsCollection.findOne({
-      payoutId,
-      orgId: orgObjectId,
-    })) as PayoutRequest | null;
-    if (!payout) {
-      throw new Error("Payout not found");
-    }
-
-    if (payout.status !== "pending") {
-      throw new Error(`Payout is already ${payout.status}`);
-    }
-
-    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation
-    await payoutsCollection.updateOne(
-      { payoutId, orgId },
+    // 🔐 STRICT v4.1: Atomically claim the payout to avoid double-processing
+    const claimed = await payoutsCollection.findOneAndUpdate(
+      { payoutId, orgId: orgObjectId, status: "pending" },
       {
         $set: {
           status: "processing",
           processedAt: new Date(),
         },
       },
+      { returnDocument: "after" },
     );
+
+    const payout = claimed?.value as PayoutRequest | null;
+    if (!payout) {
+      throw new Error("Payout not found or already processing");
+    }
 
     try {
       // Execute bank transfer
@@ -615,8 +609,16 @@ export class PayoutProcessorService {
     // Simulate API call (replace with real client when ENABLE_SADAD_PAYOUTS=true)
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Simulate 95% success rate (remove when using real integration)
-    const isSuccess = Math.random() < 0.95;
+    // Simulate success rate in a deterministic way to avoid flaky tests/CI.
+    // Inspired by common testing patterns that hash an id + seed for reproducibility.
+    const successRateEnv = process.env.PAYOUT_SIMULATION_SUCCESS_RATE ?? "0.95";
+    const successRate = Math.max(0, Math.min(1, parseFloat(successRateEnv)));
+    const seed = process.env.PAYOUT_SIMULATION_SEED ?? "";
+    const hash = createHash("sha256")
+      .update(`${payout.payoutId}-${seed}`)
+      .digest();
+    const deterministic = hash[0] / 255; // 0..1
+    const isSuccess = deterministic < successRate;
 
     if (isSuccess) {
       return {
@@ -660,7 +662,8 @@ export class PayoutProcessorService {
     if (!orgId) {
       throw new Error("orgId is required for processBatchPayouts (STRICT v4.1 tenant isolation)");
     }
-    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const orgFilter = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    const orgKey = typeof orgFilter === "string" ? orgFilter : orgFilter.toString();
     const db = await getDbInstance();
     const payoutsCollection = db.collection("souq_payouts");
     const batchesCollection = db.collection("souq_payout_batches");
@@ -671,7 +674,7 @@ export class PayoutProcessorService {
     // Fetch pending payouts
     const pendingPayouts = (await payoutsCollection
       .find({
-        orgId: orgObjectId,
+        orgId: orgFilter,
         status: "pending",
         retryCount: { $lt: PAYOUT_CONFIG.maxRetries },
       })
@@ -680,7 +683,7 @@ export class PayoutProcessorService {
     // Create batch job
     const batch: BatchPayoutJob = {
       batchId,
-      orgId: typeof orgObjectId === "string" ? orgObjectId : orgObjectId.toString(),
+      orgId: orgKey,
       scheduledDate,
       startedAt: new Date(),
       status: "processing",
@@ -726,7 +729,7 @@ export class PayoutProcessorService {
     batch.status = "completed";
 
     await batchesCollection.updateOne(
-      { batchId, orgId: orgObjectId },
+      { batchId, orgId: orgKey },
       {
         $set: {
           completedAt: batch.completedAt,

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
@@ -88,11 +89,18 @@ export async function POST(request: NextRequest) {
     // 🔐 STRICT v4.1: Fetch statement with orgId for tenant isolation and validate amount
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statement = await db.collection("souq_settlements").findOne({
-      statementId,
-      sellerId: targetSellerId,
-      orgId,
-    });
+    const sellerFilter = ObjectId.isValid(targetSellerId)
+      ? new ObjectId(targetSellerId)
+      : targetSellerId;
+
+    const statement = await db.collection("souq_settlements").findOne(
+      {
+        statementId,
+        sellerId: sellerFilter,
+        orgId,
+      },
+      { projection: { summary: 1, status: 1, sellerId: 1 } },
+    );
 
     if (!statement) {
       return NextResponse.json(
@@ -113,6 +121,7 @@ export async function POST(request: NextRequest) {
     // 🔐 STRICT v4.1: Check if payout already exists for this statement
     const existingPayout = await db.collection("souq_payouts").findOne({
       statementId,
+      sellerId: sellerFilter,
       orgId,
       status: { $nin: ["failed", "cancelled"] },
     });
