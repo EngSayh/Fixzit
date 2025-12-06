@@ -339,12 +339,19 @@ class ReviewService {
 
   /**
    * Get reviews for seller (all their products)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getSellerReviews(
+    orgId: string,
     sellerId: string,
     filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
-    const sellerProductIds = await this.getSellerProductIds(sellerId);
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerReviews (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const sellerProductIds = await this.getSellerProductIds(orgId, sellerId);
     if (sellerProductIds.length === 0) {
       return {
         reviews: [],
@@ -364,9 +371,10 @@ class ReviewService {
       status,
     } = filters;
 
-    // Build query (simplified - would join with products to find seller's products)
+    // Build query - 🔐 STRICT v4.1: Include org filter for tenant isolation
     const query: Record<string, unknown> = {
       productId: { $in: sellerProductIds },
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     };
 
     if (rating) query.rating = rating;
@@ -589,9 +597,11 @@ class ReviewService {
       totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
     const recentReviews = await SouqReview.find({
       productId: productObjectId,
       status: "published",
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     })
       .sort({ createdAt: -1 })
       .limit(5);
@@ -607,9 +617,15 @@ class ReviewService {
 
   /**
    * Get seller review statistics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
-  async getSellerReviewStats(sellerId: string): Promise<SellerReviewStats> {
-    const sellerProductIds = await this.getSellerProductIds(sellerId);
+  async getSellerReviewStats(orgId: string, sellerId: string): Promise<SellerReviewStats> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerReviewStats (STRICT v4.1 tenant isolation)');
+    }
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const sellerProductIds = await this.getSellerProductIds(orgId, sellerId);
     if (sellerProductIds.length === 0) {
       return {
         averageRating: 0,
@@ -620,9 +636,11 @@ class ReviewService {
       };
     }
 
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
     const reviews = await SouqReview.find({
       status: "published",
       productId: { $in: sellerProductIds },
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     });
 
     const totalReviews = reviews.length;
@@ -650,14 +668,28 @@ class ReviewService {
     };
   }
 
+  /**
+   * Get product IDs for a seller within an org
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
   private async getSellerProductIds(
+    orgId: string,
     sellerId: string,
   ): Promise<mongoose.Types.ObjectId[]> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSellerProductIds (STRICT v4.1 tenant isolation)');
+    }
     if (!sellerId || !Types.ObjectId.isValid(sellerId)) {
       return [];
     }
 
-    const products = await SouqProduct.find({ createdBy: sellerId })
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    const products = await SouqProduct.find({
+      createdBy: sellerId,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    })
       .select("_id")
       .lean();
     return products.map((product) => product._id);

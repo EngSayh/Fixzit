@@ -893,15 +893,14 @@ export class SellerBalanceService {
         };
 
         // Save to database
-        const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
-        if (!orgObjectId) {
-          throw new Error("Invalid orgId format for withdrawal; expected ObjectId");
-        }
+        // 🔐 STRICT v4.1: Write orgId as string to match schema/migration standards
+        // The orgCandidates dual filter handles both string and ObjectId for reads
+        const orgIdStr = String(orgId);
         await withdrawalsCollection.insertOne(
           {
             ...request,
             sellerId: sellerObjectId,
-            orgId: orgObjectId,
+            orgId: orgIdStr,
           },
           { session },
         );

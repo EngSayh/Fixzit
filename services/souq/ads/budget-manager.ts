@@ -42,10 +42,27 @@ function createRedisClient(): Redis | null {
   const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
   const redisPassword =
     process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+  
+  // 🔐 STRICT v4.1: Redis is REQUIRED for production budget enforcement
+  // Without Redis, budget limits are not shared across instances, enabling overspend
+  const isProduction = process.env.NODE_ENV === "production";
+  const isTest = process.env.NODE_ENV === "test";
+  const allowFallback = process.env.BUDGET_ALLOW_MEMORY_FALLBACK === "true";
+  
   if (!redisUrl && !redisHost) {
-    logger.warn(
-      "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking.",
-    );
+    if (isProduction && !allowFallback) {
+      // Fail closed in production - budget enforcement MUST be reliable
+      throw new Error(
+        "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
+        "Set BULLMQ_REDIS_URL/REDIS_URL or BUDGET_ALLOW_MEMORY_FALLBACK=true to allow degraded mode."
+      );
+    }
+    if (!isTest) {
+      logger.warn(
+        "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking. " +
+        "⚠️ Budget limits will NOT be shared across instances - risk of overspend.",
+      );
+    }
     return null;
   }
 
@@ -484,11 +501,17 @@ export class BudgetManager {
     let orgId: string = providedOrgId;
     try {
       const { SouqSeller } = await import("@/server/models/souq/Seller");
+      const orgCandidates = ObjectId.isValid(providedOrgId)
+        ? [providedOrgId, new ObjectId(providedOrgId)]
+        : [providedOrgId];
+      const sellerFilter = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
       // 🔐 FIX: Use findOne with orgId scoping instead of findById
-      const seller = await SouqSeller.findOne({ 
-        _id: sellerId, 
-        orgId: providedOrgId 
-      }).select("orgId").lean();
+      const seller = await SouqSeller.findOne({
+        _id: sellerFilter,
+        orgId: { $in: orgCandidates },
+      })
+        .select("orgId")
+        .lean();
       
       if (!seller) {
         logger.warn(`[BudgetManager] Seller ${sellerId} not found in org ${providedOrgId}, skipping alert`, {
@@ -650,14 +673,62 @@ export class BudgetManager {
 
     const budgetStatuses: BudgetStatus[] = [];
 
-    for (const campaign of campaigns) {
-      const status = await this.getBudgetStatus(campaign.campaignId, orgKey);
+    // 🚀 PERF: Batch Redis reads instead of N+1 per-campaign calls
+    // Build partition keys for all campaigns at once
+    const { dateKey } = getKsaDatePartition();
+    const partitionKeys = campaigns.map(
+      (c) => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
+    );
+
+    // Batch fetch all spend values in one Redis call (mget)
+    let spentValues: (string | null)[] = [];
+    if (redis && partitionKeys.length > 0) {
+      try {
+        spentValues = await redis.mget(...partitionKeys);
+      } catch (error) {
+        logger.warn("[BudgetManager] Redis mget failed, falling back to per-campaign fetch", { error });
+        // Fallback to individual calls if mget fails
+        spentValues = [];
+      }
+    }
+
+    // Process campaigns using batched data where available
+    for (let i = 0; i < campaigns.length; i++) {
+      const campaign = campaigns[i];
+      const dailyBudget = campaign.dailyBudget || 0;
+      
+      // Use batched value if available, otherwise fall back to individual fetch
+      let spentToday: number;
+      if (spentValues.length > 0 && spentValues[i] !== null && spentValues[i] !== undefined) {
+        spentToday = parseFloat(spentValues[i]!) || 0;
+      } else if (redis) {
+        // Fallback for missing batched values
+        const val = await redis.get(partitionKeys[i]);
+        spentToday = val ? parseFloat(val) : 0;
+      } else {
+        spentToday = getLocalSpend(partitionKeys[i]);
+      }
+
+      const remainingBudget = Math.max(0, dailyBudget - spentToday);
+      const isActive = campaign.status === "active" && remainingBudget > 0;
+      const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
+
+      const status: BudgetStatus = {
+        campaignId: campaign.campaignId,
+        dailyBudget,
+        spentToday,
+        remainingBudget,
+        percentageUsed,
+        isActive,
+        lastReset: dateKey,
+      };
+
       budgetStatuses.push(status);
 
-      totalDailyBudget += status.dailyBudget;
-      totalSpentToday += status.spentToday;
+      totalDailyBudget += dailyBudget;
+      totalSpentToday += spentToday;
 
-      if (status.isActive) {
+      if (isActive) {
         activeCampaigns++;
       } else if (campaign.status === "paused") {
         pausedCampaigns++;

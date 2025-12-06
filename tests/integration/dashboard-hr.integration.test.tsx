@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import HRDashboard from "@/app/dashboard/hr/page";
@@ -23,13 +23,15 @@ afterAll(() => {
 
 describe("HR dashboard RTL integration", () => {
   it("renders Arabic header and enforces RTL direction", async () => {
-    render(
-      <I18nProvider initialLocale="ar">
-        <TranslationProvider>
-          <HRDashboard />
-        </TranslationProvider>
-      </I18nProvider>,
-    );
+    await act(async () => {
+      render(
+        <I18nProvider initialLocale="ar">
+          <TranslationProvider>
+            <HRDashboard />
+          </TranslationProvider>
+        </I18nProvider>,
+      );
+    });
 
     await waitFor(
       () => {

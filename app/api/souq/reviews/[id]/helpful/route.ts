@@ -6,6 +6,7 @@ import { reviewService } from "@/services/souq/reviews/review-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
 
 type RouteContext = {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const { id: reviewId } = await context.params;
     // Fetch orgId for tenant isolation
     const db = connection.connection.db!;
-    const found = await db.collection("souq_reviews").findOne(
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
       { reviewId },
       { projection: { orgId: 1, org_id: 1 } },
     );

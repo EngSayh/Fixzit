@@ -512,6 +512,119 @@ Based on severity and dependencies:
 
 ---
 
+## Souq Security Issues (2025-12-06)
+
+### ISSUE-SOUQ-004: balance-service.ts Writes orgId as ObjectId Instead of String
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Data Integrity, Schema Consistency  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `requestWithdrawal()` in `services/souq/settlements/balance-service.ts` (lines 896-905) was forcing `orgId` to ObjectId and throwing for non-ObjectId values, then inserting as ObjectId. This conflicted with the schema migration (`scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`) that standardizes `orgId` to string. This caused:
+- Withdrawals to fail for tenants using string org keys
+- Downstream updates using string filters to miss inserted records
+- Payout linkage failures and desync
+
+**Files**:
+- `services/souq/settlements/balance-service.ts`: Lines 896-905
+
+**Resolution**: Changed to write `orgId` as string (`String(orgId)`) instead of ObjectId. Removed the ObjectId validation that was throwing errors. Kept `orgCandidates` dual-filter pattern for reads.
+
+```typescript
+// BEFORE (buggy):
+const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
+if (!orgObjectId) {
+  throw new Error("Invalid orgId format for withdrawal; expected ObjectId");
+}
+await withdrawalsCollection.insertOne({ ...request, orgId: orgObjectId }, { session });
+
+// AFTER (fixed):
+const orgIdStr = String(orgId);
+await withdrawalsCollection.insertOne({ ...request, orgId: orgIdStr }, { session });
+```
+
+---
+
+### ISSUE-SOUQ-005: budget-manager.ts Redis Fails Open in Production
+
+**Severity**: 🟧 MAJOR  
+**Category**: Reliability, Budget Integrity  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `createRedisClient()` in `services/souq/ads/budget-manager.ts` (lines 38-69) silently fell back to in-memory budget tracking when Redis was not configured. In multi-instance production deployments, this meant:
+- Budget limits not shared across instances
+- Auto-pause and threshold alerts not triggered reliably
+- Risk of budget overspend without detection
+
+**Files**:
+- `services/souq/ads/budget-manager.ts`: Lines 38-69
+
+**Resolution**: Now throws an error in production if Redis is not configured. Added `BUDGET_ALLOW_MEMORY_FALLBACK=true` environment variable to explicitly allow degraded mode. Test environments continue to use in-memory fallback silently.
+
+```typescript
+// BEFORE (fail-open):
+if (!redisUrl && !redisHost) {
+  logger.warn("[BudgetManager] Redis not configured. Falling back to in-memory...");
+  return null;
+}
+
+// AFTER (fail-closed in production):
+if (!redisUrl && !redisHost) {
+  if (isProduction && !allowFallback) {
+    throw new Error("[BudgetManager] Redis is REQUIRED for ad budget enforcement in production.");
+  }
+  return null;
+}
+```
+
+---
+
+### ISSUE-SOUQ-006: budget-manager.ts N+1 Query in getCampaignsBudgetSummary
+
+**Severity**: 🟨 MINOR  
+**Category**: Performance  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getCampaignsBudgetSummary()` in `services/souq/ads/budget-manager.ts` (lines 650-680) performed N+1 Redis calls by calling `getBudgetStatus()` for each campaign in a loop. For sellers with many campaigns, this added significant latency and Redis load.
+
+**Files**:
+- `services/souq/ads/budget-manager.ts`: Lines 650-680
+
+**Resolution**: Replaced per-campaign `getBudgetStatus()` calls with batch Redis `mget()` for all partition keys at once. Falls back to individual calls if batch fails.
+
+```typescript
+// BEFORE (N+1):
+for (const campaign of campaigns) {
+  const status = await this.getBudgetStatus(campaign.campaignId, orgKey);
+  budgetStatuses.push(status);
+}
+
+// AFTER (batched):
+const partitionKeys = campaigns.map(c => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`);
+const spentValues = await redis.mget(...partitionKeys);
+for (let i = 0; i < campaigns.length; i++) {
+  const spentToday = parseFloat(spentValues[i]!) || 0;
+  // ... calculate status from batched value
+}
+```
+
+---
+
+### ISSUE-SOUQ-007: request-payout API Uses Plain orgId in Update Filters
+
+**Severity**: 🟨 MINOR  
+**Category**: Data Integrity, Consistency  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `app/api/souq/settlements/request-payout/route.ts` (lines 188-189, 213-214) used plain `{ orgId }` in `updateOne()` filters instead of `{ orgId: { $in: orgCandidates } }`. This could cause updates to miss records if there was type drift between string and ObjectId.
+
+**Files**:
+- `app/api/souq/settlements/request-payout/route.ts`: Lines 188-189, 213-214
+
+**Resolution**: Changed both update filters to use `{ orgId: { $in: orgCandidates } }` pattern for consistency with the rest of the codebase.
+
+---
+
 ## Next Steps
 
 1. ✅ Complete discovery and issue registration (THIS DOCUMENT)

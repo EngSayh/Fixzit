@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       );
 
       await db.collection("souq_withdrawal_requests").updateOne(
-        { requestId: withdrawalRequest.requestId, orgId },
+        { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
         {
           $set: {
             payoutId: payout.payoutId,
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       if (withdrawalRequest) {
         try {
           await db.collection("souq_withdrawal_requests").updateOne(
-            { requestId: withdrawalRequest.requestId, orgId },
+            { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
             {
               $set: {
                 status: "rejected",

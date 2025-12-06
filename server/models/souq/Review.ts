@@ -172,7 +172,8 @@ const ReviewSchema = new Schema<IReview>(
 
 ReviewSchema.index({ productId: 1, status: 1, createdAt: -1 });
 ReviewSchema.index({ productId: 1, rating: 1, createdAt: -1 });
-ReviewSchema.index({ customerId: 1, productId: 1 }, { unique: true });
+// 🔐 STRICT v4.1: Unique index must be org-scoped to prevent cross-tenant collisions
+ReviewSchema.index({ orgId: 1, customerId: 1, productId: 1 }, { unique: true });
 ReviewSchema.index({ rating: 1, status: 1 });
 ReviewSchema.index({ helpful: -1, status: 1 });
 
