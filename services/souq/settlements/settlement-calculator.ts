@@ -403,6 +403,8 @@ export class SettlementCalculatorService {
     let totalReserves = 0;
     let netPayout = 0;
 
+    let totalChargebacks = 0;
+
     for (const order of settlementOrders) {
       if (order.status === "eligible") {
         const fees = this.calculateOrderFees(order);
@@ -410,8 +412,12 @@ export class SettlementCalculatorService {
         totalCommissions += fees.platformCommission;
         totalFees += fees.totalFees;
         totalRefunds += order.refundAmount || 0;
+        totalChargebacks += order.chargebackAmount || 0;
         totalReserves += fees.reserveAmount;
-        netPayout += fees.netPayoutNow;
+        netPayout +=
+          fees.netPayoutNow -
+          (order.refundAmount || 0) -
+          (order.chargebackAmount || 0);
       }
     }
 
@@ -426,6 +432,7 @@ export class SettlementCalculatorService {
       totalRefunds: parseFloat(totalRefunds.toFixed(2)),
       totalReserves: parseFloat(totalReserves.toFixed(2)),
       netPayout: parseFloat(netPayout.toFixed(2)),
+      chargebacks: parseFloat(totalChargebacks.toFixed(2)),
       orders: settlementOrders,
     };
   }
@@ -561,9 +568,9 @@ export class SettlementCalculatorService {
           (period.totalCommissions * FEE_CONFIG.vatRate).toFixed(2),
         ),
         refunds: period.totalRefunds,
-        chargebacks: 0, // Calculate from orders
+        chargebacks: period.chargebacks,
         reserves: period.totalReserves,
-        netPayout: period.netPayout - period.totalRefunds,
+        netPayout: period.netPayout,
       },
       transactions,
       status: "draft",
@@ -596,11 +603,6 @@ export class SettlementCalculatorService {
     const statementsCollection =
       db.collection<SettlementStatement>("souq_settlements");
 
-    // Build org filter that handles both orgId and org_id for legacy data
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
-    // Type assertion needed for MongoDB driver filter compatibility with dual-type $in
     const orgFilter = buildOrgFilter(orgId);
     // Combined filter for tenant-scoped queries (type cast for MongoDB driver compatibility)
     const queryFilter = { statementId, ...orgFilter } as Filter<Document>;

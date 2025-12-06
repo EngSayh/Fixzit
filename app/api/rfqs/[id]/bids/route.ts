@@ -41,8 +41,7 @@ type RFQWithBids = {
 };
 
 const submitBidSchema = z.object({
-  vendorId: z.string(),
-  vendorName: z.string(),
+  // vendorId and vendorName are derived from the authenticated user to prevent spoofing
   amount: z.number(),
   currency: z.string().default("SAR"),
   validity: z.string(),
@@ -84,6 +83,13 @@ export async function POST(
 ) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -112,7 +118,7 @@ export async function POST(
     const bidsArray = Array.isArray(rfqDoc.bids)
       ? rfqDoc.bids
       : (rfqDoc.bids = []);
-    const existingBid = bidsArray.find((b) => b.vendorId === data.vendorId);
+    const existingBid = bidsArray.find((b) => b.vendorId === user.id);
     if (existingBid) {
       return createSecureResponse(
         { error: "Vendor has already submitted a bid" },
@@ -137,6 +143,9 @@ export async function POST(
     const bid = {
       bidId: nanoid(),
       ...data,
+      // 🔐 STRICT v4.1: derive vendor identity from authenticated user to prevent cross-tenant spoofing
+      vendorId: user.id,
+      vendorName: (user as { name?: string; email?: string }).name ?? (user as { email?: string }).email ?? "Vendor",
       submitted: new Date(),
       status: "SUBMITTED",
     };
@@ -174,6 +183,13 @@ export async function GET(
 ) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
