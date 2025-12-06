@@ -172,6 +172,16 @@ type RawOrder = {
   status?: SettlementOrder["status"] | string;
 };
 
+// Shared helper to build dual orgId/org_id filter for legacy documents
+const buildOrgFilter = (orgId: string): Filter<Document> => {
+  const candidates = ObjectId.isValid(orgId)
+    ? [orgId, new ObjectId(orgId)]
+    : [orgId];
+  return {
+    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
+  };
+};
+
 const computeSellerOrderSnapshot = (
   order: RawOrder,
   sellerId: string,
@@ -353,9 +363,9 @@ export class SettlementCalculatorService {
     if (!orgId) {
       throw new Error("orgId is required for calculatePeriodSettlement (STRICT v4.1 tenant isolation)");
     }
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
+    const orgFilter = buildOrgFilter(orgId);
 
     const orderSellerId = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
@@ -367,7 +377,7 @@ export class SettlementCalculatorService {
         "items.sellerId": orderSellerId,
         deliveredAt: { $gte: startDate, $lte: endDate },
         status: "delivered",
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -438,7 +448,6 @@ export class SettlementCalculatorService {
       startDate,
       endDate,
     );
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const statementsCollection =
       db.collection<SettlementStatement>("souq_settlements");
@@ -583,7 +592,6 @@ export class SettlementCalculatorService {
       throw new Error("orgId is required for applyAdjustment (STRICT v4.1 tenant isolation)");
     }
 
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const statementsCollection =
       db.collection<SettlementStatement>("souq_settlements");
@@ -593,7 +601,7 @@ export class SettlementCalculatorService {
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
     // Type assertion needed for MongoDB driver filter compatibility with dual-type $in
-    const orgFilter = { $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] };
+    const orgFilter = buildOrgFilter(orgId);
     // Combined filter for tenant-scoped queries (type cast for MongoDB driver compatibility)
     const queryFilter = { statementId, ...orgFilter } as Filter<Document>;
 
@@ -632,12 +640,12 @@ export class SettlementCalculatorService {
    * Release reserve for old orders
    */
   static async releaseReserves(sellerId: string, orgId: string): Promise<number> {
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
     if (!orgId) {
       throw new Error("orgId is required for releaseReserves (STRICT v4.1 tenant isolation)");
     }
+    const orgFilter = buildOrgFilter(orgId);
     const orderSellerId = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
@@ -651,7 +659,7 @@ export class SettlementCalculatorService {
         "items.sellerId": orderSellerId,
         deliveredAt: { $lte: reservePeriodEnd },
         "settlement.reserveReleased": { $ne: true },
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -676,7 +684,7 @@ export class SettlementCalculatorService {
 
       // Mark reserve as released
       await ordersCollection.updateOne(
-        { _id: rawOrder._id },
+        { _id: rawOrder._id, ...orgFilter },
         {
           $set: {
             "settlement.reserveReleased": true,
@@ -706,7 +714,6 @@ export class SettlementCalculatorService {
     if (!orgId) {
       throw new Error("orgId is required for getSellerSummary (STRICT v4.1 tenant isolation)");
     }
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection("souq_orders");
     const statementsCollection =
@@ -714,6 +721,7 @@ export class SettlementCalculatorService {
     const orderSellerId = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
+    const orgFilter = buildOrgFilter(orgId);
 
     // Calculate available balance (orders past hold period)
     const availableOrders = await ordersCollection
@@ -726,7 +734,7 @@ export class SettlementCalculatorService {
           ),
         },
         "settlement.processed": { $ne: true },
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -756,7 +764,7 @@ export class SettlementCalculatorService {
         deliveredAt: {
           $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         },
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -783,7 +791,7 @@ export class SettlementCalculatorService {
       .find({
         "items.sellerId": orderSellerId,
         status: { $in: ["pending", "processing", "shipped"] },
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -810,7 +818,7 @@ export class SettlementCalculatorService {
       .find({
         sellerId,
         status: "paid",
-        orgId,
+        ...orgFilter,
       })
       .toArray();
 
@@ -821,7 +829,7 @@ export class SettlementCalculatorService {
 
     // Get last payout date
     const lastStatement = await statementsCollection.findOne(
-      { sellerId, status: "paid", orgId },
+      { sellerId, status: "paid", ...orgFilter },
       { sort: { paidAt: -1 } },
     );
 

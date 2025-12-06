@@ -128,10 +128,12 @@ The Product text search index (lines 155-166 in Product.ts, lines 209-218 in col
 
 **Severity**: 🟥 CRITICAL  
 **Category**: Correctness, Deployment, Security  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Resolution**: Property.ts already has `autoIndex: false` set (line 239) and schema-level indexes have been removed. Comment in file indicates "All Property indexes live in lib/db/collections.ts (createIndexes()) to keep a single source of truth."
 
 **Description**:  
-`server/models/Property.ts` defines 5 indexes via Mongoose schema (lines 246-260) that are ALSO defined manually in `lib/db/collections.ts` (lines 221-242). Same conflict pattern as ISSUE-001 and ISSUE-002.
+~~`server/models/Property.ts` defines 5 indexes via Mongoose schema (lines 246-260) that are ALSO defined manually in `lib/db/collections.ts` (lines 221-242). Same conflict pattern as ISSUE-001 and ISSUE-002.~~
 
 **Files**:
 - `server/models/Property.ts`: Lines 246-260 (schema indexes)
