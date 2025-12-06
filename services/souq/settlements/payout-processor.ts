@@ -14,6 +14,7 @@
  */
 
 import { ObjectId } from "mongodb";
+import type { Document, Filter } from "mongodb";
 import { Types } from "mongoose";
 import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
@@ -838,12 +839,11 @@ export class PayoutProcessorService {
       const db = await getDbInstance();
       const sellerIdObj = ObjectId.isValid(payout.sellerId)
         ? new ObjectId(payout.sellerId)
-        : undefined;
-      const seller = await db.collection("souq_sellers").findOne(
-        sellerIdObj
-          ? { _id: sellerIdObj, orgId: payout.orgId }
-          : { sellerId: payout.sellerId, orgId: payout.orgId }
-      );
+        : null;
+      const sellerFilter: Filter<Document> = sellerIdObj
+        ? { _id: sellerIdObj, orgId: payout.orgId }
+        : { sellerId: payout.sellerId, orgId: payout.orgId };
+      const seller = await db.collection("souq_sellers").findOne(sellerFilter);
 
       if (!seller?.contactInfo?.phone) {
         logger.warn(
