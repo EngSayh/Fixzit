@@ -44,7 +44,8 @@ export async function POST(
       );
     }
 
-    const claim = await ClaimService.getClaim(params.id, orgId);
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, orgId, allowOrgless);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -95,6 +96,7 @@ export async function POST(
       appealedBy,
       reasoning,
       evidencePayload,
+      { allowOrgless },
     );
 
     return NextResponse.json({

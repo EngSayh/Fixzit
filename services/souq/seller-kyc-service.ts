@@ -25,6 +25,7 @@ import {
 } from "@/server/models/souq/Seller";
 import { Types } from "mongoose";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { Config } from "@/lib/config/constants";
 import mongoose from "mongoose";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
@@ -607,7 +608,7 @@ class SellerKYCService {
       template: "kyc_approved",
       data: {
         businessName: seller.businessName,
-        sellerCentralUrl: "https://seller.fixzit.sa/dashboard",
+        sellerCentralUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/dashboard`,
       },
     });
 
@@ -707,7 +708,7 @@ class SellerKYCService {
       data: {
         businessName: seller.businessName,
         reason,
-        resubmitUrl: "https://seller.fixzit.sa/kyc/resubmit",
+        resubmitUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/kyc/resubmit`,
       },
     });
   }

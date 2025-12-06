@@ -297,8 +297,19 @@ export const Config = {
    */
   company: {
     name: getOptional("NEXT_PUBLIC_COMPANY_NAME", "Fixzit"),
-    supportEmail: getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@fixzit.sa"),
+    supportEmail: getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@example.com"),
     supportPhone: getOptional("NEXT_PUBLIC_SUPPORT_PHONE", "+966 XX XXX XXXX"),
+  },
+
+  /**
+   * Souq / Marketplace
+   */
+  souq: {
+    sellerPortalUrl: getOptional("SELLER_PORTAL_URL", "http://localhost:3000"),
+    sellerSupportEmail: getOptional(
+      "SELLER_SUPPORT_EMAIL",
+      getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@example.com"),
+    ),
   },
 
   /**

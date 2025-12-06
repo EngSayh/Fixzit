@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import TopBar from "@/components/TopBar";
 import PublicProviders from "@/providers/PublicProviders";
 
@@ -50,11 +50,13 @@ vi.mock("@/components/topbar/GlobalSearch", () => ({
 
 describe("TopBar (marketing/public view)", () => {
   it("shows language toggle and hides app/module pills and app switcher", async () => {
-    const { container } = render(
-      <PublicProviders initialLocale="ar">
-        <TopBar />
-      </PublicProviders>,
-    );
+    await act(async () => {
+      render(
+        <PublicProviders initialLocale="ar">
+          <TopBar />
+        </PublicProviders>,
+      );
+    });
 
     // Wait until providers settle and topbar renders
     const banner = await screen.findByRole("banner");

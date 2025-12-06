@@ -421,9 +421,9 @@ export class ClaimService {
 
     const collection = await this.collection();
 
-    const claim = await this.getClaim(input.claimId, input.orgId);
+    const claim = await this.getClaim(input.claimId, input.orgId, input.allowOrgless ?? false);
     if (!claim) throw new Error("Claim not found");
-    if (claim.sellerId !== input.sellerId) throw new Error("Unauthorized");
+    if (String(claim.sellerId) !== String(input.sellerId)) throw new Error("Unauthorized");
     if (
       claim.status !== "pending_review" &&
       claim.status !== "pending_seller_response"
@@ -449,13 +449,17 @@ export class ClaimService {
     };
 
     // Determine next status and whether we should attempt auto-resolution
-    const newStatus: ClaimStatus = "under_investigation";
+    const newStatus: ClaimStatus =
+      input.proposedSolution === "refund_full" ? "approved" : "under_review";
     const shouldAttemptAutoResolve =
       input.proposedSolution === "refund_full" && claim.isAutoResolvable;
 
-    const investigationDeadline = new Date(
-      Date.now() + this.INVESTIGATION_DEADLINE_HOURS * 60 * 60 * 1000,
-    );
+    const investigationDeadline =
+      newStatus === "under_investigation"
+        ? new Date(
+            Date.now() + this.INVESTIGATION_DEADLINE_HOURS * 60 * 60 * 1000,
+          )
+        : undefined;
 
     // 🔐 SECURITY: Scope update by orgId
     const orgFilter = this.buildOrgFilter(input.orgId);
@@ -547,10 +551,12 @@ export class ClaimService {
     appealedBy: "buyer" | "seller",
     reason: string,
     evidence: { type: string; url: string; description?: string }[],
+    options: { allowOrgless?: boolean } = {},
   ): Promise<void> {
     const collection = await this.collection();
 
-    const claim = await this.getClaim(claimId, orgId);
+    const allowOrgless = options.allowOrgless ?? false;
+    const claim = await this.getClaim(claimId, orgId, allowOrgless);
     if (!claim) throw new Error("Claim not found");
     if (!claim.decision)
       throw new Error("Cannot appeal claim without decision");
@@ -574,7 +580,7 @@ export class ClaimService {
     };
 
     // 🔐 SECURITY: Scope update by orgId
-    const orgScope = this.buildOrgFilter(orgId);
+    const orgScope = this.buildOrgFilter(orgId, { allowOrgless });
     await collection.updateOne(
       ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
       {

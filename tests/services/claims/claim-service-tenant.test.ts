@@ -4,7 +4,9 @@ import { ObjectId } from "mongodb";
 const claimsStore: any[] = [];
 const findOneCalls: Record<string, unknown>[] = [];
 
-const mockAddJob = vi.fn(async () => undefined);
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
 
 // Minimal matcher supporting $or, $in, and $lt for our claim filters
 const matches = (doc: any, filter: Record<string, any>): boolean => {

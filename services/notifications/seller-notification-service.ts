@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { sendSMS as sendSMSViaService } from "@/lib/sms";
 import { loadTranslations } from "@/lib/i18n/translation-loader";
+import { Config } from "@/lib/config/constants";
 
 // Lazy-load translations
 let translations: ReturnType<typeof loadTranslations> | null = null;
@@ -196,7 +197,7 @@ async function sendEmail(
   });
   const support = translateTemplate(locale, {
     key: "notifications.seller.email.support",
-    fallback: "For support, contact seller-support@fixzit.sa",
+    fallback: `For support, contact ${Config.souq.sellerSupportEmail}`,
   });
 
   try {

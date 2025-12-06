@@ -14,7 +14,7 @@ const ExportSchema = z.object({
  * Canonical collection definitions with correct org scope field.
  * STRICT v4.1: Uses orgId (camelCase) consistently per schema conventions.
  */
-const COLLECTION_CONFIG: Record<string, { scopeField: "orgId" | "org_id"; maxDocs: number }> = {
+const COLLECTION_CONFIG: Record<string, { scopeField: "orgId"; maxDocs: number }> = {
   workorders: { scopeField: "orgId", maxDocs: 10000 },
   properties: { scopeField: "orgId", maxDocs: 5000 },
   vendors: { scopeField: "orgId", maxDocs: 5000 },

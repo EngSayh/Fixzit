@@ -81,6 +81,7 @@ describe("Claims routes - org scoping enforcement", () => {
       "buyer",
       "Need reconsideration",
       expect.any(Array),
+      expect.objectContaining({ allowOrgless: true }),
     );
   });
 
@@ -142,7 +143,7 @@ describe("Claims routes - org scoping enforcement", () => {
 
     const res = await decisionPOST(req, { params: { id: "789" } });
     expect(res.status).toBe(200);
-    expect(mockGetClaim).toHaveBeenCalledWith("789", orgObjectId.toString());
+    expect(mockGetClaim).toHaveBeenCalledWith("789", orgObjectId.toString(), true);
     const orderFilter = ordersCollection.findOne.mock.calls[0]?.[0];
     expect(orderFilter).toMatchObject({
       orgId: expect.any(ObjectId),

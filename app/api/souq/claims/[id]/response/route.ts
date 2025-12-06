@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  ClaimService,
-  type SellerResponse,
-  type Evidence,
-} from "@/services/souq/claims/claim-service";
+import { ClaimService, type Evidence } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
-import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
 
 /**
  * POST /api/souq/claims/[id]/response
@@ -85,29 +77,22 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const sellerResponse: SellerResponse = {
-      action,
-      message,
-      respondedAt: new Date(),
-    };
-
-    if (Array.isArray(counterEvidence) && counterEvidence.length) {
-      interface EvidenceInput {
-        type: string;
-        url: string;
-        description?: string;
-        [key: string]: unknown;
-      }
-      const allowedTypes = new Set<Evidence["type"]>([
-        "video",
-        "image",
-        "photo",
-        "document",
-        "tracking_info",
-        "message_screenshot",
-      ]);
-      sellerResponse.counterEvidence = (counterEvidence as EvidenceInput[]).map(
-        (item, idx: number): Evidence => {
+    interface EvidenceInput {
+      type: string;
+      url: string;
+      description?: string;
+      [key: string]: unknown;
+    }
+    const allowedTypes = new Set<Evidence["type"]>([
+      "video",
+      "image",
+      "photo",
+      "document",
+      "tracking_info",
+      "message_screenshot",
+    ]);
+    const evidence = Array.isArray(counterEvidence)
+      ? (counterEvidence as EvidenceInput[]).map((item, idx): Evidence => {
           const normalizedType = allowedTypes.has(item.type as Evidence["type"])
             ? (item.type as Evidence["type"])
             : "document";
@@ -119,33 +104,26 @@ export async function POST(
             description: item.description,
             uploadedAt: new Date(),
           };
-        },
-      );
-    }
+        })
+      : [];
 
-    const newStatus = action === "accept" ? "approved" : "under_review";
+    const proposedSolution =
+      action === "accept" ? ("refund_full" as const) : ("dispute" as const);
 
-    const db = await getDatabase();
-    const baseOrgFilter = buildOrgScopeFilter(orgId);
-    const orgFilter =
-      process.env.NODE_ENV === "test"
-        ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
-        : baseOrgFilter;
-    const filter = ObjectId.isValid(params.id)
-      ? { _id: new ObjectId(params.id), ...orgFilter }
-      : { claimId: params.id, ...orgFilter };
-
-    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
-      $set: {
-        status: newStatus,
-        sellerResponse,
-        updatedAt: new Date(),
-      },
+    await ClaimService.addSellerResponse({
+      claimId: params.id,
+      orgId,
+      sellerId: session.user.id,
+      responseText: message,
+      proposedSolution,
+      evidence,
     });
 
+    const updated = await ClaimService.getClaim(params.id, orgId, true);
+
     return NextResponse.json({
-      status: newStatus,
-      sellerResponse,
+      status: updated?.status ?? "under_investigation",
+      sellerResponse: updated?.sellerResponse,
     });
   } catch (error) {
     logger.error("[Claims API] Seller response failed", error as Error);

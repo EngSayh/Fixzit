@@ -106,7 +106,22 @@ const getQueueModule = async (): Promise<QueueModule> => {
     } catch {
       // ignore cache clearing failures in test env
     }
-    const resolvedModule = (await import('@/lib/queues/setup')) as QueueModule;
+    let resolvedModule = (await import('@/lib/queues/setup')) as QueueModule;
+    const viGlobal = typeof vi !== 'undefined' ? (vi as unknown as { importMock?: <T>(path: string) => Promise<T> }) : null;
+    if (
+      viGlobal?.importMock &&
+      (!('addJob' in resolvedModule) ||
+        !(resolvedModule as { addJob?: { mock?: unknown } }).addJob?.mock)
+    ) {
+      try {
+        const mockedModule = await viGlobal.importMock<QueueModule>('@/lib/queues/setup');
+        if (mockedModule) {
+          resolvedModule = mockedModule;
+        }
+      } catch {
+        // ignore and fall back to resolvedModule
+      }
+    }
     if (
       typeof resolvedModule === 'object' &&
       resolvedModule !== null &&

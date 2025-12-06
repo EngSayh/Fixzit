@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 vi.mock("@/lib/queues/setup", () => {
   return {
     addJob: vi.fn(async () => undefined),
-    QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+    QUEUE_NAMES: { NOTIFICATIONS: "notifications", REFUNDS: "refunds" },
   };
 });
 
@@ -29,30 +29,50 @@ vi.mock("@/lib/mongodb-unified", () => {
 });
 
 // Import after mocks
-import { RefundProcessor } from "@/services/souq/claims/refund-processor";
+import {
+  RefundProcessor,
+  __setQueueModuleForTests,
+} from "@/services/souq/claims/refund-processor";
 
 const mockedAddJob = addJob as unknown as ReturnType<typeof vi.fn>;
 
 describe("RefundProcessor notifications", () => {
   beforeEach(() => {
+    __setQueueModuleForTests({
+      addJob: mockedAddJob,
+      QUEUE_NAMES: { NOTIFICATIONS: "notifications", REFUNDS: "refunds" },
+    } as unknown as typeof import("@/lib/queues/setup"));
     vi.clearAllMocks();
   });
 
   afterEach(() => {
+    __setQueueModuleForTests(null);
     vi.clearAllMocks();
   });
 
   it("sends orgId in notification payload", async () => {
     await RefundProcessor["notifyRefundStatus"](
-      "buyer-1",
-      "seller-1",
+      {
+        refundId: "REF-1",
+        claimId: "CL-1",
+        orderId: "ORD-1",
+        buyerId: "buyer-1",
+        sellerId: "seller-1",
+        orgId: "org-123",
+        amount: 10,
+        reason: "test",
+        paymentMethod: "card",
+        status: "initiated",
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       {
         refundId: "REF-1",
         status: "completed",
         amount: 10,
         transactionId: "TX-1",
       },
-      "org-123",
     );
 
     expect(mockedAddJob).toHaveBeenCalled();
@@ -71,5 +91,31 @@ describe("RefundProcessor notifications", () => {
       orgId: { $in: ["org-abc"] },
       $or: [{ orderId: "ORD-1" }],
     });
+  });
+
+  it("queues retry job with orgId", async () => {
+    const refund = {
+      refundId: "REF-2",
+      claimId: "CL-2",
+      orderId: "ORD-2",
+      buyerId: "buyer-2",
+      sellerId: "seller-2",
+      orgId: "org-456",
+      amount: 20,
+      reason: "retry",
+      paymentMethod: "card",
+      status: "processing" as const,
+      retryCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await RefundProcessor["scheduleRetry"](refund as unknown as any);
+
+    expect(mockedAddJob).toHaveBeenCalled();
+    const args = mockedAddJob.mock.calls[0];
+    expect(args[0]).toBe("refunds");
+    expect(args[1]).toBe("souq-claim-refund-retry");
+    expect(args[2]).toMatchObject({ refundId: "REF-2", orgId: "org-456" });
   });
 });
