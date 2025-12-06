@@ -11,6 +11,7 @@ vi.mock("@/lib/queues/setup", () => {
 
 const mockOrderUpdate = vi.fn(async () => ({}));
 const mockRefundUpdate = vi.fn(async () => ({}));
+const mockRefundFindOne = vi.fn(async () => null);
 
 vi.mock("@/lib/mongodb-unified", () => {
   return {
@@ -20,7 +21,7 @@ vi.mock("@/lib/mongodb-unified", () => {
           return { updateOne: mockOrderUpdate };
         }
         if (name === "souq_refunds") {
-          return { updateOne: mockRefundUpdate, findOne: vi.fn(), insertOne: vi.fn() };
+          return { updateOne: mockRefundUpdate, findOne: mockRefundFindOne, insertOne: vi.fn() };
         }
         return { updateOne: vi.fn(async () => ({})) };
       },
@@ -42,6 +43,9 @@ describe("RefundProcessor notifications", () => {
       addJob: mockedAddJob,
       QUEUE_NAMES: { NOTIFICATIONS: "notifications", REFUNDS: "refunds" },
     } as unknown as typeof import("@/lib/queues/setup"));
+    mockOrderUpdate.mockReset();
+    mockRefundUpdate.mockReset();
+    mockRefundFindOne.mockReset();
     vi.clearAllMocks();
   });
 
@@ -117,5 +121,94 @@ describe("RefundProcessor notifications", () => {
     expect(args[0]).toBe("refunds");
     expect(args[1]).toBe("souq-claim-refund-retry");
     expect(args[2]).toMatchObject({ refundId: "REF-2", orgId: "org-456" });
+  });
+
+  it("processes manual retry jobs and persists status/order updates", async () => {
+    const refund = {
+      refundId: "REF-3",
+      claimId: "CL-3",
+      orderId: "ORD-3",
+      buyerId: "buyer-3",
+      sellerId: "seller-3",
+      orgId: "org-789",
+      amount: 30,
+      reason: "retry-manual",
+      paymentMethod: "card",
+      status: "processing" as const,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockRefundFindOne.mockResolvedValueOnce(refund);
+
+    const executeSpy = vi
+      .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
+      .mockResolvedValue({
+        refundId: "REF-3",
+        status: "completed",
+        amount: 30,
+        transactionId: "TX-3",
+        completedAt: new Date(),
+      });
+    const notifySpy = vi.spyOn(RefundProcessor, "notifyRefundStatus");
+
+    await RefundProcessor.processRetryJob("REF-3", "org-789");
+
+    expect(executeSpy).toHaveBeenCalledWith(refund);
+    expect(mockRefundUpdate).toHaveBeenCalledWith(
+      { refundId: "REF-3", orgId: { $in: ["org-789"] } },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          status: "completed",
+          transactionId: "TX-3",
+        }),
+      }),
+    );
+    expect(mockOrderUpdate).toHaveBeenCalledWith(
+      { orgId: { $in: ["org-789"] }, $or: [{ orderId: "ORD-3" }] },
+      expect.any(Object),
+    );
+    expect(notifySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ refundId: "REF-3", orgId: "org-789" }),
+      expect.objectContaining({ status: "completed", transactionId: "TX-3" }),
+    );
+  });
+
+  it("skips manual retry when refund is not processing", async () => {
+    const refund = {
+      refundId: "REF-4",
+      claimId: "CL-4",
+      orderId: "ORD-4",
+      buyerId: "buyer-4",
+      sellerId: "seller-4",
+      orgId: "org-999",
+      amount: 40,
+      reason: "retry-skip",
+      paymentMethod: "card",
+      status: "failed" as const,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockRefundFindOne.mockResolvedValueOnce(refund);
+
+    const executeSpy = vi
+      .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
+      .mockResolvedValue({
+        refundId: "REF-4",
+        status: "completed",
+        amount: 40,
+        transactionId: "TX-4",
+      });
+    const notifySpy = vi.spyOn(RefundProcessor, "notifyRefundStatus");
+
+    await RefundProcessor.processRetryJob("REF-4", "org-999");
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    expect(mockRefundUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(notifySpy).not.toHaveBeenCalled();
   });
 });

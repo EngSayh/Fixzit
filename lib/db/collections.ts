@@ -76,6 +76,7 @@ export const COLLECTIONS: Record<string, string> = {
   SOUQ_AD_TARGETS: "souq_ad_targets",
   SOUQ_FEE_SCHEDULES: "souq_fee_schedules",
   SOUQ_RMAS: "souq_rmas",
+  SOUQ_REFUNDS: "souq_refunds",
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
@@ -835,6 +836,17 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.SOUQ_RMAS)
     .createIndex({ orgId: 1, returnDeadline: 1 }, { background: true, name: "souq_rmas_orgId_returnDeadline" });
+
+  // Souq refunds - tenant isolation and claim uniqueness
+  await db
+    .collection(COLLECTIONS.SOUQ_REFUNDS)
+    .createIndex({ orgId: 1, claimId: 1 }, { unique: true, background: true, name: "souq_refunds_orgId_claimId_unique" });
+  await db
+    .collection(COLLECTIONS.SOUQ_REFUNDS)
+    .createIndex({ orgId: 1, status: 1, createdAt: -1 }, { background: true, name: "souq_refunds_orgId_status_createdAt" });
+  await db
+    .collection(COLLECTIONS.SOUQ_REFUNDS)
+    .createIndex({ orgId: 1, nextRetryAt: 1 }, { background: true, name: "souq_refunds_orgId_nextRetryAt" });
 
   // Help Articles - STRICT v4.1: slug unique per org
   await db

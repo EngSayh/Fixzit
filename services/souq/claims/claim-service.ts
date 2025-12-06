@@ -725,41 +725,75 @@ export class ClaimService {
     }
     const collection = await this.collection();
 
-    // 🔐 SECURITY: Scope by orgId
-    const query: Record<string, unknown> = { ...this.buildOrgFilter(filters.orgId) };
-    if (filters.sellerId) query.sellerId = this.buildIdMatch(filters.sellerId);
-    if (filters.buyerId) query.buyerId = this.buildIdMatch(filters.buyerId);
+    // 🔐 SECURITY: Scope by orgId and aggregate server-side to avoid unbounded scans
+    const matchStage: Record<string, unknown> = { ...this.buildOrgFilter(filters.orgId) };
+    if (filters.sellerId) matchStage.sellerId = this.buildIdMatch(filters.sellerId);
+    if (filters.buyerId) matchStage.buyerId = this.buildIdMatch(filters.buyerId);
 
-    const claims = await collection.find(query).toArray();
+    const [aggregated] = await collection
+      .aggregate([
+        { $match: matchStage },
+        {
+          $facet: {
+            status: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+            type: [{ $group: { _id: "$type", count: { $sum: 1 } } }],
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  resolvedCount: {
+                    $sum: { $cond: [{ $ifNull: ["$resolvedAt", false] }, 1, 0] },
+                  },
+                  totalResolutionTime: {
+                    $sum: {
+                      $cond: [
+                        { $ifNull: ["$resolvedAt", false] },
+                        { $subtract: ["$resolvedAt", "$filedAt"] },
+                        0,
+                      ],
+                    },
+                  },
+                  refundTotal: { $sum: { $ifNull: ["$refundAmount", 0] } },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            status: 1,
+            type: 1,
+            totals: { $arrayElemAt: ["$totals", 0] },
+          },
+        },
+      ])
+      .toArray();
 
-    const byStatus: Record<string, number> = {};
-    const byType: Record<string, number> = {};
-    let totalResolutionTime = 0;
-    let resolvedCount = 0;
-    let refundTotal = 0;
+    const byStatus = Object.fromEntries(
+      (aggregated?.status || []).map(
+        (entry: { _id: ClaimStatus; count: number }) => [entry._id, entry.count],
+      ),
+    ) as Record<ClaimStatus, number>;
 
-    claims.forEach((claim) => {
-      byStatus[claim.status] = (byStatus[claim.status] || 0) + 1;
-      byType[claim.type] = (byType[claim.type] || 0) + 1;
+    const byType = Object.fromEntries(
+      (aggregated?.type || []).map((entry: { _id: ClaimType; count: number }) => [
+        entry._id,
+        entry.count,
+      ]),
+    ) as Record<ClaimType, number>;
 
-      if (claim.resolvedAt) {
-        const resolutionTime =
-          claim.resolvedAt.getTime() - claim.filedAt.getTime();
-        totalResolutionTime += resolutionTime;
-        resolvedCount++;
-      }
-
-      if (claim.refundAmount) {
-        refundTotal += claim.refundAmount;
-      }
-    });
+    const totals = aggregated?.totals ?? {};
+    const total = totals.total ?? 0;
+    const resolvedCount = totals.resolvedCount ?? 0;
+    const totalResolutionTime = totals.totalResolutionTime ?? 0;
+    const refundTotal = totals.refundTotal ?? 0;
 
     return {
-      total: claims.length,
-      byStatus: byStatus as Record<ClaimStatus, number>,
-      byType: byType as Record<ClaimType, number>,
-      avgResolutionTime:
-        resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0,
+      total,
+      byStatus,
+      byType,
+      avgResolutionTime: resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0,
       refundTotal,
     };
   }

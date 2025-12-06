@@ -1,26 +1,26 @@
-import { ObjectId as MongoObjectId, type UpdateFilter, type Filter, type Document } from 'mongodb';
+import { ObjectId as MongoObjectId, type UpdateFilter } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRequire } from 'module';
-import { createRefund } from '@/lib/paytabs';
+import { createRefund, queryRefundStatus } from '@/lib/paytabs';
+import { validatePayTabsConfig } from '@/config/paytabs.config';
 import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
+import type { Claim as ClaimModel } from './claim-service';
+import { buildSouqOrgFilter } from '../org-scope';
 
-// Vitest globals are available in test runtime; declare to avoid TS complaints without importing.
-declare const vi: undefined | Record<string, unknown>;
-void vi; // Suppress unused warning
-
-/**
- * Build org filter for MongoDB queries using string orgId values.
- * Cast result as Filter<Document> when using with strictly-typed collections.
- */
-const buildOrgFilter = (orgId: string): Filter<Document> => {
-  const trimmed = orgId?.trim?.();
-  const candidates: string[] = [];
-  if (trimmed) {
-    candidates.push(trimmed);
+// Vitest globals are available in test runtime; safely access via globalThis to avoid ReferenceError in production
+type ViTestGlobal = { importMock?: <T>(path: string) => Promise<T> } | undefined;
+const getViGlobal = (): ViTestGlobal => {
+  try {
+    // Access via globalThis to avoid ReferenceError in non-test environments
+    return (globalThis as unknown as Record<string, unknown>).vi as ViTestGlobal;
+  } catch {
+    return undefined;
   }
-  return candidates.length ? { orgId: { $in: candidates } } : { orgId: trimmed };
 };
+
+const buildOrgFilter = (orgId: string, options?: { allowEmpty?: boolean; allowOrgless?: boolean }) =>
+  buildSouqOrgFilter(orgId, { allowOrgless: options?.allowEmpty || options?.allowOrgless });
 
 export interface RefundRequest {
   claimId: string;
@@ -78,6 +78,8 @@ export interface Refund {
   failureReason?: string;
   retryCount: number;
   nextRetryAt?: Date;
+  statusCheckCount?: number;
+  nextStatusCheckAt?: Date;
   
   createdAt: Date;
   updatedAt: Date;
@@ -107,7 +109,7 @@ const getQueueModule = async (): Promise<QueueModule> => {
       // ignore cache clearing failures in test env
     }
     let resolvedModule = (await import('@/lib/queues/setup')) as QueueModule;
-    const viGlobal = typeof vi !== 'undefined' ? (vi as unknown as { importMock?: <T>(path: string) => Promise<T> }) : null;
+    const viGlobal = getViGlobal();
     if (
       viGlobal?.importMock &&
       (!('addJob' in resolvedModule) ||
@@ -141,24 +143,116 @@ const getQueueModule = async (): Promise<QueueModule> => {
 export class RefundProcessor {
   private static COLLECTION = 'souq_refunds';
   private static MAX_RETRIES = 3;
+  private static MAX_STATUS_POLLS = 5;
   private static RETRY_DELAY_MS = 5000; // 5 seconds
+  private static indexesReady: Promise<void> | null = null;
   private static retryTimers = new Map<string, NodeJS.Timeout>();
+  private static statusCheckTimers = new Map<string, NodeJS.Timeout>();
   private static async collection() {
     const db = await getDatabase();
-    return db.collection<Refund>(this.COLLECTION);
+    const collection = db.collection<Refund>(this.COLLECTION);
+    if (!this.indexesReady) {
+      this.indexesReady =
+        typeof collection.createIndex === 'function'
+          ? collection
+              .createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique' })
+              .then(() => undefined)
+              .catch((error) => {
+                logger.error('[Refunds] Failed to ensure unique index on (orgId, claimId)', { error });
+              })
+          : Promise.resolve();
+    }
+    await this.indexesReady.catch(() => undefined);
+    return collection;
   }
 
   /**
    * Process refund for approved claim
-   * 🔐 Service-level safeguard: validates refund amount against order total
+   * 🔐 Service-level safeguards:
+   *   1. Validates claim exists, is approved, and belongs to orgId
+   *   2. Validates refund amount against order total (prevent over-refund)
+   *   3. Idempotency guard to prevent duplicate refunds
    */
   static async processRefund(request: RefundRequest): Promise<RefundResult> {
     if (!request.orgId) {
       throw new Error("orgId is required to process claim refund");
     }
+
+    const db = await getDatabase();
+    const collection = await this.collection();
+
+    // 🔐 BLOCKER FIX: Validate claim exists, is approved, and belongs to this org
+    const claim = await ClaimService.getClaim(request.claimId, request.orgId);
+    if (!claim) {
+      throw new Error(`Claim not found or does not belong to org: ${request.claimId}`);
+    }
+    const eligibleStatuses: ClaimModel['status'][] = [
+      'approved',
+      'resolved_refund_full',
+      'resolved_refund_partial',
+      'resolved_replacement',
+    ];
+    if (!eligibleStatuses.includes(claim.status)) {
+      throw new Error(`Claim must be approved/resolved for refund. Current status: ${claim.status}`);
+    }
+    // Validate claim/order/buyer/seller match
+    const claimOrderId = claim.orderId?.toString?.() ?? String(claim.orderId);
+    if (claimOrderId !== request.orderId && claimOrderId !== request.orderId.toString()) {
+      throw new Error('Claim orderId does not match refund request orderId');
+    }
+    if (claim.buyerId !== request.buyerId) {
+      throw new Error('Claim buyer does not match refund request buyer');
+    }
+    if (claim.sellerId !== request.sellerId) {
+      throw new Error('Claim seller does not match refund request seller');
+    }
+
+    // 🔐 BLOCKER FIX: Idempotency guard - check for existing active/completed refund
+    const existingRefund = await collection.findOne({
+      claimId: request.claimId,
+      ...buildOrgFilter(request.orgId),
+      status: { $in: ['initiated', 'processing', 'completed', 'failed'] },
+    });
+    if (existingRefund) {
+      if (existingRefund.amount !== request.amount) {
+        throw new Error('Refund already exists for claim with a different amount');
+      }
+      if (existingRefund.status === 'completed') {
+        logger.info('[Refunds] Refund already completed for claim', { claimId: request.claimId, refundId: existingRefund.refundId });
+        return {
+          refundId: existingRefund.refundId,
+          status: 'completed',
+          amount: existingRefund.amount,
+          transactionId: existingRefund.transactionId,
+          completedAt: existingRefund.completedAt,
+        };
+      }
+      if (existingRefund.status === 'failed') {
+        if ((existingRefund.retryCount ?? 0) < this.MAX_RETRIES) {
+          await this.scheduleRetry(existingRefund);
+          return {
+            refundId: existingRefund.refundId,
+            status: 'processing',
+            amount: existingRefund.amount,
+            failureReason: existingRefund.failureReason,
+          };
+        }
+        return {
+          refundId: existingRefund.refundId,
+          status: 'failed',
+          amount: existingRefund.amount,
+          failureReason: existingRefund.failureReason,
+        };
+      }
+      logger.info('[Refunds] Refund already in progress for claim', { claimId: request.claimId, refundId: existingRefund.refundId });
+      return {
+        refundId: existingRefund.refundId,
+        status: existingRefund.status as 'initiated' | 'processing',
+        amount: existingRefund.amount,
+      };
+    }
     
     // 🔐 SAFETY: Validate refund amount against order total (prevent over-refund)
-    const db = await getDatabase();
     const orderIdFilters: Array<Record<string, unknown>> = [{ orderId: request.orderId }];
     if (MongoObjectId.isValid(request.orderId)) {
       orderIdFilters.push({ _id: new MongoObjectId(request.orderId) });
@@ -172,12 +266,17 @@ export class RefundProcessor {
       throw new Error(`Order not found for refund: ${request.orderId}`);
     }
 
-    const orderTotal = order.pricing?.total ?? null;
+    const orderTotal = order.pricing?.total ?? order.payment?.amount ?? null;
     if (request.amount <= 0) {
       throw new Error("Refund amount must be greater than 0");
     }
     if (orderTotal !== null && request.amount > orderTotal) {
       throw new Error(`Refund amount (${request.amount}) exceeds order total (${orderTotal})`);
+    }
+    // 🔐 Additional guard: Refund cannot exceed claim's requested amount
+    const claimRequestedAmount = claim.requestedAmount ?? claim.orderAmount ?? orderTotal;
+    if (claimRequestedAmount !== null && request.amount > claimRequestedAmount) {
+      throw new Error(`Refund amount (${request.amount}) exceeds claim requested amount (${claimRequestedAmount})`);
     }
 
     // 🔐 Validate payment details exist for gateway call
@@ -193,8 +292,6 @@ export class RefundProcessor {
     if (request.originalTransactionId && request.originalTransactionId !== order.payment.transactionId) {
       throw new Error("Payment transactionId mismatch between request and order");
     }
-
-    const collection = await this.collection();
 
     // Create refund record
     const refundId = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -214,38 +311,94 @@ export class RefundProcessor {
       retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
+      statusCheckCount: 0,
     };
 
-    await collection.insertOne(refund);
+    // 🔐 Atomic insert with idempotency key (claimId + orgId unique constraint)
+    // Use findOneAndUpdate with upsert to prevent race conditions
+    const insertResult = await collection.findOneAndUpdate(
+      {
+        claimId: request.claimId,
+        ...buildOrgFilter(request.orgId),
+      },
+      { $setOnInsert: refund },
+      { upsert: true, returnDocument: 'after', includeResultMetadata: true }
+    );
+
+    const upsertedRefund = insertResult.value;
+    const wasInserted = Boolean(insertResult.lastErrorObject?.upserted);
+
+    // If we matched an existing refund (race condition), return its current state to avoid double-processing
+    if (!wasInserted && upsertedRefund) {
+      if (upsertedRefund.status === 'completed') {
+        return {
+          refundId: upsertedRefund.refundId,
+          status: 'completed',
+          amount: upsertedRefund.amount,
+          transactionId: upsertedRefund.transactionId,
+          completedAt: upsertedRefund.completedAt,
+        };
+      }
+      if (upsertedRefund.status === 'failed') {
+        if ((upsertedRefund.retryCount ?? 0) < this.MAX_RETRIES) {
+          await this.scheduleRetry(upsertedRefund);
+          return {
+            refundId: upsertedRefund.refundId,
+            status: 'processing',
+            amount: upsertedRefund.amount,
+            failureReason: upsertedRefund.failureReason,
+          };
+        }
+        return {
+          refundId: upsertedRefund.refundId,
+          status: 'failed',
+          amount: upsertedRefund.amount,
+          failureReason: upsertedRefund.failureReason,
+        };
+      }
+      return {
+        refundId: upsertedRefund.refundId,
+        status: upsertedRefund.status as 'initiated' | 'processing',
+        amount: upsertedRefund.amount,
+        transactionId: upsertedRefund.transactionId,
+        failureReason: upsertedRefund.failureReason,
+      };
+    }
+
+    const refundDoc = upsertedRefund ?? refund;
 
     // Attempt to process refund
     try {
-      const result = await this.executeRefund(refund);
+      const result = await this.executeRefund(refundDoc);
       
       // Update refund status
-      await this.updateRefundStatus(refundId, request.orgId, result.status, {
+      await this.updateRefundStatus(refundDoc.refundId, request.orgId, result.status, {
         transactionId: result.transactionId,
-        completedAt: result.status === 'completed' ? new Date() : undefined,
+        completedAt: result.completedAt,
         failureReason: result.failureReason,
       });
 
-      // Update order status
+      // 🔐 Only update order and notify when truly completed
       if (result.status === 'completed') {
         await this.updateOrderStatus({
           orderId: request.orderId,
           orgId: request.orgId,
           status: 'refunded',
         });
+        // Only notify on final completion
+        await this.notifyRefundStatus(refundDoc, result);
+      } else if (result.status === 'processing') {
+        // For pending/processing, send a "processing" notification and schedule a retry to check status
+        await this.notifyRefundStatus(refundDoc, { ...result, status: 'processing' });
+        // Use scheduleRetry to check status later
+        await this.scheduleRetry(refundDoc);
       }
-
-      // Notify parties using stored refund org context
-      await this.notifyRefundStatus(refund, result);
 
       return result;
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      await this.updateRefundStatus(refundId, request.orgId, 'failed', {
+      await this.updateRefundStatus(refundDoc.refundId, request.orgId, 'failed', {
         failureReason: error instanceof Error ? error.message : 'Unknown error',
       });
 
@@ -292,12 +445,25 @@ export class RefundProcessor {
       // Call PayTabs refund API
       const gatewayResult = await this.callPaymentGateway(refund);
 
-      // Clear processing lock on success
+      // Clear processing lock on success/pending
       await collection.updateOne(
         { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
         { $unset: { processingLock: '' } }
       );
 
+      // 🔐 MAJOR FIX: Handle PayTabs pending correctly - don't treat as completed
+      if (gatewayResult.status === 'PENDING') {
+        // Schedule a status check instead of re-calling the refund endpoint
+        await this.scheduleStatusCheck({ ...refund, transactionId: gatewayResult.transactionId });
+        return {
+          refundId: refund.refundId,
+          status: 'processing', // Keep as processing, not completed
+          amount: refund.amount,
+          transactionId: gatewayResult.transactionId,
+        };
+      }
+
+      // Only return completed when gateway confirms approved
       return {
         refundId: refund.refundId,
         status: 'completed',
@@ -345,15 +511,14 @@ export class RefundProcessor {
    */
   private static async callPaymentGateway(refund: Refund): Promise<{
     transactionId: string;
-    status: string;
+    status: 'SUCCEEDED' | 'PENDING';
   }> {
     if (!refund.originalTransactionId) {
       throw new Error('Missing original transaction reference for refund');
     }
 
-    if (!process.env.PAYTABS_SERVER_KEY) {
-      throw new Error('PayTabs credentials not configured. Set PAYTABS_SERVER_KEY and PAYTABS_PROFILE_ID.');
-    }
+    // 🔐 Use shared PayTabs config validation (ensures both profileId and serverKey)
+    validatePayTabsConfig();
 
     // Use PayTabs refund API
     const paytabsRefund = await createRefund({
@@ -441,6 +606,82 @@ export class RefundProcessor {
     this.scheduleInProcessRetry(refund.refundId, refund.orgId, delayMs);
   }
 
+  /**
+   * Schedule a status check for refunds that are pending at the gateway
+   */
+  private static async scheduleStatusCheck(refund: Refund): Promise<void> {
+    const currentCount = refund.statusCheckCount ?? 0;
+    if (currentCount >= this.MAX_STATUS_POLLS) {
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason: 'Refund remained pending after multiple status checks',
+      });
+      return;
+    }
+
+    const nextCount = currentCount + 1;
+    const delayMs = this.RETRY_DELAY_MS * nextCount;
+    const nextStatusCheckAt = new Date(Date.now() + delayMs);
+
+    const collection = await this.collection();
+    await collection.updateOne(
+      { refundId: refund.refundId, ...buildOrgFilter(refund.orgId) },
+      {
+        $inc: { statusCheckCount: 1 },
+        $set: { status: 'processing', nextStatusCheckAt, updatedAt: new Date() },
+      }
+    );
+
+    try {
+      const queue = await getQueueModule();
+      await queue.addJob(
+        queue.QUEUE_NAMES.REFUNDS,
+        'souq-claim-refund-status-check',
+        { refundId: refund.refundId, orgId: refund.orgId },
+        {
+          delay: delayMs,
+          jobId: `refund-status-${refund.refundId}-${nextCount}`,
+          priority: 1,
+        }
+      );
+      logger.info('[Refunds] Status check scheduled via queue', {
+        refundId: refund.refundId,
+        attempt: nextCount,
+        delayMs,
+      });
+      return;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.warn('[Refunds] Queue unavailable, using in-process status check fallback', {
+        refundId: refund.refundId,
+        attempt: nextCount,
+        delayMs,
+        error: error.message,
+      });
+    }
+
+    this.scheduleInProcessStatusCheck(refund.refundId, refund.orgId, delayMs);
+  }
+
+  private static scheduleInProcessStatusCheck(refundId: string, orgId: string, delayMs: number) {
+    const existingTimer = this.statusCheckTimers.get(refundId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        await this.processStatusCheckJob(refundId, orgId);
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        logger.error('[Refunds] Fallback status check failed', { refundId, error: error.message });
+      } finally {
+        this.statusCheckTimers.delete(refundId);
+      }
+    }, delayMs);
+
+    this.statusCheckTimers.set(refundId, timer);
+  }
+
   private static scheduleInProcessRetry(refundId: string, orgId: string, delayMs: number) {
     const existingTimer = this.retryTimers.get(refundId);
     if (existingTimer) {
@@ -466,12 +707,119 @@ export class RefundProcessor {
     const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgFilter(orgId) });
 
     if (updatedRefund && updatedRefund.status === 'processing') {
-      await this.executeRefund(updatedRefund);
+      // If we already have a transactionId, perform a status check instead of re-calling PayTabs refund API
+      if (updatedRefund.transactionId) {
+        await this.processStatusCheckJob(refundId, orgId);
+        return;
+      }
+
+      // Otherwise attempt refund execution (initial call likely failed)
+      const result = await this.executeRefund(updatedRefund);
+
+      await this.updateRefundStatus(refundId, orgId, result.status, {
+        transactionId: result.transactionId,
+        completedAt: result.status === 'completed' ? new Date() : undefined,
+        failureReason: result.failureReason,
+      });
+
+      if (result.status === 'completed') {
+        await this.updateOrderStatus({
+          orderId: updatedRefund.orderId,
+          orgId,
+          status: 'refunded',
+        });
+      }
+
+      await this.notifyRefundStatus(updatedRefund, result);
+      if (result.status === 'processing') {
+        await this.scheduleStatusCheck(updatedRefund);
+      }
+
+      logger.info('[Refunds] Retry job processed and persisted', {
+        refundId,
+        status: result.status,
+        transactionId: result.transactionId,
+      });
     } else {
       logger.info('[Refunds] Skipping retry; refund no longer processing', {
         refundId,
         status: updatedRefund?.status,
       });
+    }
+  }
+
+  /**
+   * Process a status check job for pending refunds
+   */
+  static async processStatusCheckJob(refundId: string, orgId: string): Promise<void> {
+    const collection = await this.collection();
+    const refund = await collection.findOne({ refundId, ...buildOrgFilter(orgId) });
+
+    if (!refund) {
+      logger.warn('[Refunds] Status check skipped - refund not found', { refundId, orgId });
+      return;
+    }
+
+    if (refund.status !== 'processing') {
+      logger.info('[Refunds] Status check skipped - refund not processing', {
+        refundId,
+        status: refund.status,
+      });
+      return;
+    }
+
+    if (!refund.transactionId) {
+      await this.updateRefundStatus(refundId, orgId, 'failed', {
+        failureReason: 'Missing transactionId for PayTabs status check',
+      });
+      return;
+    }
+
+    try {
+      const statusData = await queryRefundStatus(refund.transactionId);
+      const rawStatus =
+        (statusData as { payment_result?: { response_status?: string } }).payment_result
+          ?.response_status ?? (statusData as { status?: string }).status ?? 'P';
+      const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : 'P';
+      const message =
+        (statusData as { payment_result?: { response_message?: string } }).payment_result
+          ?.response_message ?? (statusData as { message?: string }).message;
+
+      if (normalizedStatus === 'A') {
+        const completedAt = new Date();
+        await this.updateRefundStatus(refundId, orgId, 'completed', {
+          transactionId: refund.transactionId,
+          completedAt,
+        });
+        await this.updateOrderStatus({
+          orderId: refund.orderId,
+          orgId: refund.orgId,
+          status: 'refunded',
+        });
+        await this.notifyRefundStatus(refund, {
+          refundId,
+          status: 'completed',
+          amount: refund.amount,
+          transactionId: refund.transactionId,
+          completedAt,
+        });
+        return;
+      }
+
+      if (normalizedStatus === 'P') {
+        await this.scheduleStatusCheck(refund);
+        return;
+      }
+
+      await this.updateRefundStatus(refundId, orgId, 'failed', {
+        transactionId: refund.transactionId,
+        failureReason: message || `Refund declined with status ${normalizedStatus}`,
+      });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error('[Refunds] Status check error', { refundId, error: error.message });
+      // Retry status check with backoff
+      await this.scheduleStatusCheck(refund);
     }
   }
 
@@ -570,9 +918,9 @@ export class RefundProcessor {
           if ((mockedAddJob as unknown as { mock?: boolean })?.mock || mockedQueue.addJob !== queue.addJob) {
             await mockedQueue.addJob(mockedQueueName, jobName, payload);
           }
-          if (typeof vi !== 'undefined' && typeof (vi as Record<string, unknown>).importMock === 'function') {
-            const importMock = (vi as unknown as { importMock: <T>(path: string) => Promise<T> }).importMock;
-            const viMockedQueue = await importMock<QueueModule>('@/lib/queues/setup');
+          const viTestGlobal = getViGlobal();
+          if (viTestGlobal?.importMock) {
+            const viMockedQueue = await viTestGlobal.importMock<QueueModule>('@/lib/queues/setup');
             if (viMockedQueue?.addJob) {
               const viQueueName =
                 (viMockedQueue.QUEUE_NAMES && viMockedQueue.QUEUE_NAMES.NOTIFICATIONS) ??
@@ -589,7 +937,10 @@ export class RefundProcessor {
     // Test/legacy signature: (buyerId, sellerId, result, orgId)
     if (typeof buyerId === 'string' && typeof sellerOrResult === 'string') {
       const result = resultMaybe as RefundResult;
-      const orgId = orgIdMaybe ?? '';
+      const orgId = orgIdMaybe?.trim?.();
+      if (!orgId) {
+        throw new Error('orgId is required for refund notifications (legacy signature)');
+      }
       await enqueue({
         buyerId,
         sellerId: sellerOrResult,
@@ -691,7 +1042,25 @@ export class RefundProcessor {
 
     for (const refund of failedRefunds) {
       try {
-        await this.executeRefund(refund);
+        const result = await this.executeRefund(refund);
+
+        await this.updateRefundStatus(refund.refundId, refund.orgId, result.status, {
+          transactionId: result.transactionId,
+          completedAt: result.completedAt ?? (result.status === 'completed' ? new Date() : undefined),
+          failureReason: result.failureReason,
+        });
+
+        if (result.status === 'completed') {
+          await this.updateOrderStatus({
+            orderId: refund.orderId,
+            orgId: refund.orgId,
+            status: 'refunded',
+          });
+          await this.notifyRefundStatus(refund, result);
+        } else if (result.status === 'processing') {
+          await this.notifyRefundStatus(refund, { ...result, status: 'processing' });
+        }
+
         retriedCount++;
       } catch (_error) {
         const error = _error instanceof Error ? _error : new Error(String(_error));
@@ -705,6 +1074,8 @@ export class RefundProcessor {
 
   /**
    * Get refund statistics
+   * 🔐 MAJOR FIX: Uses MongoDB aggregation pipeline instead of unbounded in-memory scan
+   * Recommended index: { orgId: 1, createdAt: -1, sellerId: 1, status: 1 }
    */
   static async getRefundStats(filters: {
     orgId: string;
@@ -723,39 +1094,65 @@ export class RefundProcessor {
     }
     const collection = await this.collection();
 
-    // 🔐 Use buildOrgFilter for consistent string/ObjectId handling
-    const query: Record<string, unknown> = { ...buildOrgFilter(filters.orgId) };
-    if (filters.sellerId) query.sellerId = filters.sellerId;
+    // Build match stage with org filter
+    const matchStage: Record<string, unknown> = { ...buildOrgFilter(filters.orgId) };
+    if (filters.sellerId) matchStage.sellerId = filters.sellerId;
     if (filters.startDate || filters.endDate) {
-      query.createdAt = {} as { $gte?: Date; $lte?: Date };
-      if (filters.startDate) (query.createdAt as { $gte?: Date }).$gte = filters.startDate;
-      if (filters.endDate) (query.createdAt as { $lte?: Date }).$lte = filters.endDate;
+      matchStage.createdAt = {} as { $gte?: Date; $lte?: Date };
+      if (filters.startDate) (matchStage.createdAt as { $gte?: Date }).$gte = filters.startDate;
+      if (filters.endDate) (matchStage.createdAt as { $lte?: Date }).$lte = filters.endDate;
     }
 
-    const refunds = await collection.find(query).toArray();
+    // 🔐 Use aggregation pipeline for efficient server-side computation
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' },
+          // Calculate processing time only for completed refunds
+          processingTimeSum: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ['$status', 'completed'] }, { $ne: ['$completedAt', null] }] },
+                { $subtract: ['$completedAt', '$createdAt'] },
+                0,
+              ],
+            },
+          },
+          completedCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+          processedCount: {
+            $sum: { $cond: [{ $in: ['$status', ['completed', 'failed']] }, 1, 0] },
+          },
+        },
+      },
+    ];
 
+    const results = await collection.aggregate(pipeline).toArray();
+
+    // Aggregate results from all status groups
     const byStatus: Record<string, number> = {};
+    let totalRefunds = 0;
     let totalAmount = 0;
     let totalProcessingTime = 0;
     let processedCount = 0;
     let successCount = 0;
 
-    refunds.forEach((refund) => {
-      byStatus[refund.status] = (byStatus[refund.status] || 0) + 1;
-      totalAmount += refund.amount;
-
-      if (refund.status === 'completed' && refund.completedAt) {
-        const processingTime = refund.completedAt.getTime() - refund.createdAt.getTime();
-        totalProcessingTime += processingTime;
-        processedCount++;
-        successCount++;
-      } else if (refund.status === 'failed') {
-        processedCount++;
-      }
-    });
+    for (const group of results) {
+      const status = group._id as string;
+      byStatus[status] = group.count;
+      totalRefunds += group.count;
+      totalAmount += group.totalAmount;
+      totalProcessingTime += group.processingTimeSum;
+      processedCount += group.processedCount;
+      successCount += group.completedCount;
+    }
 
     return {
-      totalRefunds: refunds.length,
+      totalRefunds,
       totalAmount,
       byStatus: byStatus as Record<Refund['status'], number>,
       avgProcessingTime: processedCount > 0 ? totalProcessingTime / processedCount : 0,
@@ -807,7 +1204,7 @@ export class RefundProcessor {
    * Process seller payout deduction
    * @param sellerId - The seller ID
    * @param orgId - 🔐 Required tenant context for balance isolation
-   * @param amount - Amount to deduct
+   * @param amount - Amount to deduct (must be positive)
    * @param reason - Reason for deduction
    */
   static async deductFromSellerBalance(
@@ -819,6 +1216,11 @@ export class RefundProcessor {
     // 🔐 Require orgId for tenant isolation
     if (!orgId) {
       throw new Error("orgId is required for seller balance deduction to ensure tenant isolation");
+    }
+    
+    // 🔐 MAJOR FIX: Validate positive amount to prevent balance inflation
+    if (amount <= 0) {
+      throw new Error("Deduction amount must be positive to prevent balance inflation");
     }
     
     const balances = (await getDatabase()).collection<SellerBalanceDocument>('souq_seller_balances');

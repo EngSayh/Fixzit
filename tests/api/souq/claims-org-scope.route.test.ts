@@ -5,11 +5,13 @@ import { COLLECTIONS } from "@/lib/db/collections";
 
 const mockGetClaim = vi.fn();
 const mockFileAppeal = vi.fn();
+const mockAddSellerResponse = vi.fn();
 
 vi.mock("@/services/souq/claims/claim-service", () => ({
   ClaimService: {
     getClaim: (...args: unknown[]) => mockGetClaim(...args),
     fileAppeal: (...args: unknown[]) => mockFileAppeal(...args),
+    addSellerResponse: (...args: unknown[]) => mockAddSellerResponse(...args),
   },
 }));
 
@@ -92,6 +94,7 @@ describe("Claims routes - org scoping enforcement", () => {
       buyerId: "buyer-1",
       status: "pending_seller_response",
     });
+    mockAddSellerResponse.mockResolvedValue(undefined);
     const req = makeRequest(
       "https://example.com/api/souq/claims/456/response",
       "POST",
@@ -100,18 +103,14 @@ describe("Claims routes - org scoping enforcement", () => {
 
     const res = await responsePOST(req, { params: { id: "456" } });
     expect(res.status).toBe(200);
-    const filter = updateOneMock.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(filter).toBeDefined();
-    expect(filter).toMatchObject({
-      claimId: "456",
-      $or: expect.arrayContaining([
-        expect.objectContaining({
-          orgId: expect.objectContaining({
-            $in: expect.arrayContaining(["org-1"]),
-          }),
-        }),
-      ]),
-    });
+    // Verify addSellerResponse was called with orgId for tenant isolation
+    expect(mockAddSellerResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: "456",
+        orgId: "org-1",
+        sellerId: "user-1",
+      }),
+    );
   });
 
   it("decision route enforces org scoping for order lookup and claim access", async () => {
