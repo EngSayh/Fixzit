@@ -12,6 +12,7 @@ import { SouqOrder } from "@/server/models/souq/Order";
 import type { IOrder } from "@/server/models/souq/Order";
 import { SouqProduct } from "@/server/models/souq/Product";
 import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
 type SouqOrderItem = IOrder["items"][number] & {
   price?: number;
@@ -131,8 +132,10 @@ export interface ITrafficAnalytics {
 class AnalyticsService {
   /**
    * Calculate comprehensive sales metrics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getSalesMetrics(
+    orgId: string,
     sellerId: string,
     period:
       | "last_7_days"
@@ -140,22 +143,29 @@ class AnalyticsService {
       | "last_90_days"
       | "ytd" = "last_30_days",
   ): Promise<ISalesMetrics> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSalesMetrics (STRICT v4.1 tenant isolation)');
+    }
     await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.getPeriodDates(period);
     const sellerObjectId = this.toObjectId(sellerId);
     const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
 
-    // Current period orders
+    // Current period orders - 🔐 STRICT v4.1: Include org filter
     const currentOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
     });
 
-    // Previous period orders for trend calculation
+    // Previous period orders for trend calculation - 🔐 STRICT v4.1: Include org filter
     const previousOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
     });
 
     const currentRevenue = currentOrders.reduce(
@@ -249,21 +259,29 @@ class AnalyticsService {
 
   /**
    * Get product performance analytics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getProductPerformance(
+    orgId: string,
     sellerId: string,
     period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
   ): Promise<IProductPerformance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getProductPerformance (STRICT v4.1 tenant isolation)');
+    }
     await this.ensureConnection();
     const { startDate, endDate } = this.getPeriodDates(period);
     const sellerObjectId = this.toObjectId(sellerId);
     const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
 
-    // Get all orders in period
+    // Get all orders in period - 🔐 STRICT v4.1: Include org filter
     const orders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate },
       status: { $nin: ["cancelled", "refunded"] },
+      ...orgFilter,
     });
 
     // Aggregate product performance
@@ -295,7 +313,7 @@ class AnalyticsService {
       });
     });
 
-    // Get product details
+    // Get product details - 🔐 STRICT v4.1: Include org filter
     const productIdValues = Array.from(productStats.keys());
     const productIds = productIdValues.map(
       (id) => new mongoose.Types.ObjectId(id),
@@ -305,6 +323,7 @@ class AnalyticsService {
         ? await SouqProduct.find({
             _id: { $in: productIds },
             createdBy: sellerObjectId,
+            ...orgFilter,
           })
         : [];
 
@@ -426,26 +445,35 @@ class AnalyticsService {
 
   /**
    * Get customer insights and demographics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getCustomerInsights(
+    orgId: string,
     sellerId: string,
     period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
   ): Promise<ICustomerInsights> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getCustomerInsights (STRICT v4.1 tenant isolation)');
+    }
     await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.getPeriodDates(period);
     const sellerObjectId = this.toObjectId(sellerId);
     const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
 
-    // Get orders for current and previous period
+    // Get orders for current and previous period - 🔐 STRICT v4.1: Include org filter
     const currentOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
     });
 
     const previousOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
     });
 
     // Customer acquisition
@@ -628,25 +656,34 @@ class AnalyticsService {
 
   /**
    * Get traffic and engagement analytics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getTrafficAnalytics(
+    orgId: string,
     sellerId: string,
     period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
   ): Promise<ITrafficAnalytics> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getTrafficAnalytics (STRICT v4.1 tenant isolation)');
+    }
     await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.getPeriodDates(period);
     const sellerObjectId = this.toObjectId(sellerId);
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
 
-    // Get orders to estimate traffic (in production, would use real analytics data)
+    // Get orders to estimate traffic (in production, would use real analytics data) - 🔐 STRICT v4.1: Include org filter
     const currentOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
     });
 
     const previousOrders = await SouqOrder.find({
       "items.sellerId": sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
     });
 
     // Estimate page views (rough approximation)
@@ -708,8 +745,10 @@ class AnalyticsService {
 
   /**
    * Get complete analytics dashboard data
+   * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   async getDashboard(
+    orgId: string,
     sellerId: string,
     period:
       | "last_7_days"
@@ -717,17 +756,24 @@ class AnalyticsService {
       | "last_90_days"
       | "ytd" = "last_30_days",
   ) {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getDashboard (STRICT v4.1 tenant isolation)');
+    }
     const [sales, products, customers, traffic] = await Promise.all([
-      this.getSalesMetrics(sellerId, period),
+      this.getSalesMetrics(orgId, sellerId, period),
       this.getProductPerformance(
+        orgId,
         sellerId,
         period === "ytd" ? "last_90_days" : period,
       ),
       this.getCustomerInsights(
+        orgId,
         sellerId,
         period === "ytd" ? "last_90_days" : period,
       ),
       this.getTrafficAnalytics(
+        orgId,
         sellerId,
         period === "ytd" ? "last_90_days" : period,
       ),

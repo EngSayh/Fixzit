@@ -593,26 +593,12 @@ export class BudgetManager {
     const db = await getDatabase();
 
     // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
-    const orgFilter = Array.isArray(orgCandidates)
-      ? { $in: orgCandidates }
-      : orgCandidates;
-    let campaign = await db
-      .collection("souq_campaigns")
-      .findOne({ campaignId, orgId: orgFilter });
-
-    // 🧪 Mock/driver fallback: some test doubles don’t support $in; retry with primary org candidate
-    if (
-      !campaign &&
-      Array.isArray(orgCandidates) &&
-      orgCandidates.length > 0 &&
-      !(orgFilter as { $in?: unknown }).$in
-    ) {
-      // no-op: orgFilter already simple
-    } else if (!campaign && Array.isArray(orgCandidates) && orgCandidates.length > 0) {
-      campaign = await db
-        .collection("souq_campaigns")
-        .findOne({ campaignId, orgId: orgCandidates[0] });
-    }
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      { campaignId } as Record<string, unknown>,
+      Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
+    );
+    const campaign = campaigns[0] ?? null;
 
     return campaign as unknown as {
       campaignId: string;
@@ -676,7 +662,8 @@ export class BudgetManager {
     // 🚀 PERF: Batch Redis reads instead of N+1 per-campaign calls
     // Build partition keys for all campaigns at once
     const { dateKey } = getKsaDatePartition();
-    const partitionKeys = campaigns.map(
+    type CampaignDoc = { campaignId?: string; status?: string; dailyBudget?: number };
+    const partitionKeys = (campaigns as CampaignDoc[]).map(
       (c) => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
     );
 
@@ -693,8 +680,9 @@ export class BudgetManager {
     }
 
     // Process campaigns using batched data where available
-    for (let i = 0; i < campaigns.length; i++) {
-      const campaign = campaigns[i];
+    const typedCampaigns = campaigns as CampaignDoc[];
+    for (let i = 0; i < typedCampaigns.length; i++) {
+      const campaign = typedCampaigns[i];
       const dailyBudget = campaign.dailyBudget || 0;
       
       // Use batched value if available, otherwise fall back to individual fetch
@@ -714,7 +702,7 @@ export class BudgetManager {
       const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
 
       const status: BudgetStatus = {
-        campaignId: campaign.campaignId,
+        campaignId: campaign.campaignId || "",
         dailyBudget,
         spentToday,
         remainingBudget,

@@ -21,6 +21,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import type { SettlementStatement } from "./settlement-calculator";
 import { escrowService } from "./escrow-service";
+import { PAYOUT_CONFIG } from "./settlement-config";
 
 /**
  * Payout status types
@@ -103,19 +104,6 @@ interface BankTransferResponse {
   errorCode?: string;
   errorMessage?: string;
 }
-
-/**
- * Payout configuration
- */
-const PAYOUT_CONFIG = {
-  minimumAmount: 500, // SAR
-  holdPeriodDays: 7, // Days after delivery
-  maxRetries: 3,
-  retryDelayMinutes: 30,
-  batchSchedule: "weekly", // 'weekly' or 'biweekly'
-  batchDay: 5, // Friday (0 = Sunday, 6 = Saturday)
-  currency: "SAR",
-} as const;
 
 /**
  * SADAD/SPAN readiness configuration (simulated until credentials are available)
@@ -997,13 +985,19 @@ export class PayoutProcessorService {
       );
 
       // Get seller details for phone number, scoped by orgId for tenant isolation
+      // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; payout.orgId may be string.
+      // Use dual-type candidates to match both legacy string and ObjectId storage.
       const db = await getDbInstance();
       const sellerIdObj = ObjectId.isValid(payout.sellerId)
         ? new ObjectId(payout.sellerId)
         : null;
+      const orgIdStr = String(payout.orgId);
+      const orgCandidatesForSeller = ObjectId.isValid(orgIdStr)
+        ? [orgIdStr, new ObjectId(orgIdStr)]
+        : [orgIdStr];
       const sellerFilter: Filter<Document> = sellerIdObj
-        ? { _id: sellerIdObj, orgId: payout.orgId }
-        : { sellerId: payout.sellerId, orgId: payout.orgId };
+        ? { _id: sellerIdObj, orgId: { $in: orgCandidatesForSeller } }
+        : { sellerId: payout.sellerId, orgId: { $in: orgCandidatesForSeller } };
       const seller = await db.collection("souq_sellers").findOne(sellerFilter);
 
       if (!seller?.contactInfo?.phone) {

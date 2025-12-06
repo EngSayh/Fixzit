@@ -13,6 +13,11 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const period = (searchParams.get("period") ?? "last_30_days") as
@@ -22,6 +27,7 @@ export async function GET(request: NextRequest) {
       | "ytd";
 
     const dashboard = await analyticsService.getDashboard(
+      orgId,
       session.user.id,
       period,
     );

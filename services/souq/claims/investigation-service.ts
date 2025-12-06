@@ -233,10 +233,18 @@ export class InvestigationService {
     const { sellerId, orgId } = params;
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = orgId && ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : orgId ? [orgId] : [];
+    const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
+
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
-      db.collection("claims").countDocuments(orgId ? { sellerId, orgId } : { sellerId }),
-      db.collection("souq_sellers").findOne(orgId ? { sellerId, orgId } : { sellerId }),
+      db.collection("souq_orders").countDocuments(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
+      db.collection("claims").countDocuments(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
+      db.collection("souq_sellers").findOne(orgFilter ? { sellerId, orgId: orgFilter } : { sellerId }),
     ]);
 
     return {
@@ -257,9 +265,17 @@ export class InvestigationService {
     const { buyerId, orgId } = params;
     const db = await getDatabase();
 
+    // 🔐 STRICT v4.1: souq_orders.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = orgId && ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : orgId ? [orgId] : [];
+    const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
+
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
-      db.collection("claims").countDocuments(orgId ? { buyerId, orgId } : { buyerId }),
+      db.collection("souq_orders").countDocuments(orgFilter ? { buyerId, orgId: orgFilter } : { buyerId }),
+      db.collection("claims").countDocuments(orgFilter ? { buyerId, orgId: orgFilter } : { buyerId }),
     ]);
 
     return {

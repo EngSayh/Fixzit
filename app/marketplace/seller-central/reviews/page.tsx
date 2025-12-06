@@ -20,26 +20,32 @@ export const metadata: Metadata = {
 export default async function SellerReviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login?callbackUrl=/marketplace/seller-central/reviews");
   }
 
-  const params = await searchParams;
-  const page = parseInt((params.page as string) || "1");
+  // 🔐 STRICT v4.1: Require orgId for tenant isolation
+  const orgId = (session.user as { orgId?: string }).orgId;
+  if (!orgId) {
+    redirect("/login?error=organization_required");
+  }
+
+  const params = searchParams ?? {};
+  const page = parseInt((params.page as string) || "1", 10);
   const status = (params.status as string) || "published";
 
   // Fetch seller reviews
-  const reviewsData = await reviewService.getSellerReviews(session.user.id, {
+  const reviewsData = await reviewService.getSellerReviews(orgId, session.user.id, {
     page,
     limit: 20,
     status: status as "pending" | "published" | "rejected" | "flagged",
   });
 
   // Get seller stats
-  const stats = await reviewService.getSellerReviewStats(session.user.id);
+  const stats = await reviewService.getSellerReviewStats(orgId, session.user.id);
 
   const toClientReview = (review: IReview): SellerReview => ({
     reviewId: review.reviewId,

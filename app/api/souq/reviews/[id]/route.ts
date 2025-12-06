@@ -42,7 +42,6 @@ const reviewUpdateSchema = z
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
-    await connectDb();
     const { id: reviewId } = await context.params;
     // Fetch orgId first to enforce tenant isolation on subsequent fetch
     const { connection } = await connectDb();

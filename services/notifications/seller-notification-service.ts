@@ -152,9 +152,15 @@ async function getSeller(
 ): Promise<SellerDetails | null> {
   try {
     const db = await getDatabase();
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
     const seller = await db
       .collection("souq_sellers")
-      .findOne({ sellerId, orgId });
+      .findOne({ sellerId, orgId: { $in: orgCandidates } });
 
     if (!seller) {
       logger.warn("[SellerNotification] Seller not found", { sellerId });

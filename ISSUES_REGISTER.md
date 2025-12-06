@@ -167,6 +167,40 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 
 ---
 
+## 🟧 MAJOR - Data Consistency / Tenant Isolation
+
+### ISSUE-005: Mixed orgId Storage in Souq Payouts/Withdrawals
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data integrity, Performance, Tenant isolation  
+**Status**: OPEN  
+
+**Description**:  
+`souq_payouts` historically stored `orgId` as ObjectId while `souq_settlements` and current code paths write `orgId` as string. This mixed storage forces `$in` queries with dual types, reduces index selectivity, and can duplicate tenant rows. Withdrawals reference payouts by `orgId`, so drift causes lookup misses and uneven performance.
+
+**Files / Scripts**:  
+- `services/souq/settlements/payout-processor.ts` (uses `$in` for mixed types; canonical writes now string)  
+- `services/souq/settlements/balance-service.ts` (withdrawal lookups with `$in`)  
+- Migration added: `scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`
+
+**Impact**:  
+- Index scans and poor selectivity on `orgId` in payouts/withdrawals.  
+- Potential duplicate tenant rows and inconsistent payout batching when orgId types differ.  
+- Operational drift if not backfilled; `$in` guards remain a performance workaround.
+
+**Recommended Fix**:  
+1) Run the normalization migration in all environments:  
+   - Dry run: `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts --dry-run`  
+   - Execute: `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`  
+2) Ensure indexes exist: `souq_payouts` `{ orgId: 1, payoutId: 1 }`, `souq_withdrawal_requests` `{ orgId: 1, requestId: 1 }`.  
+3) After data is clean, simplify queries to string-only orgId and add schema-level validation to reject ObjectId orgIds going forward.  
+4) Wire migration into deploy/CI runbooks to prevent drift.
+
+**Evidence**:  
+- Current code writes string orgId; legacy rows remain. Queries use `$in` with `[string, ObjectId]`, indicating mixed storage and degraded index usage.
+
+---
+
 ## 🟧 MAJOR - Architectural Issues
 
 ### ISSUE-004: User Model Indexes Without Explicit Names
@@ -639,4 +673,3 @@ for (let i = 0; i < campaigns.length; i++) {
 
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
-

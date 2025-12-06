@@ -15,8 +15,12 @@
 import { ClientSession, Db, ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
+import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
+import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
 
-const WITHDRAWAL_HOLD_DAYS = 7; // Align with settlement hold period (PAYOUT_CONFIG.holdPeriodDays)
+// Use centralized config to prevent drift between withdrawal and payout validation
+const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
+const MINIMUM_WITHDRAWAL_AMOUNT = PAYOUT_CONFIG.minimumAmount;
 
 /**
  * Balance types
@@ -203,9 +207,7 @@ export class SellerBalanceService {
     const sellerFilter = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
+    const orgCandidates = buildOrgCandidates(orgId);
 
     // Use aggregation for efficiency when available; fallback to find()+manual sum for mocked DBs.
     if (typeof (ordersCollection as { aggregate?: unknown }).aggregate === "function") {
@@ -257,24 +259,14 @@ export class SellerBalanceService {
     }
 
     // Fallback path for mocks with only find()
-    let pendingOrders = await ordersCollection
-      .find({
+    const pendingOrders = await findWithOrgFallback(
+      ordersCollection,
+      {
         "items.sellerId": sellerFilter,
         status: { $in: ["pending", "processing", "shipped"] },
-        orgId: { $in: orgCandidates },
-      })
-      .toArray();
-
-    // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
-    if (pendingOrders.length === 0 && orgCandidates.length > 0) {
-      pendingOrders = await ordersCollection
-        .find({
-          "items.sellerId": sellerFilter,
-          status: { $in: ["pending", "processing", "shipped"] },
-          orgId: orgCandidates[0],
-        })
-        .toArray();
-    }
+      },
+      orgCandidates,
+    );
 
     type PendingOrderItem = {
       sellerId?: unknown;
@@ -811,7 +803,7 @@ export class SellerBalanceService {
         // 🔧 FIX: Use authoritative netPayout as the withdrawal amount BEFORE validation
         // This prevents bypassing balance check when netPayout > user-supplied amount
         const withdrawalAmount = netPayout;
-        const minimumWithdrawal = 500; // SAR
+        const minimumWithdrawal = MINIMUM_WITHDRAWAL_AMOUNT; // Centralized from PAYOUT_CONFIG
 
         // Validate withdrawal amount against available balance (using authoritative amount)
         if (withdrawalAmount <= 0) {
