@@ -14,20 +14,36 @@ const listings: Array<ListingRecord> = [];
 const inventories: Array<{ listingId: string; orgId: string; fulfillmentType: string; availableQuantity: number }> = [];
 
 /**
- * Helper to check if an orgId matches using the same logic as buildOrgFilter.
- * buildOrgFilter creates a $in query with both string and ObjectId variants.
+ * Helper to check if an orgId matches using the same logic as buildSouqOrgFilter.
+ * buildSouqOrgFilter creates a $or query with [{ orgId: { $in: [...] } }, { org_id: { $in: [...] } }].
  */
-function matchesOrgQuery(targetOrgId: string, queryOrg: unknown): boolean {
-  if (!queryOrg) return true;
-  // If it's an $in array, check if targetOrgId matches any candidate (as string)
-  if (typeof queryOrg === "object" && queryOrg !== null) {
-    const inArr = (queryOrg as { $in?: unknown[] }).$in;
-    if (Array.isArray(inArr)) {
-      return inArr.some((cand) => String(cand) === targetOrgId);
+function matchesOrgFilter(targetOrgId: string, query: Record<string, unknown>): boolean {
+  // Handle $or: [{ orgId: { $in: [...] } }, { org_id: { $in: [...] } }]
+  if (query.$or && Array.isArray(query.$or)) {
+    for (const clause of query.$or) {
+      const orgIdField = (clause as Record<string, unknown>).orgId ?? (clause as Record<string, unknown>).org_id;
+      if (orgIdField && typeof orgIdField === "object" && orgIdField !== null) {
+        const inArr = (orgIdField as { $in?: unknown[] }).$in;
+        if (Array.isArray(inArr)) {
+          if (inArr.some((cand) => String(cand) === targetOrgId)) {
+            return true;
+          }
+        }
+      }
     }
+    return false;
   }
-  // Direct string match
-  return String(queryOrg) === targetOrgId;
+  // Fallback: direct orgId field
+  if (query.orgId) {
+    if (typeof query.orgId === "object" && query.orgId !== null) {
+      const inArr = (query.orgId as { $in?: unknown[] }).$in;
+      if (Array.isArray(inArr)) {
+        return inArr.some((cand) => String(cand) === targetOrgId);
+      }
+    }
+    return String(query.orgId) === targetOrgId;
+  }
+  return true;
 }
 
 vi.mock("@/server/models/souq/Listing", () => ({
@@ -36,7 +52,7 @@ vi.mock("@/server/models/souq/Listing", () => ({
       return listings.find(
         (l) =>
           l.listingId === query.listingId &&
-          matchesOrgQuery(l.orgId, query.orgId),
+          matchesOrgFilter(l.orgId, query),
       ) || null;
     }),
   },
@@ -48,7 +64,7 @@ vi.mock("@/server/models/souq/Inventory", () => ({
       return inventories.find(
         (inv) =>
           inv.listingId === query.listingId &&
-          matchesOrgQuery(inv.orgId, query.orgId),
+          matchesOrgFilter(inv.orgId, query),
       ) || null;
     }),
   },

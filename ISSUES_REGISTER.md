@@ -748,6 +748,98 @@ for (let i = 0; i < campaigns.length; i++) {
 
 ---
 
+### ISSUE-SOUQ-008: getSellerProductIds Queries createdBy with String Instead of ObjectId
+
+**Severity**: 🟥 BLOCKER  
+**Category**: Correctness, Data Integrity  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getSellerProductIds()` in `services/souq/reviews/review-service.ts` (line 699) queried `createdBy: sellerId` using a **string** value, but the `SouqProduct` schema defines `createdBy` as `Schema.Types.ObjectId` (line 159 in `server/models/souq/Product.ts`). This caused:
+- All seller product lookups to return **zero** products
+- Seller review dashboards showing "no reviews" for all sellers
+- Seller review stats returning empty results
+- Seller response flows completely broken
+
+**Files**:
+- `services/souq/reviews/review-service.ts`: Line 699
+- `server/models/souq/Product.ts`: Lines 158-163 (createdBy defined as ObjectId)
+
+**Evidence (Before Fix)**:
+```typescript
+// BROKEN - sellerId is string, createdBy expects ObjectId
+const products = await SouqProduct.find({
+  createdBy: sellerId,  // ❌ String vs ObjectId mismatch - never matches!
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+}).select("_id").lean();
+```
+
+**Resolution**: 
+```typescript
+// FIXED - Convert sellerId to ObjectId before querying
+const sellerObjectId = new Types.ObjectId(sellerId);
+const products = await SouqProduct.find({
+  createdBy: sellerObjectId,  // ✅ ObjectId matches schema
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+}).select("_id").lean();
+```
+
+---
+
+### ISSUE-SOUQ-009: getSellerReviewStats Loads Unbounded Reviews Into Memory
+
+**Severity**: 🟧 MAJOR  
+**Category**: Performance, Scalability  
+**Status**: ✅ RESOLVED (2025-12-06)
+
+**Description**: `getSellerReviewStats()` in `services/souq/reviews/review-service.ts` (lines 649-669) loaded ALL published reviews into memory, sorted them in JavaScript, and computed stats in JavaScript. For high-volume sellers this could:
+- Exhaust Node.js memory
+- Cause endpoint timeouts
+- Create poor performance for all users during stats calculation
+
+**Files**:
+- `services/souq/reviews/review-service.ts`: Lines 649-669
+
+**Evidence (Before Fix)**:
+```typescript
+// INEFFICIENT - loads ALL reviews into memory
+const reviews = await SouqReview.find({
+  status: "published",
+  productId: { $in: sellerProductIds },
+  $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+});  // ❌ No limit, no lean()
+
+const totalReviews = reviews.length;
+const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;  // ❌ JS calculation
+const pendingResponses = reviews.filter((r) => !r.sellerResponse).length;  // ❌ JS filter
+const recentReviews = reviews.sort((a, b) => ...).slice(0, 5);  // ❌ JS sort + slice
+```
+
+**Resolution**: 
+```typescript
+// OPTIMIZED - Use MongoDB aggregation for stats
+const [stats] = await SouqReview.aggregate([
+  { $match: matchStage },
+  {
+    $group: {
+      _id: null,
+      totalReviews: { $sum: 1 },
+      avgRating: { $avg: "$rating" },
+      pendingResponses: {
+        $sum: { $cond: [{ $not: ["$sellerResponse"] }, 1, 0] },
+      },
+    },
+  },
+]);
+
+// Use DB sort/limit for recent reviews instead of loading all
+const recentReviews = await SouqReview.find(matchStage)
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .lean();
+```
+
+---
+
 ## Next Steps
 
 1. ✅ Complete discovery and issue registration (THIS DOCUMENT)

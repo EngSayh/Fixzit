@@ -191,12 +191,12 @@ async function sendEmail(
   subject: string,
   body: string,
   locale: Locale,
-): Promise<void> {
+): Promise<boolean> {
   // Use getEnv with alias support for Vercel naming conventions
   const sendgridApiKey = getEnv("SENDGRID_API_KEY");
   if (!sendgridApiKey) {
     logger.warn("[SellerNotification] SendGrid not configured, skipping email");
-    return;
+    return false;
   }
   const header = translateTemplate(locale, {
     key: "notifications.seller.email.brand",
@@ -238,6 +238,7 @@ async function sendEmail(
     });
 
     logger.info("[SellerNotification] Email sent", { to, subject });
+    return true;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
@@ -245,13 +246,14 @@ async function sendEmail(
       to,
       subject,
     });
+    return false;
   }
 }
 
 /**
  * Send SMS using the centralized SMS service
  */
-async function sendSMS(to: string, message: string): Promise<void> {
+async function sendSMS(to: string, message: string): Promise<boolean> {
   const result = await sendSMSViaService(to, message);
 
   if (!result.success) {
@@ -259,7 +261,9 @@ async function sendSMS(to: string, message: string): Promise<void> {
       to,
       error: result.error,
     });
+    return false;
   }
+  return true;
 }
 
 /**
@@ -290,15 +294,18 @@ export async function sendSellerNotification<T extends TemplateKey>(
     const params = data as Record<string, string | number>;
     const subject = translateTemplate(locale, templateConfig.subject, params);
     const body = translateTemplate(locale, templateConfig.body, params);
-    await sendEmail(seller.email, subject, body, locale);
+    const emailSent = await sendEmail(seller.email, subject, body, locale);
 
-    if (seller.phone) {
-      const smsMessage = translateTemplate(locale, templateConfig.sms, params);
-      await sendSMS(seller.phone, smsMessage);
-    }
+    const smsSent = seller.phone
+      ? await sendSMS(
+          seller.phone,
+          translateTemplate(locale, templateConfig.sms, params),
+        )
+      : false;
 
     // Log notification in database for tracking
-    await logNotification(sellerId, orgId, template, data, locale);
+    const status = emailSent || smsSent ? "sent" : "failed";
+    await logNotification(sellerId, orgId, template, data, locale, status);
 
     logger.info("[SellerNotification] Notification sent", {
       sellerId,
@@ -324,6 +331,7 @@ async function logNotification(
   template: string,
   data: Record<string, unknown>,
   locale: string,
+  status: "sent" | "failed",
 ): Promise<void> {
   try {
     const db = await getDatabase();
@@ -334,7 +342,7 @@ async function logNotification(
       data,
       locale,
       sentAt: new Date(),
-      status: "sent",
+      status,
     });
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));

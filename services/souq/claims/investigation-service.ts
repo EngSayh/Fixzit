@@ -1,7 +1,7 @@
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
 import { logger } from "@/lib/logger";
-import { ObjectId as MongoObjectId } from "mongodb";
+import { ObjectId as MongoObjectId, type Filter } from "mongodb";
 
 export interface InvestigationResult {
   claimId: string;
@@ -529,12 +529,26 @@ export class InvestigationService {
   /**
    * Get claims requiring manual review
    */
-  static async getClaimsRequiringReview(): Promise<
+  static async getClaimsRequiringReview(orgId: string): Promise<
     Array<Claim & { investigation: InvestigationResult }>
   > {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch claims for review (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
     const claimsCollection = await this.claimsCollection();
     const claims = await claimsCollection
       .find({
+        ...orgScope,
         status: { $in: ["under_investigation", "escalated"] },
       })
       .sort({ priority: -1, filedAt: 1 })

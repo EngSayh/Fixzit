@@ -28,8 +28,20 @@ export const buildSouqOrgFilter = (
   }
   if (options.allowOrgless) {
     return candidates.length
-      ? { $or: [{ orgId: { $in: candidates } }, { orgId: { $exists: false } }] }
-      : { orgId: { $exists: false } };
+      ? {
+          $or: [
+            { orgId: { $in: candidates } },
+            { org_id: { $in: candidates } },
+            { orgId: { $exists: false } },
+            { org_id: { $exists: false } },
+          ],
+        }
+      : { $or: [{ orgId: { $exists: false } }, { org_id: { $exists: false } }] };
   }
-  return candidates.length ? { orgId: { $in: candidates } } : { orgId: raw as string };
+  if (!candidates.length) {
+    return { orgId: raw as string };
+  }
+  return {
+    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
+  };
 };
