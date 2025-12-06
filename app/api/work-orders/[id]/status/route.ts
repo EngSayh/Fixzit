@@ -9,6 +9,7 @@ import {
 import { WORK_ORDER_FSM } from "@/domain/fm/fm.behavior";
 import { postFromWorkOrder } from "@/server/finance/fmFinance.service";
 import { logger } from "@/lib/logger";
+import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -51,7 +52,7 @@ const schema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  props: { params: { id: string } },
 ): Promise<NextResponse> {
   const user = await getSessionUser(req);
   const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
@@ -60,10 +61,15 @@ export async function POST(
   }
 
   await connectToDatabase();
-  const { id } = await props.params;
+  const { id } = props.params;
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
 
   const body = schema.parse(await req.json());
-  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
+  const orgCandidates =
+    Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+  const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // Get current status and target status

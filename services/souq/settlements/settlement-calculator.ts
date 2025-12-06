@@ -14,6 +14,7 @@
 import { ObjectId, Filter, Document } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 import { PAYOUT_CONFIG } from "./settlement-config";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
 /**
  * Fee configuration
@@ -178,13 +179,9 @@ type RawOrder = {
 };
 
 // Shared helper to build dual orgId/org_id filter for legacy documents
+// Uses the centralized buildSouqOrgFilter for consistency
 const buildOrgFilter = (orgId: string): Filter<Document> => {
-  const candidates = ObjectId.isValid(orgId)
-    ? [orgId, new ObjectId(orgId)]
-    : [orgId];
-  return {
-    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
-  };
+  return buildSouqOrgFilter(orgId);
 };
 
 const computeSellerOrderSnapshot = (

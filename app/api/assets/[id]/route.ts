@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Asset } from "@/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -106,9 +107,14 @@ export async function GET(
     }
     await connectToDatabase();
 
+    if (!params?.id || !Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid asset id" }, 400, req);
+    }
+    const orgCandidates =
+      Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
     const asset = await Asset.findOne({
       _id: params.id,
-      orgId: user.orgId,
+      orgId: { $in: orgCandidates },
     });
 
     if (!asset) {

@@ -201,6 +201,10 @@ export class SellerBalanceService {
     sellerId: string,
     orgId: string,
   ): Promise<number> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required to calculate pending orders (STRICT v4.1 tenant isolation)");
+    }
     const connection = await connectDb();
     const db = connection.connection.db!;
     const ordersCollection = db.collection("souq_orders");
@@ -1334,6 +1338,9 @@ export class SellerBalanceService {
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */
   private static async invalidateBalanceCache(sellerId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to invalidate balance cache (STRICT v4.1 tenant isolation)");
+    }
     // 🔐 STRICT v4.1: Cache key must include orgId for tenant isolation
     const key = `seller:${sellerId}:${orgId}:balance`;
     await invalidateCacheKey(key);

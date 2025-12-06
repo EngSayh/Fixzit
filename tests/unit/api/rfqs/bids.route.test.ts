@@ -52,7 +52,14 @@ vi.mock("@/server/utils/errorResponses", () => ({
 
 vi.mock("@/server/models/RFQ", () => ({
   RFQ: {
-    findOne: (...args: unknown[]) => mocks.rfqFindOneMock(...args),
+    findOne: (...args: unknown[]) => {
+      const doc = mocks.rfqFindOneMock(...args);
+      return {
+        lean: () => Promise.resolve(doc),
+        then: (resolve: (value: unknown) => unknown) =>
+          Promise.resolve(doc).then(resolve),
+      } as unknown;
+    },
     updateOne: (...args: unknown[]) => mocks.rfqUpdateOneMock(...args),
   },
 }));
@@ -60,7 +67,16 @@ vi.mock("@/server/models/RFQ", () => ({
 vi.mock("@/server/models/ProjectBid", () => ({
   ProjectBidModel: {
     countDocuments: (...args: unknown[]) => mocks.projectBidCountMock(...args),
-    findOne: (...args: unknown[]) => mocks.projectBidFindOneMock(...args),
+    findOne: (...args: unknown[]) => {
+      const doc = mocks.projectBidFindOneMock(...args);
+      return {
+        lean: () => ({
+          exec: () => Promise.resolve(doc),
+        }),
+        then: (resolve: (value: unknown) => unknown) =>
+          Promise.resolve(doc).then(resolve),
+      } as unknown;
+    },
     create: (...args: unknown[]) => mocks.projectBidCreateMock(...args),
     find: (...args: unknown[]) => mocks.projectBidFindMock(...args),
   },
@@ -114,8 +130,6 @@ describe("RFQ bids route", () => {
 
     const res = await POST(req, { params: { id: rfqId.toString() } });
     const json = await res.json();
-    // Debug aid for failures
-    console.log("maxBids response", res.status, json);
     expect(res.status).toBe(400);
     expect(json.error).toMatch(/max reached/i);
     expect(mocks.projectBidCreateMock).not.toHaveBeenCalled();
