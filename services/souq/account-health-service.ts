@@ -500,10 +500,14 @@ class AccountHealthService {
 
     switch (violation.action) {
       case "listing_suppression": {
-        // Suppress all active listings
+        // Suppress all active listings (scoped by orgId for tenant isolation)
         const { SouqListing } = await import("@/server/models/souq/Listing");
         await SouqListing.updateMany(
-          { sellerId: parseSellerObjectId(sellerId), status: "active" },
+          { 
+            sellerId: parseSellerObjectId(sellerId), 
+            status: "active",
+            ...buildOrgFilter(orgId), // SECURITY: Required for tenant isolation (STRICT v4.1)
+          },
           {
             $set: {
               status: "suppressed",
