@@ -21,6 +21,11 @@ import type {
   BulkSMSResult,
   SMSProviderOptions,
 } from "./types";
+import {
+  formatSaudiPhoneNumber,
+  isValidSaudiPhone,
+  redactPhoneNumber,
+} from "./phone-utils";
 
 // Lazy import Twilio to avoid loading if not used
 let twilioClient: ReturnType<typeof import("twilio")> | null = null;
@@ -78,37 +83,6 @@ function mapTwilioStatus(status?: string): SMSDeliveryStatus {
 }
 
 /**
- * Format phone number to E.164 format for Saudi Arabia
- */
-function formatSaudiPhoneNumber(phone: string): string {
-  // Remove all spaces, dashes, and parentheses
-  const cleaned = phone.replace(/[\s\-()]/g, "");
-
-  // If already in E.164 format
-  if (cleaned.startsWith("+966")) {
-    return cleaned;
-  }
-
-  // Handle 00 prefix
-  if (cleaned.startsWith("00966")) {
-    return "+" + cleaned.substring(2);
-  }
-
-  // Handle just country code
-  if (cleaned.startsWith("966")) {
-    return "+" + cleaned;
-  }
-
-  // Handle local format with leading 0
-  if (cleaned.startsWith("0")) {
-    return "+966" + cleaned.substring(1);
-  }
-
-  // Assume local number
-  return "+966" + cleaned;
-}
-
-/**
  * Twilio SMS Provider Implementation
  */
 export class TwilioProvider implements SMSProvider {
@@ -140,6 +114,21 @@ export class TwilioProvider implements SMSProvider {
   async sendSMS(to: string, message: string): Promise<SMSResult> {
     const formattedPhone = formatSaudiPhoneNumber(to);
     const timestamp = new Date();
+
+    // Validate phone number before sending
+    if (!isValidSaudiPhone(formattedPhone)) {
+      logger.warn("[Twilio] Invalid Saudi phone number", {
+        to: redactPhoneNumber(to),
+        formattedPhone: redactPhoneNumber(formattedPhone),
+      });
+      return {
+        success: false,
+        error: `Invalid Saudi phone number format: ${redactPhoneNumber(to)}`,
+        provider: this.name,
+        to: formattedPhone,
+        timestamp,
+      };
+    }
 
     // Development mode - simulate sending
     if (this.devMode) {
