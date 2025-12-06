@@ -10,6 +10,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
 
 interface RFQDocument {
   _id: unknown;
@@ -58,6 +59,22 @@ export async function POST(
   try {
     const { id } = props.params;
     const user = await getSessionUser(req);
+    const userRole = (user as { role?: string }).role;
+    const allowedPublisherRoles = new Set([
+      "SUPER_ADMIN",
+      "CORPORATE_ADMIN",
+      "ADMIN",
+      "MANAGEMENT",
+      "OPS",
+      "PROCUREMENT",
+    ]);
+    if (userRole && !allowedPublisherRoles.has(userRole.toUpperCase())) {
+      return createSecureResponse(
+        { error: "Forbidden", message: "Insufficient role to publish RFQ" },
+        403,
+        req,
+      );
+    }
     if (!user?.orgId) {
       return createSecureResponse(
         { error: "Unauthorized", message: "Missing tenant context" },
@@ -99,6 +116,12 @@ export async function POST(
     }
 
     // Vendor notifications sent via background job
+    logger.info("[RFQ] Published", {
+      rfqId: id,
+      orgId: user.orgId,
+      userId: user.id,
+      role: userRole,
+    });
 
     const rfqTyped = rfq as unknown as RFQDocument;
     return NextResponse.json({

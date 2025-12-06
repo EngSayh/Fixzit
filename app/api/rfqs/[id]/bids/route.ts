@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Types } from "mongoose";
 import { ProjectBidModel } from "@/server/models/ProjectBid";
+import { logger } from "@/lib/logger";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -86,10 +87,25 @@ export async function POST(
 ) {
   try {
     const user = await getSessionUser(req);
+    const userRole = (user as { role?: string }).role;
+    const allowedBidderRoles = new Set([
+      "VENDOR",
+      "SUPPLIER",
+      "TENANT",
+      "END_USER",
+      "CORPORATE_EMPLOYEE",
+    ]);
     if (!user?.orgId) {
       return createSecureResponse(
         { error: "Unauthorized", message: "Missing tenant context" },
         401,
+        req,
+      );
+    }
+    if (userRole && !allowedBidderRoles.has(userRole.toUpperCase())) {
+      return createSecureResponse(
+        { error: "Forbidden", message: "Insufficient role to submit bid" },
+        403,
         req,
       );
     }
@@ -221,6 +237,14 @@ export async function POST(
     }
 
     await RFQ.updateOne({ _id: rfq._id, orgId: user.orgId }, update);
+
+    logger.info("[RFQ] Bid submitted", {
+      rfqId: params.id,
+      orgId: user.orgId,
+      userId: user.id,
+      role: userRole,
+      bidId: bidDoc._id.toString(),
+    });
 
     return createSecureResponse(
       {
