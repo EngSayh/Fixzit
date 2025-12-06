@@ -21,7 +21,15 @@ export async function GET(
       );
     }
 
-    const campaign = await CampaignService.getCampaign(params.id);
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -74,8 +82,16 @@ export async function PUT(
       );
     }
 
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -115,6 +131,7 @@ export async function PUT(
       params.id,
       updates,
       session.user.id,
+      userOrgId, // Required for tenant isolation (STRICT v4.1)
     );
 
     return NextResponse.json({
@@ -153,8 +170,16 @@ export async function DELETE(
       );
     }
 
-    // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify ownership (now scoped by orgId)
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -170,7 +195,7 @@ export async function DELETE(
       );
     }
 
-    await CampaignService.deleteCampaign(params.id, session.user.id);
+    await CampaignService.deleteCampaign(params.id, session.user.id, orgId);
 
     return NextResponse.json({
       success: true,

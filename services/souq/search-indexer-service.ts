@@ -520,6 +520,7 @@ export class SearchIndexerService {
 
         return {
           fsin: product.fsin,
+          orgId: listing.orgId || "", // Required for tenant isolation
           title: product.title,
           description: product.description,
           brand: product.brand,
@@ -547,6 +548,7 @@ export class SearchIndexerService {
   ): SellerDocument[] {
     return sellers.map((seller) => ({
       sellerId: seller.sellerId,
+      orgId: seller.orgId?.toString?.() || "", // Required for tenant isolation
       tradeName: seller.tradeName,
       legalName: seller.legalName || seller.tradeName,
       accountHealth: seller.accountHealth.overall,

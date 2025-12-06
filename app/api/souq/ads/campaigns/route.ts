@@ -18,6 +18,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     const body = await request.json();
 
     // Validate required fields
@@ -43,6 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const campaign = await CampaignService.createCampaign({
+      orgId: userOrgId, // Required for tenant isolation (STRICT v4.1)
       sellerId: session.user.id,
       name: body.name,
       type: body.type,
@@ -88,6 +97,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as
       | "active"
@@ -100,7 +117,7 @@ export async function GET(request: NextRequest) {
       | "product_display"
       | null;
 
-    const campaigns = await CampaignService.listCampaigns(session.user.id, {
+    const campaigns = await CampaignService.listCampaigns(session.user.id, userOrgId, {
       status: status || undefined,
       type: type || undefined,
     });

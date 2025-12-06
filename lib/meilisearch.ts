@@ -37,6 +37,7 @@ export const INDEXES = {
 // Product document interface
 export interface ProductDocument {
   fsin: string;
+  orgId: string; // Required for tenant isolation
   title: string;
   description: string;
   brand: string;
@@ -56,6 +57,7 @@ export interface ProductDocument {
 // Seller document interface
 export interface SellerDocument {
   sellerId: string;
+  orgId: string; // Required for tenant isolation
   tradeName: string;
   legalName: string;
   accountHealth: number;
@@ -85,6 +87,7 @@ export async function configureProductsIndex() {
 
       // Attributes for filtering
       filterableAttributes: [
+        "orgId", // Required for tenant isolation
         "category",
         "subcategory",
         "price",

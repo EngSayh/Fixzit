@@ -24,6 +24,7 @@ type KeywordTargetInput =
     };
 
 interface CreateCampaignInput {
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   sellerId: string;
   name: string;
   type: "sponsored_products" | "sponsored_brands" | "product_display";
@@ -57,6 +58,7 @@ interface UpdateCampaignInput {
 
 interface Campaign {
   campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
   sellerId: string;
   name: string;
   type: "sponsored_products" | "sponsored_brands" | "product_display";
@@ -170,6 +172,7 @@ export class CampaignService {
 
     const campaign: Campaign = {
       campaignId,
+      orgId: input.orgId, // Required for tenant isolation (STRICT v4.1)
       sellerId: input.sellerId,
       name: input.name,
       type: input.type,
@@ -206,13 +209,14 @@ export class CampaignService {
     campaignId: string,
     updates: UpdateCampaignInput,
     sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
   ): Promise<Campaign> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
       .collection<Campaign>("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
 
     const existingCampaign = this.ensureOwnership(campaign, sellerId, "update");
 
@@ -245,11 +249,11 @@ export class CampaignService {
 
     await db
       .collection("souq_ad_campaigns")
-      .updateOne({ campaignId }, { $set: updateDoc });
+      .updateOne({ campaignId, orgId }, { $set: updateDoc });
 
     const updated = await db
       .collection<Campaign>("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
 
     if (!updated) {
       throw new Error(`Campaign not found after update: ${campaignId}`);
@@ -266,20 +270,21 @@ export class CampaignService {
   static async deleteCampaign(
     campaignId: string,
     sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
   ): Promise<void> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
       .collection<Campaign>("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "delete");
 
-    // Delete bids
+    // Delete bids scoped to campaign
     await db.collection("souq_ad_bids").deleteMany({ campaignId });
 
-    // Delete campaign
-    await db.collection("souq_ad_campaigns").deleteOne({ campaignId });
+    // Delete campaign scoped by orgId
+    await db.collection("souq_ad_campaigns").deleteOne({ campaignId, orgId });
 
     logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
   }
@@ -287,13 +292,13 @@ export class CampaignService {
   /**
    * Get campaign by ID
    */
-  static async getCampaign(campaignId: string): Promise<Campaign | null> {
+  static async getCampaign(campaignId: string, orgId: string): Promise<Campaign | null> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
       .collection("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
 
     if (!campaign) return null;
 
@@ -316,6 +321,7 @@ export class CampaignService {
    */
   static async listCampaigns(
     sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
     filters?: {
       status?: "active" | "paused" | "ended";
       type?: "sponsored_products" | "sponsored_brands" | "product_display";
@@ -324,7 +330,7 @@ export class CampaignService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const query: Record<string, unknown> = { sellerId };
+    const query: Record<string, unknown> = { sellerId, orgId };
 
     if (filters?.status) query.status = filters.status;
     if (filters?.type) query.type = filters.type;
@@ -362,6 +368,7 @@ export class CampaignService {
   static async getCampaignStats(
     campaignId: string,
     sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
   ): Promise<{
     impressions: number;
     clicks: number;
@@ -378,7 +385,7 @@ export class CampaignService {
 
     const campaign = await db
       .collection<Campaign>("souq_ad_campaigns")
-      .findOne({ campaignId });
+      .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "stats");
 
     // Aggregate stats from all bids in campaign

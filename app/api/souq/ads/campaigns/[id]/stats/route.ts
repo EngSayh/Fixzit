@@ -21,8 +21,16 @@ export async function GET(
       );
     }
 
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     // Verify ownership
-    const campaign = await CampaignService.getCampaign(params.id);
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -41,6 +49,7 @@ export async function GET(
     const stats = await CampaignService.getCampaignStats(
       params.id,
       session.user.id,
+      userOrgId,
     );
 
     return NextResponse.json({
