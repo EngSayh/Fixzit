@@ -7,6 +7,8 @@ import React from "react";
 import { Metadata } from "next";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { ProductReviewsClient } from "@/components/marketplace/ProductReviewsClient";
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqProduct } from "@/server/models/souq/Product";
 
 export const metadata: Metadata = {
   title: "Product Reviews",
@@ -19,14 +21,24 @@ export default async function ProductReviewsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: productId } = await params;
+  await connectDb();
+  // AUDIT-2025-12-06: Query orgId from product for tenant-scoped reviews
+  // Using type assertion since IProduct may not have orgId in interface
+  const product = await SouqProduct.findOne({ productId })
+    .select("orgId")
+    .lean();
+  const orgId = (product as unknown as { orgId?: string })?.orgId;
+  if (!orgId) {
+    throw new Error("Product orgId missing; cannot fetch tenant-scoped reviews");
+  }
 
   // Fetch reviews and stats
   const [reviewsData, stats] = await Promise.all([
-    reviewService.getProductReviews(productId, {
+    reviewService.getProductReviews(productId, orgId.toString(), {
       page: 1,
       limit: 20,
     }),
-    reviewService.getReviewStats(productId),
+    reviewService.getReviewStats(productId, orgId.toString()),
   ]);
 
   // Calculate distribution from stats

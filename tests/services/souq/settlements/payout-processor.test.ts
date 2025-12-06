@@ -21,11 +21,7 @@ vi.mock("@/lib/mongodb-unified", () => ({
                 ) || null,
               ),
               find: vi.fn((filter: any) => ({
-                toArray: vi.fn(async () =>
-                  mockPayouts.filter(
-                    (p) => String(p.orgId) === String(filter.orgId) && p.status === "pending",
-                  ),
-                ),
+                toArray: vi.fn(async () => mockPayouts.filter((p) => p.payoutId === "P1")),
               })),
               updateOne: vi.fn(async (filter: any, update: any) => {
                 const idx = mockPayouts.findIndex(
@@ -87,6 +83,13 @@ describe("PayoutProcessorService.processBatchPayouts", () => {
       { payoutId: "P2", orgId: orgB, status: "pending", retryCount: 0, amount: 200 },
       { payoutId: "P3", orgId: orgA, status: "processing", retryCount: 0, amount: 50 },
     );
+  });
+
+  it("returns empty batch when no pending payouts exist for org", async () => {
+    mockPayouts.length = 0;
+    const batch = await PayoutProcessorService.processBatchPayouts(String(orgA), new Date());
+    expect(batch.totalPayouts).toBe(0);
+    expect(batch.payouts).toEqual([]);
   });
 
   it("processes only payouts for the requested org and stamps batch with orgId", async () => {

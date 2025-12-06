@@ -86,8 +86,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize orgId to match both legacy ObjectId and current string storage in souq_settlements/souq_payouts
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+
     // 🔐 STRICT v4.1: Fetch statement with orgId for tenant isolation and validate amount
-    await connectDb();
     const db = (await connectDb()).connection.db!;
     const sellerFilter = ObjectId.isValid(targetSellerId)
       ? new ObjectId(targetSellerId)
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
       {
         statementId,
         sellerId: sellerFilter,
-        orgId,
+        orgId: { $in: orgCandidates },
       },
       { projection: { summary: 1, status: 1, sellerId: 1 } },
     );
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
     const existingPayout = await db.collection("souq_payouts").findOne({
       statementId,
       sellerId: sellerFilter,
-      orgId,
+      orgId: { $in: orgCandidates },
       status: { $nin: ["failed", "cancelled"] },
     });
     if (existingPayout) {

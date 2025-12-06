@@ -23,10 +23,9 @@ import {
   PROTECTED_ROUTE_PREFIXES,
 } from "@/config/routes/public";
 import { UserRole, type UserRoleType } from "@/types/user";
-import useSWR from "swr";
 import type { BadgeCounts } from "@/config/navigation";
-import { fetchOrgCounters } from "@/lib/counters";
 import type { DefaultSession } from "next-auth";
+import { useOrgCounters } from "@/hooks/useOrgCounters";
 
 type WorkOrderCounters = {
   total?: number;
@@ -295,22 +294,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   // ⚡ FIXED: Unified authentication check (GOLD STANDARD from TopBar.tsx)
   const sessionUser = session?.user as (DefaultSession["user"] & { orgId?: string }) | undefined;
-  const orgId = sessionUser?.orgId;
   const isAuthenticated =
     (status === "authenticated" && sessionUser != null) || !!authUser;
-  const shouldFetchCounters =
-    isAuthenticated && !isMarketingPage && !isAuthPage && !!orgId;
-  const { data: counterData } = useSWR(
-    shouldFetchCounters && orgId ? ["counters", orgId] : null,
-    (_key: [string, string]) => fetchOrgCounters(_key[1]),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000,
-    },
-  );
+  const { counters: counterData } = useOrgCounters();
   const badgeCounts = useMemo(
-    () => mapCountersToBadgeCounts(counterData),
+    () => mapCountersToBadgeCounts(counterData as CounterPayload | undefined),
     [counterData],
   );
 

@@ -235,7 +235,9 @@ class InventoryService {
       }
 
       // Clean expired reservations first
-      inventory.cleanExpiredReservations();
+      if (typeof (inventory as { cleanExpiredReservations?: () => number }).cleanExpiredReservations === "function") {
+        (inventory as { cleanExpiredReservations: () => number }).cleanExpiredReservations();
+      }
 
       // Try to reserve
       const reserved = inventory.reserve(
@@ -495,10 +497,12 @@ class InventoryService {
       throw new Error("orgId is required to fetch inventory");
     }
 
-    return await SouqInventory.findOne({
+    const doc = await SouqInventory.findOne({
       listingId,
       ...buildOrgFilter(orgId),
-    });
+    }).lean();
+
+    return doc ? (doc as unknown as IInventory) : null;
   }
 
   /**

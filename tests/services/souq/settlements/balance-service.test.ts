@@ -11,32 +11,30 @@ vi.mock("@/lib/mongodb-unified", () => ({
         collection: (name: string) => {
           if (name === "souq_transactions") {
             return {
-              find: (query: any) => ({
-                sort: () => ({
-                  toArray: async () =>
-                    transactions.filter(
-                      (t) =>
-                        String(t.orgId) === String(query.orgId) &&
-                        String(t.sellerId) === String(query.sellerId),
-                    ),
-                }),
-              }),
+              aggregate: vi.fn((pipeline: any[]) => ({
+                toArray: async () => {
+                  const salesTotal = transactions
+                    .filter((t) => t.type === "sale")
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  return salesTotal
+                    ? [{ _id: "sale", total: salesTotal, count: 1 }]
+                    : [];
+                },
+              })),
             };
           }
           if (name === "souq_orders") {
             return {
-              find: (query: any) => ({
-                toArray: async () =>
-                  orders.filter(
-                    (o) =>
-                      String(o.orgId) === String(query.orgId) &&
-                      o.items.some(
-                        (i: any) =>
-                          String(i.sellerId) ===
-                          String(query["items.sellerId"]),
-                      ),
-                  ),
+              find: () => ({
+                toArray: async () => orders.slice(),
               }),
+            };
+          }
+          if (name === "souq_seller_balances") {
+            return {
+              findOneAndUpdate: vi.fn(async () => ({ value: null })),
+              findOne: vi.fn(async () => null),
+              updateOne: vi.fn(async () => ({})),
             };
           }
           throw new Error(`Unexpected collection ${name}`);

@@ -5,6 +5,7 @@
 
 import { SouqReview } from "@/server/models/souq/Review";
 import { SouqProduct } from "@/server/models/souq/Product";
+import { Types } from "mongoose";
 
 export interface RatingAggregate {
   averageRating: number;
@@ -40,8 +41,8 @@ class RatingAggregationService {
   >();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
-  private getCacheKey(productId: string, orgId?: string): string {
-    return `${orgId ?? "global"}:${productId}`;
+  private getCacheKey(productId: string, orgId: string): string {
+    return `${orgId}:${productId}`;
   }
 
   /**
@@ -49,8 +50,11 @@ class RatingAggregationService {
    */
   async calculateProductRating(
     productId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<RatingAggregate> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant-scoped product rating");
+    }
     // Check cache first
     const cacheKey = this.getCacheKey(productId, orgId);
     const cached = this.cache.get(cacheKey);
@@ -63,9 +67,10 @@ class RatingAggregationService {
       productId,
       status: "published",
     };
-    if (orgId) {
-      reviewFilter.$or = [{ orgId }, { org_id: orgId }];
-    }
+    const orgFilter = Types.ObjectId.isValid(orgId)
+      ? new Types.ObjectId(orgId)
+      : orgId;
+    reviewFilter.$or = [{ orgId: orgFilter }, { org_id: orgFilter }];
 
     const reviews = await SouqReview.find(reviewFilter)
       .select("rating isVerifiedPurchase")
@@ -126,7 +131,14 @@ class RatingAggregationService {
     orgId: string,
     sellerId: string,
   ): Promise<SellerRatingAggregate> {
-    const products = await SouqProduct.find({ createdBy: sellerId })
+    const orgFilter = Types.ObjectId.isValid(orgId)
+      ? new Types.ObjectId(orgId)
+      : orgId;
+    const sellerFilter = Types.ObjectId.isValid(sellerId)
+      ? new Types.ObjectId(sellerId)
+      : sellerId;
+
+    const products = await SouqProduct.find({ createdBy: sellerFilter, orgId: orgFilter })
       .select("_id")
       .lean();
     if (products.length === 0) {
@@ -145,7 +157,7 @@ class RatingAggregationService {
     // Fetch all reviews for seller's products
     // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const reviews = await SouqReview.find({
-      orgId: orgId,
+      orgId: orgFilter,
       productId: { $in: productIds },
       status: "published",
     })
@@ -190,8 +202,11 @@ class RatingAggregationService {
    */
   async updateProductRatingCache(
     productId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to update product rating cache");
+    }
     // Invalidate cache
     this.cache.delete(this.getCacheKey(productId, orgId));
 
@@ -204,8 +219,11 @@ class RatingAggregationService {
    */
   async getRatingDistribution(
     productId: string,
-    orgId?: string,
+    orgId: string,
   ): Promise<RatingDistribution> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch rating distribution");
+    }
     const aggregate = await this.calculateProductRating(productId, orgId);
     const total = aggregate.totalReviews;
 

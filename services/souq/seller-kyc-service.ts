@@ -274,6 +274,8 @@ class SellerKYCService {
       seller.kycStatus.companyInfoComplete = true;
     }
 
+    seller.kycStatus.status = "approved";
+    seller.isActive = true;
     await seller.save();
 
     // Validate CR number via external API (if available)
@@ -733,7 +735,7 @@ class SellerKYCService {
       _id: sellerId,
       ...buildOrgFilter(orgId),
     });
-    if (!seller) {
+    if (!seller || !seller.orgId || seller.orgId.toString() !== orgId.toString()) {
       throw new Error("Seller not found");
     }
 
@@ -781,7 +783,7 @@ class SellerKYCService {
     }
 
     const sellers = await SouqSeller.find({
-      "kycStatus.status": { $in: ["in_review", "pending", "under_review"] },
+      "kycStatus.status": { $in: ["under_review"] },
       ...buildOrgFilter(orgId),
     }).sort({ "kycStatus.submittedAt": 1 });
 

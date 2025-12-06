@@ -378,8 +378,12 @@ class ReviewService {
    */
   async getProductReviews(
     productId: string,
+    orgId: string,
     filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
+    const productObjectId = this.ensureObjectId(productId, "productId");
+
     const {
       rating,
       verifiedOnly,
@@ -390,8 +394,9 @@ class ReviewService {
 
     // Build query
     const query: Record<string, unknown> = {
-      productId,
+      productId: { $in: [productId, productObjectId] },
       status: "published", // Only show published reviews
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
     };
 
     if (rating) query.rating = rating;
@@ -492,8 +497,9 @@ class ReviewService {
   /**
    * Get review statistics for a product
    */
-  async getReviewStats(productId: string): Promise<ReviewStats> {
+  async getReviewStats(productId: string, orgId: string): Promise<ReviewStats> {
     const productObjectId = this.ensureObjectId(productId, "productId");
+    const orgFilter = this.ensureObjectId(orgId, "orgId");
     const [stats] = await SouqReview.aggregate<{
       totalReviews: number;
       totalRating: number;
@@ -504,7 +510,13 @@ class ReviewService {
       star4: number;
       star5: number;
     }>([
-      { $match: { productId: productObjectId, status: "published" } },
+      {
+        $match: {
+          productId: { $in: [productObjectId, productId] },
+          status: "published",
+          $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+        },
+      },
       {
         $group: {
           _id: "$productId",

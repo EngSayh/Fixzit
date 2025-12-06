@@ -187,7 +187,11 @@ export class BuyBoxService {
     }
 
     // Check if seller can compete in Buy Box (uses type-safe method)
-    const canCompete = seller.canCompeteInBuyBox();
+    const canCompete =
+      typeof (seller as { canCompeteInBuyBox?: () => boolean }).canCompeteInBuyBox ===
+      "function"
+        ? (seller as { canCompeteInBuyBox: () => boolean }).canCompeteInBuyBox()
+        : false;
 
     const listings = await SouqListing.find({
       sellerId,
