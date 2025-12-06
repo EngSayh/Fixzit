@@ -12,12 +12,14 @@ const paytabsBreaker = createBreaker("paytabs", 30_000);
 const twilioBreaker = createBreaker("twilio", 20_000);
 const meilisearchBreaker = createBreaker("meilisearch", 15_000);
 const zatcaBreaker = createBreaker("zatca", 60_000);
+const unifonicBreaker = createBreaker("unifonic", 20_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,
   twilio: twilioBreaker,
   meilisearch: meilisearchBreaker,
   zatca: zatcaBreaker,
+  unifonic: unifonicBreaker,
 } as const;
 
 export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;
