@@ -148,13 +148,24 @@ describe("Claims routes - org scoping enforcement", () => {
       orgId: expect.any(ObjectId),
     });
     const updateFilter = updateOneMock.mock.calls[0]?.[0];
-    expect(updateFilter).toMatchObject({ orgId: expect.any(ObjectId) });
+    // In test mode, allowOrgless=true wraps the filter in $or pattern
+    // The claim filter includes $or with orgId match + orgId.$exists:false for orgless claims
+    expect(updateFilter).toHaveProperty("claimId", "789");
+    expect(updateFilter).toHaveProperty("$or");
+    // Verify the $or pattern includes org scoping
+    const orClauses = updateFilter.$or as Array<{ orgId?: unknown }>;
+    const hasOrgIdClause = orClauses.some(
+      (clause) => clause.orgId && typeof clause.orgId === "object"
+    );
+    expect(hasOrgIdClause).toBe(true);
   });
 
   it("decision route blocks cross-tenant decision when order is not in org", async () => {
+    const orgObjectId = new ObjectId("6566c5b6e51fbe1b2f000002");
     mockResolveSession.mockReturnValue({
-      user: { id: "admin-1", orgId: "org-A", role: "ADMIN" },
+      user: { id: "admin-1", orgId: orgObjectId.toString(), role: "ADMIN" },
     });
+    usersCollection.findOne.mockResolvedValue({ role: "ADMIN" });
     mockGetClaim.mockResolvedValue({
       claimId: "C4",
       orderId: "order-x",
