@@ -28,11 +28,12 @@ export async function POST(
     }
 
     const db = await getDatabase();
+    // 🔐 STRICT v4.1: Include orgId in admin record lookup for tenant isolation
     const adminRecord = ObjectId.isValid(session.user.id)
       ? await db
           .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(session.user.id) })
-      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id });
+          .findOne({ _id: new ObjectId(session.user.id), orgId: userOrgId })
+      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id, orgId: userOrgId });
 
     const role = (adminRecord?.role || session.user.role || "").toUpperCase();
     // 🔒 SECURITY FIX: Use standard role names from UserRole enum
