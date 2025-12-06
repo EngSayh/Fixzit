@@ -208,25 +208,22 @@ export class InvestigationService {
    */
   private static async getTrackingInfo(params: {
     orderId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{ status: string; deliveredAt?: Date }> {
     const { orderId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch tracking info (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
-    const orgCandidates = orgId && MongoObjectId.isValid(orgId)
+    const orgCandidates = MongoObjectId.isValid(orgId)
       ? [orgId, new MongoObjectId(orgId)]
-      : orgId
-        ? [orgId]
-        : [];
+      : [orgId];
     const order = await db
       .collection("souq_orders")
-      .findOne(
-        orgCandidates.length > 0
-          ? {
-              orderId,
-              $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
-            }
-          : { orderId },
-      );
+      .findOne({
+        orderId,
+        $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
+      });
 
     if (!order) return { status: "unknown" };
 
@@ -241,7 +238,7 @@ export class InvestigationService {
    */
   private static async getSellerHistory(params: {
     sellerId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{
     claimRate: number;
     rating: number;
@@ -249,26 +246,32 @@ export class InvestigationService {
     totalClaims: number;
   }> {
     const { sellerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch seller history (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
 
     // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId param may be string.
     // Use dual-type candidates to match both legacy string and ObjectId storage.
     const { ObjectId } = await import("mongodb");
-    const orgCandidates = orgId && ObjectId.isValid(orgId)
+    const orgCandidates = ObjectId.isValid(orgId)
       ? [orgId, new ObjectId(orgId)]
-      : orgId ? [orgId] : [];
-    const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
 
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments(
-        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
-      ),
-      db.collection("claims").countDocuments(
-        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
-      ),
-      db.collection("souq_sellers").findOne(
-        orgFilter ? { sellerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { sellerId },
-      ),
+      db.collection("souq_orders").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("souq_sellers").findOne({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
     ]);
 
     return {
@@ -284,26 +287,31 @@ export class InvestigationService {
    */
   private static async getBuyerHistory(params: {
     buyerId: string;
-    orgId?: string;
+    orgId: string;
   }): Promise<{ claimCount: number; claimRate: number; totalOrders: number }> {
     const { buyerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch buyer history (STRICT v4.1 tenant isolation)");
+    }
     const db = await getDatabase();
 
     // 🔐 STRICT v4.1: souq_orders.orgId is ObjectId; orgId param may be string.
     // Use dual-type candidates to match both legacy string and ObjectId storage.
     const { ObjectId } = await import("mongodb");
-    const orgCandidates = orgId && ObjectId.isValid(orgId)
+    const orgCandidates = ObjectId.isValid(orgId)
       ? [orgId, new ObjectId(orgId)]
-      : orgId ? [orgId] : [];
-    const orgFilter = orgCandidates.length > 0 ? { $in: orgCandidates } : undefined;
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
 
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments(
-        orgFilter ? { buyerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { buyerId },
-      ),
-      db.collection("claims").countDocuments(
-        orgFilter ? { buyerId, $or: [{ orgId: orgFilter }, { org_id: orgFilter }] } : { buyerId },
-      ),
+      db.collection("souq_orders").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
     ]);
 
     return {
@@ -514,6 +522,8 @@ export class InvestigationService {
     };
 
     // Get claims eligible for auto-resolution
+    // 🔐 LIMIT: Process in batches to prevent unbounded memory usage
+    const BATCH_LIMIT = 200;
     const claimsCollection = await this.claimsCollection();
     const eligibleClaims = await claimsCollection
       .find({
@@ -521,6 +531,8 @@ export class InvestigationService {
         status: "under_investigation",
         isAutoResolvable: true,
       })
+      .sort({ filedAt: 1 })
+      .limit(BATCH_LIMIT)
       .toArray();
 
     let resolvedCount = 0;
@@ -587,6 +599,8 @@ export class InvestigationService {
         { org_id: { $in: orgCandidates as unknown as string[] } },
       ],
     };
+    // 🔐 LIMIT: Cap results to prevent unbounded memory usage for large tenants
+    const REVIEW_LIMIT = 100;
     const claimsCollection = await this.claimsCollection();
     const claims = await claimsCollection
       .find({
@@ -594,6 +608,7 @@ export class InvestigationService {
         status: { $in: ["under_investigation", "escalated"] },
       })
       .sort({ priority: -1, filedAt: 1 })
+      .limit(REVIEW_LIMIT)
       .toArray();
 
     const claimsWithInvestigation = await Promise.all(

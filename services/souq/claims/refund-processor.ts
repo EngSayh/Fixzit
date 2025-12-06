@@ -294,9 +294,12 @@ export class RefundProcessor {
     if (MongoObjectId.isValid(request.orderId)) {
       orderIdFilters.push({ _id: new MongoObjectId(request.orderId) });
     }
+    // 🔐 CRITICAL: Use $and to combine org scope with order filters - prevents $or key collision
     const order = await db.collection('souq_orders').findOne({
-      ...buildOrgScope(request.orgId),
-      $or: orderIdFilters,
+      $and: [
+        buildOrgScope(request.orgId),
+        { $or: orderIdFilters },
+      ],
     }) as { pricing?: { total?: number }; payment?: { transactionId?: string; method?: string; amount?: number } } | null;
 
     if (!order) {
