@@ -166,6 +166,21 @@ export async function POST(request: NextRequest) {
     const bypassData = await redisOtpStore.get(bypassOtpKey);
     
     if (bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+      // SECURITY: Validate org context matches to prevent cross-tenant bypass reuse (CodeRabbit review fix)
+      if (bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
+        logger.warn("[OTP] Bypass org mismatch - potential cross-tenant attack", {
+          identifier: redactIdentifier(loginIdentifier),
+          storedOrgId: bypassData.orgId,
+          requestedOrgId: orgScopeId,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
       // SECURITY AUDIT: Log bypass verification for security monitoring
       logger.warn("[OTP] SECURITY AUDIT: Bypass OTP verified", {
         identifier: redactIdentifier(loginIdentifier),

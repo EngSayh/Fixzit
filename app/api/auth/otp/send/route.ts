@@ -373,7 +373,9 @@ export async function POST(request: NextRequest) {
     
     // Check if this is a known test/demo user that should bypass OTP
     const normalizedIdForCheck = identifierRaw.toLowerCase();
-    const isSuperadminEmail = normalizedIdForCheck === 'superadmin@fixzit.co' || 
+    // SECURITY: Externalize superadmin email to environment variable (Gemini review fix)
+    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || 'superadmin@fixzit.co').toLowerCase();
+    const isSuperadminEmail = normalizedIdForCheck === superadminEmail || 
                               normalizedIdForCheck === process.env.TEST_SUPERADMIN_IDENTIFIER?.toLowerCase();
     const isDemoOrTestUser = DEMO_EMAILS.has(normalizedIdForCheck) || 
                              DEMO_EMPLOYEE_IDS.has(identifierRaw.toUpperCase()) ||
@@ -382,6 +384,22 @@ export async function POST(request: NextRequest) {
     // Enable OTP bypass for authorized users
     const shouldBypassOtp = (bypassOtpAll && isSuperadminEmail) || 
                             (allowTestUserBypass && isDemoOrTestUser);
+    
+    // SECURITY: Apply rate limit even for bypass-eligible users to prevent enumeration (CodeRabbit review fix)
+    if (shouldBypassOtp) {
+      const bypassRateLimitKey = `auth:otp-bypass:${normalizedIdForCheck}`;
+      const bypassRl = await smartRateLimit(bypassRateLimitKey, 5, 300_000);
+      if (!bypassRl.allowed) {
+        logger.warn("[OTP] Bypass rate limit exceeded", {
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "Too many attempts. Please try again later." },
+          { status: 429 },
+        );
+      }
+    }
     
     if (shouldBypassOtp) {
       logger.warn("[OTP] OTP bypass enabled for authorized user", {
