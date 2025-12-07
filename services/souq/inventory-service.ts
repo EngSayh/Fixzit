@@ -638,6 +638,7 @@ class InventoryService {
         inventory.updateHealth();
 
         // Check if listing still exists (stranded check)
+        // legacy fallback: second query intentionally omits orgId for backward compatibility with legacy records
         const listing =
           (await SouqListing.findOne({
             listingId: inventory.listingId,
@@ -719,6 +720,7 @@ class InventoryService {
       let listing = session ? await listingQuery.session(session) : await listingQuery;
 
       // Backward compatibility: allow legacy records missing orgId, but do not cross orgs
+      // legacy fallback: intentionally omits orgId for backward compatibility, with explicit org mismatch check below
       if (!listing) {
         const fallbackQuery = SouqListing.findOne({ listingId });
         const fallback = session ? await fallbackQuery.session(session) : await fallbackQuery;

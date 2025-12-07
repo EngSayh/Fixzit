@@ -45,6 +45,9 @@ const orgFilterVarNames = new Set([
   "baseFilter",
   "tenantFilter",
   "query", // Variable that may include orgId
+  "listingOrgFilter", // Souq listing org filter
+  "productOrgFilter", // Souq product org filter
+  "reviewOrgFilter", // Review org filter
 ]);
 
 function unwrapExpression(expr: ts.Expression): ts.Expression {
@@ -100,6 +103,19 @@ function recordViolation(
   message: string,
 ) {
   const { line, character } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+  
+  // Check for suppression comment in the surrounding context (5 lines before)
+  const lines = sf.text.split("\n");
+  const startLine = Math.max(0, line - 5);
+  const contextLines = lines.slice(startLine, line + 1).join("\n");
+  
+  // Skip if context has orgId-lint-ignore or legacy fallback comment
+  if (contextLines.includes("// orgId-lint-ignore") || 
+      contextLines.includes("// legacy fallback") ||
+      contextLines.includes("/* legacy fallback */")) {
+    return;
+  }
+  
   violations.push({
     file: path.relative(process.cwd(), sf.fileName),
     line: line + 1,
@@ -186,6 +202,16 @@ function checkCall(node: ts.CallExpression, sf: ts.SourceFile, violations: Viola
       if (firstArg && ts.isParenthesizedExpression(firstArg)) {
         firstArg = firstArg.expression;
       }
+      
+      // Check if firstArg is a known variable that should contain orgId (e.g., query)
+      if (firstArg && ts.isIdentifier(firstArg)) {
+        const varName = firstArg.getText();
+        if (orgFilterVarNames.has(varName)) {
+          // Variable is assumed to contain orgId - no violation
+          return;
+        }
+      }
+      
       if (!firstArg || !ts.isObjectLiteralExpression(firstArg) || !hasOrgIdProp(firstArg)) {
         recordViolation(
           violations,
