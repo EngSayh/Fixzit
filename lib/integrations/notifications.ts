@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import type {
   NotificationChannel,
   NotificationPayload,
@@ -306,7 +307,7 @@ export async function sendEmailNotification(
     const message = {
       to: recipient.email,
       from: {
-        email: process.env.SENDGRID_FROM_EMAIL || "noreply@fixzit.co",
+        email: process.env.SENDGRID_FROM_EMAIL || EMAIL_DOMAINS.noReply,
         name: process.env.SENDGRID_FROM_NAME || "Fixzit",
       },
       subject: notification.title,

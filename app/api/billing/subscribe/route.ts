@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Customer from "@/server/models/Customer";
 import { computeQuote } from "@/lib/pricing";
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
     });
     if (quote.contactSales) {
       return createSecureResponse(
-        { error: "SEAT_LIMIT_EXCEEDED", contact: "sales@fixzit.app" },
+        { error: "SEAT_LIMIT_EXCEEDED", contact: EMAIL_DOMAINS.sales },
         400,
         req,
       );

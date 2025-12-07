@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import type { SessionUser } from '@/server/middleware/withAuthRbac';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
+import { EMAIL_DOMAINS } from '@/lib/config/domains';
 
 export type EscalationContact = {
   role: string;
@@ -48,7 +49,7 @@ export async function resolveEscalationContact(
     // Return fallback for unauthorized users without exposing org structure
     return {
       role: 'SUPPORT',
-      email: process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.sa',
+      email: process.env.ESCALATION_FALLBACK_EMAIL || EMAIL_DOMAINS.support,
       name: 'Fixzit Support Team',
     };
   }
@@ -89,7 +90,7 @@ export async function resolveEscalationContact(
     }
   }
 
-  const fallbackEmail = process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.co';
+  const fallbackEmail = process.env.ESCALATION_FALLBACK_EMAIL || EMAIL_DOMAINS.support;
   
   logger.info('[resolveEscalationContact] Using fallback contact', {
     userId: user.id,

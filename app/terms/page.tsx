@@ -6,6 +6,7 @@ import { FileText, Scale, AlertCircle, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 /**
  * Default terms of service content shown when CMS content is not available or not published.
  */
@@ -70,7 +71,7 @@ Any disputes shall be resolved through:
 
 ## Contact
 For questions about these terms:
-- Email: legal@fixzit.com
+- Email: ${EMAIL_DOMAINS.legal}
 - Phone: +971 XX XXX XXXX
 
 ## Severability
@@ -271,10 +272,10 @@ export default function TermsPage() {
                     {t("terms.email", "Email")}
                   </div>
                   <a
-                    href="mailto:legal@fixzit.com"
+                    href={`mailto:${EMAIL_DOMAINS.legal}`}
                     className="text-primary hover:text-primary/90"
                   >
-                    legal@fixzit.com
+                    {EMAIL_DOMAINS.legal}
                   </a>
                 </div>
               </div>
