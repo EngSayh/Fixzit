@@ -118,7 +118,7 @@ export default async function MarketplaceAdminPage() {
                       {order.totals.grand.toFixed(2)} {order.currency}
                     </td>
                     <td className="py-2">{order.approvals?.status}</td>
-                    <td className="py-2">{new Date(order.createdAt).toLocaleString()}</td>
+                    <td className="py-2">{new Date(order.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                   </tr>
                 ))}
             </tbody>

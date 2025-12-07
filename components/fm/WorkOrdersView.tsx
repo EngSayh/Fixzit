@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
@@ -285,7 +286,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                   </div>
                   <div>
                     <span className="font-medium text-foreground">Created:</span>{' '}
-                    {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : 'Unknown'}
+                    {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="medium" /> : 'Unknown'}
                   </div>
                 </div>
               </CardContent>

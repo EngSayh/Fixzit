@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 
 import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
@@ -357,7 +358,7 @@ export default function PropertyDetailsPage() {
                 <p className="text-sm text-muted-foreground">Last Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.lastInspection 
-                    ? new Date(property.maintenance.lastInspection).toLocaleDateString()
+                    ? <ClientDate date={property.maintenance.lastInspection} format="date-only" />
                     : 'N/A'}
                 </p>
               </div>
@@ -365,7 +366,7 @@ export default function PropertyDetailsPage() {
                 <p className="text-sm text-muted-foreground">Next Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.nextInspection 
-                    ? new Date(property.maintenance.nextInspection).toLocaleDateString()
+                    ? <ClientDate date={property.maintenance.nextInspection} format="date-only" />
                     : 'N/A'}
                 </p>
               </div>

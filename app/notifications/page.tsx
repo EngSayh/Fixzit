@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import type { NotificationDoc } from '@/lib/models';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 export default function NotificationsPage() {
@@ -545,7 +546,7 @@ export default function NotificationsPage() {
                         {notif.message}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>{new Date(notif.timestamp).toLocaleString()}</span>
+                        <ClientDate date={notif.timestamp} format="medium" />
                         <span>•</span>
                         <span>{notif.read ? 'Read' : 'Unread'}</span>
                       </div>

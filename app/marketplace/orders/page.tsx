@@ -58,7 +58,7 @@ export default async function OrdersPage() {
                   <div>
                     <p className="text-xs uppercase tracking-wide text-primary">Order #{order.id.slice(-6).toUpperCase()}</p>
                     <h2 className="text-lg font-semibold text-foreground">{order.lines.length} item(s)</h2>
-                    <p className="text-sm text-muted-foreground">Submitted {new Date(order.createdAt).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Submitted {new Date(order.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                   <div className="space-y-2 text-end text-sm">
                     <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-muted text-foreground'}`}>

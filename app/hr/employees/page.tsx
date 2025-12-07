@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, Eye } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 interface Employee {
   id: string;
   employeeCode: string;
@@ -187,7 +188,7 @@ export default function EmployeesPage() {
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.joinDate', 'Join Date')}:</span>
                         <span className="ms-2 font-medium">
-                          {new Date(employee.employment.joinDate).toLocaleDateString()}
+                          <ClientDate date={employee.employment.joinDate} format="date-only" />
                         </span>
                       </div>
                     </div>

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
 
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 interface TicketItem {
   id: string;
   code?: string;
@@ -177,7 +178,7 @@ export default function SupportTicketsPage() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
+                    {ticket.createdAt ? <ClientDate date={ticket.createdAt} format="date-only" /> : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link 

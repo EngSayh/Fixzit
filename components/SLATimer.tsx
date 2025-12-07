@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useClientDate } from '@/components/ClientDate';
 
 interface SLATimerProps {
   dueDate: Date | string;
@@ -90,11 +91,14 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
   };
 
   const icon = isBreached ? '⚠️' : urgencyLevel === 'critical' ? '⏰' : urgencyLevel === 'warning' ? '⏰' : '✓';
+  
+  // Use client-side date formatting for tooltip
+  const formattedDueDate = useClientDate(dueDate, 'medium');
 
   return (
     <div 
       className={`inline-flex items-center gap-1.5 font-medium rounded-md border ${sizeClasses[size]} ${urgencyColors[urgencyLevel]}`}
-      title={`SLA ${isBreached ? 'BREACHED' : 'Due'}: ${new Date(dueDate).toLocaleString()}`}
+      title={`SLA ${isBreached ? 'BREACHED' : 'Due'}: ${formattedDueDate || '...'}`}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="font-mono">{timeRemaining}</span>

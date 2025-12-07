@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 
 import { useState } from 'react';
 import { Calendar, DollarSign, Package } from 'lucide-react';
@@ -181,7 +182,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">{rfq.title}</h3>
-                  <p className="text-sm text-muted-foreground">Created {new Date(rfq.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground">Created <ClientDate date={rfq.createdAt} format="date-only" /></p>
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     {rfq.categoryId && (
                       <span className="flex items-center gap-1">
@@ -198,7 +199,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
                     {rfq.deadline && (
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
-                        Due {new Date(rfq.deadline).toLocaleDateString()}
+                        Due <ClientDate date={rfq.deadline} format="date-only" />
                       </span>
                     )}
                   </div>

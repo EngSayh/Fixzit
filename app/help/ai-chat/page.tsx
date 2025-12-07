@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Bot, User, X, Send } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 interface Citation {
   title: string;
   slug: string;
@@ -171,7 +172,7 @@ export default function AIChatPage() {
                     </div>
                   )}
                   <p className="text-xs mt-2 opacity-70">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <ClientDate date={message.timestamp} format="time-only" />
                   </p>
                 </div>
               </div>

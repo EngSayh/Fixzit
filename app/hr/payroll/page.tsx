@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface PayrollRun {
@@ -103,7 +104,8 @@ export default function PayrollPage() {
   const formatPeriod = (period: string) => {
     const [year, month] = period.split('-');
     const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    // Return the date object for ClientDate to format
+    return date;
   };
 
   if (loading) {
@@ -156,7 +158,10 @@ export default function PayrollPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-xl font-bold">
-                      {formatPeriod(run.period)}
+                      <ClientDate 
+                        date={formatPeriod(run.period)} 
+                        formatter={(d) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                      />
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       {run.employeeCount} {t('hr.payroll.employees', 'employees')}
@@ -209,7 +214,7 @@ export default function PayrollPage() {
                 {/* Timestamp Info */}
                 {run.calculatedAt && (
                   <div className="text-xs text-muted-foreground mb-4">
-                    {t('hr.payroll.calculatedAt', 'Calculated at')}: {new Date(run.calculatedAt).toLocaleString()}
+                    {t('hr.payroll.calculatedAt', 'Calculated at')}: <ClientDate date={run.calculatedAt} format="medium" />
                   </div>
                 )}
 

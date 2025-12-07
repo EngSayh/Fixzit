@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import ClientDate from '@/components/ClientDate';
 import { 
   Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter 
 } from '@/components/ui/card';
@@ -351,7 +352,11 @@ export default function TrialBalanceReport({
                 <SelectContent>
                   {[...Array(12)].map((_, i) => (
                     <SelectItem key={i + 1} value={String(i + 1)}>
-                      {new Date(2000, i).toLocaleString(locale, { month: 'long' })} ({i + 1})
+                      <ClientDate 
+                        date={new Date(2000, i, 1)} 
+                        formatter={(d) => d.toLocaleString(locale, { month: 'long' })}
+                        placeholder="..."
+                      /> ({i + 1})
                     </SelectItem>
                   ))}
                 </SelectContent>

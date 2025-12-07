@@ -49,7 +49,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
             
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : ''}</div>
+                <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</div>
                 <Link 
                   href="/help" 
                   className="text-primary hover:text-primary/80 font-medium"
