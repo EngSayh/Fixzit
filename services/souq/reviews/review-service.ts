@@ -764,13 +764,15 @@ class ReviewService {
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    // 🚀 PERF: Use .lean() for read-only stats queries
     const recentReviews = await SouqReview.find({
       productId: { $in: [productObjectId, productId] },
       status: "published",
       ...orgFilter,
     })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .lean();
 
     return {
       averageRating,
