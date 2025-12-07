@@ -1,5 +1,5 @@
 /**
- * 🔒 RELIABILITY TEST: utils/format.ts crash protection
+ * 🔒 RELIABILITY TEST: lib/utils/format.ts crash protection
  *
  * Verifies that fmtDate and fmtNumber handle edge cases gracefully:
  * - null/undefined inputs
@@ -9,9 +9,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { fmtDate, fmtNumber } from "@/utils/format";
+import { fmtDate, fmtNumber } from "@/lib/utils/format";
 
-describe("🔒 RELIABILITY: utils/format.ts - Crash Protection", () => {
+describe("🔒 RELIABILITY: lib/utils/format.ts - Crash Protection", () => {
   describe("fmtDate - null/undefined handling", () => {
     it('should return "Invalid Date" for null input', () => {
       const result = fmtDate(null, "en");

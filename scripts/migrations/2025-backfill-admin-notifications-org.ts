@@ -24,6 +24,20 @@ if (!MONGO_URI) {
 }
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const MISSING_ORG_FILTER = {
+  $or: [{ orgId: { $exists: false } }, { orgId: null }, { orgId: "" }],
+};
+
+function normalizeOrgId(orgId: unknown): ObjectId | string | null {
+  if (!orgId) return null;
+  if (orgId instanceof ObjectId) return orgId;
+  if (typeof orgId === "string") {
+    const trimmed = orgId.trim();
+    if (!trimmed) return null;
+    return ObjectId.isValid(trimmed) ? new ObjectId(trimmed) : trimmed;
+  }
+  return null;
+}
 
 async function main() {
   console.log("🔄 Backfill orgId on admin_notifications");
@@ -36,7 +50,7 @@ async function main() {
   const notifications = db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS);
   const users = db.collection(COLLECTIONS.USERS);
 
-  const missingCount = await notifications.countDocuments({ orgId: { $exists: false } });
+  const missingCount = await notifications.countDocuments(MISSING_ORG_FILTER);
   console.log(`Found ${missingCount} notifications without orgId`);
 
   if (missingCount === 0) {
@@ -44,24 +58,40 @@ async function main() {
     return;
   }
 
-  const cursor = notifications.find({ orgId: { $exists: false } }, { projection: { senderId: 1 } });
+  const cursor = notifications.find(MISSING_ORG_FILTER, {
+    projection: { senderId: 1, org_id: 1 },
+  });
   let updated = 0;
   let skipped = 0;
+  let inferredFromSender = 0;
+  let inferredFromLegacyField = 0;
 
   while (await cursor.hasNext()) {
     const doc = await cursor.next();
     if (!doc) continue;
-    const senderId = doc.senderId;
-    if (!senderId || !ObjectId.isValid(senderId)) {
-      skipped++;
-      continue;
+
+    // Prefer legacy org_id on the document itself, then fall back to sender orgId
+    let orgId = normalizeOrgId((doc as { org_id?: unknown }).org_id);
+    if (orgId) {
+      inferredFromLegacyField++;
+    } else {
+      const senderId = (doc as { senderId?: unknown }).senderId;
+      if (!senderId || !ObjectId.isValid(String(senderId))) {
+        skipped++;
+        continue;
+      }
+
+      const sender = await users.findOne(
+        { _id: new ObjectId(String(senderId)) },
+        { projection: { orgId: 1 } },
+      );
+      orgId = normalizeOrgId((sender as { orgId?: unknown })?.orgId);
+      if (orgId) {
+        inferredFromSender++;
+      }
     }
 
-    const sender = await users.findOne(
-      { _id: new ObjectId(senderId) },
-      { projection: { orgId: 1 } },
-    );
-    if (!sender?.orgId) {
+    if (!orgId) {
       skipped++;
       continue;
     }
@@ -69,13 +99,18 @@ async function main() {
     if (!DRY_RUN) {
       await notifications.updateOne(
         { _id: doc._id },
-        { $set: { orgId: sender.orgId } },
+        {
+          $set: { orgId },
+          $unset: { org_id: "" },
+        },
       );
     }
     updated++;
   }
 
-  console.log(`Updated: ${updated}, Skipped: ${skipped}`);
+  console.log(
+    `Updated: ${updated} (sender=${inferredFromSender}, org_id=${inferredFromLegacyField}), Skipped: ${skipped}`,
+  );
   if (DRY_RUN) {
     console.log("No writes performed (dry run).");
   }

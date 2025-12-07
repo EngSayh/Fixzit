@@ -3,7 +3,7 @@
 import React from "react";
 import { Phone, MessageSquare } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { sanitizePhoneNumber } from "@/utils/formatters";
+import { sanitizePhoneNumber } from "@/lib/utils/format";
 
 export interface ContactActionsProps {
   phone: string;
