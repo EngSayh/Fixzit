@@ -7,6 +7,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { DEMO_EMAILS, DEMO_EMPLOYEE_IDS } from '@/lib/config/demo-users';
 // CRITICAL FIX: Removed static import of redisOtpSessionStore to avoid bundling ioredis into Edge Runtime
 // See: https://nextjs.org/docs/messages/edge-dynamic-code-evaluation
 // The OTP session store is now dynamically imported inside authorize() where it's actually used
@@ -533,15 +534,8 @@ export const authConfig = {
           
           // SECURITY FIX (Gemini review): Check identifier against test user configs instead of 
           // relying on __isTestUser/__isDemoUser properties which aren't on DB user objects.
-          // These known test/demo identifiers must match the same sets defined in otp/send/route.ts
-          const demoEmails = new Set([
-            'superadmin@fixzit.co', 'admin@fixzit.co', 'manager@fixzit.co', 'tenant@fixzit.co',
-            'vendor@fixzit.co', 'corp.admin@fixzit.co', 'property.manager@fixzit.co',
-            'dispatcher@fixzit.co', 'supervisor@fixzit.co', 'technician@fixzit.co',
-            'vendor.admin@fixzit.co', 'vendor.tech@fixzit.co', 'owner@fixzit.co',
-            'finance@fixzit.co', 'hr@fixzit.co', 'helpdesk@fixzit.co', 'auditor@fixzit.co',
-          ]);
-          const demoEmployeeIds = new Set(['EMP001', 'EMP002', 'SA001', 'SA-001', 'SUPER-001', 'MGR-001', 'TENANT-001', 'VENDOR-001']);
+          // These known test/demo identifiers use the centralized config from lib/config/demo-users.ts
+          const demoEmployeeIds = DEMO_EMPLOYEE_IDS;
           const testUserConfigs = [
             process.env.TEST_SUPERADMIN_IDENTIFIER,
             process.env.TEST_ADMIN_IDENTIFIER,
@@ -552,7 +546,7 @@ export const authConfig = {
           ].filter(Boolean).map(id => id?.toLowerCase());
           
           const normalizedLoginId = loginIdentifier.toLowerCase();
-          const isTestOrDemoUser = demoEmails.has(normalizedLoginId) ||
+          const isTestOrDemoUser = DEMO_EMAILS.has(normalizedLoginId) ||
             demoEmployeeIds.has(loginIdentifier.toUpperCase()) ||
             testUserConfigs.includes(normalizedLoginId);
           const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && isTestOrDemoUser;

@@ -1,6 +1,6 @@
 // Shared COLLECTIONS loader for Node scripts (non-prod utilities/migrations)
-// Uses tsx/register to allow requiring the TypeScript source of lib/db/collections.ts
-require("tsx/register");
+// Use tsx/cjs so we can require the TypeScript source of lib/db/collections.ts
+require("tsx/cjs");
 const path = require("path");
 
 function loadCollections() {

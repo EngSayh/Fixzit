@@ -1,19 +1,21 @@
 #!/usr/bin/env node
 /**
  * Update all demo user passwords to "password123"
+ * Uses centralized demo user configuration from lib/config/demo-users.ts
  */
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
+import { getDemoEmail } from "../lib/config/demo-users";
 
 const emails = [
-  "superadmin@fixzit.co",
-  "admin@fixzit.co",
-  "manager@fixzit.co",
-  "tenant@fixzit.co",
-  "vendor@fixzit.co",
-  "emp001@fixzit.co",
-  "emp002@fixzit.co",
+  getDemoEmail("superadmin"),
+  getDemoEmail("admin"),
+  getDemoEmail("manager"),
+  getDemoEmail("tenant"),
+  getDemoEmail("vendor"),
+  getDemoEmail("emp001"),
+  getDemoEmail("emp002"),
 ];
 
 const usernames = ["EMP001", "EMP002"];

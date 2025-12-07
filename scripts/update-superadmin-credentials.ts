@@ -8,14 +8,15 @@
  * SuperAdmin Credentials:
  * - Username: EngSayh
  * - Password: EngSayh@1985
- * - Email: superadmin@fixzit.co
+ * - Email: Uses centralized demo-users config
  */
 
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import bcrypt from 'bcryptjs';
+import { getDemoEmail } from '@/lib/config/demo-users';
 
-const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
+const SUPERADMIN_EMAIL = getDemoEmail('superadmin');
 const NEW_USERNAME = 'EngSayh';
 const NEW_PASSWORD = 'EngSayh@1985';
 
@@ -90,7 +91,7 @@ async function updateSuperAdminCredentials() {
       if (passwordValid) {
         console.log('🎉 LOGIN CREDENTIALS:');
         console.log('   ═══════════════════════════════════════════');
-        console.log('   📧 Email:    superadmin@fixzit.co');
+        console.log(`   📧 Email:    ${SUPERADMIN_EMAIL}`);
         console.log('   👤 Username: EngSayh');
         console.log('   🔑 Password: EngSayh@1985');
         console.log('   ═══════════════════════════════════════════\n');

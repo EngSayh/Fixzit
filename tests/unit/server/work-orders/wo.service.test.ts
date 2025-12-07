@@ -45,7 +45,7 @@ vi.mock("./wo.schema", () => ({
   WoUpdate: { parse: mockWoUpdateParse },
 }));
 
-import * as service from "./wo.service";
+import * as service from "@/server/work-orders/wo.service";
 
 describe("wo.service", () => {
   const actorId = "actor-1";

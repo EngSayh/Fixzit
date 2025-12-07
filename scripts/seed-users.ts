@@ -1,12 +1,13 @@
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
+import { getDemoEmail } from "../lib/config/demo-users";
 
 const initialUsers = [
   {
     code: "USR-001",
     username: "admin",
-    email: "admin@fixzit.co",
+    email: getDemoEmail("admin"),
     password: "admin123",
     personal: {
       firstName: "System",
@@ -73,7 +74,7 @@ const initialUsers = [
   {
     code: "USR-002",
     username: "manager",
-    email: "manager@fixzit.co",
+    email: getDemoEmail("manager"),
     password: "Manager@123",
     personal: {
       firstName: "Ahmed",
@@ -140,7 +141,7 @@ const initialUsers = [
   {
     code: "USR-003",
     username: "technician",
-    email: "technician@fixzit.co",
+    email: getDemoEmail("technician"),
     password: "Tech@123",
     personal: {
       firstName: "Mohammed",

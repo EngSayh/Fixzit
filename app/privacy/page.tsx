@@ -244,10 +244,10 @@ export default function PrivacyPage() {
                     {t("privacy.phone", "Phone")}
                   </div>
                   <a
-                    href="tel:+971XXXXXXXX"
+                    href="tel:+966XXXXXXXX"
                     className="text-primary hover:text-primary/90"
                   >
-                    +971 XX XXX XXXX
+                    +966 XX XXX XXXX
                   </a>
                 </div>
               </div>

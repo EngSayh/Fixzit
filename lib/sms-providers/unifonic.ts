@@ -23,6 +23,7 @@ import type {
   BulkSMSResult,
   SMSProviderOptions,
 } from "./types";
+import { formatSaudiPhoneNumber } from "./phone-utils";
 
 // Configuration from environment
 const UNIFONIC_APP_SID = process.env.UNIFONIC_APP_SID || "";
@@ -110,37 +111,6 @@ function mapUnifonicStatus(status?: string): SMSDeliveryStatus {
     default:
       return "unknown";
   }
-}
-
-/**
- * Format phone number to E.164 format for Saudi Arabia
- */
-function formatSaudiPhoneNumber(phone: string): string {
-  // Remove all spaces, dashes, and parentheses
-  const cleaned = phone.replace(/[\s\-()]/g, "");
-
-  // If already in E.164 format
-  if (cleaned.startsWith("+966")) {
-    return cleaned;
-  }
-
-  // Handle 00 prefix
-  if (cleaned.startsWith("00966")) {
-    return "+" + cleaned.substring(2);
-  }
-
-  // Handle just country code
-  if (cleaned.startsWith("966")) {
-    return "+" + cleaned;
-  }
-
-  // Handle local format with leading 0
-  if (cleaned.startsWith("0")) {
-    return "+966" + cleaned.substring(1);
-  }
-
-  // Assume local number
-  return "+966" + cleaned;
 }
 
 /**

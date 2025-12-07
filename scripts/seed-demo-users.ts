@@ -2,10 +2,14 @@
 /**
  * Seed demo users that match the login page credentials
  * Default passwords: superadmin uses "admin123", others use "password123"
+ * 
+ * Email domain is configurable via EMAIL_DOMAIN environment variable.
+ * Uses centralized demo user configuration from lib/config/demo-users.ts
  */
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
+import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
 
 const demoPhones = {
   superadmin:
@@ -24,7 +28,7 @@ const demoUsers = [
   {
     code: "USR-SUPERADMIN",
     username: "superadmin",
-    email: "superadmin@fixzit.co",
+    email: getDemoEmail("superadmin"),
     password: "admin123",
     phone: demoPhones.superadmin,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -57,7 +61,7 @@ const demoUsers = [
   {
     code: "USR-ADMIN",
     username: "admin",
-    email: "admin@fixzit.co",
+    email: getDemoEmail("admin"),
     password: "password123",
     phone: demoPhones.admin,
     // Don't set orgId/createdBy for existing user - will be updated via updateOne
@@ -65,7 +69,7 @@ const demoUsers = [
   {
     code: "USR-MANAGER",
     username: "manager",
-    email: "manager@fixzit.co",
+    email: getDemoEmail("manager"),
     password: "password123",
     phone: demoPhones.manager,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -98,7 +102,7 @@ const demoUsers = [
   {
     code: "USR-TENANT",
     username: "tenant",
-    email: "tenant@fixzit.co",
+    email: getDemoEmail("tenant"),
     password: "password123",
     phone: demoPhones.tenant,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -131,7 +135,7 @@ const demoUsers = [
   {
     code: "USR-VENDOR",
     username: "vendor",
-    email: "vendor@fixzit.co",
+    email: getDemoEmail("vendor"),
     password: "password123",
     phone: demoPhones.vendor,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -164,7 +168,7 @@ const demoUsers = [
   {
     code: "EMP001",
     username: "EMP001",
-    email: "emp001@fixzit.co",
+    email: getDemoEmail("emp001"),
     password: "password123",
     phone: demoPhones.emp001,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -197,7 +201,7 @@ const demoUsers = [
   {
     code: "EMP002",
     username: "EMP002",
-    email: "emp002@fixzit.co",
+    email: getDemoEmail("emp002"),
     password: "password123",
     phone: demoPhones.emp002,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -301,11 +305,11 @@ async function seedDemoUsers() {
     console.log("   Total:   " + (created + updated + skipped));
     console.log("\n✅ Demo user seeding completed!");
     console.log("\n📝 Login credentials:");
-    console.log("   Personal:  superadmin@fixzit.co / admin123");
-    console.log("   Personal:  admin@fixzit.co / password123");
-    console.log("   Personal:  manager@fixzit.co / password123");
-    console.log("   Personal:  tenant@fixzit.co / password123");
-    console.log("   Personal:  vendor@fixzit.co / password123");
+    console.log(`   Personal:  ${getDemoEmail("superadmin")} / admin123`);
+    console.log(`   Personal:  ${getDemoEmail("admin")} / password123`);
+    console.log(`   Personal:  ${getDemoEmail("manager")} / password123`);
+    console.log(`   Personal:  ${getDemoEmail("tenant")} / password123`);
+    console.log(`   Personal:  ${getDemoEmail("vendor")} / password123`);
     console.log("   Corporate: EMP001 / password123");
     console.log("   Corporate: EMP002 / password123");
 

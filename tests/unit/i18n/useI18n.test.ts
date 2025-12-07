@@ -15,8 +15,8 @@
  */
 import React, { PropsWithChildren, useMemo, useState } from "react";
 import { renderHook, act } from "@testing-library/react";
-import { useI18n } from "./useI18n";
-import { I18nContext } from "./I18nProvider";
+import { useI18n } from "@/i18n/useI18n";
+import { I18nContext } from "@/i18n/I18nProvider";
 
 import { vi } from "vitest";
 type Dict = Record<string, unknown>;
