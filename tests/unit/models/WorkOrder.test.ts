@@ -227,6 +227,18 @@ describe('WorkOrder model - Multi-tenant Isolation', () => {
     const woNumber = 'WO-UNIQUE-001';
     const orgId = new mongoose.Types.ObjectId();
     
+    // Ensure the unique compound index exists (since autoIndex: false in schema)
+    // Drop any existing index first to avoid conflicts, then create
+    try {
+      await WorkOrder.collection.dropIndex('orgId_1_workOrderNumber_1');
+    } catch {
+      // Index may not exist, continue
+    }
+    await WorkOrder.collection.createIndex(
+      { orgId: 1, workOrderNumber: 1 },
+      { unique: true, background: false, name: 'orgId_1_workOrderNumber_1' }
+    );
+
     // Create first work order
     await WorkOrder.create(buildValidWorkOrder({ workOrderNumber: woNumber, orgId }));
     

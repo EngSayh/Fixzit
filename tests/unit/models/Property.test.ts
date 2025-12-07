@@ -177,6 +177,18 @@ describe('Property model - Multi-tenant Isolation', () => {
     const propCode = 'PROP-UNIQUE-001';
     const orgId = new mongoose.Types.ObjectId();
     
+    // Ensure the unique compound index exists (since autoIndex: false in schema)
+    // Drop any existing index first to avoid conflicts, then create
+    try {
+      await Property.collection.dropIndex('orgId_1_code_1');
+    } catch {
+      // Index may not exist, continue
+    }
+    await Property.collection.createIndex(
+      { orgId: 1, code: 1 },
+      { unique: true, background: false, name: 'orgId_1_code_1' }
+    );
+
     // Create first property
     await Property.create(buildValidProperty({ code: propCode, orgId }));
     
