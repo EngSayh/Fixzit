@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-01-21  
-**Version**: 1.3  
+**Last Updated**: 2025-12-07  
+**Version**: 1.4  
 **Scope**: Database index management across all models
 
 ---
@@ -1002,12 +1002,49 @@ await db.collection('souq_orders').updateOne(
 ## Next Steps
 
 1. ✅ Complete discovery and issue registration (THIS DOCUMENT)
-2. ⏳ External benchmarking research (Mongoose best practices)
-3. ⏳ Create detailed action plan with fix scripts
-4. ⏳ Execute fixes in priority order
-5. ⏳ Run verification: typecheck, lint, test, ensure-indexes
+2. ✅ External benchmarking research (Mongoose best practices)
+3. ✅ Create detailed action plan with fix scripts
+4. ✅ Execute fixes in priority order
+5. ✅ Run verification: typecheck, lint, test, ensure-indexes
 6. ⏳ Create feature branch and PR
 7. ⏳ Document in daily progress report
+
+---
+
+## Issues Fixed (2025-12-07 Audit)
+
+### ISSUE-009: z.any() Type Safety Bypass in Zod Schemas
+
+**Severity**: 🟧 MAJOR  
+**Category**: Type Safety, Security  
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Replaced `z.any()` with properly typed Zod schemas in 5 API routes.
+
+**Files Fixed**:
+- `app/api/billing/subscribe/route.ts` - items array now matches QuoteItem interface
+- `app/api/contracts/route.ts` - SLA schema properly typed with union types
+- `app/api/finance/expenses/[id]/route.ts` - lineItems with proper expense structure
+- `app/api/rfqs/route.ts` - specifications nested object properly typed
+- `app/api/marketplace/products/route.ts` - specs record with union value types
+
+**Impact**: Eliminates type safety bypass, improves validation, better IDE support.
+
+---
+
+### ISSUE-010: Deprecated FM Notification Engine (Dead Code)
+
+**Severity**: 🟩 MINOR  
+**Category**: Code Quality, Maintenance  
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Removed 1189 lines of deprecated dead code.
+
+**Files Removed**:
+- `services/notifications/fm-notification-engine.ts`
+- Updated `services/README.md` to remove references
+
+**Notes**: File was marked deprecated since 2025-12-01 with TODO to remove. Verified no imports via grep. The canonical system is `lib/fm-notifications.ts`.
 
 ---
 
