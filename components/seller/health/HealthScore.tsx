@@ -16,7 +16,7 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
       case "excellent":
         return "text-green-600";
       case "good":
-        return "text-blue-600";
+        return "text-primary";
       case "fair":
         return "text-yellow-600";
       case "poor":
@@ -31,7 +31,7 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
       case "excellent":
         return "bg-green-50";
       case "good":
-        return "bg-blue-50";
+        return "bg-primary/10";
       case "fair":
         return "bg-yellow-50";
       case "poor":

@@ -48,7 +48,7 @@ const ROLE_CONFIG: Partial<Record<Role, { label: string; color: string; descript
   },
   [Role.TEAM_MEMBER]: {
     label: "Team Member",
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    color: "bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light",
     description: "Corporate staff member with operational access",
   },
   [Role.TECHNICIAN]: {
@@ -141,7 +141,7 @@ export default function RoleBadge({
       {/* Sub-role badge (for Team Members) */}
       {subRole && normalizedRole === Role.TEAM_MEMBER && subRoleConfig && (
         <span
-          className={`inline-flex items-center rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ${sizeClass}`}
+          className={`inline-flex items-center rounded-full font-medium bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary-light border border-primary/20 dark:border-primary/30 ${sizeClass}`}
           title={showTooltip ? t("admin.subRoles.specializationTooltip", `Specialization: ${subRoleLabel}`, { subRole: subRoleLabel }) : undefined}
           role="status"
           aria-label={t("admin.subRoles.ariaLabel", `Sub-role: ${subRoleLabel}`, { subRole: subRoleLabel })}

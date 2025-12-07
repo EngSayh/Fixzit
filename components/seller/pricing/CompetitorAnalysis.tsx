@@ -45,7 +45,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
       </div>
 
       {/* Total Competitors */}
-      <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="text-center">
           <div className="text-3xl font-bold text-primary-dark">
             {analysis.totalOffers}

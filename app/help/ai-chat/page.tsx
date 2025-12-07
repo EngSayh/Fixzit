@@ -244,7 +244,7 @@ export default function AIChatPage() {
                   "Ask me anything about Fixzit...",
                   "input.placeholder",
                 )}
-                className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={isLoading}
               />
               <button

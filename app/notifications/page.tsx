@@ -808,7 +808,7 @@ export default function NotificationsPage() {
                       onChange={() =>
                         handleSelectNotification(String(notif.id || ""))
                       }
-                      className="mt-1 h-4 w-4 text-primary focus:ring-blue-500 border-border rounded"
+                      className="mt-1 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                       aria-label={t(
                         "notifications.accessibility.selectNotification",
                         "Select notification",

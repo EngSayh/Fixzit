@@ -661,7 +661,7 @@ export default function RecruitmentPage() {
                                   app.stage === "hired"
                                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                     : app.stage === "offer"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                      ? "bg-primary/10 text-primary dark:bg-primary/20/30 dark:text-primary"
                                       : app.stage === "interview"
                                         ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                                         : app.stage === "screening"
@@ -900,7 +900,7 @@ export default function RecruitmentPage() {
                                   interview.status === "completed"
                                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                     : interview.status === "scheduled"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                      ? "bg-primary/10 text-primary dark:bg-primary/20/30 dark:text-primary"
                                       : interview.status === "cancelled"
                                         ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                         : interview.status === "no-show"
@@ -1598,8 +1598,8 @@ export default function RecruitmentPage() {
                   </div>
                 </div>
 
-                <div className="bg-primary/5 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm text-primary-dark dark:text-blue-200">
+                <div className="bg-primary/5 dark:bg-primary/20/20 border border-primary/20 dark:border-primary/30 rounded-lg p-4">
+                  <p className="text-sm text-primary-dark dark:text-primary-light">
                     <span className="font-medium">Note:</span> Settings editing
                     UI will be enabled in Phase 3. Currently displaying
                     read-only configuration.

@@ -38,7 +38,7 @@ export default function KYCProgress({ currentStep, completedSteps }: Props) {
                     isCompleted
                       ? "bg-green-500 text-white"
                       : isCurrent
-                        ? "bg-blue-500 text-white"
+                        ? "bg-primary text-white"
                         : isActive
                           ? "bg-gray-300 text-gray-600"
                           : "bg-gray-200 text-gray-400"
@@ -56,7 +56,7 @@ export default function KYCProgress({ currentStep, completedSteps }: Props) {
                 <span
                   className={`
                   mt-2 text-sm font-medium
-                  ${isCurrent ? "text-blue-600" : isActive ? "text-gray-700" : "text-gray-400"}
+                  ${isCurrent ? "text-primary" : isActive ? "text-gray-700" : "text-gray-400"}
                 `}
                 >
                   {step.label}

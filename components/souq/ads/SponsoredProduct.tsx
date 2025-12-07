@@ -164,7 +164,7 @@ export function SponsoredProduct({
   return (
     <div
       ref={containerRef}
-      className="relative bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden group"
+      className="relative bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-200 overflow-hidden group"
     >
       {/* Sponsored Badge */}
       <div className="absolute top-2 end-2 z-10">
@@ -254,7 +254,7 @@ export function SponsoredProduct({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       )}
     </div>

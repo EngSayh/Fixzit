@@ -223,7 +223,7 @@ export default function SearchBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setShowDropdown(true)}
           placeholder={placeholder}
-          className="block w-full ps-10 pe-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="block w-full ps-10 pe-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
         />
 
         {query && (
@@ -244,7 +244,7 @@ export default function SearchBar({
         >
           {isLoading ? (
             <div className="p-4 text-center text-gray-500">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : suggestions.length > 0 ? (
             <ul className="py-2">

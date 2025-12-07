@@ -229,7 +229,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 onClick={() => setDatePreset(preset.value as DatePreset)}
                 className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                   datePreset === preset.value
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -384,7 +384,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             }}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               activeView === "keywords"
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             }`}
           >
@@ -397,7 +397,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             }}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               activeView === "products"
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             }`}
           >
@@ -632,7 +632,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                       onClick={() => setCurrentPage(page)}
                       className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                         currentPage === page
-                          ? "bg-blue-600 text-white"
+                          ? "bg-primary text-white"
                           : "border border-gray-300 hover:bg-gray-50"
                       }`}
                     >
