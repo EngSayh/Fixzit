@@ -533,11 +533,10 @@ export const authConfig = {
           const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && 
             Boolean((user as { __isTestUser?: boolean }).__isTestUser || (user as { __isDemoUser?: boolean }).__isDemoUser);
           // OTP bypass works in:
-          // 1. Development mode with explicit bypass for superadmin
-          // 2. Production with NEXTAUTH_BYPASS_OTP_ALL AND explicit bypass for superadmin  
-          // 3. Test user bypass when enabled
-          const bypassOTP = (isSuperAdmin && explicitBypass && (isDevelopment || productionBypassEnabled)) ||
-                            testUserBypass;
+          // 1. Superadmin with explicit bypass (dev OR production with BYPASS_OTP_ALL)
+          // 2. Test/demo user bypass when enabled
+          const superAdminBypass = isSuperAdmin && explicitBypass && (isDevelopment || productionBypassEnabled);
+          const bypassOTP = superAdminBypass || testUserBypass;
           const otpProvided = Boolean(otpToken);
 
           if (REQUIRE_SMS_OTP && !bypassOTP) {

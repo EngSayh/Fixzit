@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
   });
   if (limited) return limited;
 
+  // Extract client IP for audit logging
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
+
   try {
     // 1. Parse and validate request body
     const body = await request.json();
@@ -150,17 +157,22 @@ export async function POST(request: NextRequest) {
     );
 
     // PRODUCTION OTP BYPASS: Check for bypass OTP first
-    // SECURITY: This should only be enabled with additional security controls
-    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE || '000000';
+    // SECURITY: Require explicit bypass code configuration (no weak defaults)
+    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
+    const bypassEnabled = Boolean(bypassCode && bypassCode.length >= 12);
     
     // Check if this is a bypass verification
     const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
     const bypassData = await redisOtpStore.get(bypassOtpKey);
     
-    if (bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
-      logger.warn("[OTP] Bypass OTP verified", {
+    if (bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+      // SECURITY AUDIT: Log bypass verification for security monitoring
+      logger.warn("[OTP] SECURITY AUDIT: Bypass OTP verified", {
         identifier: redactIdentifier(loginIdentifier),
         orgId: orgScopeId,
+        clientIp,
+        timestamp: new Date().toISOString(),
+        action: 'OTP_BYPASS_VERIFY',
       });
       
       // Clean up bypass OTP

@@ -393,7 +393,33 @@ export async function POST(request: NextRequest) {
       
       // Return success response without sending actual SMS
       // The OTP verify endpoint will also need to handle bypass
-      const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE || '000000';
+      const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
+      
+      // SECURITY: Require explicit bypass code configuration (no weak defaults)
+      if (!bypassCode) {
+        logger.error("[OTP] Bypass enabled but NEXTAUTH_BYPASS_OTP_CODE not configured", {
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "OTP bypass not properly configured" },
+          { status: 500 },
+        );
+      }
+      
+      // SECURITY: Enforce minimum bypass code length in production (12+ chars)
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction && bypassCode.length < 12) {
+        logger.error("[OTP] SECURITY: Bypass code too short for production", {
+          identifier: redactIdentifier(identifierRaw),
+          codeLength: bypassCode.length,
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "OTP bypass not properly configured" },
+          { status: 500 },
+        );
+      }
       
       // Store bypass OTP in Redis so verify endpoint can validate it
       const bypassOtpKey = `otp:bypass:${normalizedIdForCheck}`;
@@ -408,6 +434,16 @@ export async function POST(request: NextRequest) {
         __bypassed: true,
       });
       
+      // SECURITY AUDIT: Log bypass usage for security monitoring
+      logger.warn("[OTP] SECURITY AUDIT: OTP bypass activated", {
+        identifier: redactIdentifier(identifierRaw),
+        isSuperadmin: isSuperadminEmail,
+        isDemoOrTest: isDemoOrTestUser,
+        clientIp,
+        timestamp: new Date().toISOString(),
+        action: 'OTP_BYPASS_SEND',
+      });
+      
       return NextResponse.json({
         success: true,
         message: "OTP sent successfully",
@@ -415,8 +451,8 @@ export async function POST(request: NextRequest) {
           phone: "****BYPASS",
           expiresIn: OTP_EXPIRY_MS / 1000,
           attemptsRemaining: MAX_ATTEMPTS,
-          // SECURITY: Only expose bypass code in development mode, NEVER in production
-          ...(smsDevMode ? { devCode: bypassCode, __bypassed: true } : {}),
+          // SECURITY: Only expose bypass code in dev mode AND non-production
+          ...(smsDevMode && !isProduction ? { devCode: bypassCode, __bypassed: true } : {}),
         },
       });
     }
