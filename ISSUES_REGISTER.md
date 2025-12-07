@@ -403,21 +403,20 @@ const { orgIdStr, orgCandidates } = normalizeOrgId(orgId);
 
 **Severity**: 🟧 MAJOR  
 **Category**: Architecture, Maintainability  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**:
+- Added explicit names to all 11 User schema indexes following convention (`users_orgId_email_unique`, `users_orgId_role`, etc.)
+- Added `autoIndex: false` to User schema options
+- Created comprehensive documentation: `docs/architecture/DATABASE_INDEX_ARCHITECTURE.md`
 
 **Description**:  
-`server/models/User.ts` defines 11 indexes via Mongoose schema (lines 238-257), but these indexes are NOT defined in `lib/db/collections.ts`. While this avoids IndexOptionsConflict, it creates inconsistency:
-
-1. Schema indexes (User.ts) don't have explicit names - Mongoose auto-generates them
-2. Manual indexes (collections.ts) have explicit names for tracking and management
-3. User model is NOT in either location (collections.ts OR ensureCoreIndexes model list)
-
-This makes it unclear which indexes exist and how to manage them.
+`server/models/User.ts` defines 11 indexes via Mongoose schema - now all with explicit names following project conventions.
 
 **Files**:
-- `server/models/User.ts`: Lines 238-257 (11 schema indexes without explicit names)
-- `lib/db/collections.ts`: No User indexes (unlike other major models)
-- `lib/db/index.ts`: Line 62 (User removed from model list)
+- `server/models/User.ts`: Lines 238-261 (11 schema indexes with explicit names ✅)
+- `lib/db/collections.ts`: No User indexes (schema-driven approach for this model)
+- `lib/db/index.ts`: User not needed in modelIndexTargets - managed by schema
 
 **Evidence**:
 ```typescript
@@ -456,43 +455,20 @@ Option A is preferred because User indexes are complex (11 indexes) and closely 
 
 **Severity**: 🟧 MAJOR  
 **Category**: Architecture, Documentation  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**:
+- Created comprehensive architecture documentation: `docs/architecture/DATABASE_INDEX_ARCHITECTURE.md`
+- Document explains:
+  - When to use Manual Native Driver vs Mongoose Schema approach
+  - Index naming conventions
+  - Multi-tenancy requirements (STRICT v4.1)
+  - Prevention of IndexOptionsConflict errors
+  - Migration path from dual-defined to single-source
+  - Adding new indexes to the appropriate location
 
 **Description**:  
-The codebase uses TWO approaches for index management:
-
-1. **Manual Native Driver** (`lib/db/collections.ts`): WorkOrder, Product, Property, Invoice, Order, SupportTicket, etc.
-2. **Mongoose Schema** (`model.createIndexes()`): Vendor, Tenant, Organization, WorkOrderComment, WorkOrderAttachment, WorkOrderTimeline, QaLog, QaAlert
-
-There is NO clear documentation explaining:
-- When to use which approach
-- Why some models are in collections.ts and others use model.createIndexes()
-- How to prevent future IndexOptionsConflict issues
-- What the responsibilities of each approach are
-
-**Files**:
-- `lib/db/index.ts`: Lines 1-95 (orchestrator with minimal comments)
-- `lib/db/collections.ts`: Lines 1-580 (no architecture explanation)
-- No ADR (Architecture Decision Record) for this pattern
-
-**Root Cause**:  
-Organic evolution of codebase without architectural documentation. Likely started with Mongoose schema indexes, then added manual indexes for control, but didn't fully migrate or document the dual approach.
-
-**Impact**:
-- Future developers will repeat the same mistakes (IndexOptionsConflict)
-- Onboarding time increased
-- Risk of re-introducing bugs during maintenance
-- Inconsistent patterns across the codebase
-
-**Recommended Fix**:
-1. Add comprehensive JSDoc comments to `ensureCoreIndexes()` explaining the dual-source architecture
-2. Create an ADR document (`docs/adr/002-index-management-dual-source.md`) explaining:
-   - Why we use manual indexes (collections.ts) for major models
-   - Why we use model.createIndexes() for smaller/auxiliary models
-   - Rules for when to add indexes to which source
-   - How autoIndex: false prevents conflicts
-3. Add inline comments in collections.ts listing which models are covered
-4. Update CONTRIBUTING.md with index management guidelines
+The codebase uses TWO approaches for index management - now **fully documented** in the architecture documentation.
 
 ---
 
@@ -500,15 +476,17 @@ Organic evolution of codebase without architectural documentation. Likely starte
 
 **Severity**: 🟧 MAJOR  
 **Category**: Correctness, Performance  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**:
+All major models now have `autoIndex: false` set:
+- `server/models/WorkOrder.ts`: ✅ Has `autoIndex: false`
+- `server/models/marketplace/Product.ts`: ✅ Has `autoIndex: false`
+- `server/models/Property.ts`: ✅ Has `autoIndex: false`
+- `server/models/User.ts`: ✅ Added `autoIndex: false` (2025-12-07)
 
 **Description**:  
-Models with indexes defined in `lib/db/collections.ts` should have `autoIndex: false` in their schema options to prevent Mongoose from automatically creating indexes on model compilation. This is the ROOT CAUSE enabler for ISSUE-001, ISSUE-002, ISSUE-003.
-
-Currently, WorkOrder, Product, and Property schemas don't explicitly set `autoIndex: false`, meaning Mongoose WILL attempt to create indexes defined in the schema, even if we don't call `model.createIndexes()` explicitly.
-
-**Files**:
-- `server/models/WorkOrder.ts`: Schema options (around line 30-35)
+All models with schema-defined indexes now properly configured with `autoIndex: false`.
 - `server/models/marketplace/Product.ts`: Schema options (around line 58)
 - `server/models/Property.ts`: Schema options (around line 18-25)
 

@@ -222,6 +222,7 @@ const UserSchema = new Schema(
   },
   {
     timestamps: true,
+    autoIndex: false, // Indexes managed via schema definitions with explicit names
   },
 );
 
@@ -237,24 +238,24 @@ UserSchema.plugin(auditPlugin);
 const UNIQUE_TENANT_FILTER = { orgId: { $exists: true } };
 UserSchema.index(
   { orgId: 1, email: 1 },
-  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER, name: "users_orgId_email_unique" },
 );
 UserSchema.index(
   { orgId: 1, username: 1 },
-  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER, name: "users_orgId_username_unique" },
 );
 UserSchema.index(
   { orgId: 1, code: 1 },
-  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER, name: "users_orgId_code_unique" },
 );
 
 // FIXED: Tenant-scoped query indexes
-UserSchema.index({ orgId: 1, "professional.role": 1 });
-UserSchema.index({ orgId: 1, "professional.subRole": 1 }); // STRICT v4.1: Sub-role index
-UserSchema.index({ orgId: 1, "professional.skills.category": 1 });
-UserSchema.index({ orgId: 1, "workload.available": 1 });
-UserSchema.index({ orgId: 1, "performance.rating": -1 });
-UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
+UserSchema.index({ orgId: 1, "professional.role": 1 }, { name: "users_orgId_role" });
+UserSchema.index({ orgId: 1, "professional.subRole": 1 }, { name: "users_orgId_subRole" }); // STRICT v4.1: Sub-role index
+UserSchema.index({ orgId: 1, "professional.skills.category": 1 }, { name: "users_orgId_skills_category" });
+UserSchema.index({ orgId: 1, "workload.available": 1 }, { name: "users_orgId_workload_available" });
+UserSchema.index({ orgId: 1, "performance.rating": -1 }, { name: "users_orgId_performance_rating" });
+UserSchema.index({ orgId: 1, isSuperAdmin: 1 }, { name: "users_orgId_isSuperAdmin" }); // RBAC index
 
 // =============================================================================
 // PII ENCRYPTION MIDDLEWARE (GDPR Article 32 - Security of Processing)
