@@ -7,6 +7,7 @@ import { SouqReview, type IReview } from "@/server/models/souq/Review";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { isSouqModeratorRole } from "@/types/user";
 import { nanoid } from "nanoid";
 import type mongoose from "mongoose";
 import { Types, type FilterQuery } from "mongoose";
@@ -16,18 +17,9 @@ const MAX_PAGE_LIMIT = 100;
 // 🛡️ Moderation: Number of unique reports before auto-flagging a review
 const REPORT_FLAG_THRESHOLD = 3;
 
-// 🔐 STRICT v4.1: Roles allowed to moderate reviews
-const MODERATOR_ROLES = new Set([
-  "SUPER_ADMIN",
-  "ADMIN",
-  "CORPORATE_ADMIN",
-  "SOUQ_ADMIN",
-  "MARKETPLACE_MODERATOR",
-]);
-
-// Helper to validate moderator role
+// 🔐 STRICT v4.1: Helper to validate moderator role (uses centralized types/user.ts)
 const assertModeratorRole = (role: string | undefined | null): void => {
-  if (!role || !MODERATOR_ROLES.has(role.toUpperCase())) {
+  if (!isSouqModeratorRole(role)) {
     throw new Error("Unauthorized: Moderator role required");
   }
 };
@@ -76,12 +68,16 @@ export interface PaginatedReviews {
   totalPages: number;
 }
 
+// 🚀 PERF: Lean review type for read-only queries (better performance)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeanReview = Record<string, any>;
+
 export interface ReviewStats {
   averageRating: number;
   totalReviews: number;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
   verifiedPurchaseCount: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 export interface SellerReviewStats {
@@ -89,7 +85,7 @@ export interface SellerReviewStats {
   totalReviews: number;
   pendingResponses: number;
   responseRate: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 class ReviewService {
@@ -772,13 +768,15 @@ class ReviewService {
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    // 🚀 PERF: Use .lean() for read-only data
     const recentReviews = await SouqReview.find({
       productId: { $in: [productObjectId, productId] },
       status: "published",
       ...orgFilter,
     })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .lean();
 
     return {
       averageRating,
@@ -855,7 +853,7 @@ class ReviewService {
       totalReviews,
       pendingResponses,
       responseRate,
-      recentReviews: recentReviews as unknown as IReview[],
+      recentReviews,
     };
   }
 

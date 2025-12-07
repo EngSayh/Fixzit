@@ -31,6 +31,10 @@ export const UserRole = {
   SUPPORT_AGENT: "SUPPORT_AGENT", // Support + CRM + reports
   OPERATIONS_MANAGER: "OPERATIONS_MANAGER", // Wider scope: WO + Properties + Support
   
+  // Souq Marketplace Roles (2) - Moderator roles for marketplace
+  SOUQ_ADMIN: "SOUQ_ADMIN", // Full Souq admin access
+  MARKETPLACE_MODERATOR: "MARKETPLACE_MODERATOR", // Review/listing moderation
+  
   // Property & External Roles (4)
   OWNER: "OWNER",
   TENANT: "TENANT",
@@ -85,6 +89,8 @@ export const CANONICAL_ROLES = [
   UserRole.HR_OFFICER,
   UserRole.SUPPORT_AGENT,
   UserRole.OPERATIONS_MANAGER,
+  UserRole.SOUQ_ADMIN,
+  UserRole.MARKETPLACE_MODERATOR,
   UserRole.OWNER,
   UserRole.TENANT,
   UserRole.VENDOR,
@@ -138,6 +144,20 @@ export const TEAM_MEMBER_SUB_ROLES = [
 // Helper to check if a role is a specialized sub-role
 export const isSubRole = (role: UserRoleType): boolean =>
   (TEAM_MEMBER_SUB_ROLES as readonly string[]).includes(role);
+
+// 🔐 STRICT v4.1: Souq Marketplace Moderator Roles
+// Roles allowed to moderate reviews, listings, claims, and ads
+export const SOUQ_MODERATOR_ROLES = new Set([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "CORPORATE_ADMIN",
+  "SOUQ_ADMIN",
+  "MARKETPLACE_MODERATOR",
+] as const);
+
+// Helper to check if a role can moderate Souq content
+export const isSouqModeratorRole = (role: string | undefined | null): boolean =>
+  !!role && SOUQ_MODERATOR_ROLES.has(role.toUpperCase() as typeof SOUQ_MODERATOR_ROLES extends Set<infer T> ? T : never);
 
 export const PROPERTY_ROLES = [
   UserRole.OWNER,
