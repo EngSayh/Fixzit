@@ -1,8 +1,15 @@
 // ⚡ PERFORMANCE OPTIMIZATION: Demo credentials split into separate component
-// This component is lazy-loaded and only shown in development
+// This component is lazy-loaded and only shown in development/preview
 // Reduces initial login page bundle by ~5-10KB
+// 🔒 SECURITY: Gated by NEXT_PUBLIC_SHOW_DEMO_CREDS environment variable
 
 import { ArrowRight, Shield, User, Building2, Users } from "lucide-react";
+
+// 🔒 SECURITY: Check if demo credentials should be shown
+// Only true in development or if explicitly enabled via env var
+const SHOW_DEMO_CREDS =
+  process.env.NODE_ENV === "development" ||
+  process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true";
 
 interface DemoCredential {
   role: string;
@@ -14,68 +21,74 @@ interface DemoCredential {
   color: string;
 }
 
-const DEMO_CREDENTIALS: DemoCredential[] = [
-  {
-    role: "Super Admin",
-    email: "superadmin@fixzit.co",
-    password: "admin123",
-    description: "Full system access",
-    icon: Shield,
-    color:
-      "bg-destructive/10 text-destructive-foreground border-destructive/20",
-  },
-  {
-    role: "Admin",
-    email: "admin@fixzit.co",
-    password: "password123",
-    description: "Administrative access",
-    icon: User,
-    color: "bg-primary/10 text-primary-foreground border-primary/20",
-  },
-  {
-    role: "Property Manager",
-    email: "manager@fixzit.co",
-    password: "password123",
-    description: "Property management",
-    icon: Building2,
-    color: "bg-success/10 text-success-foreground border-success/20",
-  },
-  {
-    role: "Tenant",
-    email: "tenant@fixzit.co",
-    password: "password123",
-    description: "Tenant portal access",
-    icon: Users,
-    color: "bg-secondary/10 text-secondary-foreground border-secondary/20",
-  },
-  {
-    role: "Vendor",
-    email: "vendor@fixzit.co",
-    password: "password123",
-    description: "Vendor marketplace access",
-    icon: Users,
-    color: "bg-warning/10 text-warning-foreground border-warning/20",
-  },
-];
+// Only define credentials if we're going to show them
+// This ensures they're tree-shaken out of production builds when disabled
+const DEMO_CREDENTIALS: DemoCredential[] = SHOW_DEMO_CREDS
+  ? [
+      {
+        role: "Super Admin",
+        email: "superadmin@fixzit.co",
+        password: "admin123",
+        description: "Full system access",
+        icon: Shield,
+        color:
+          "bg-destructive/10 text-destructive-foreground border-destructive/20",
+      },
+      {
+        role: "Admin",
+        email: "admin@fixzit.co",
+        password: "password123",
+        description: "Administrative access",
+        icon: User,
+        color: "bg-primary/10 text-primary-foreground border-primary/20",
+      },
+      {
+        role: "Property Manager",
+        email: "manager@fixzit.co",
+        password: "password123",
+        description: "Property management",
+        icon: Building2,
+        color: "bg-success/10 text-success-foreground border-success/20",
+      },
+      {
+        role: "Tenant",
+        email: "tenant@fixzit.co",
+        password: "password123",
+        description: "Tenant portal access",
+        icon: Users,
+        color: "bg-secondary/10 text-secondary-foreground border-secondary/20",
+      },
+      {
+        role: "Vendor",
+        email: "vendor@fixzit.co",
+        password: "password123",
+        description: "Vendor marketplace access",
+        icon: Users,
+        color: "bg-warning/10 text-warning-foreground border-warning/20",
+      },
+    ]
+  : [];
 
-const CORPORATE_CREDENTIALS: DemoCredential[] = [
-  {
-    role: "Property Manager (Corporate)",
-    employeeNumber: "EMP001",
-    password: "password123",
-    description: "Corporate account access",
-    icon: Building2,
-    color: "bg-success/10 text-success-foreground border-success/20",
-  },
-  {
-    role: "Admin (Corporate)",
-    employeeNumber: "EMP002",
-    password: "password123",
-    description: "Corporate administrative access",
-    icon: User,
-    color: "bg-primary/10 text-primary-foreground border-primary/20",
-  },
-];
+const CORPORATE_CREDENTIALS: DemoCredential[] = SHOW_DEMO_CREDS
+  ? [
+      {
+        role: "Property Manager (Corporate)",
+        employeeNumber: "EMP001",
+        password: "password123",
+        description: "Corporate account access",
+        icon: Building2,
+        color: "bg-success/10 text-success-foreground border-success/20",
+      },
+      {
+        role: "Admin (Corporate)",
+        employeeNumber: "EMP002",
+        password: "password123",
+        description: "Corporate administrative access",
+        icon: User,
+        color: "bg-primary/10 text-primary-foreground border-primary/20",
+      },
+    ]
+  : [];
 
 interface DemoCredentialsSectionProps {
   isRTL: boolean;
@@ -90,6 +103,8 @@ export default function DemoCredentialsSection({
   quickLogin,
   t,
 }: DemoCredentialsSectionProps) {
+  // 🔒 SECURITY: Don't render anything if demo credentials are disabled
+  if (!SHOW_DEMO_CREDS) return null;
   if (loginMethod === "sso") return null;
 
   return (

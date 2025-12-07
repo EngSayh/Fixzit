@@ -33,7 +33,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: privacy@fixzit.com | Phone: +971 XX XXX XXXX`;
+For privacy inquiries: privacy@fixzit.com | Phone: +966 XX XXX XXXX`;
 
 /**
  * Privacy Policy Page (Public View)

@@ -2,6 +2,7 @@ import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { getModel } from "@/types/mongoose-compat";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * PlatformSettings Model
@@ -48,8 +49,8 @@ const PlatformSettingsSchema = new Schema(
     },
     brandColor: {
       type: String,
-      default: "#3b82f6",
-      comment: "Primary brand color (hex format)",
+      default: BRAND_COLORS.primary,
+      comment: "Primary brand color (hex format) - Business.sa blue",
     },
     // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
   },

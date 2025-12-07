@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * GET /api/settings/logo
@@ -31,14 +32,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         logoUrl: null,
         brandName: "Fixzit Enterprise",
-        brandColor: "#3b82f6",
+        brandColor: BRAND_COLORS.primary,
       });
     }
 
     return NextResponse.json({
       logoUrl: settings.logoUrl,
       brandName: settings.brandName || "Fixzit Enterprise",
-      brandColor: settings.brandColor || "#3b82f6",
+      brandColor: settings.brandColor || BRAND_COLORS.primary,
     });
   } catch (error) {
     logger.error("[GET /api/settings/logo] Error", error as Error);
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       logoUrl: null,
       brandName: "Fixzit Enterprise",
-      brandColor: "#3b82f6",
+      brandColor: BRAND_COLORS.primary,
     });
   }
 }

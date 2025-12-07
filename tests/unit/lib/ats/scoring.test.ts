@@ -7,7 +7,7 @@ import {
   extractSkillsFromText,
   calculateExperienceFromText,
   scoreApplication,
-} from "./scoring";
+} from "@/lib/ats/scoring";
 
 describe("extractSkillsFromText", () => {
   it("returns empty array for empty or falsy input", () => {
