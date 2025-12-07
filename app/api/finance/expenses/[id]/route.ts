@@ -104,7 +104,14 @@ const UpdateExpenseSchema = z.object({
   dueDate: z.coerce.date().optional(),
   description: z.string().optional(),
   notes: z.string().optional(),
-  lineItems: z.array(z.any()).optional(), // Simplified for update
+  lineItems: z.array(z.object({
+    description: z.string().optional(),
+    quantity: z.number().nonnegative().optional(),
+    unitPrice: z.number().nonnegative().optional(),
+    amount: z.number().nonnegative().optional(),
+    taxRate: z.number().nonnegative().optional(),
+    accountId: z.string().optional(),
+  })).optional(),
   subtotal: z.number().optional(),
   totalTax: z.number().optional(),
   totalAmount: z.number().optional(),

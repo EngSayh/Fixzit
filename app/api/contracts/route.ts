@@ -48,7 +48,7 @@ const contractSchema = z.object({
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   terms: z.string().min(1),
-  sla: z.record(z.string(), z.any()).optional(),
+  sla: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
 });
 
 /**

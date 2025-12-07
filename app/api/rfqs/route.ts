@@ -40,7 +40,7 @@ const createRFQSchema = z.object({
         description: z.string(),
         quantity: z.number(),
         unit: z.string(),
-        specifications: z.any().optional(),
+        specifications: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
       }),
     )
     .optional(),
