@@ -149,6 +149,44 @@ export async function POST(request: NextRequest) {
       orgScopeId,
     );
 
+    // PRODUCTION OTP BYPASS: Check for bypass OTP first
+    // SECURITY: This should only be enabled with additional security controls
+    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE || '000000';
+    
+    // Check if this is a bypass verification
+    const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
+    const bypassData = await redisOtpStore.get(bypassOtpKey);
+    
+    if (bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+      logger.warn("[OTP] Bypass OTP verified", {
+        identifier: redactIdentifier(loginIdentifier),
+        orgId: orgScopeId,
+      });
+      
+      // Clean up bypass OTP
+      await redisOtpStore.delete(bypassOtpKey);
+      
+      // Generate temporary OTP login session token
+      const sessionToken = randomBytes(32).toString("hex");
+      await redisOtpSessionStore.set(sessionToken, {
+        userId: bypassData.userId,
+        identifier: loginIdentifier,
+        orgId: bypassData.orgId || orgScopeId,
+        companyCode: bypassData.companyCode || normalizedCompanyCode,
+        expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        __bypassed: true,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpSession: sessionToken,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+        },
+      });
+    }
+
     // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
     const otpData = await redisOtpStore.get(otpKey);
 

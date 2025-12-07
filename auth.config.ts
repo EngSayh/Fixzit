@@ -527,8 +527,15 @@ export const authConfig = {
           // 8. Enforce OTP session usage unless explicitly disabled, or OTP token provided for passwordless flow
           const isDevelopment = process.env.NODE_ENV !== 'production';
           const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
-          // OTP bypass only works in development mode - production always requires real OTP
-          const bypassOTP = isSuperAdmin && isDevelopment && explicitBypass;
+          // PRODUCTION OTP BYPASS: Allow bypassing OTP for authorized users in production
+          // SECURITY: This should only be enabled with additional security controls (IP allowlisting, etc.)
+          const productionBypassEnabled = process.env.NEXTAUTH_BYPASS_OTP_ALL === 'true';
+          const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && 
+            Boolean((user as { __isTestUser?: boolean }).__isTestUser || (user as { __isDemoUser?: boolean }).__isDemoUser);
+          // OTP bypass works in development mode OR when production bypass is explicitly enabled for authorized users
+          const bypassOTP = (isSuperAdmin && (isDevelopment || productionBypassEnabled) && explicitBypass) || 
+                            (productionBypassEnabled && isSuperAdmin) ||
+                            testUserBypass;
           const otpProvided = Boolean(otpToken);
 
           if (REQUIRE_SMS_OTP && !bypassOTP) {
