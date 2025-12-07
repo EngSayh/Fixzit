@@ -79,6 +79,8 @@ export interface OTPData {
   phone: string;
   orgId?: string | null;
   companyCode?: string | null;
+  /** Indicates this OTP was created via production bypass for authorized users */
+  __bypassed?: boolean;
 }
 
 export interface RateLimitData {
@@ -92,6 +94,8 @@ export interface OTPLoginSession {
   orgId?: string | null;
   companyCode?: string | null;
   expiresAt: number;
+  /** Indicates this session was created via production bypass for authorized users */
+  __bypassed?: boolean;
 }
 
 // Constants (imported from otp-store for consistency)

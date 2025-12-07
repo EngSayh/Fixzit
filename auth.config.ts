@@ -527,8 +527,41 @@ export const authConfig = {
           // 8. Enforce OTP session usage unless explicitly disabled, or OTP token provided for passwordless flow
           const isDevelopment = process.env.NODE_ENV !== 'production';
           const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
-          // OTP bypass only works in development mode - production always requires real OTP
-          const bypassOTP = isSuperAdmin && isDevelopment && explicitBypass;
+          // PRODUCTION OTP BYPASS: Allow bypassing OTP for authorized users in production
+          // SECURITY: This should only be enabled with additional security controls (IP allowlisting, etc.)
+          const productionBypassEnabled = process.env.NEXTAUTH_BYPASS_OTP_ALL === 'true';
+          
+          // SECURITY FIX (Gemini review): Check identifier against test user configs instead of 
+          // relying on __isTestUser/__isDemoUser properties which aren't on DB user objects.
+          // These known test/demo identifiers must match the same sets defined in otp/send/route.ts
+          const demoEmails = new Set([
+            'superadmin@fixzit.co', 'admin@fixzit.co', 'manager@fixzit.co', 'tenant@fixzit.co',
+            'vendor@fixzit.co', 'corp.admin@fixzit.co', 'property.manager@fixzit.co',
+            'dispatcher@fixzit.co', 'supervisor@fixzit.co', 'technician@fixzit.co',
+            'vendor.admin@fixzit.co', 'vendor.tech@fixzit.co', 'owner@fixzit.co',
+            'finance@fixzit.co', 'hr@fixzit.co', 'helpdesk@fixzit.co', 'auditor@fixzit.co',
+          ]);
+          const demoEmployeeIds = new Set(['EMP001', 'EMP002', 'SA001', 'SA-001', 'SUPER-001', 'MGR-001', 'TENANT-001', 'VENDOR-001']);
+          const testUserConfigs = [
+            process.env.TEST_SUPERADMIN_IDENTIFIER,
+            process.env.TEST_ADMIN_IDENTIFIER,
+            process.env.TEST_MANAGER_IDENTIFIER,
+            process.env.TEST_TECHNICIAN_IDENTIFIER,
+            process.env.TEST_TENANT_IDENTIFIER,
+            process.env.TEST_VENDOR_IDENTIFIER,
+          ].filter(Boolean).map(id => id?.toLowerCase());
+          
+          const normalizedLoginId = loginIdentifier.toLowerCase();
+          const isTestOrDemoUser = demoEmails.has(normalizedLoginId) ||
+            demoEmployeeIds.has(loginIdentifier.toUpperCase()) ||
+            testUserConfigs.includes(normalizedLoginId);
+          const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && isTestOrDemoUser;
+          
+          // OTP bypass works in:
+          // 1. Superadmin with explicit bypass (dev OR production with BYPASS_OTP_ALL)
+          // 2. Test/demo user bypass when enabled
+          const superAdminBypass = isSuperAdmin && explicitBypass && (isDevelopment || productionBypassEnabled);
+          const bypassOTP = superAdminBypass || testUserBypass;
           const otpProvided = Boolean(otpToken);
 
           if (REQUIRE_SMS_OTP && !bypassOTP) {

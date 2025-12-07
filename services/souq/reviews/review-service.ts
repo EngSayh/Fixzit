@@ -7,6 +7,7 @@ import { SouqReview, type IReview } from "@/server/models/souq/Review";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { isSouqModeratorRole } from "@/types/user";
 import { nanoid } from "nanoid";
 import type mongoose from "mongoose";
 import { Types, type FilterQuery } from "mongoose";
@@ -16,18 +17,9 @@ const MAX_PAGE_LIMIT = 100;
 // 🛡️ Moderation: Number of unique reports before auto-flagging a review
 const REPORT_FLAG_THRESHOLD = 3;
 
-// 🔐 STRICT v4.1: Roles allowed to moderate reviews
-const MODERATOR_ROLES = new Set([
-  "SUPER_ADMIN",
-  "ADMIN",
-  "CORPORATE_ADMIN",
-  "SOUQ_ADMIN",
-  "MARKETPLACE_MODERATOR",
-]);
-
-// Helper to validate moderator role
+// 🔐 STRICT v4.1: Helper to validate moderator role (uses centralized types/user.ts)
 const assertModeratorRole = (role: string | undefined | null): void => {
-  if (!role || !MODERATOR_ROLES.has(role.toUpperCase())) {
+  if (!isSouqModeratorRole(role)) {
     throw new Error("Unauthorized: Moderator role required");
   }
 };
@@ -76,12 +68,16 @@ export interface PaginatedReviews {
   totalPages: number;
 }
 
+// 🚀 PERF: Lean review type for read-only queries (better performance)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeanReview = Record<string, any>;
+
 export interface ReviewStats {
   averageRating: number;
   totalReviews: number;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
   verifiedPurchaseCount: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 export interface SellerReviewStats {
@@ -89,7 +85,7 @@ export interface SellerReviewStats {
   totalReviews: number;
   pendingResponses: number;
   responseRate: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 class ReviewService {
@@ -396,8 +392,9 @@ class ReviewService {
       await review.save();
     }
 
-    // 🚫 Privacy: do not return reporter identities to callers
+    // 🚫 Privacy: do not return reporter identities or report details to callers
     delete (review as { reporters?: unknown }).reporters;
+    delete (review as { reportReasons?: unknown }).reportReasons;
 
     return review;
   }
@@ -771,13 +768,15 @@ class ReviewService {
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
     // 🔐 STRICT v4.1: Include org filter for tenant isolation
+    // 🚀 PERF: Use .lean() for read-only data
     const recentReviews = await SouqReview.find({
       productId: { $in: [productObjectId, productId] },
       status: "published",
       ...orgFilter,
     })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .lean();
 
     return {
       averageRating,
@@ -854,7 +853,7 @@ class ReviewService {
       totalReviews,
       pendingResponses,
       responseRate,
-      recentReviews: recentReviews as unknown as IReview[],
+      recentReviews,
     };
   }
 
@@ -887,6 +886,12 @@ class ReviewService {
     return products.map((product) => product._id);
   }
 
+  /**
+   * Validates and converts a string ID to a Mongoose ObjectId
+   * @param id - The string ID to convert
+   * @param fieldName - The field name for error messages
+   * @throws Error if the ID is not a valid ObjectId format
+   */
   private ensureObjectId(
     id: string,
     fieldName: string,
@@ -897,12 +902,23 @@ class ReviewService {
     return new Types.ObjectId(id);
   }
 
+  /**
+   * Validates that rating is an integer between 1 and 5
+   * @param rating - The rating value to validate
+   * @throws Error if rating is not an integer or out of range
+   */
   private assertRatingRange(rating: number): void {
-    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      throw new Error("Rating must be between 1 and 5");
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new Error("Rating must be an integer between 1 and 5");
     }
   }
 
+  /**
+   * Updates product aggregate statistics after review changes
+   * Recalculates average rating, total reviews, and rating distribution
+   * @param productId - The product ObjectId to update
+   * @param orgId - Organization ID for tenant isolation
+   */
   private async updateProductAggregates(
     productId: mongoose.Types.ObjectId,
     orgId: string,

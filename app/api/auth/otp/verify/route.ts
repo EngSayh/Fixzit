@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
   });
   if (limited) return limited;
 
+  // Extract client IP for audit logging
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
+
   try {
     // 1. Parse and validate request body
     const body = await request.json();
@@ -148,6 +155,86 @@ export async function POST(request: NextRequest) {
       empOk ? normalizedCompanyCode : null,
       orgScopeId,
     );
+
+    // PRODUCTION OTP BYPASS: Check for bypass OTP first
+    // SECURITY: Require explicit bypass code configuration (no weak defaults)
+    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
+    const bypassEnabled = Boolean(bypassCode && bypassCode.length >= 12);
+    
+    // Check if this is a bypass verification
+    const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
+    const bypassData = await redisOtpStore.get(bypassOtpKey);
+    
+    if (bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+      // SECURITY: Validate user exists and is ACTIVE before issuing bypass session (CodeRabbit critical fix)
+      await connectToDatabase();
+      const bypassUser = await User.findOne({ email: loginIdentifier.toLowerCase() })
+        .select("_id status orgId")
+        .lean() as { _id: { toString(): string }; status: string; orgId?: string } | null;
+      
+      if (!bypassUser || bypassUser.status !== "ACTIVE") {
+        logger.warn("[OTP] Bypass rejected - user inactive or not found", {
+          identifier: redactIdentifier(loginIdentifier),
+          userExists: Boolean(bypassUser),
+          userStatus: bypassUser?.status,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
+      // SECURITY: Validate org context matches to prevent cross-tenant bypass reuse (CodeRabbit review fix)
+      if (bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
+        logger.warn("[OTP] Bypass org mismatch - potential cross-tenant attack", {
+          identifier: redactIdentifier(loginIdentifier),
+          storedOrgId: bypassData.orgId,
+          requestedOrgId: orgScopeId,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
+      // SECURITY AUDIT: Log bypass verification for security monitoring
+      logger.warn("[OTP] SECURITY AUDIT: Bypass OTP verified", {
+        identifier: redactIdentifier(loginIdentifier),
+        orgId: orgScopeId,
+        userId: bypassUser._id.toString(),
+        clientIp,
+        timestamp: new Date().toISOString(),
+        action: 'OTP_BYPASS_VERIFY',
+      });
+      
+      // Clean up bypass OTP
+      await redisOtpStore.delete(bypassOtpKey);
+      
+      // Generate temporary OTP login session token
+      // SECURITY: Use validated user data from database, not from bypassData (CodeRabbit critical fix)
+      const sessionToken = randomBytes(32).toString("hex");
+      await redisOtpSessionStore.set(sessionToken, {
+        userId: bypassUser._id.toString(),
+        identifier: loginIdentifier,
+        orgId: bypassUser.orgId?.toString() || orgScopeId,
+        companyCode: bypassData.companyCode || normalizedCompanyCode,
+        expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        __bypassed: true,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpSession: sessionToken,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+        },
+      });
+    }
 
     // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
     const otpData = await redisOtpStore.get(otpKey);

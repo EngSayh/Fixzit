@@ -164,6 +164,18 @@ export const RBAC_ROLE_PERMISSIONS: RolePermissionsMap = {
     reports: { view: true, create: false, edit: false, delete: false },
     finance: { view: true, create: false, edit: false, delete: false },
   },
+  // 🔒 Souq Marketplace Roles
+  [UserRole.SOUQ_ADMIN]: {
+    dashboard: { view: true, create: false, edit: false, delete: false },
+    marketplace: { view: true, create: true, edit: true, delete: true },
+    reports: { view: true, create: false, edit: false, delete: false },
+    admin: { view: true, create: true, edit: true, delete: false },
+  },
+  [UserRole.MARKETPLACE_MODERATOR]: {
+    dashboard: { view: true, create: false, edit: false, delete: false },
+    marketplace: { view: true, create: false, edit: true, delete: false },
+    crm_notifications: { view: true, create: true, edit: true, delete: false },
+  },
   // 🔒 DEPRECATED ROLES - Included for type compatibility
   // These should be migrated to canonical roles
   [UserRole.EMPLOYEE]: {

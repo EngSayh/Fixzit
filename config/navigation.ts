@@ -735,6 +735,9 @@ export const ROLE_PERMISSIONS = {
   FINANCE_MANAGER: financeOnly,
   EMPLOYEE: hrOnly,
   CORPORATE_OWNER: propertyOps,
+  // Souq Marketplace Roles
+  SOUQ_ADMIN: ['dashboard', 'marketplace', 'reports', 'admin'] as ModuleId[],
+  MARKETPLACE_MODERATOR: ['dashboard', 'marketplace', 'support'] as ModuleId[],
   OWNER: ownerTenant,
   TENANT: ownerTenant,
   VENDOR: vendorOnly,
