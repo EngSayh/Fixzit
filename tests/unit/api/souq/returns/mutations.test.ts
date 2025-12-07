@@ -110,7 +110,8 @@ describe("souq returns mutations RBAC/org checks", () => {
   });
 
   describe("refund route", () => {
-    it("denies refund when RMA org differs from caller org (non-platform admin)", async () => {
+    // 🔐 SECURITY: Returns 404 instead of 403 to prevent cross-tenant existence leaks
+    it("denies refund when RMA org differs from caller org (returns 404 to prevent existence leak)", async () => {
       authMock.mockResolvedValue({
         user: { id: "admin2", role: "ADMIN", isSuperAdmin: false, orgId: "org-1" },
       });
@@ -132,7 +133,7 @@ describe("souq returns mutations RBAC/org checks", () => {
 
       const res = await refundRoute(req);
       const payload = await res.json();
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
       expect(processRefundMock).not.toHaveBeenCalled();
     });
 

@@ -477,7 +477,8 @@ describe("Claims API - Core Functionality", () => {
       expect(data.error).toContain("deadline");
     });
 
-    it("should reject response from non-seller", async () => {
+    // 🔐 SECURITY: Returns 404 instead of 403 to prevent cross-tenant existence leaks
+    it("should reject response from non-seller with 404 (prevents existence leak)", async () => {
       const response = await fetch(
         `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/response`,
         {
@@ -494,7 +495,7 @@ describe("Claims API - Core Functionality", () => {
         },
       );
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
     });
   });
 
