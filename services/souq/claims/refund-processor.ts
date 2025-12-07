@@ -157,6 +157,8 @@ export class RefundProcessor {
   // 🔐 Production-appropriate delay: 30 seconds base delay for payment gateway retries
   // PayTabs and similar gateways need time to process and may rate-limit rapid retries
   private static RETRY_DELAY_MS = 30_000;
+  // 🔐 Maximum retry delay cap (5 minutes) to prevent excessive waits
+  private static MAX_RETRY_DELAY_MS = 300_000;
   private static indexesReady: Promise<void> | null = null;
   private static async collection() {
     const db = await getDatabase();
@@ -584,11 +586,16 @@ export class RefundProcessor {
 
   /**
    * Schedule retry for failed refund
+   * Uses exponential backoff with cap to prevent excessive delays
    */
   private static async scheduleRetry(refund: Refund): Promise<void> {
     const collection = await this.collection();
     const nextRetryCount = refund.retryCount + 1;
-    const delayMs = this.RETRY_DELAY_MS * nextRetryCount;
+    // 🔐 Exponential backoff: 30s, 60s, 120s, 240s (capped at 5 min)
+    const delayMs = Math.min(
+      this.RETRY_DELAY_MS * Math.pow(2, nextRetryCount - 1),
+      this.MAX_RETRY_DELAY_MS
+    );
     const nextRetryAt = new Date(Date.now() + delayMs);
 
     await collection.updateOne(
@@ -663,7 +670,11 @@ export class RefundProcessor {
     }
 
     const nextCount = currentCount + 1;
-    const delayMs = this.RETRY_DELAY_MS * nextCount;
+    // 🔐 Exponential backoff: 30s, 60s, 120s, 240s (capped at 5 min)
+    const delayMs = Math.min(
+      this.RETRY_DELAY_MS * Math.pow(2, nextCount - 1),
+      this.MAX_RETRY_DELAY_MS
+    );
     const nextStatusCheckAt = new Date(Date.now() + delayMs);
 
     const collection = await this.collection();

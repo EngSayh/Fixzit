@@ -114,6 +114,23 @@ export const ADMIN_ROLES = [
   UserRole.MANAGER,
 ] as const;
 
+// 🔐 STRICT v4.1: Roles allowed to moderate content (reviews, posts, claims)
+// Centralized definition for consistency across Souq and other modules
+export const MODERATOR_ROLES = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  // Souq-specific moderation roles (can be added when module creates them)
+  "SOUQ_ADMIN",
+  "MARKETPLACE_MODERATOR",
+] as const);
+
+// Helper to validate moderator access
+export const isModeratorRole = (role: string | undefined | null): boolean => {
+  if (!role) return false;
+  return MODERATOR_ROLES.has(role.toUpperCase() as never);
+};
+
 export const FM_ROLES = [
   UserRole.FM_MANAGER,
   UserRole.PROPERTY_MANAGER,

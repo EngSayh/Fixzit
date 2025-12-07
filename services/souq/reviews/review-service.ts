@@ -7,6 +7,7 @@ import { SouqReview, type IReview } from "@/server/models/souq/Review";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { isModeratorRole } from "@/types/user";
 import { nanoid } from "nanoid";
 import type mongoose from "mongoose";
 import { Types, type FilterQuery } from "mongoose";
@@ -16,18 +17,9 @@ const MAX_PAGE_LIMIT = 100;
 // 🛡️ Moderation: Number of unique reports before auto-flagging a review
 const REPORT_FLAG_THRESHOLD = 3;
 
-// 🔐 STRICT v4.1: Roles allowed to moderate reviews
-const MODERATOR_ROLES = new Set([
-  "SUPER_ADMIN",
-  "ADMIN",
-  "CORPORATE_ADMIN",
-  "SOUQ_ADMIN",
-  "MARKETPLACE_MODERATOR",
-]);
-
-// Helper to validate moderator role
+// 🔐 STRICT v4.1: Use centralized moderator role check from types/user.ts
 const assertModeratorRole = (role: string | undefined | null): void => {
-  if (!role || !MODERATOR_ROLES.has(role.toUpperCase())) {
+  if (!isModeratorRole(role)) {
     throw new Error("Unauthorized: Moderator role required");
   }
 };
