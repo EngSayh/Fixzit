@@ -116,10 +116,8 @@ export async function POST(request: NextRequest) {
       inventoryRecord.sellerId?.toString() === session.user.id;
 
     if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
-      return NextResponse.json(
-        { error: "Forbidden: inventory belongs to another seller" },
-        { status: 403 },
-      );
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
     }
 
     const inventory = await inventoryService.adjustInventory({

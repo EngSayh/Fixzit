@@ -310,6 +310,15 @@ export const Config = {
       "SELLER_SUPPORT_EMAIL",
       getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@example.com"),
     ),
+    /**
+     * Review Configuration
+     */
+    reviews: {
+      /** Maximum items per page for paginated review queries (default: 100) */
+      maxPageLimit: getInteger("SOUQ_REVIEWS_MAX_PAGE_LIMIT", 100),
+      /** Number of unique reports before auto-flagging a review (default: 3) */
+      reportFlagThreshold: getInteger("SOUQ_REVIEWS_REPORT_FLAG_THRESHOLD", 3),
+    },
   },
 
   /**

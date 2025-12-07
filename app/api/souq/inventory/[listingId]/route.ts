@@ -71,7 +71,8 @@ export async function GET(
       );
 
     if (!sellerMatches && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
     }
 
     return NextResponse.json({

@@ -42,7 +42,8 @@ export async function GET(
       !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
       statement.sellerId !== session.user.id
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Settlement statement not found" }, { status: 404 });
     }
 
     return NextResponse.json({ statement });

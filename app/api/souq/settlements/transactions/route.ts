@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
       normalizedSubRole === SubRole.FINANCE_OFFICER;
 
     if (!isSuperAdmin && !isAdmin && !isFinance && sellerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Transactions not found" }, { status: 404 });
     }
 
     const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;

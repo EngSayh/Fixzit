@@ -72,9 +72,10 @@ export async function GET(
 
     // Verify ownership
     if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
       return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 
@@ -140,9 +141,10 @@ export async function PUT(
     }
 
     if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
       return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 
@@ -237,9 +239,10 @@ export async function DELETE(
     }
 
     if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
       return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 

@@ -75,7 +75,8 @@ export async function GET(
     );
 
     if (!isAdmin && !isSeller) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Calculate SLA
