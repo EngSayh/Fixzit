@@ -70,7 +70,7 @@ export default function LandingPage() {
       id: "work-orders",
       title: translate("Work Orders", "modules.workOrders.title"),
       description: translate(
-        "Blue logic, brown theme: new, in progress, completed, overdue with SLA timers and photos.",
+        "Complete lifecycle tracking: new, in progress, completed, overdue with SLA timers and photo documentation.",
         "modules.workOrders.description",
       ),
     },
@@ -134,7 +134,7 @@ export default function LandingPage() {
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
               {translate(
-                "A brown, calm Fixzit shell: unified Work Orders, Properties, Finance, HR and Souq in a single, Apple-inspired interface built for Saudi FM teams.",
+                "A unified platform for Work Orders, Properties, Finance, HR and Souq — designed for Saudi facility management teams with Vision 2030 standards.",
                 "hero.description",
               )}
             </p>
@@ -312,7 +312,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-sm text-muted-foreground">
               {translate(
-                "Brown, calm and structured: one shell for Work Orders, Properties, Finance, HR and Souq.",
+                "Professional, integrated, and Saudi-first: one platform for Work Orders, Properties, Finance, HR and Souq.",
                 "modules.subtitle",
               )}
             </p>
