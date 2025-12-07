@@ -1,7 +1,7 @@
-import { logger } from "./logger";
+import { logger } from "@/lib/logger";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { AuthToken } from "./auth";
+import type { AuthToken } from "@/lib/auth";
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -10,7 +10,7 @@ const originalEnv = { ...process.env };
 const loadAuthModule = async () => {
   // Clear module cache to re-evaluate JWT secret resolution each time
   vi.resetModules();
-  return await import("./auth");
+  return await import("@/lib/auth");
 };
 
 // FIX: Move all function implementations INSIDE the factory to avoid top-level variable references
@@ -254,7 +254,7 @@ describe("auth lib - JWT generation and verification", () => {
     await loadAuthModule();
 
     // Call generateToken to ensure sign receives the fixed secret
-    const auth = await import("./auth");
+    const auth = await import("@/lib/auth");
     const payload: AuthToken = {
       id: "id-1",
       email: "e@x.com",

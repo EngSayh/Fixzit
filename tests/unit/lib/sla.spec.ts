@@ -8,7 +8,7 @@ import {
   computeDueAt,
   resolveSlaTarget,
   WorkOrderPriority,
-} from "./sla";
+} from "@/lib/sla";
 // Note: @ts-expect-error usages in this file intentionally feed invalid inputs to verify runtime behavior.
 
 describe("computeSlaMinutes", () => {

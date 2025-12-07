@@ -10,7 +10,7 @@ import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
-import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
 
 const ELIGIBLE_STATUSES = [
   "submitted",

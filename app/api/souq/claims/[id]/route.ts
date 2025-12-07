@@ -5,7 +5,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildOrgScopeFilter } from "@/app/api/souq/claims/org-scope";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
 
 /**
  * GET /api/souq/claims/[id]

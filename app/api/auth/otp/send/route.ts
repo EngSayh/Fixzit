@@ -446,7 +446,10 @@ export async function POST(request: NextRequest) {
           clientIp,
         });
         return NextResponse.json(
-          { success: false, error: "OTP bypass not properly configured" },
+          { 
+            success: false, 
+            error: "OTP bypass not configured. Set NEXTAUTH_BYPASS_OTP_CODE environment variable (minimum 12 characters for production)." 
+          },
           { status: 500 },
         );
       }
@@ -460,7 +463,10 @@ export async function POST(request: NextRequest) {
           clientIp,
         });
         return NextResponse.json(
-          { success: false, error: "OTP bypass not properly configured" },
+          { 
+            success: false, 
+            error: `NEXTAUTH_BYPASS_OTP_CODE is too short (${bypassCode.length} chars). Production requires minimum 12 characters for security.` 
+          },
           { status: 500 },
         );
       }

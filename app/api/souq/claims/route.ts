@@ -10,7 +10,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildOrgScopeFilter as buildOrgScope } from "@/app/api/souq/claims/org-scope";
+import { buildOrgScopeFilter as buildOrgScope } from "@/services/souq/org-scope";
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
 

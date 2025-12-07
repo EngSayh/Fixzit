@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateSlug } from "./utils";
+import { generateSlug } from "@/lib/utils";
 // Note: @ts-expect-error annotations later deliberately pass invalid types to test runtime robustness.
 
 describe("generateSlug", () => {

@@ -1048,5 +1048,218 @@ await db.collection('souq_orders').updateOne(
 
 ---
 
+## 🟧 MAJOR - Hardcoded Values System-Wide Audit
+
+### ISSUE-013: Hardcoded Hex Colors (125+ instances)
+
+**Severity**: 🟧 MAJOR  
+**Category**: UX, Maintainability, Theme  
+**Status**: 🔄 IDENTIFIED
+
+**Description**:  
+System-wide scan found 125+ instances of hardcoded hex color values in production code. These should use Tailwind theme tokens or CSS variables for consistency and theme switching capability.
+
+**Key Locations**:
+- `middleware.ts:294` - `#0061A8` (Business.sa primary in CSP HTML)
+- `app/api/organization/settings/route.ts:57-81` - `#B46B2F`, `#D68B4A` (legacy brown theme defaults)
+- `app/api/settings/logo/route.ts:34-49` - `#3b82f6` (blue default)
+- `app/api/auth/verify/send/route.ts` - Email template colors (`#0070f3`, `#00c4cc`, `#333`, `#666`, `#999`, `#f9f9f9`)
+- `app/api/auth/signup/route.ts` - Email template colors (same pattern)
+- `app/api/auth/forgot-password/route.ts` - Email template colors (`#dc2626`, `#f97316`)
+- `app/api/jobs/process/route.ts` - Invite email template colors
+- `app/global-error.tsx` - Inline styles (`#f8f9fa`, `#1a1a1a`, `#dc2626`, `#0061A8`) - **ACCEPTABLE** (fallback for CSS failures)
+- `server/models/PlatformSettings.ts:51` - `#3b82f6` default value
+- `server/services/ats/offer-pdf.ts:26` - `#0061A8` (PDF header)
+- `components/seller/analytics/TrafficAnalytics.tsx:59` - Chart color array
+
+**Impact**: 
+- Cannot switch themes without code changes
+- Inconsistent brand colors across system
+- Legacy brown theme colors still present after Business.sa rebrand
+
+**Recommended Fix**:
+1. Create `lib/config/brand-colors.ts` with centralized color constants
+2. Update email templates to use configurable colors
+3. Remove legacy brown theme defaults (`#B46B2F`, `#D68B4A`)
+4. Update PDF generation to use brand constants
+
+---
+
+### ISSUE-014: Hardcoded Domain/Email References (100+ instances)
+
+**Severity**: 🟧 MAJOR  
+**Category**: Maintainability, Configuration  
+**Status**: 🔄 IDENTIFIED
+
+**Description**:  
+System contains 100+ hardcoded references to `fixzit.co`, `fixzit.com`, `fixzit.sa`, `fixzit.app` domains and email addresses. These should be environment-driven for multi-tenant/white-label capability.
+
+**Key Locations**:
+- `app/api/auth/otp/send/route.ts:47-64` - 18 demo user emails (`superadmin@fixzit.co`, `admin@fixzit.co`, etc.)
+- `app/api/feeds/indeed/route.ts:31-107` - `https://fixzit.co` fallback URLs
+- `app/api/support/welcome-email/route.ts:100-101` - `support@fixzit.com`, `https://fixzit.com/help`
+- `app/api/billing/upgrade/route.ts:310` - `sales@fixzit.app`
+- `app/global-error.tsx:194` - `support@fixzit.co`
+- `auth.config.ts:538-542` - Demo user email list
+- `config/sendgrid.config.ts:54` - `noreply@fixzit.co`
+- `server/services/escalation.service.ts:51,92` - `support@fixzit.sa`, `support@fixzit.co`
+- `lib/config/constants.ts:272-273` - `noreply@fixzit.sa`, `support@fixzit.sa`
+- `lib/security/cors-allowlist.ts:6-11` - 6 fixzit.co domains
+- `lib/integrations/notifications.ts:333,376,397` - `https://fixzit.co` links
+
+**Multiple Domain Inconsistency**:
+- `.co` - Used in most places
+- `.com` - Used in support/help contexts
+- `.sa` - Used in email/notifications
+- `.app` - Used in billing/legal
+
+**Impact**:
+- Domain inconsistency confuses users
+- Cannot white-label the platform
+- Configuration changes require code changes
+
+**Recommended Fix**:
+1. Create `lib/config/domains.ts` with centralized domain configuration
+2. All domains should derive from `process.env.NEXT_PUBLIC_BASE_URL`
+3. Email domains should derive from `process.env.EMAIL_DOMAIN`
+4. Consolidate to single primary domain (Business.sa rebrand)
+
+---
+
+### ISSUE-015: Hardcoded Phone Numbers (50+ instances)
+
+**Severity**: 🟨 MODERATE  
+**Category**: Maintainability, Configuration  
+**Status**: 🔄 PARTIALLY RESOLVED (2025-12-07)
+
+**Partial Resolution**: Fixed the critical issue - wrong country code in privacy page (+971 UAE → +966 Saudi). Other hardcoded phones remain for future cleanup.
+
+**Description**:  
+System contains 50+ hardcoded Saudi phone numbers (`+966XXXXXXXXX`). Some are placeholders, some are demo data, some are in production API defaults.
+
+**Key Locations**:
+- `app/settings/page.tsx:130` - `+966 50 123 4567` (form default)
+- `app/privacy/page.tsx:36` - ~~`+971 XX XXX XXXX` (wrong country code!)~~ ✅ FIXED → `+966 XX XXX XXXX`
+- `app/fm/page.tsx:77,89,101` - Mock contact numbers
+- `app/fm/finance/invoices/page.tsx:706` - `+966 11 123 4567`
+- `app/api/payments/create/route.ts:133` - `+966500000000` fallback
+- `app/api/support/welcome-email/route.ts:102` - `+966 50 123 4567`
+- `scripts/seed-demo-users.ts:14-20` - `+966552233456` (demo user phone)
+- `lib/config/constants.ts:301` - `+966 XX XXX XXXX` placeholder
+
+**Impact**:
+- Placeholder phones may accidentally be used in production
+- Inconsistent phone formatting across UI
+- ~~Wrong country code in privacy page (+971 UAE instead of +966 Saudi)~~ ✅ FIXED
+
+**Recommended Fix**:
+1. Replace placeholders with configurable values from environment
+2. ~~Fix privacy page country code (UAE → Saudi)~~ ✅ DONE
+3. Create `lib/config/contact.ts` for company contact info
+4. All demo phones should be in scripts/ only, not in UI components
+
+---
+
+### ISSUE-016: Demo Passwords Exposed in Components (SECURITY)
+
+**Severity**: 🟥 CRITICAL (Security)  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Added environment-based gating to `DemoCredentialsSection.tsx`:
+- Added `SHOW_DEMO_CREDS` constant checking `NODE_ENV === 'development'` OR `NEXT_PUBLIC_SHOW_DEMO_CREDS === 'true'`
+- Component returns null if demo creds are disabled
+- Credential arrays are conditionally defined to enable tree-shaking in production builds
+
+**Description**:  
+Production components contain hardcoded demo passwords that are visible to all users. While demo credentials may be intentional, exposing them in production components is a security risk.
+
+**Key Location**:
+- `components/auth/DemoCredentialsSection.tsx` - Contains 7 demo users with passwords (`admin123`, `password123`)
+
+**Evidence**:
+```typescript
+// components/auth/DemoCredentialsSection.tsx:20-54
+{ email: "superadmin@fixzit.co", password: "admin123" }
+{ email: "admin@fixzit.co", password: "password123" }
+{ email: "manager@fixzit.co", password: "password123" }
+// ... 4 more
+```
+
+**Impact**:
+- Demo passwords visible in production bundle
+- Easy target for automated credential scanning
+- Creates security audit findings
+
+**Recommended Fix**:
+1. Gate `DemoCredentialsSection` behind `process.env.NODE_ENV === 'development'`
+2. Or use environment variable: `process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === 'true'`
+3. Never include passwords in production builds
+4. Demo users should use OTP login only in production
+
+---
+
+### ISSUE-017: Legacy Brown Theme Colors Still Present
+
+**Severity**: 🟧 MAJOR  
+**Category**: UX, Theme  
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Updated all organization settings defaults from legacy brown (`#B46B2F`, `#D68B4A`) to Business.sa blue (`#0061A8`, `#1a365d`). Created centralized brand colors in `lib/config/brand-colors.ts`.
+
+**Description**:  
+Despite Business.sa rebrand to blue theme (`#0061A8`), legacy brown/amber theme colors (`#B46B2F`, `#D68B4A`) still exist in organization settings defaults.
+
+**Key Location**:
+- `app/api/organization/settings/route.ts:57-81`
+
+**Evidence**:
+```typescript
+// Lines 57-81 contain legacy brown colors as defaults
+primaryColor: "#B46B2F",
+accentColor: "#D68B4A",
+```
+
+**Impact**:
+- New organizations may get wrong default theme
+- Inconsistent with Business.sa branding
+- Confuses brand identity
+
+**Recommended Fix**:
+1. Update defaults to Business.sa blue: `#0061A8`
+2. Create migration to update existing orgs (optional)
+3. Document approved brand colors in `lib/config/brand-colors.ts`
+
+---
+
+### ISSUE-018: Hardcoded Currency "SAR" in UI Components
+
+**Severity**: 🟨 MODERATE  
+**Category**: i18n, Localization  
+**Status**: 🔄 IDENTIFIED
+
+**Description**:  
+System has hardcoded "SAR" currency in 40+ UI components. While SAR is the primary currency, this prevents proper multi-currency support.
+
+**Key Locations**:
+- `app/fm/work-orders/history/page.tsx:23,34,45,189` - `"SAR 150"`, `"SAR 300"`, etc.
+- `app/fm/work-orders/approvals/page.tsx:22-69` - Multiple `"SAR X,XXX"` strings
+- `app/fm/invoices/new/page.tsx:215` - `"Amount (SAR)"`
+- `app/fm/projects/page.tsx:458,527` - Currency defaults
+- `app/fm/marketplace/` - Multiple files with hardcoded SAR
+
+**Impact**:
+- Cannot easily support multi-currency
+- Currency context (CurrencyContext.tsx) exists but not used everywhere
+- Hard to expand to other GCC markets
+
+**Recommended Fix**:
+1. Use `CurrencyContext` throughout for formatting
+2. Replace hardcoded strings with `formatCurrency(amount, currency)` calls
+3. Mock data should use currency from context
+4. Forms should allow currency selection
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
