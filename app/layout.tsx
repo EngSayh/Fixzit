@@ -6,7 +6,8 @@ import {
   Bricolage_Grotesque, 
   Space_Mono, 
   Noto_Sans_Arabic,
-  DM_Sans 
+  DM_Sans,
+  Tajawal
 } from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
@@ -58,6 +59,14 @@ const notoSansArabic = Noto_Sans_Arabic({
   variable: '--font-arabic',
 });
 
+// Tajawal - Business.sa preferred Arabic font (matches DIN Next LT Arabic style)
+const tajawal = Tajawal({
+  subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500', '700', '800'],
+  display: 'swap',
+  variable: '--font-tajawal',
+});
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
@@ -65,7 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
       <body
-        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${notoSansArabic.variable}`}
+        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${notoSansArabic.variable} ${tajawal.variable}`}
         style={{ direction: dir }}
       >
         {/* E2E-visible fallback controls to keep language/currency selectors discoverable */}
