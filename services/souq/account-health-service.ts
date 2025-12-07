@@ -660,54 +660,66 @@ class AccountHealthService {
   /**
    * Background job: Monitor and enforce account health
    * Runs daily to check all active sellers
+   * 
+   * SECURITY: Uses org-by-org iteration to maintain tenant isolation (STRICT v4.1)
+   * This prevents cross-tenant data exposure in background monitoring.
    */
   async monitorAllSellers(): Promise<{
     checked: number;
     atRisk: number;
     actionsTaken: number;
   }> {
-    const activeSellers = await SouqSeller.find({ isActive: true });
+    // SECURITY: Get distinct org IDs first to maintain tenant isolation (STRICT v4.1)
+    // This prevents loading all sellers across tenants into memory at once
+    const orgIds = await SouqSeller.distinct("orgId", { isActive: true }) as mongoose.Types.ObjectId[];
 
     let checked = 0;
     let atRisk = 0;
     let actionsTaken = 0;
 
-    for (const seller of activeSellers) {
-      const sellerOrgId = (seller as { orgId?: mongoose.Types.ObjectId | string })
-        .orgId?.toString();
-      if (!sellerOrgId) {
-        continue;
-      }
-      const health = await this.calculateAccountHealth(
-        seller._id.toString(),
-        sellerOrgId,
-        "last_30_days",
-      );
+    // Process each organization separately for tenant isolation
+    for (const orgId of orgIds) {
+      const orgIdStr = orgId?.toString();
+      if (!orgIdStr) continue;
 
-      checked++;
+      // Fetch sellers scoped to this specific org
+      const activeSellers = await SouqSeller.find({
+        isActive: true,
+        ...buildOrgFilter(orgIdStr),
+      });
 
-      if (health.atRisk) {
-        atRisk++;
+      for (const seller of activeSellers) {
+        const health = await this.calculateAccountHealth(
+          seller._id.toString(),
+          orgIdStr,
+          "last_30_days",
+        );
 
-        // Auto-suspend if ODR > 2%
-        if (health.odr > 2) {
-          await this.recordViolation(seller._id.toString(), sellerOrgId, {
-            type: "high_odr",
-            severity: "critical",
-            description: `ODR ${health.odr}% exceeds maximum threshold of 2%`,
-            action: "account_suspension",
-          });
-          actionsTaken++;
-        }
-        // Warn if approaching threshold
-        else if (health.odr > 1.5) {
-          await this.recordViolation(seller._id.toString(), sellerOrgId, {
-            type: "high_odr",
-            severity: "major",
-            description: `ODR ${health.odr}% approaching suspension threshold`,
-            action: "warning",
-          });
-          actionsTaken++;
+        checked++;
+
+        if (health.atRisk) {
+          atRisk++;
+
+          // Auto-suspend if ODR > 2%
+          if (health.odr > 2) {
+            await this.recordViolation(seller._id.toString(), orgIdStr, {
+              type: "high_odr",
+              severity: "critical",
+              description: `ODR ${health.odr}% exceeds maximum threshold of 2%`,
+              action: "account_suspension",
+            });
+            actionsTaken++;
+          }
+          // Warn if approaching threshold
+          else if (health.odr > 1.5) {
+            await this.recordViolation(seller._id.toString(), orgIdStr, {
+              type: "high_odr",
+              severity: "major",
+              description: `ODR ${health.odr}% approaching suspension threshold`,
+              action: "warning",
+            });
+            actionsTaken++;
+          }
         }
       }
     }

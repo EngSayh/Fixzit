@@ -50,6 +50,17 @@ export const SERVICE_RESILIENCE = {
       baseDelayMs: 1_000,
     },
   },
+  unifonic: {
+    // Unifonic SMS provider - recommended for Saudi Arabia/MENA
+    timeouts: {
+      smsSendMs: toNumber(process.env.UNIFONIC_TIMEOUT_MS, 10_000),
+      statusMs: toNumber(process.env.UNIFONIC_STATUS_TIMEOUT_MS, 5_000),
+    },
+    retries: {
+      maxAttempts: toNumber(process.env.UNIFONIC_MAX_ATTEMPTS, 3),
+      baseDelayMs: toNumber(process.env.UNIFONIC_RETRY_DELAY_MS, 500),
+    },
+  },
 } as const;
 
 export type ServiceResilienceKey = keyof typeof SERVICE_RESILIENCE;
