@@ -20,9 +20,8 @@ if (typeof globalThis.TextDecoder === "undefined") {
     TextDecoder as unknown as typeof globalThis.TextDecoder;
 }
 
-declare global {
-  var jest: typeof vi | undefined;
-}
+// Note: We don't need to declare global jest as @types/jest handles this
+// Vitest provides built-in Jest compatibility via vi export
 
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
   process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? "60000",
@@ -36,10 +35,7 @@ if (!process.env.NEXTAUTH_SECRET) {
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
 }
 
-// Provide Jest compatibility layer for tests using jest.* APIs
-if (typeof globalThis !== "undefined") {
-  globalThis.jest = vi;
-}
+// Note: @testing-library/jest-dom/vitest handles jest-dom matchers for Vitest
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
 const originalLocation =
