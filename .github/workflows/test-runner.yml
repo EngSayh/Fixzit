@@ -40,15 +40,16 @@ jobs:
       NODE_ENV: test
       CI: true
       # Auth secrets from GitHub Secrets (fallback to deterministic test values)
-      JWT_SECRET: ${{ secrets.JWT_SECRET_TEST || secrets.JWT_SECRET || 'test-secret-key-for-ci-tests-minimum-32-characters' }}
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET_TEST || secrets.NEXTAUTH_SECRET || 'test-nextauth-secret-for-ci-tests-32-chars' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-secret-key-for-ci-tests-minimum-32-characters' }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'test-nextauth-secret-for-ci-tests-32-chars' }}
       NEXTAUTH_URL: http://localhost:3000
       MONGODB_URI: mongodb://localhost:27017/fixzit_test
       ALLOW_OFFLINE_MONGODB: 'false'
-      HEALTH_CHECK_TOKEN: ${{ secrets.HEALTH_CHECK_TOKEN || 'ci-health-token' }}
-      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
-      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
-      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+      HEALTH_CHECK_TOKEN: ${{ secrets.HEALTH_CHECK_TOKEN || 'ci-health-check-token-for-tests' }}
+      # Tenant IDs for tests - use deterministic test values if not defined
+      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID || '000000000000000000000001' }}
+      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID || '000000000000000000000002' }}
+      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID || 'test-org-id' }}
 
     steps:
       - name: Checkout

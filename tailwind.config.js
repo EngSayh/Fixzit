@@ -30,7 +30,7 @@ const config = {
         "popover-foreground": "hsl(var(--popover-foreground))",
         primary: "hsl(var(--primary))",
         "primary-foreground": "hsl(var(--primary-foreground))",
-        "primary-dark": "hsl(30 60% 30%)",
+        "primary-dark": "#004A80",
         secondary: "hsl(var(--secondary))",
         "secondary-foreground": "hsl(var(--secondary-foreground))",
         muted: "hsl(var(--muted))",
@@ -51,23 +51,29 @@ const config = {
         "sidebar-accent-foreground": "hsl(var(--sidebar-accent-foreground))",
         "sidebar-border": "hsl(var(--sidebar-border))",
         "sidebar-ring": "hsl(var(--sidebar-ring))",
-        success: "hsl(var(--accent))",
-        "success-foreground": "hsl(var(--accent-foreground))",
-        "success-dark": "hsl(30 45% 30%)",
-        warning: "hsl(35 85% 45%)",
-        "warning-foreground": "hsl(24 15% 15%)",
-        "warning-dark": "hsl(30 70% 38%)",
-        info: "hsl(210 10% 35%)",
-        "info-foreground": "hsl(var(--section-bg))",
+        /* Business.sa Brand Colors */
+        "brand-blue": "#0061A8",
+        "brand-green": "#00A859",
+        "brand-gold": "#FFB400",
+        "brand-bg": "#F5F7FA",
+        success: "hsl(var(--success))",
+        "success-foreground": "hsl(var(--success-foreground))",
+        "success-dark": "#007A42",
+        warning: "hsl(var(--warning))",
+        "warning-foreground": "hsl(var(--warning-foreground))",
+        "warning-dark": "#CC9200",
+        info: "hsl(var(--info))",
+        "info-foreground": "hsl(var(--info-foreground))",
         "section-bg": "hsl(var(--section-bg))",
         "section-alt": "hsl(var(--section-alt))",
-        "fz-blue": "hsl(var(--primary))",
-        "fxz-blue": "hsl(var(--primary))",
-        "fz-orange": "hsl(var(--accent))",
-        "fxz-orange": "hsl(var(--accent))",
-        "fz-green": "hsl(var(--accent))",
-        "fxz-green": "hsl(var(--accent))",
-        "fz-yellow": "hsl(var(--accent))",
+        /* Legacy aliases mapped to Business.sa */
+        "fz-blue": "#0061A8",
+        "fxz-blue": "#0061A8",
+        "fz-orange": "#FFB400",
+        "fxz-orange": "#FFB400",
+        "fz-green": "#00A859",
+        "fxz-green": "#00A859",
+        "fz-yellow": "#FFB400",
         "fxz-yellow": "hsl(var(--accent))",
         "fixzit-blue": "hsl(var(--primary))",
         "fixzit-green": "hsl(var(--accent))",
@@ -78,6 +84,7 @@ const config = {
       },
       fontFamily: {
         sans: [
+          "var(--font-dm-sans)",
           "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
@@ -85,7 +92,9 @@ const config = {
           "Roboto",
           "sans-serif",
         ],
-        arabic: ["Noto Sans Arabic", "Tahoma", "Arial", "sans-serif"],
+        arabic: ["var(--font-tajawal)", "Tajawal", "Noto Sans Arabic", "Tahoma", "Arial", "sans-serif"],
+        display: ["var(--font-bricolage)", "Bricolage Grotesque", "system-ui", "sans-serif"],
+        mono: ["var(--font-space-mono)", "Space Mono", "monospace"],
       },
       boxShadow: {
         fxz: "var(--card-shadow)",
@@ -95,7 +104,7 @@ const config = {
         glass: "0 8px 32px 0 rgba(0, 0, 0, 0.15)",
         "glass-lg": "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
         soft: "0 2px 25px -2px rgba(0, 0, 0, 0.12)",
-        aurora: "0 0 60px hsl(30 60% 40% / 0.15)",
+        aurora: "0 0 60px hsl(204 100% 33% / 0.15)",
       },
       backdropBlur: {
         xs: "2px",
@@ -108,13 +117,13 @@ const config = {
       },
       backgroundImage: {
         "aurora-gradient":
-          "linear-gradient(135deg, rgba(204, 127, 50, 0.12) 0%, rgba(133, 106, 85, 0.08) 50%, rgba(204, 127, 50, 0.05) 100%)",
+          "linear-gradient(135deg, rgba(0, 97, 168, 0.12) 0%, rgba(0, 168, 89, 0.08) 50%, rgba(0, 97, 168, 0.05) 100%)",
         "aurora-strong":
-          "linear-gradient(135deg, rgba(204, 127, 50, 0.2) 0%, rgba(133, 106, 85, 0.15) 50%, rgba(204, 127, 50, 0.08) 100%)",
+          "linear-gradient(135deg, rgba(0, 97, 168, 0.2) 0%, rgba(0, 168, 89, 0.15) 50%, rgba(0, 97, 168, 0.08) 100%)",
         "glass-gradient":
           "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
         "mesh-gradient":
-          "radial-gradient(at 40% 20%, hsl(28 75% 45% / 0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(28 60% 35% / 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(40 30% 50% / 0.08) 0px, transparent 50%)",
+          "radial-gradient(at 40% 20%, hsl(204 100% 33% / 0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(152 100% 33% / 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(43 100% 50% / 0.08) 0px, transparent 50%)",
         "noise-overlay":
           "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -185,8 +194,8 @@ const config = {
           "50%": { transform: "translateY(-8px)" },
         },
         "glow": {
-          from: { boxShadow: "0 0 20px hsl(28 75% 45% / 0.2)" },
-          to: { boxShadow: "0 0 30px hsl(28 75% 45% / 0.4)" },
+          from: { boxShadow: "0 0 20px hsl(204 100% 33% / 0.2)" },
+          to: { boxShadow: "0 0 30px hsl(204 100% 33% / 0.4)" },
         },
         "gradient-shift": {
           "0%, 100%": { backgroundPosition: "0% 50%" },
@@ -306,7 +315,7 @@ const config = {
         },
         ".bg-aurora": {
           background:
-            "linear-gradient(-45deg, rgba(204, 127, 50, 0.12), rgba(133, 106, 85, 0.08), rgba(204, 127, 50, 0.05), rgba(80, 60, 45, 0.04))",
+            "linear-gradient(-45deg, rgba(0, 97, 168, 0.12), rgba(0, 168, 89, 0.08), rgba(0, 97, 168, 0.05), rgba(255, 180, 0, 0.04))",
           backgroundSize: "400% 400%",
           animation: "aurora 10s ease-in-out infinite alternate",
         },
@@ -322,15 +331,15 @@ const config = {
           },
         },
         ".glass-button": {
-          background: "rgba(204, 127, 50, 0.12)",
+          background: "rgba(0, 97, 168, 0.12)",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(204, 127, 50, 0.35)",
+          border: "1px solid rgba(0, 97, 168, 0.35)",
           borderRadius: "12px",
           transition: "all 0.3s ease",
           "&:hover": {
-            background: "rgba(204, 127, 50, 0.2)",
+            background: "rgba(0, 97, 168, 0.2)",
             transform: "translateY(-2px)",
-            boxShadow: "0 12px 40px 0 rgba(204, 127, 50, 0.2)",
+            boxShadow: "0 12px 40px 0 rgba(0, 97, 168, 0.2)",
           },
         },
         /* Shimmer effect for loading states */
@@ -353,7 +362,7 @@ const config = {
         },
         /* Gradient text effect */
         ".gradient-text": {
-          backgroundImage: "linear-gradient(135deg, hsl(28 75% 45%) 0%, hsl(28 60% 55%) 100%)",
+          backgroundImage: "linear-gradient(135deg, hsl(204 100% 33%) 0%, hsl(152 100% 33%) 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",
@@ -374,7 +383,7 @@ const config = {
             position: "absolute",
             inset: "-2px",
             borderRadius: "inherit",
-            background: "linear-gradient(135deg, hsl(28 75% 45% / 0.4), hsl(28 75% 45% / 0.1))",
+            background: "linear-gradient(135deg, hsl(204 100% 33% / 0.4), hsl(204 100% 33% / 0.1))",
             zIndex: "-1",
             opacity: "0",
             transition: "opacity 0.3s ease",
