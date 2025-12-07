@@ -382,8 +382,34 @@ export async function POST(request: NextRequest) {
                              TEST_USER_CONFIG.some(c => c.identifier?.toLowerCase() === normalizedIdForCheck);
     
     // Enable OTP bypass for authorized users
-    const shouldBypassOtp = (bypassOtpAll && isSuperadminEmail) || 
+    let shouldBypassOtp = (bypassOtpAll && isSuperadminEmail) || 
                             (allowTestUserBypass && isDemoOrTestUser);
+    
+    // SECURITY: Validate user exists and is ACTIVE before enabling bypass (CodeRabbit critical fix)
+    // This prevents bypass tokens for non-existent or disabled accounts
+    interface BypassUserData {
+      _id: { toString(): string };
+      status: string;
+      orgId?: string;
+    }
+    let bypassUser: BypassUserData | null = null;
+    if (shouldBypassOtp) {
+      await connectToDatabase();
+      const { User } = await import("@/server/models/User");
+      bypassUser = await User.findOne({ email: normalizedIdForCheck })
+        .select("_id status orgId")
+        .lean() as BypassUserData | null;
+      
+      if (!bypassUser || bypassUser.status !== "ACTIVE") {
+        logger.warn("[OTP] Bypass rejected - user not found or inactive", {
+          identifier: redactIdentifier(identifierRaw),
+          userExists: Boolean(bypassUser),
+          userStatus: bypassUser?.status,
+          clientIp,
+        });
+        shouldBypassOtp = false;
+      }
+    }
     
     // SECURITY: Apply rate limit even for bypass-eligible users to prevent enumeration (CodeRabbit review fix)
     if (shouldBypassOtp) {
@@ -439,15 +465,33 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // SECURITY: Resolve actual user ID and org from database (CodeRabbit critical fix)
+      // bypassUser was already validated above, use its data for proper tenant isolation
+      const resolvedBypassUserId = bypassUser!._id.toString();
+      const resolvedBypassOrgId = bypassUser!.orgId?.toString() || 
+        process.env.PUBLIC_ORG_ID || 
+        process.env.DEFAULT_ORG_ID;
+      
+      if (!resolvedBypassOrgId) {
+        logger.error("[OTP] No org context for bypass", { 
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "Org context required" },
+          { status: 500 },
+        );
+      }
+      
       // Store bypass OTP in Redis so verify endpoint can validate it
       const bypassOtpKey = `otp:bypass:${normalizedIdForCheck}`;
       await redisOtpStore.set(bypassOtpKey, {
         otp: bypassCode,
         expiresAt: Date.now() + OTP_EXPIRY_MS,
         attempts: 0,
-        userId: normalizedIdForCheck,
+        userId: resolvedBypassUserId,
         phone: 'BYPASS',
-        orgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || 'bypass',
+        orgId: resolvedBypassOrgId,
         companyCode: parsed.data.companyCode || 'BYPASS',
         __bypassed: true,
       });

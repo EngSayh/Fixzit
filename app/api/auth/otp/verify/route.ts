@@ -166,6 +166,26 @@ export async function POST(request: NextRequest) {
     const bypassData = await redisOtpStore.get(bypassOtpKey);
     
     if (bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+      // SECURITY: Validate user exists and is ACTIVE before issuing bypass session (CodeRabbit critical fix)
+      await connectToDatabase();
+      const bypassUser = await User.findOne({ email: loginIdentifier.toLowerCase() })
+        .select("_id status orgId")
+        .lean() as { _id: { toString(): string }; status: string; orgId?: string } | null;
+      
+      if (!bypassUser || bypassUser.status !== "ACTIVE") {
+        logger.warn("[OTP] Bypass rejected - user inactive or not found", {
+          identifier: redactIdentifier(loginIdentifier),
+          userExists: Boolean(bypassUser),
+          userStatus: bypassUser?.status,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
       // SECURITY: Validate org context matches to prevent cross-tenant bypass reuse (CodeRabbit review fix)
       if (bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
         logger.warn("[OTP] Bypass org mismatch - potential cross-tenant attack", {
@@ -185,6 +205,7 @@ export async function POST(request: NextRequest) {
       logger.warn("[OTP] SECURITY AUDIT: Bypass OTP verified", {
         identifier: redactIdentifier(loginIdentifier),
         orgId: orgScopeId,
+        userId: bypassUser._id.toString(),
         clientIp,
         timestamp: new Date().toISOString(),
         action: 'OTP_BYPASS_VERIFY',
@@ -194,11 +215,12 @@ export async function POST(request: NextRequest) {
       await redisOtpStore.delete(bypassOtpKey);
       
       // Generate temporary OTP login session token
+      // SECURITY: Use validated user data from database, not from bypassData (CodeRabbit critical fix)
       const sessionToken = randomBytes(32).toString("hex");
       await redisOtpSessionStore.set(sessionToken, {
-        userId: bypassData.userId,
+        userId: bypassUser._id.toString(),
         identifier: loginIdentifier,
-        orgId: bypassData.orgId || orgScopeId,
+        orgId: bypassUser.orgId?.toString() || orgScopeId,
         companyCode: bypassData.companyCode || normalizedCompanyCode,
         expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
         __bypassed: true,
