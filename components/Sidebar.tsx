@@ -453,8 +453,8 @@ export default function Sidebar({
         </nav>
 
         {!isCollapsed && (
-          <div className="border-t border-border pt-4 mt-4">
-            <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
               {t("sidebar.account", "Account")}
             </div>
             <ul
@@ -474,10 +474,8 @@ export default function Sidebar({
                     <Link
                       href={link.path}
                       className={cn(
-                        "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-accent text-accent-foreground shadow-md"
-                          : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                        "fxz-sidebar-item",
+                        isActive && "fxz-sidebar-item-active",
                       )}
                       aria-current={isActive ? "page" : undefined}
                       data-testid={`account-${link.id}`}
@@ -494,7 +492,7 @@ export default function Sidebar({
                       </span>
                       {isActive && (
                         <span
-                          className="inline-block h-2 w-2 rounded-full bg-primary ms-auto"
+                          className="inline-block h-2 w-2 rounded-full bg-sidebar-primary ms-auto"
                           aria-hidden
                         />
                       )}
@@ -507,16 +505,15 @@ export default function Sidebar({
         )}
 
         {isAuthenticated && !isCollapsed && (
-          <div className="border-t border-border pt-4 mt-4">
-            <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 text-start">
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
               {t("sidebar.help", "Help")}
             </div>
             <Link
               href="/help"
               className={cn(
-                "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium opacity-80 transition-all duration-200 hover:bg-muted",
+                "fxz-sidebar-item",
                 isRTL ? "flex-row-reverse" : "",
-                hoverShiftClass,
               )}
               data-testid="nav-help"
               prefetch={false}
