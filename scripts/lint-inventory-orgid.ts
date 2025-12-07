@@ -31,14 +31,63 @@ const positionalOrgIndex: Record<string, number> = {
   queueLowStockAlerts: 1, // sellerId, orgId
 };
 
+// Known helper functions that provide orgId filtering
+const orgFilterHelpers = new Set([
+  "buildOrgFilter",
+  "buildSouqOrgFilter",
+  "buildOrgIdFilter",
+]);
+
+// Known variable names that contain org filters
+const orgFilterVarNames = new Set([
+  "orgFilter",
+  "orgIdFilter",
+  "baseFilter",
+  "tenantFilter",
+  "query", // Variable that may include orgId
+]);
+
+function unwrapExpression(expr: ts.Expression): ts.Expression {
+  // Recursively unwrap parentheses and type assertions
+  if (ts.isParenthesizedExpression(expr)) {
+    return unwrapExpression(expr.expression);
+  }
+  if (ts.isAsExpression(expr)) {
+    return unwrapExpression(expr.expression);
+  }
+  return expr;
+}
+
 function hasOrgIdProp(arg: ts.ObjectLiteralExpression): boolean {
   return arg.properties.some((prop) => {
+    // Check for direct orgId property
     if (
       ts.isPropertyAssignment(prop) ||
       ts.isShorthandPropertyAssignment(prop)
     ) {
       const name = prop.name ?? (ts.isShorthandPropertyAssignment(prop) ? prop.name : undefined);
       return name?.getText() === "orgId";
+    }
+    // Check for spread of org filter helper or known variable: ...buildOrgFilter(orgId) or ...orgFilter
+    if (ts.isSpreadAssignment(prop)) {
+      const rawExpr = prop.expression;
+      const expr = unwrapExpression(rawExpr);
+      
+      // Handle spread of known variable: ...orgFilter
+      if (ts.isIdentifier(expr)) {
+        const varName = expr.getText();
+        if (orgFilterVarNames.has(varName)) {
+          return true;
+        }
+      }
+      
+      // Handle direct call: ...buildOrgFilter(orgId)
+      if (ts.isCallExpression(expr) && ts.isIdentifier(expr.expression)) {
+        const fnName = expr.expression.getText();
+        if (orgFilterHelpers.has(fnName)) {
+          return true;
+        }
+      }
     }
     return false;
   });
@@ -117,7 +166,7 @@ function checkCall(node: ts.CallExpression, sf: ts.SourceFile, violations: Viola
   // Listing/Product model guardrails: queries must include orgId in filter object
   if (listingModels.has(target)) {
     const method = callee.name.getText(sf);
-    const firstArg = node.arguments[0];
+    let firstArg = node.arguments[0];
     const methodsRequiringFilter = new Set([
       "find",
       "findOne",
@@ -130,6 +179,13 @@ function checkCall(node: ts.CallExpression, sf: ts.SourceFile, violations: Viola
     ]);
 
     if (methodsRequiringFilter.has(method)) {
+      // Unwrap type assertions: { foo } as Type => { foo }
+      if (firstArg && ts.isAsExpression(firstArg)) {
+        firstArg = firstArg.expression;
+      }
+      if (firstArg && ts.isParenthesizedExpression(firstArg)) {
+        firstArg = firstArg.expression;
+      }
       if (!firstArg || !ts.isObjectLiteralExpression(firstArg) || !hasOrgIdProp(firstArg)) {
         recordViolation(
           violations,

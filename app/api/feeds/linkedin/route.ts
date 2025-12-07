@@ -47,6 +47,10 @@ export async function GET() {
   }
 
   await connectToDatabase();
+  // PUBLIC FEEDS: Intentionally cross-tenant for job aggregation.
+  // This exposes only public, published jobs from all organizations
+  // as part of the platform-wide careers feed. This is by design for
+  // job board integrations (LinkedIn, Indeed, etc.).
   const jobs = (await Job.find({ status: "published", visibility: "public" })
     .sort({ publishedAt: -1 })
     .lean()) as JobFeedDoc[];

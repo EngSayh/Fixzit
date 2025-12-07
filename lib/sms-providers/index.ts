@@ -19,7 +19,6 @@ import type {
 } from "./types";
 import { createTwilioProvider } from "./twilio";
 import { createUnifonicProvider } from "./unifonic";
-import { redactPhoneNumber } from "./phone-utils";
 
 // Re-export types for convenience
 export type {
@@ -31,14 +30,6 @@ export type {
   SMSDeliveryStatus,
   BulkSMSResult,
 };
-
-// Re-export phone utilities
-export {
-  formatSaudiPhoneNumber,
-  isValidSaudiPhone,
-  validateAndFormatPhone,
-  redactPhoneNumber,
-} from "./phone-utils";
 
 // Re-export providers
 export { TwilioProvider, createTwilioProvider } from "./twilio";
@@ -83,7 +74,7 @@ class MockProvider implements SMSProvider {
 
   async sendSMS(to: string, message: string): Promise<SMSResult> {
     const mockId = `MOCK_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    logger.info(`[Mock SMS] To: ${redactPhoneNumber(to)}, Message: ${message.substring(0, 50)}...`);
+    logger.info(`[Mock SMS] To: ${to}, Message: ${message.substring(0, 50)}...`);
     return {
       success: true,
       messageId: mockId,

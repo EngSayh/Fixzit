@@ -14,7 +14,6 @@ import {
   withTimeout,
   getCircuitBreaker,
 } from "@/lib/resilience";
-import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import type {
   SMSProvider,
   SMSProviderType,
@@ -24,26 +23,32 @@ import type {
   BulkSMSResult,
   SMSProviderOptions,
 } from "./types";
-import {
-  formatSaudiPhoneNumber,
-  isValidSaudiPhone,
-  redactPhoneNumber,
-} from "./phone-utils";
 
 // Configuration from environment
 const UNIFONIC_APP_SID = process.env.UNIFONIC_APP_SID || "";
 const UNIFONIC_SENDER_ID = process.env.UNIFONIC_SENDER_ID || "FIXZIT";
 const UNIFONIC_API_URL =
   process.env.UNIFONIC_API_URL || "https://el.cloud.unifonic.com/rest";
+const UNIFONIC_TIMEOUT_MS = parseInt(
+  process.env.UNIFONIC_TIMEOUT_MS || "10000",
+  10,
+);
+const UNIFONIC_MAX_ATTEMPTS = parseInt(
+  process.env.UNIFONIC_MAX_ATTEMPTS || "3",
+  10,
+);
+const UNIFONIC_RETRY_DELAY_MS = parseInt(
+  process.env.UNIFONIC_RETRY_DELAY_MS || "500",
+  10,
+);
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
   process.env.SMS_DEV_MODE === "true" ||
   (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
-// Circuit breaker and resilience config for Unifonic API
+// Circuit breaker for Unifonic API
 const unifonicBreaker = getCircuitBreaker("unifonic");
-const unifonicResilience = SERVICE_RESILIENCE.unifonic;
 
 /**
  * Unifonic API Response for sending SMS
@@ -108,6 +113,37 @@ function mapUnifonicStatus(status?: string): SMSDeliveryStatus {
 }
 
 /**
+ * Format phone number to E.164 format for Saudi Arabia
+ */
+function formatSaudiPhoneNumber(phone: string): string {
+  // Remove all spaces, dashes, and parentheses
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+
+  // If already in E.164 format
+  if (cleaned.startsWith("+966")) {
+    return cleaned;
+  }
+
+  // Handle 00 prefix
+  if (cleaned.startsWith("00966")) {
+    return "+" + cleaned.substring(2);
+  }
+
+  // Handle just country code
+  if (cleaned.startsWith("966")) {
+    return "+" + cleaned;
+  }
+
+  // Handle local format with leading 0
+  if (cleaned.startsWith("0")) {
+    return "+966" + cleaned.substring(1);
+  }
+
+  // Assume local number
+  return "+966" + cleaned;
+}
+
+/**
  * Unifonic SMS Provider Implementation
  */
 export class UnifonicProvider implements SMSProvider {
@@ -118,8 +154,8 @@ export class UnifonicProvider implements SMSProvider {
 
   constructor(options?: SMSProviderOptions) {
     this.devMode = options?.devMode ?? SMS_DEV_MODE_ENABLED;
-    this.timeoutMs = options?.timeoutMs ?? unifonicResilience.timeouts.smsSendMs;
-    this.maxRetries = options?.maxRetries ?? unifonicResilience.retries.maxAttempts;
+    this.timeoutMs = options?.timeoutMs ?? UNIFONIC_TIMEOUT_MS;
+    this.maxRetries = options?.maxRetries ?? UNIFONIC_MAX_ATTEMPTS;
   }
 
   /**
@@ -135,21 +171,6 @@ export class UnifonicProvider implements SMSProvider {
   async sendSMS(to: string, message: string): Promise<SMSResult> {
     const formattedPhone = formatSaudiPhoneNumber(to);
     const timestamp = new Date();
-
-    // Validate phone number before sending
-    if (!isValidSaudiPhone(formattedPhone)) {
-      logger.warn("[Unifonic] Invalid Saudi phone number", {
-        to: redactPhoneNumber(to),
-        formattedPhone: redactPhoneNumber(formattedPhone),
-      });
-      return {
-        success: false,
-        error: `Invalid Saudi phone number format: ${redactPhoneNumber(to)}`,
-        provider: this.name,
-        to: formattedPhone,
-        timestamp,
-      };
-    }
 
     // Development mode - simulate sending
     if (this.devMode) {
@@ -188,7 +209,7 @@ export class UnifonicProvider implements SMSProvider {
           ),
         {
           maxAttempts: this.maxRetries,
-          baseDelayMs: unifonicResilience.retries.baseDelayMs,
+          baseDelayMs: UNIFONIC_RETRY_DELAY_MS,
           label: "unifonic-send",
         },
       );

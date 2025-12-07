@@ -11,6 +11,8 @@ export async function GET() {
   try {
     await connectToDatabase();
 
+    // PLATFORM-WIDE DATA: Categories are shared across all tenants by design.
+    // This is a read-only catalog that all sellers can access.
     const categories = await Category.find({ isActive: true })
       .select("name name_ar slug parentId level imageUrl")
       .sort({ level: 1, name: 1 })
