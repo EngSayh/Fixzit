@@ -1297,5 +1297,73 @@ The i18n locale preference endpoint (`app/api/i18n/route.ts`) had no rate limiti
 
 ---
 
+### ISSUE-022: Missing Tenant Isolation in Withdrawal Balance Check
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `checkSellerBalance` method in `WithdrawalService` queried `souq_settlement_statements` without an `orgId` filter. A seller in one org could potentially check/exploit balance data from another org if `sellerId` values overlapped.
+
+**Resolution**:
+- Added `orgId` to `WithdrawalRequest` interface
+- Added `orgId` to `Withdrawal` interface  
+- Updated `checkSellerBalance` to require and use `orgId` in query
+- Updated `createWithdrawalRecord` to include `orgId`
+- Added orgId to audit logs
+
+**Files**:
+- `services/souq/settlements/withdrawal-service.ts`: Complete tenant isolation fix
+
+---
+
+### ISSUE-023: Floating Point Arithmetic for Financial Calculations
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data Integrity, Financial Security  
+**Status**: 🔄 IDENTIFIED
+
+**Description**:  
+Fee calculations in multiple services use JavaScript native floating-point arithmetic followed by `toFixed()`. This can accumulate rounding errors in high-volume scenarios. Example: `100.03 * 0.1` could result in values like `10.000000001`.
+
+**Key Locations**:
+- `services/souq/marketplace-fee-service.ts`: Lines 304-335
+- `services/souq/seller-balance-service.ts`: Lines 263, 350, 548-551, 721, 740
+
+**Impact**:
+- Cumulative floating-point errors in high-transaction scenarios
+- Balance discrepancies between calculated and actual amounts
+- Potential financial auditing issues
+
+**Recommended Fix**:
+1. Use `Decimal128` MongoDB type with `decimal.js` for calculations
+2. Store all monetary values in minor units (cents/halalas) as integers
+3. Follow pattern already used in `lib/payments/currencyUtils.ts`
+
+---
+
+### ISSUE-024: Debug Console.log in Claims/Refund Services
+
+**Severity**: 🟨 MODERATE  
+**Category**: Logging Security  
+**Status**: ⚠️ ACCEPTABLE RISK
+
+**Description**:  
+Debug console.log statements exist in:
+- `services/souq/claims/claim-service.ts`: Lines 337, 371
+- `services/souq/claims/refund-processor.ts`: Line 921
+
+These are guarded by specific test environment variables (`DEBUG_CLAIM_TEST`, `DEBUG_REFUND_TEST`) and have eslint-disable comments.
+
+**Assessment**:
+- Risk is LOW because env vars are never set in production
+- Useful for debugging during development
+- Already has eslint-disable comments indicating intentional usage
+
+**Action**: No changes needed. Documented for awareness.
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
