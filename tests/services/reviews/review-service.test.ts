@@ -99,3 +99,107 @@ describe("reviewService org scoping", () => {
     ]);
   });
 });
+
+describe("reviewService RBAC moderation enforcement", () => {
+  const orgId = "507f1f77bcf86cd799439011";
+  const moderatorId = new Types.ObjectId().toHexString();
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("approveReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.approveReview("REV-1", orgId, moderatorId, "TENANT"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("rejectReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.rejectReview("REV-1", orgId, moderatorId, "CORPORATE_EMPLOYEE", "spam"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("flagReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.flagReview("REV-1", orgId, moderatorId, "PROPERTY_OWNER", "inappropriate"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("approveReview allows ADMIN role", async () => {
+    const mockReview = {
+      reviewId: "REV-1",
+      status: "pending",
+      productId: new Types.ObjectId(),
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(mockReview as never);
+    vi.spyOn(SouqProduct, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
+    vi.spyOn(SouqReview, "aggregate").mockResolvedValue([
+      { _id: mockReview.productId, totalReviews: 1, totalRating: 5 },
+    ] as never);
+
+    const result = await reviewService.approveReview("REV-1", orgId, moderatorId, "ADMIN");
+
+    expect(result.status).toBe("published");
+    expect(mockReview.save).toHaveBeenCalled();
+  });
+
+  it("approveReview allows SUPER_ADMIN role", async () => {
+    const mockReview = {
+      reviewId: "REV-2",
+      status: "pending",
+      productId: new Types.ObjectId(),
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(mockReview as never);
+    vi.spyOn(SouqProduct, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
+    vi.spyOn(SouqReview, "aggregate").mockResolvedValue([
+      { _id: mockReview.productId, totalReviews: 1, totalRating: 4 },
+    ] as never);
+
+    const result = await reviewService.approveReview("REV-2", orgId, moderatorId, "SUPER_ADMIN");
+
+    expect(result.status).toBe("published");
+  });
+
+  it("flagReview requires reason", async () => {
+    await expect(
+      reviewService.flagReview("REV-1", orgId, moderatorId, "ADMIN", ""),
+    ).rejects.toThrow("Flag reason is required");
+  });
+});
+
+describe("reviewService cross-tenant isolation", () => {
+  const orgA = "507f1f77bcf86cd799439011";
+  const orgB = "507f1f77bcf86cd799439022";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("getReviewById returns null for review in different org", async () => {
+    // Review exists in orgA but we query with orgB
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    const result = await reviewService.getReviewById("REV-1", orgB);
+
+    expect(result).toBeNull();
+  });
+
+  it("approveReview throws when review not found in caller's org", async () => {
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    await expect(
+      reviewService.approveReview("REV-CROSS", orgB, "mod-1", "ADMIN"),
+    ).rejects.toThrow("Review not found");
+  });
+
+  it("rejectReview throws when review not found in caller's org", async () => {
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    await expect(
+      reviewService.rejectReview("REV-CROSS", orgB, "mod-1", "ADMIN", "spam"),
+    ).rejects.toThrow("Review not found");
+  });
+});

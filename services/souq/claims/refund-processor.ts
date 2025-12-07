@@ -1272,10 +1272,10 @@ export class RefundProcessor {
       createdAt: new Date(),
     };
 
-    // 🔐 RACE-SAFE FIX: Use atomic updateOne with upsert. $inc treats missing field as 0,
-    // and $push creates the transactions array on insert. $setOnInsert only sets identity
-    // fields (sellerId, orgId) which don't conflict with $inc/$push/$set.
-    // This prevents duplicate-key errors when two concurrent requests try to create the same document.
+    // 🔐 RACE-SAFE FIX: Use atomic updateOne with upsert to prevent read-modify-write races.
+    // $inc treats missing field as 0, and $push creates the transactions array on insert.
+    // $setOnInsert only sets identity fields (sellerId, orgId) which don't conflict with $inc/$push/$set.
+    // Note: Concurrent upserts may still trigger duplicate-key errors; caller should retry if needed.
     await balances.updateOne(
       { sellerId, ...buildOrgScope(orgId) },
       {
