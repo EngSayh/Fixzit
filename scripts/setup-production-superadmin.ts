@@ -22,7 +22,7 @@ import bcrypt from "bcryptjs";
 async function setupProductionSuperAdmin() {
   const email = process.env.SUPERADMIN_EMAIL || process.env.NEXTAUTH_SUPERADMIN_EMAIL;
   const password = process.env.SUPERADMIN_PASSWORD;
-  const orgId = process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || "68dc8955a1ba6ed80ff372dc";
+  const orgId = process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID;
 
   if (!email) {
     console.error("❌ Missing SUPERADMIN_EMAIL environment variable");
