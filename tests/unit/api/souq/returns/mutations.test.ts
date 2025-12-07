@@ -132,7 +132,9 @@ describe("souq returns mutations RBAC/org checks", () => {
 
       const res = await refundRoute(req);
       const payload = await res.json();
-      expect(res.status).toBe(403);
+      // SECURITY: Returns 404 instead of 403 to prevent cross-tenant existence leaks (SEC-006)
+      expect(res.status).toBe(404);
+      expect(payload.error).toBe('RMA not found');
       expect(processRefundMock).not.toHaveBeenCalled();
     });
 

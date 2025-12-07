@@ -33,7 +33,7 @@ const ProductSchema = z.object({
   summary: z.string().optional(),
   brand: z.string().optional(),
   standards: z.array(z.string()).optional(),
-  specs: z.record(z.string(), z.any()).optional(),
+  specs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
   media: z
     .array(
       z.object({

@@ -22,7 +22,6 @@ services/
 │   └── wpsService.ts                # Wage Protection System integration
 │
 ├── notifications/           # Notification Services
-│   ├── fm-notification-engine.ts    # FM notification rules
 │   └── seller-notification-service.ts # Souq seller notifications
 │
 └── souq/                    # E-commerce (Souq) Services
@@ -246,25 +245,6 @@ const wpsFile = await wpsService.generateFile({
 });
 
 // Returns SIF file for bank submission
-```
-
----
-
-## Notification Services
-
-### FM Notification Engine (`notifications/fm-notification-engine.ts`)
-
-Facility Management notifications:
-
-```typescript
-import { fmNotificationEngine } from '@/services/notifications/fm-notification-engine';
-
-await fmNotificationEngine.notify({
-  type: 'work-order-assigned',
-  workOrderId: 'wo-123',
-  technicianId: 'tech-456',
-  channels: ['push', 'email'],
-});
 ```
 
 ---

@@ -40,7 +40,8 @@ const createRFQSchema = z.object({
         description: z.string(),
         quantity: z.number(),
         unit: z.string(),
-        specifications: z.any().optional(),
+        // Include array support to match contracts route pattern and frontend usage
+        specifications: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
       }),
     )
     .optional(),
