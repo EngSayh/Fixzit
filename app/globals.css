@@ -328,7 +328,7 @@
     color: hsl(var(--primary));
     border-radius: 8px;
     border: 1px solid hsl(var(--primary));
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
   }
 
   .fxz-btn-outline:hover {
