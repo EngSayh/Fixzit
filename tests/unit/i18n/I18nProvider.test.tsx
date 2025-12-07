@@ -11,7 +11,7 @@ import { vi, beforeEach, afterEach, describe, test, expect } from "vitest";
  * Mock config and dictionaries BEFORE importing the module under test
  * to ensure DICTIONARIES and meta are built from predictable values.
  */
-vi.mock("./config", () => ({
+vi.mock("@/i18n/config", () => ({
   DEFAULT_LOCALE: "ar",
   SUPPORTED_LOCALES: ["en", "ar"],
   LOCALE_META: {
@@ -26,15 +26,15 @@ const LOCALE_META = {
   ar: { dir: "rtl" },
 } as const;
 
-vi.mock("./dictionaries/en", () => ({
+vi.mock("@/i18n/dictionaries/en", () => ({
   default: { greeting: "Hello", code: "en" },
 }));
 
-vi.mock("./dictionaries/ar", () => ({
+vi.mock("@/i18n/dictionaries/ar", () => ({
   default: { greeting: "مرحبا", code: "ar" },
 }));
 
-import { I18nProvider, I18nContext } from "./I18nProvider";
+import { I18nProvider, I18nContext } from "@/i18n/I18nProvider";
 
 interface I18nContextValue {
   locale: string;
