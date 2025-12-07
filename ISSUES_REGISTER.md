@@ -1130,14 +1130,16 @@ System contains 100+ hardcoded references to `fixzit.co`, `fixzit.com`, `fixzit.
 
 **Severity**: 🟨 MODERATE  
 **Category**: Maintainability, Configuration  
-**Status**: 🔄 IDENTIFIED
+**Status**: 🔄 PARTIALLY RESOLVED (2025-12-07)
+
+**Partial Resolution**: Fixed the critical issue - wrong country code in privacy page (+971 UAE → +966 Saudi). Other hardcoded phones remain for future cleanup.
 
 **Description**:  
 System contains 50+ hardcoded Saudi phone numbers (`+966XXXXXXXXX`). Some are placeholders, some are demo data, some are in production API defaults.
 
 **Key Locations**:
 - `app/settings/page.tsx:130` - `+966 50 123 4567` (form default)
-- `app/privacy/page.tsx:36` - `+971 XX XXX XXXX` (wrong country code!)
+- `app/privacy/page.tsx:36` - ~~`+971 XX XXX XXXX` (wrong country code!)~~ ✅ FIXED → `+966 XX XXX XXXX`
 - `app/fm/page.tsx:77,89,101` - Mock contact numbers
 - `app/fm/finance/invoices/page.tsx:706` - `+966 11 123 4567`
 - `app/api/payments/create/route.ts:133` - `+966500000000` fallback
@@ -1148,11 +1150,11 @@ System contains 50+ hardcoded Saudi phone numbers (`+966XXXXXXXXX`). Some are pl
 **Impact**:
 - Placeholder phones may accidentally be used in production
 - Inconsistent phone formatting across UI
-- Wrong country code in privacy page (+971 UAE instead of +966 Saudi)
+- ~~Wrong country code in privacy page (+971 UAE instead of +966 Saudi)~~ ✅ FIXED
 
 **Recommended Fix**:
 1. Replace placeholders with configurable values from environment
-2. Fix privacy page country code (UAE → Saudi)
+2. ~~Fix privacy page country code (UAE → Saudi)~~ ✅ DONE
 3. Create `lib/config/contact.ts` for company contact info
 4. All demo phones should be in scripts/ only, not in UI components
 
@@ -1162,7 +1164,12 @@ System contains 50+ hardcoded Saudi phone numbers (`+966XXXXXXXXX`). Some are pl
 
 **Severity**: 🟥 CRITICAL (Security)  
 **Category**: Security  
-**Status**: 🔄 IDENTIFIED
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Added environment-based gating to `DemoCredentialsSection.tsx`:
+- Added `SHOW_DEMO_CREDS` constant checking `NODE_ENV === 'development'` OR `NEXT_PUBLIC_SHOW_DEMO_CREDS === 'true'`
+- Component returns null if demo creds are disabled
+- Credential arrays are conditionally defined to enable tree-shaking in production builds
 
 **Description**:  
 Production components contain hardcoded demo passwords that are visible to all users. While demo credentials may be intentional, exposing them in production components is a security risk.
@@ -1196,7 +1203,9 @@ Production components contain hardcoded demo passwords that are visible to all u
 
 **Severity**: 🟧 MAJOR  
 **Category**: UX, Theme  
-**Status**: 🔄 IDENTIFIED
+**Status**: ✅ RESOLVED (2025-12-07)
+
+**Resolution**: Updated all organization settings defaults from legacy brown (`#B46B2F`, `#D68B4A`) to Business.sa blue (`#0061A8`, `#1a365d`). Created centralized brand colors in `lib/config/brand-colors.ts`.
 
 **Description**:  
 Despite Business.sa rebrand to blue theme (`#0061A8`), legacy brown/amber theme colors (`#B46B2F`, `#D68B4A`) still exist in organization settings defaults.
