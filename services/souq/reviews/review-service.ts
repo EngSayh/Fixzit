@@ -717,7 +717,14 @@ class ReviewService {
   }
 
   /**
-   * Flag review (moderator)
+   * Flag a review for additional moderation review (moderator only)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param moderatorId - ID of the moderator flagging the review
+   * @param moderatorRole - Role of the moderator (must be in MODERATOR_ROLES)
+   * @param reason - Detailed reason for flagging
+   * @returns The flagged review document with status 'flagged'
+   * @throws Error if unauthorized role, review not found, or reason is empty
    * 🔐 STRICT v4.1: Requires moderator role validation
    */
   async flagReview(
@@ -755,7 +762,10 @@ class ReviewService {
   }
 
   /**
-   * Get review statistics for a product
+   * Get review statistics for a product including rating distribution and recent reviews
+   * @param productId - Product identifier (string or ObjectId format)
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @returns Aggregated stats: averageRating, totalReviews, ratingBreakdown, verifiedPurchaseCount, recentReviews
    */
   async getReviewStats(productId: string, orgId: string): Promise<ReviewStats> {
     const productObjectId = this.ensureObjectId(productId, "productId");

@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
       !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
       sellerId !== session.user.id
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Balance not found" }, { status: 404 });
     }
 
     // Get balance - 🔐 STRICT v4.1: Pass orgId for tenant isolation
