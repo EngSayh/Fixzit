@@ -252,7 +252,6 @@ export default function Sidebar({
 
   const isMobile = screenInfo.isMobile || screenInfo.isTablet;
   const asideWidth = isCollapsed ? "w-16" : "w-64";
-  const hoverShiftClass = "hover:translate-x-1 rtl:hover:-translate-x-1";
   const CollapseIcon = isCollapsed
     ? isRTL
       ? ChevronLeft
@@ -367,10 +366,8 @@ export default function Sidebar({
                       <Link
                         href={module.path}
                         className={cn(
-                          "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200",
-                          isActive
-                            ? "bg-accent text-accent-foreground shadow-md"
-                            : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                          "fxz-sidebar-item",
+                          isActive && "fxz-sidebar-item-active",
                           isCollapsed && "justify-center",
                         )}
                         aria-current={isActive ? "page" : undefined}
