@@ -8,14 +8,18 @@ import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqProduct, type IProduct } from "@/server/models/souq/Product";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { isModeratorRole } from "@/types/user";
+import { Config } from "@/lib/config/constants";
 import { nanoid } from "nanoid";
 import type mongoose from "mongoose";
-import { Types, type FilterQuery } from "mongoose";
+import { Types, type FilterQuery, type FlattenMaps } from "mongoose";
+
+// 📦 Type alias for lean (plain object) review documents
+type LeanReview = FlattenMaps<IReview> & { _id: Types.ObjectId };
 
 // 🚀 PERF: Maximum limit for paginated queries to prevent abuse
-const MAX_PAGE_LIMIT = 100;
+const MAX_PAGE_LIMIT = Config.souq.reviews.maxPageLimit;
 // 🛡️ Moderation: Number of unique reports before auto-flagging a review
-const REPORT_FLAG_THRESHOLD = 3;
+const REPORT_FLAG_THRESHOLD = Config.souq.reviews.reportFlagThreshold;
 
 // 🔐 STRICT v4.1: Use centralized moderator role check from types/user.ts
 const assertModeratorRole = (role: string | undefined | null): void => {
@@ -73,7 +77,7 @@ export interface ReviewStats {
   totalReviews: number;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
   verifiedPurchaseCount: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 export interface SellerReviewStats {
@@ -81,12 +85,16 @@ export interface SellerReviewStats {
   totalReviews: number;
   pendingResponses: number;
   responseRate: number;
-  recentReviews: IReview[];
+  recentReviews: LeanReview[];
 }
 
 class ReviewService {
   /**
-   * Submit a new review
+   * Submit a new review for a product
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param data - Review data including productId, customerId, rating, content, etc.
+   * @returns The created review document
+   * @throws Error if rating is missing, out of range, or customer hasn't purchased the product
    */
   async submitReview(orgId: string, data: CreateReviewDto): Promise<IReview> {
     // 🔐 STRICT v4.1: Validate rating is provided before range check
@@ -165,7 +173,13 @@ class ReviewService {
   }
 
   /**
-   * Update existing review (customer only)
+   * Update an existing review (customer only, before moderation)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param customerId - Customer ID (must match review owner)
+   * @param data - Updated review fields (rating, content, images)
+   * @returns The updated review document
+   * @throws Error if review not found, not owned by customer, or already published
    */
   async updateReview(
     reviewId: string,
@@ -207,7 +221,11 @@ class ReviewService {
   }
 
   /**
-   * Delete review (customer only, before publication)
+   * Delete a review (customer only, before publication)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param customerId - Customer ID (must match review owner)
+   * @throws Error if review not found, not owned by customer, or already published
    */
   async deleteReview(reviewId: string, orgId: string, customerId: string): Promise<void> {
     const customerObjectId = this.ensureObjectId(customerId, "customerId");
@@ -231,7 +249,12 @@ class ReviewService {
   }
 
   /**
-   * Mark review as helpful
+   * Mark a review as helpful (upvote)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param customerId - Customer ID of the voter
+   * @returns The updated review document with incremented helpfulVotes
+   * @throws Error if review not found, voter already voted, or voter is review author
    */
   async markHelpful(reviewId: string, orgId: string, customerId: string): Promise<IReview> {
     // 🔐 STRICT v4.1: Use shared org filter for consistency
@@ -280,7 +303,12 @@ class ReviewService {
   }
 
   /**
-   * Mark review as not helpful
+   * Mark a review as not helpful (downvote)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param customerId - Customer ID of the voter
+   * @returns The updated review document with incremented notHelpfulVotes
+   * @throws Error if review not found, voter already voted, or voter is review author
    */
   async markNotHelpful(
     reviewId: string,
@@ -593,7 +621,10 @@ class ReviewService {
   }
 
   /**
-   * Get single review by ID
+   * Get a single review by its unique ID
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @returns The review document, or null if not found or org mismatch
    */
   async getReviewById(reviewId: string, orgId: string): Promise<IReview | null> {
     const orgFilter = getOrgFilter(orgId);
@@ -604,7 +635,13 @@ class ReviewService {
   }
 
   /**
-   * Approve review (moderator)
+   * Approve a review for publication (moderator only)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param moderatorId - ID of the moderator approving the review
+   * @param moderatorRole - Role of the moderator (must be in MODERATOR_ROLES)
+   * @returns The approved review document with status 'published'
+   * @throws Error if unauthorized role or review not found
    * 🔐 STRICT v4.1: Requires moderator role validation
    */
   async approveReview(
@@ -638,7 +675,14 @@ class ReviewService {
   }
 
   /**
-   * Reject review (moderator)
+   * Reject a review and prevent publication (moderator only)
+   * @param reviewId - Unique review identifier
+   * @param orgId - Organization ID for multi-tenant isolation
+   * @param moderatorId - ID of the moderator rejecting the review
+   * @param moderatorRole - Role of the moderator (must be in MODERATOR_ROLES)
+   * @param notes - Moderation notes explaining rejection reason
+   * @returns The rejected review document with status 'rejected'
+   * @throws Error if unauthorized role or review not found
    * 🔐 STRICT v4.1: Requires moderator role validation
    */
   async rejectReview(
@@ -849,7 +893,7 @@ class ReviewService {
       totalReviews,
       pendingResponses,
       responseRate,
-      recentReviews: recentReviews as unknown as IReview[],
+      recentReviews: recentReviews as LeanReview[],
     };
   }
 

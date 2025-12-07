@@ -95,7 +95,8 @@ export async function GET(
     const isSeller = rma.sellerId?.toString() === session.user.id;
 
     if (!isAdmin && !isBuyer && !isSeller) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "RMA not found" }, { status: 404 });
     }
 
     return NextResponse.json({

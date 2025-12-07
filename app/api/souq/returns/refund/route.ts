@@ -97,10 +97,8 @@ export async function POST(request: NextRequest) {
 
     // 🔒 STRICT TENANCY: Non-platform admins cannot refund RMAs from other orgs
     if (!isPlatformAdmin && rmaOrgId !== sessionOrgId) {
-      return NextResponse.json(
-        { error: 'Access denied: RMA belongs to different organization' },
-        { status: 403 }
-      );
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: 'RMA not found' }, { status: 404 });
     }
 
     // 🔐 Tenant boundary enforcement for non-platform admins
@@ -111,9 +109,8 @@ export async function POST(request: NextRequest) {
         rmaOrg: rmaOrgId,
         rmaId 
       });
-      return NextResponse.json({ 
-        error: 'Access denied: RMA belongs to different organization' 
-      }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: 'RMA not found' }, { status: 404 });
     }
 
     const validMethods = ['original_payment', 'wallet', 'bank_transfer'];

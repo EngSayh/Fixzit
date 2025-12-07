@@ -58,7 +58,8 @@ export async function GET(
     const isSeller = sellerId === session.user.id;
 
     if (!isPlatformAdmin && !isAdmin && !isOpsOrSupport && !isSeller) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
     }
 
     // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly choose targetOrgId

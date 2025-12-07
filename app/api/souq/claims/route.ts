@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (String(order.buyerId) !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
