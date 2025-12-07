@@ -396,8 +396,9 @@ class ReviewService {
       await review.save();
     }
 
-    // 🚫 Privacy: do not return reporter identities to callers
+    // 🚫 Privacy: do not return reporter identities or report details to callers
     delete (review as { reporters?: unknown }).reporters;
+    delete (review as { reportReasons?: unknown }).reportReasons;
 
     return review;
   }
@@ -887,6 +888,12 @@ class ReviewService {
     return products.map((product) => product._id);
   }
 
+  /**
+   * Validates and converts a string ID to a Mongoose ObjectId
+   * @param id - The string ID to convert
+   * @param fieldName - The field name for error messages
+   * @throws Error if the ID is not a valid ObjectId format
+   */
   private ensureObjectId(
     id: string,
     fieldName: string,
@@ -897,12 +904,23 @@ class ReviewService {
     return new Types.ObjectId(id);
   }
 
+  /**
+   * Validates that rating is an integer between 1 and 5
+   * @param rating - The rating value to validate
+   * @throws Error if rating is not an integer or out of range
+   */
   private assertRatingRange(rating: number): void {
-    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      throw new Error("Rating must be between 1 and 5");
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new Error("Rating must be an integer between 1 and 5");
     }
   }
 
+  /**
+   * Updates product aggregate statistics after review changes
+   * Recalculates average rating, total reviews, and rating distribution
+   * @param productId - The product ObjectId to update
+   * @param orgId - Organization ID for tenant isolation
+   */
   private async updateProductAggregates(
     productId: mongoose.Types.ObjectId,
     orgId: string,
