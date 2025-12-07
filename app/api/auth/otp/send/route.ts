@@ -415,8 +415,8 @@ export async function POST(request: NextRequest) {
           phone: "****BYPASS",
           expiresIn: OTP_EXPIRY_MS / 1000,
           attemptsRemaining: MAX_ATTEMPTS,
-          // Include bypass code in dev mode or when explicitly enabled
-          ...(smsDevMode || bypassOtpAll ? { devCode: bypassCode, __bypassed: true } : {}),
+          // SECURITY: Only expose bypass code in development mode, NEVER in production
+          ...(smsDevMode ? { devCode: bypassCode, __bypassed: true } : {}),
         },
       });
     }

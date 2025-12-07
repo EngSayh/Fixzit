@@ -1,4 +1,4 @@
-import { ObjectId as MongoObjectId, type UpdateFilter } from 'mongodb';
+import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRequire } from 'module';
 import { createRefund, queryRefundStatus } from '@/lib/paytabs';
@@ -6,6 +6,7 @@ import { validatePayTabsConfig } from '@/config/paytabs.config';
 import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
 import type { Claim as ClaimModel } from './claim-service';
+import { buildSouqOrgFilter } from '@/services/souq/org-scope';
 
 // Vitest globals are available in test runtime; safely access via globalThis to avoid ReferenceError in production
 type ViTestGlobal = { importMock?: <T>(path: string) => Promise<T> } | undefined;
@@ -18,32 +19,9 @@ const getViGlobal = (): ViTestGlobal => {
   }
 };
 
-const getOrgCandidates = (orgId: string, options?: { allowEmpty?: boolean }) => {
-  const trimmed = typeof orgId === 'string' ? orgId.trim() : orgId;
-  const candidates: Array<string | MongoObjectId> = [];
-  if (trimmed || options?.allowEmpty) {
-    if (trimmed) {
-      candidates.push(trimmed);
-      if (MongoObjectId.isValid(trimmed)) {
-        candidates.push(new MongoObjectId(trimmed));
-      }
-    }
-  }
-  return candidates;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const buildOrgScope = (orgId: string, options?: { allowEmpty?: boolean; allowOrgless?: boolean }): Record<string, any> => {
-  const candidates = getOrgCandidates(orgId, options);
-  if (!candidates.length && !options?.allowOrgless) {
-    throw new Error('orgId is required for tenant isolation (refunds)');
-  }
-  if (options?.allowOrgless && !candidates.length) {
-    return { $or: [{ orgId: { $exists: false } }, { org_id: { $exists: false } }] };
-  }
-  return {
-    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
-  };
+// 🔐 STRICT v4.1: Use shared org filter helper for consistency
+const buildOrgScope = (orgId: string, options?: { allowOrgless?: boolean }): Filter<Document> => {
+  return buildSouqOrgFilter(orgId, { allowOrgless: options?.allowOrgless });
 };
 
 const toIdString = (value: unknown): string => {
@@ -176,7 +154,9 @@ export class RefundProcessor {
   private static COLLECTION = 'souq_refunds';
   private static MAX_RETRIES = 3;
   private static MAX_STATUS_POLLS = 5;
-  private static RETRY_DELAY_MS = 5000; // 5 seconds
+  // 🔐 Production-appropriate delay: 30 seconds base delay for payment gateway retries
+  // PayTabs and similar gateways need time to process and may rate-limit rapid retries
+  private static RETRY_DELAY_MS = 30_000;
   private static indexesReady: Promise<void> | null = null;
   private static async collection() {
     const db = await getDatabase();
@@ -1272,21 +1252,26 @@ export class RefundProcessor {
       createdAt: new Date(),
     };
 
-    const update: UpdateFilter<SellerBalanceDocument> = {
-      $inc: { availableBalance: -amount },
-      $push: {
-        transactions: newTransaction,
-      },
-      $set: { updatedAt: new Date() },
-      $setOnInsert: {
+    // 🔐 FIX: Avoid $push + $setOnInsert conflict on transactions array
+    // First try to update existing document with $push
+    const updateResult = await balances.updateOne(
+      { sellerId, ...buildOrgScope(orgId) },
+      {
+        $inc: { availableBalance: -amount },
+        $push: { transactions: newTransaction },
+        $set: { updatedAt: new Date() },
+      }
+    );
+
+    // If no document matched, create a new one with the transaction already in the array
+    if (updateResult.matchedCount === 0) {
+      await balances.insertOne({
         sellerId,
         orgId,
-        availableBalance: 0,
-        transactions: [],
-      },
-    };
-
-    // 🔐 Filter by sellerId + orgId to prevent cross-tenant balance mutations
-    await balances.updateOne({ sellerId, ...buildOrgScope(orgId) }, update, { upsert: true });
+        availableBalance: -amount,
+        transactions: [newTransaction],
+        updatedAt: new Date(),
+      });
+    }
   }
 }
