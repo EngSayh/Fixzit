@@ -366,6 +366,61 @@ export async function POST(request: NextRequest) {
     const { identifier: identifierRaw, password } = parsed.data;
     const smsDevMode = isSMSDevModeEnabled();
 
+    // PRODUCTION OTP BYPASS: Allow bypassing OTP for superadmin and test users
+    // SECURITY: This should only be enabled with additional security controls (IP allowlisting, etc.)
+    const bypassOtpAll = process.env.NEXTAUTH_BYPASS_OTP_ALL === 'true';
+    const allowTestUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true';
+    
+    // Check if this is a known test/demo user that should bypass OTP
+    const normalizedIdForCheck = identifierRaw.toLowerCase();
+    const isSuperadminEmail = normalizedIdForCheck === 'superadmin@fixzit.co' || 
+                              normalizedIdForCheck === process.env.TEST_SUPERADMIN_IDENTIFIER?.toLowerCase();
+    const isDemoOrTestUser = DEMO_EMAILS.has(normalizedIdForCheck) || 
+                             DEMO_EMPLOYEE_IDS.has(identifierRaw.toUpperCase()) ||
+                             TEST_USER_CONFIG.some(c => c.identifier?.toLowerCase() === normalizedIdForCheck);
+    
+    // Enable OTP bypass for authorized users
+    const shouldBypassOtp = (bypassOtpAll && isSuperadminEmail) || 
+                            (allowTestUserBypass && isDemoOrTestUser);
+    
+    if (shouldBypassOtp) {
+      logger.warn("[OTP] OTP bypass enabled for authorized user", {
+        identifier: redactIdentifier(identifierRaw),
+        isSuperadmin: isSuperadminEmail,
+        isDemoOrTest: isDemoOrTestUser,
+        clientIp,
+      });
+      
+      // Return success response without sending actual SMS
+      // The OTP verify endpoint will also need to handle bypass
+      const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE || '000000';
+      
+      // Store bypass OTP in Redis so verify endpoint can validate it
+      const bypassOtpKey = `otp:bypass:${normalizedIdForCheck}`;
+      await redisOtpStore.set(bypassOtpKey, {
+        otp: bypassCode,
+        expiresAt: Date.now() + OTP_EXPIRY_MS,
+        attempts: 0,
+        userId: normalizedIdForCheck,
+        phone: 'BYPASS',
+        orgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || 'bypass',
+        companyCode: parsed.data.companyCode || 'BYPASS',
+        __bypassed: true,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "OTP sent successfully",
+        data: {
+          phone: "****BYPASS",
+          expiresIn: OTP_EXPIRY_MS / 1000,
+          attemptsRemaining: MAX_ATTEMPTS,
+          // Include bypass code in dev mode or when explicitly enabled
+          ...(smsDevMode || bypassOtpAll ? { devCode: bypassCode, __bypassed: true } : {}),
+        },
+      });
+    }
+
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
     const empUpper = identifierRaw.toUpperCase();
