@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 type AlertVariant = "default" | "destructive" | "info";
 
 const variantClasses: Record<AlertVariant, string> = {
-  default: "bg-blue-50 border-blue-200 text-blue-900",
-  destructive: "bg-red-50 border-red-200 text-red-900",
-  info: "bg-gray-50 border-gray-200 text-gray-900",
+  default: "bg-primary/10 border-primary/30 text-primary",
+  destructive: "bg-destructive/10 border-destructive/30 text-destructive",
+  info: "bg-muted border-border text-muted-foreground",
 };
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {

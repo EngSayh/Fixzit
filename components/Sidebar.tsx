@@ -252,7 +252,6 @@ export default function Sidebar({
 
   const isMobile = screenInfo.isMobile || screenInfo.isTablet;
   const asideWidth = isCollapsed ? "w-16" : "w-64";
-  const hoverShiftClass = "hover:translate-x-1 rtl:hover:-translate-x-1";
   const CollapseIcon = isCollapsed
     ? isRTL
       ? ChevronLeft
@@ -277,7 +276,7 @@ export default function Sidebar({
     if (typeof value !== "number" || value <= 0) return null;
     return (
       <span
-        className="ms-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary-foreground/80"
+        className="fxz-sidebar-badge"
         aria-label={`${value} ${module.fallbackLabel}`}
       >
         {value}
@@ -319,7 +318,7 @@ export default function Sidebar({
         )}
 
         {!isCollapsed && (
-          <div className="font-bold text-lg mb-6 text-start">
+          <div className="font-bold text-lg mb-6 text-start text-sidebar-foreground">
             {t("common.brand", "Fixzit Enterprise")}
           </div>
         )}
@@ -327,15 +326,15 @@ export default function Sidebar({
         {isAuthenticated && !isCollapsed && (
           <section
             aria-label={t("sidebar.accountInfo", "Account info")}
-            className="mb-4 rounded-2xl border border-border bg-muted/30 p-3"
+            className="mb-4 rounded-2xl border border-sidebar-border bg-sidebar-accent/30 p-3"
           >
-            <div className="text-xs opacity-80 mb-1 text-start">
+            <div className="text-xs opacity-80 mb-1 text-start text-sidebar-foreground">
               {t("sidebar.role", "Role")}
             </div>
-            <div className="text-sm font-medium capitalize text-start">
+            <div className="text-sm font-medium capitalize text-start text-sidebar-foreground">
               {formatLabel(role)}
             </div>
-            <div className="text-xs opacity-80 mt-1 text-start">
+            <div className="text-xs opacity-80 mt-1 text-start text-sidebar-foreground">
               {t("sidebar.planLabel", "Plan")}: {formatLabel(subscription)}
             </div>
           </section>
@@ -367,10 +366,8 @@ export default function Sidebar({
                       <Link
                         href={module.path}
                         className={cn(
-                          "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200",
-                          isActive
-                            ? "bg-accent text-accent-foreground shadow-md"
-                            : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                          "fxz-sidebar-item",
+                          isActive && "fxz-sidebar-item-active",
                           isCollapsed && "justify-center",
                         )}
                         aria-current={isActive ? "page" : undefined}
@@ -391,7 +388,7 @@ export default function Sidebar({
                             {badge}
                             {isActive && (
                               <span
-                                className="inline-block h-2 w-2 rounded-full bg-primary ms-auto"
+                                className="inline-block h-2 w-2 rounded-full bg-sidebar-primary ms-auto"
                                 aria-hidden
                               />
                             )}
@@ -410,10 +407,10 @@ export default function Sidebar({
                                 <Link
                                   href={sub.path}
                                   className={cn(
-                                    "flex items-center gap-2 rounded-2xl px-4 py-1.5 text-xs transition-all duration-200",
+                                    "flex items-center gap-2 rounded-xl px-4 py-1.5 text-xs transition-all duration-200 ms-2 text-sidebar-foreground/80",
                                     isSubActive
-                                      ? "bg-muted text-foreground shadow-sm"
-                                      : `opacity-70 hover:bg-muted ${hoverShiftClass}`,
+                                      ? "bg-sidebar-accent text-sidebar-foreground"
+                                      : "hover:bg-sidebar-accent/50",
                                   )}
                                   aria-current={
                                     isSubActive ? "page" : undefined
@@ -423,7 +420,7 @@ export default function Sidebar({
                                   onClick={handleNavigate}
                                 >
                                   <span
-                                    className="inline-block h-1.5 w-1.5 rounded-full bg-border flex-shrink-0 ms-2"
+                                    className="inline-block h-1.5 w-1.5 rounded-full bg-sidebar-primary flex-shrink-0"
                                     aria-hidden
                                   />
                                   <span className="truncate">
@@ -453,8 +450,8 @@ export default function Sidebar({
         </nav>
 
         {!isCollapsed && (
-          <div className="border-t border-border pt-4 mt-4">
-            <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
               {t("sidebar.account", "Account")}
             </div>
             <ul
@@ -474,10 +471,8 @@ export default function Sidebar({
                     <Link
                       href={link.path}
                       className={cn(
-                        "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-accent text-accent-foreground shadow-md"
-                          : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                        "fxz-sidebar-item",
+                        isActive && "fxz-sidebar-item-active",
                       )}
                       aria-current={isActive ? "page" : undefined}
                       data-testid={`account-${link.id}`}
@@ -494,7 +489,7 @@ export default function Sidebar({
                       </span>
                       {isActive && (
                         <span
-                          className="inline-block h-2 w-2 rounded-full bg-primary ms-auto"
+                          className="inline-block h-2 w-2 rounded-full bg-sidebar-primary ms-auto"
                           aria-hidden
                         />
                       )}
@@ -507,16 +502,15 @@ export default function Sidebar({
         )}
 
         {isAuthenticated && !isCollapsed && (
-          <div className="border-t border-border pt-4 mt-4">
-            <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 text-start">
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
               {t("sidebar.help", "Help")}
             </div>
             <Link
               href="/help"
               className={cn(
-                "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium opacity-80 transition-all duration-200 hover:bg-muted",
+                "fxz-sidebar-item",
                 isRTL ? "flex-row-reverse" : "",
-                hoverShiftClass,
               )}
               data-testid="nav-help"
               prefetch={false}

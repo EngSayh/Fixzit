@@ -291,7 +291,7 @@ export default function AdvertisingPage() {
           onClick={() => setActiveTab("overview")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "overview"
-              ? "text-blue-600 border-b-2 border-blue-600"
+              ? "text-primary border-b-2 border-primary"
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
@@ -301,7 +301,7 @@ export default function AdvertisingPage() {
           onClick={() => setActiveTab("campaigns")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "campaigns"
-              ? "text-blue-600 border-b-2 border-blue-600"
+              ? "text-primary border-b-2 border-primary"
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
@@ -325,7 +325,7 @@ export default function AdvertisingPage() {
               icon={Eye}
               label={auto("Impressions", "metrics.impressions")}
               value={overviewMetrics.totalImpressions.toLocaleString()}
-              color="text-blue-600"
+              color="text-primary"
             />
             <MetricCard
               icon={MousePointerClick}
@@ -399,7 +399,7 @@ export default function AdvertisingPage() {
                     return (
                       <div
                         key={campaign.campaignId}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-primary/30 transition-colors"
                       >
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">
@@ -498,7 +498,7 @@ export default function AdvertisingPage() {
                     )}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
               </div>
@@ -508,7 +508,7 @@ export default function AdvertisingPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">
                     {auto("All Status", "filters.allStatus")}
@@ -527,7 +527,7 @@ export default function AdvertisingPage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">
                     {auto("All Types", "filters.allTypes")}

@@ -179,7 +179,7 @@ export default function SupportTicketPage() {
                 name="subject"
                 value={formData.subject}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder={auto(
                   "Brief description of your issue",
                   "form.subject.placeholder",
@@ -202,7 +202,7 @@ export default function SupportTicketPage() {
                   name="module"
                   value={formData.module}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
                 >
                   <option value="FM">
                     {auto("Facility Management", "form.module.options.fm")}
@@ -236,7 +236,7 @@ export default function SupportTicketPage() {
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
                 >
                   <option value="Bug">
                     {auto("Bug Report", "form.type.options.bug")}
@@ -273,7 +273,7 @@ export default function SupportTicketPage() {
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
               >
                 <option value="Low">
                   {auto("Low", "form.priority.options.low")}
@@ -303,7 +303,7 @@ export default function SupportTicketPage() {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent h-32 resize-none"
                 placeholder={auto(
                   "Please provide detailed information about your issue or request...",
                   "form.description.placeholder",
@@ -327,7 +327,7 @@ export default function SupportTicketPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder={auto(
                     "Enter your full name",
                     "form.name.placeholder",
@@ -348,7 +348,7 @@ export default function SupportTicketPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder={auto(
                     "your.email@example.com",
                     "form.email.placeholder",
@@ -372,7 +372,7 @@ export default function SupportTicketPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder={auto(
                     "+966 XX XXX XXXX",
                     "form.phone.placeholder",

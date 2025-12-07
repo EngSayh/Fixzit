@@ -112,7 +112,7 @@ const STATUS_BADGES: Record<AuditStatus, string> = {
   PLANNED:
     "bg-slate-100 text-slate-900 dark:bg-slate-900/40 dark:text-slate-200",
   IN_PROGRESS:
-    "bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200",
+    "bg-primary/10 text-primary-dark dark:bg-primary/20/40 dark:text-primary-light",
   FOLLOW_UP:
     "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
   COMPLETED:

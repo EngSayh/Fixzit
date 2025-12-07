@@ -95,7 +95,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           min-h-[80px] w-full rounded-2xl border border-border bg-card 
           px-3 py-2 text-sm ring-offset-white 
           placeholder:text-muted-foreground 
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
           disabled:cursor-not-allowed disabled:opacity-50 
           ${autoResize ? "overflow-y-hidden resize-none" : ""} 
           ${className}

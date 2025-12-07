@@ -170,7 +170,7 @@ export function SponsoredBrandBanner({
   return (
     <div
       ref={containerRef}
-      className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg overflow-hidden mb-6"
+      className="w-full bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg overflow-hidden mb-6"
     >
       <div className="p-6">
         {/* Header */}
@@ -225,7 +225,7 @@ export function SponsoredBrandBanner({
                 key={product.fsin}
                 href={`/souq/products/${product.fsin}`}
                 onClick={(e) => handleProductClick(product.fsin, e)}
-                className="flex-shrink-0 w-48 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden group"
+                className="flex-shrink-0 w-48 bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-200 overflow-hidden group"
               >
                 {/* Product Image */}
                 <div className="relative aspect-square bg-gray-50">

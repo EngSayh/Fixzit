@@ -17,7 +17,7 @@ export default function RecommendationsPanel({
   const getPriorityColor = (index: number) => {
     if (index === 0) return "border-red-300 bg-red-50";
     if (index === 1) return "border-orange-300 bg-orange-50";
-    return "border-blue-300 bg-blue-50";
+    return "border-primary/30 bg-primary/10";
   };
 
   const getPriorityLabel = (index: number) => {

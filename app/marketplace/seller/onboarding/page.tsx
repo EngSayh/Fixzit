@@ -656,7 +656,7 @@ export default function SellerOnboarding() {
             {/* Step 4: Banking */}
             {step === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4 p-3 bg-primary/5 dark:bg-blue-900/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-4 p-3 bg-primary/5 dark:bg-primary/20/20 rounded-lg">
                   <CreditCard className="w-5 h-5 text-primary" />
                   <p className="text-sm text-primary">
                     {t(

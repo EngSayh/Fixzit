@@ -181,7 +181,7 @@ export default function SearchPage() {
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value)}
-                    className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
                     <option value="relevance">
                       {auto("Most Relevant", "sort.relevance")}
@@ -206,7 +206,7 @@ export default function SearchPage() {
                       onClick={() => setViewMode("grid")}
                       className={`p-2 ${
                         viewMode === "grid"
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-primary/10 text-primary"
                           : "bg-white text-gray-600 hover:bg-gray-50"
                       }`}
                     >
@@ -216,7 +216,7 @@ export default function SearchPage() {
                       onClick={() => setViewMode("list")}
                       className={`p-2 ${
                         viewMode === "list"
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-primary/10 text-primary"
                           : "bg-white text-gray-600 hover:bg-gray-50"
                       }`}
                     >
@@ -334,7 +334,7 @@ export default function SearchPage() {
                               onClick={() => handlePageChange(pageNum)}
                               className={`px-4 py-2 rounded-lg ${
                                 page === pageNum
-                                  ? "bg-blue-600 text-white"
+                                  ? "bg-primary text-white"
                                   : "border border-gray-300 hover:bg-gray-50"
                               }`}
                             >

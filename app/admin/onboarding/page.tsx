@@ -76,7 +76,7 @@ interface OnboardingCase {
 
 const STATUS_COLORS: Record<OnboardingStatus, string> = {
   DRAFT: "bg-gray-100 text-gray-800",
-  SUBMITTED: "bg-blue-100 text-blue-800",
+  SUBMITTED: "bg-primary/10 text-primary-dark",
   UNDER_REVIEW: "bg-yellow-100 text-yellow-800",
   DOCS_PENDING: "bg-orange-100 text-orange-800",
   APPROVED: "bg-green-100 text-green-800",
@@ -293,7 +293,7 @@ export default function AdminApprovalQueuePage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-500" />
+              <FileText className="h-4 w-4 text-primary" />
               <span className="text-2xl font-bold">{reviewingCount}</span>
             </div>
           </CardContent>

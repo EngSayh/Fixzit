@@ -73,7 +73,7 @@ export default function AdministrationPage() {
       ),
       icon: Users,
       href: "/admin",
-      color: "bg-blue-500",
+      color: "bg-primary",
       stats: {
         label: t("admin.users.totalUsers", "Total Users"),
         value: "---",

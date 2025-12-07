@@ -254,10 +254,10 @@
     font-family: var(--font-mono, 'Space Mono'), 'JetBrains Mono', monospace;
   }
 
-  /* Arabic text styling */
+  /* Arabic text styling - Business.sa Tajawal font */
   [lang="ar"] body,
   [dir="rtl"] body {
-    font-family: var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
+    font-family: var(--font-tajawal, 'Tajawal'), var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
   }
 
   [lang="ar"] h1,
@@ -272,7 +272,7 @@
   [dir="rtl"] h4,
   [dir="rtl"] h5,
   [dir="rtl"] h6 {
-    font-family: var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
+    font-family: var(--font-tajawal, 'Tajawal'), var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
     letter-spacing: 0;
   }
 }

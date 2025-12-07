@@ -495,7 +495,7 @@ export default function AdminNotificationsTab({
             </button>
 
             {/* Info */}
-            <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <h4 className="font-medium text-primary-dark mb-2 flex items-center gap-2">
                 <AlertCircle size={18} />
                 {t("admin.notifications.important", "Important")}
