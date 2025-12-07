@@ -20,9 +20,13 @@ if (typeof globalThis.TextDecoder === "undefined") {
     TextDecoder as unknown as typeof globalThis.TextDecoder;
 }
 
-declare global {
-  var jest: typeof vi | undefined;
-}
+// Jest compatibility: assign vi to globalThis.jest for legacy test code
+// Using Object.defineProperty to avoid TypeScript conflicts with @types/jest
+Object.defineProperty(globalThis, 'jest', {
+  value: vi,
+  writable: true,
+  configurable: true,
+});
 
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
   process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? "60000",
@@ -34,11 +38,6 @@ if (!process.env.SKIP_ENV_VALIDATION) {
 
 if (!process.env.NEXTAUTH_SECRET) {
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
-}
-
-// Provide Jest compatibility layer for tests using jest.* APIs
-if (typeof globalThis !== "undefined") {
-  globalThis.jest = vi;
 }
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
