@@ -20,8 +20,11 @@ if (typeof globalThis.TextDecoder === "undefined") {
     TextDecoder as unknown as typeof globalThis.TextDecoder;
 }
 
+// Jest compatibility - use interface merge instead of var declaration
+// eslint-disable-next-line @typescript-eslint/no-namespace
 declare global {
-  var jest: typeof vi | undefined;
+  // eslint-disable-next-line no-var
+  var __vitest_jest_compat__: typeof vi | undefined;
 }
 
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
@@ -38,7 +41,9 @@ if (!process.env.NEXTAUTH_SECRET) {
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof globalThis !== "undefined") {
-  globalThis.jest = vi;
+  // Use type assertion to avoid TypeScript conflict with jest namespace
+  (globalThis as Record<string, unknown>).jest = vi;
+  globalThis.__vitest_jest_compat__ = vi;
 }
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
