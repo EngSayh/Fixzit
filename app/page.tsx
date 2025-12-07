@@ -121,18 +121,18 @@ export default function LandingPage() {
       <section className="fxz-hero">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-6">
-            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+            <p className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
               {translate(
                 "Facility Management · Marketplaces · Saudi-first",
                 "hero.tagline",
               )}
             </p>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-foreground">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-white">
               {translate("Operate properties with calm.", "hero.title.line1")}{" "}
               <br />
               {translate("Move money with confidence.", "hero.title.line2")}
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
+            <p className="text-sm sm:text-base text-white/80 max-w-xl">
               {translate(
                 "A brown, calm Fixzit shell: unified Work Orders, Properties, Finance, HR and Souq in a single, Apple-inspired interface built for Saudi FM teams.",
                 "hero.description",

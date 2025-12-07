@@ -657,7 +657,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
   }
 
   return (
-    <main id="main-content" role="main" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <main id="main-content" role="main" className="min-h-screen fxz-hero flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Language/Currency Selectors */}
         <div className={`flex items-center justify-end gap-2 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>

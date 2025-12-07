@@ -53,40 +53,25 @@
 
     /* Atmospheric Background Gradients - Business.sa */
     --gradient-subtle: linear-gradient(
-      135deg,
-      hsl(210 20% 98%) 0%,
-      hsl(210 15% 96%) 50%,
-      hsl(210 20% 97%) 100%
-    );
-    --gradient-hero: linear-gradient(
-      135deg,
-      hsl(204 100% 33%) 0%,
-      hsl(152 100% 33%) 100%
-    );
-    --gradient-card: linear-gradient(
-      145deg,
-      hsl(0 0% 100%) 0%,
-      hsl(210 15% 99%) 100%
-    );
-    --gradient-sidebar: linear-gradient(
       180deg,
-      hsl(204 80% 15%) 0%,
-      hsl(204 90% 10%) 100%
+      hsl(0 0% 100%) 0%,
+      hsl(210 20% 98%) 100%
     );
-    --gradient-topbar: linear-gradient(
-      90deg,
-      hsl(0 0% 100% / 0.95) 0%,
-      hsl(210 15% 99% / 0.98) 100%
-    );
+    /* Hero uses solid primary blue like Business.sa header */
+    --gradient-hero: hsl(204 100% 33%);
+    --gradient-card: hsl(0 0% 100%);
+    /* Sidebar: Clean dark blue, minimal gradient */
+    --gradient-sidebar: hsl(204 80% 12%);
+    --gradient-topbar: hsl(0 0% 100%);
 
-    /* Shadows & Depth - Business.sa */
-    --shadow-xs: 0 1px 2px hsl(210 25% 12% / 0.04);
-    --shadow-sm: 0 2px 4px hsl(210 25% 12% / 0.06);
-    --shadow-md: 0 4px 12px hsl(210 25% 12% / 0.08);
-    --shadow-lg: 0 8px 24px hsl(210 25% 12% / 0.12);
-    --shadow-xl: 0 16px 48px hsl(210 25% 12% / 0.16);
-    --shadow-glow: 0 0 24px hsl(204 100% 33% / 0.25);
-    --shadow-inset: inset 0 2px 4px hsl(210 25% 12% / 0.06);
+    /* Shadows - Clean and subtle like Business.sa */
+    --shadow-xs: 0 1px 2px hsl(210 25% 12% / 0.03);
+    --shadow-sm: 0 1px 3px hsl(210 25% 12% / 0.04);
+    --shadow-md: 0 2px 6px hsl(210 25% 12% / 0.06);
+    --shadow-lg: 0 4px 12px hsl(210 25% 12% / 0.08);
+    --shadow-xl: 0 8px 24px hsl(210 25% 12% / 0.10);
+    --shadow-glow: 0 0 12px hsl(204 100% 33% / 0.15);
+    --shadow-inset: inset 0 1px 2px hsl(210 25% 12% / 0.04);
 
     /* Sidebar (Dark Blue for Business.sa) */
     --sidebar-background: 204 80% 12%;
@@ -315,38 +300,35 @@
 
   .fxz-topbar-pill:hover {
     background-color: hsl(var(--muted));
-    transform: translateY(-1px);
   }
 
   /* ─────────────────────────────────────────
-     BUTTONS - Modern with Depth
+     BUTTONS - Clean Business.sa Style
      ───────────────────────────────────────── */
   .fxz-btn-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(204 80% 28%) 100%);
+    background-color: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    border-radius: 10px;
+    border-radius: 8px;
     border: none;
-    box-shadow: var(--shadow-sm), 0 1px 0 hsl(0 0% 100% / 0.1) inset;
+    box-shadow: var(--shadow-sm);
     font-weight: 500;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.15s ease;
   }
 
   .fxz-btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md), var(--shadow-glow);
+    background-color: hsl(204 100% 28%);
   }
 
   .fxz-btn-primary:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-xs);
+    background-color: hsl(204 100% 25%);
   }
 
   .fxz-btn-outline {
     background-color: transparent;
     color: hsl(var(--primary));
-    border-radius: 10px;
-    border: 1.5px solid hsl(var(--primary) / 0.3);
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    border: 1px solid hsl(var(--primary));
+    transition: all 0.15s ease;
   }
 
   .fxz-btn-outline:hover {
@@ -355,27 +337,26 @@
   }
 
   /* ─────────────────────────────────────────
-     SIDEBAR - Dark Elegant Navigation
+     SIDEBAR - Clean Business.sa Navigation
      ───────────────────────────────────────── */
   .fxz-sidebar {
     background: var(--gradient-sidebar);
     color: hsl(var(--sidebar-foreground));
     border-inline-end: 1px solid hsl(var(--sidebar-border));
-    box-shadow: var(--shadow-lg);
   }
 
   .fxz-sidebar-title {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     color: hsl(var(--sidebar-muted));
     padding-inline: 0.75rem;
-    margin-block: 1.5rem 0.5rem;
+    margin-block: 1.25rem 0.5rem;
   }
 
   .fxz-sidebar-item {
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 0.625rem 0.875rem;
     margin-inline: 0.5rem;
     display: flex;
@@ -385,7 +366,7 @@
     font-weight: 450;
     color: hsl(var(--sidebar-foreground) / 0.85);
     text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.15s ease, color 0.15s ease;
     position: relative;
   }
 
@@ -397,9 +378,9 @@
     transform: translateY(-50%);
     width: 3px;
     height: 0;
-    background: linear-gradient(180deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 40%) 100%);
+    background: hsl(var(--sidebar-primary));
     border-radius: 0 2px 2px 0;
-    transition: height 0.2s ease;
+    transition: height 0.15s ease;
   }
 
   .fxz-sidebar-item:hover {
@@ -412,10 +393,9 @@
   }
 
   .fxz-sidebar-item-active {
-    background: linear-gradient(135deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 35%) 100%);
+    background-color: hsl(var(--sidebar-primary));
     color: hsl(var(--sidebar-primary-foreground));
     font-weight: 500;
-    box-shadow: 0 4px 12px hsl(var(--sidebar-primary) / 0.3);
   }
 
   .fxz-sidebar-item-active::before {
@@ -423,12 +403,11 @@
   }
 
   .fxz-sidebar-item-active:hover {
-    background: linear-gradient(135deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 40%) 100%);
+    background-color: hsl(152 100% 35%);
   }
 
   /* Sidebar Badge */
   .fxz-sidebar-badge {
-    font-family: var(--font-mono);
     font-size: 0.65rem;
     font-weight: 600;
     padding: 0.125rem 0.5rem;
@@ -436,69 +415,54 @@
     background: hsl(var(--destructive));
     color: hsl(var(--destructive-foreground));
     margin-inline-start: auto;
-    box-shadow: 0 2px 4px hsl(var(--destructive) / 0.3);
   }
 
   /* ─────────────────────────────────────────
-     CARDS - Elevated with Subtle Gradients
+     CARDS - Clean Business.sa Style
      ───────────────────────────────────────── */
   .fxz-card {
-    background: var(--gradient-card);
+    background: hsl(var(--card));
     color: hsl(var(--card-foreground));
     border-radius: var(--radius);
-    border: 1px solid hsl(var(--border) / 0.8);
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow 0.15s ease;
   }
 
   .fxz-card:hover {
     box-shadow: var(--shadow-md);
-    border-color: hsl(var(--border));
   }
 
   .fxz-card-elevated {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
   }
 
   /* ─────────────────────────────────────────
      FOOTER - Clean & Professional
      ───────────────────────────────────────── */
   .fxz-footer {
-    background: var(--gradient-subtle);
+    background: hsl(var(--section-alt));
     color: hsl(var(--muted-foreground));
     border-top: 1px solid hsl(var(--border));
   }
 
   /* ─────────────────────────────────────────
-     HERO SECTION - Atmospheric
+     HERO SECTION - Clean Business.sa Header
      ───────────────────────────────────────── */
   .fxz-hero {
     background: var(--gradient-hero);
-    border-bottom: 1px solid hsl(var(--border) / 0.5);
+    color: white;
     position: relative;
-    overflow: hidden;
   }
 
   .fxz-hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -25%;
-    width: 80%;
-    height: 200%;
-    background: radial-gradient(
-      ellipse at center,
-      hsl(var(--primary) / 0.08) 0%,
-      transparent 60%
-    );
-    pointer-events: none;
+    display: none;
   }
 
   /* ─────────────────────────────────────────
-     DATA DISPLAY - Mono Typography
+     DATA DISPLAY
      ───────────────────────────────────────── */
   .fxz-data-value {
-    font-family: var(--font-mono);
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -506,10 +470,9 @@
   }
 
   .fxz-data-label {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     color: hsl(var(--muted-foreground));
   }
 

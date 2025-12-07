@@ -288,7 +288,7 @@ export default function Sidebar({
     <aside
       className={cn(
         asideBase,
-        "bg-background text-foreground border-border shadow-lg overflow-y-auto flex flex-col border-s",
+        "fxz-sidebar shadow-lg overflow-y-auto flex flex-col",
         className,
       )}
       role="navigation"
@@ -304,7 +304,7 @@ export default function Sidebar({
           >
             <button
               onClick={toggleCollapse}
-              className="mb-4 p-2 rounded-full border border-border hover:bg-muted transition-all duration-200 ms-auto"
+              className="mb-4 p-2 rounded-full border border-sidebar-border hover:bg-sidebar-accent transition-all duration-200 ms-auto text-sidebar-foreground"
               aria-label={
                 isCollapsed
                   ? t("sidebar.expand", "Expand sidebar")
