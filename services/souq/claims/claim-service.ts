@@ -384,6 +384,7 @@ export class ClaimService {
 
   /**
    * List claims with filters
+   * 🔐 MAJOR FIX: Caps limit to 200 to prevent unbounded queries
    */
   static async listClaims(filters: {
     orgId: string;
@@ -406,7 +407,9 @@ export class ClaimService {
     if (filters.type) query.type = filters.type;
     if (filters.priority) query.priority = filters.priority;
 
-    const limit = filters.limit || 20;
+    // 🔐 Cap limit to 200 to prevent unbounded queries
+    const MAX_LIMIT = 200;
+    const limit = Math.min(filters.limit ?? 20, MAX_LIMIT);
     const offset = filters.offset || 0;
 
     const [claims, total] = await Promise.all([
