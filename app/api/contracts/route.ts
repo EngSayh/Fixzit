@@ -48,7 +48,8 @@ const contractSchema = z.object({
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   terms: z.string().min(1),
-  sla: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
+  // SLA is stored as string in ServiceContract model (line 27)
+  sla: z.string().optional(),
 });
 
 /**

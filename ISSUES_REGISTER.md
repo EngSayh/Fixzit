@@ -1013,7 +1013,7 @@ await db.collection('souq_orders').updateOne(
 
 ## Issues Fixed (2025-12-07 Audit)
 
-### ISSUE-009: z.any() Type Safety Bypass in Zod Schemas
+### ISSUE-011: z.any() Type Safety Bypass in Zod Schemas
 
 **Severity**: 🟧 MAJOR  
 **Category**: Type Safety, Security  
@@ -1023,8 +1023,8 @@ await db.collection('souq_orders').updateOne(
 
 **Files Fixed**:
 - `app/api/billing/subscribe/route.ts` - items array now matches QuoteItem interface
-- `app/api/contracts/route.ts` - SLA schema properly typed with union types
-- `app/api/finance/expenses/[id]/route.ts` - lineItems with proper expense structure
+- `app/api/contracts/route.ts` - SLA schema properly typed as string to match model
+- `app/api/finance/expenses/[id]/route.ts` - lineItems with proper expense structure + refinement
 - `app/api/rfqs/route.ts` - specifications nested object properly typed
 - `app/api/marketplace/products/route.ts` - specs record with union value types
 
@@ -1032,7 +1032,7 @@ await db.collection('souq_orders').updateOne(
 
 ---
 
-### ISSUE-010: Deprecated FM Notification Engine (Dead Code)
+### ISSUE-012: Deprecated FM Notification Engine (Dead Code)
 
 **Severity**: 🟩 MINOR  
 **Category**: Code Quality, Maintenance  

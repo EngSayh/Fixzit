@@ -29,7 +29,10 @@ const subscriptionSchema = z.object({
     unitPriceMonthly: z.number().nonnegative().optional(),
     seatCount: z.number().int().nonnegative().optional(),
     billingCategory: z.string().optional(),
-  })),
+  }).refine(
+    (item) => item.moduleCode || item.module || item.billingCategory,
+    { message: "Each item must have at least one identifier: 'moduleCode', 'module', or 'billingCategory'" }
+  )),
   seatTotal: z.number().positive(),
   billingCycle: z.enum(["monthly", "annual"]),
   paytabsRegion: z.string().optional(),

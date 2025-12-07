@@ -111,7 +111,10 @@ const UpdateExpenseSchema = z.object({
     amount: z.number().nonnegative().optional(),
     taxRate: z.number().nonnegative().optional(),
     accountId: z.string().optional(),
-  })).optional(),
+  }).refine(
+    (item) => Object.keys(item).length > 0,
+    { message: "Line items cannot be empty objects" }
+  )).optional(),
   subtotal: z.number().optional(),
   totalTax: z.number().optional(),
   totalAmount: z.number().optional(),

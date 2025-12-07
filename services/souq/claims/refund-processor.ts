@@ -1,4 +1,4 @@
-import { ObjectId as MongoObjectId, type UpdateFilter } from 'mongodb';
+import { ObjectId as MongoObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRequire } from 'module';
 import { createRefund, queryRefundStatus } from '@/lib/paytabs';
@@ -1272,21 +1272,19 @@ export class RefundProcessor {
       createdAt: new Date(),
     };
 
-    const update: UpdateFilter<SellerBalanceDocument> = {
-      $inc: { availableBalance: -amount },
-      $push: {
-        transactions: newTransaction,
+    // 🔐 RACE-SAFE FIX: Use atomic updateOne with upsert. $inc treats missing field as 0,
+    // and $push creates the transactions array on insert. $setOnInsert only sets identity
+    // fields (sellerId, orgId) which don't conflict with $inc/$push/$set.
+    // This prevents duplicate-key errors when two concurrent requests try to create the same document.
+    await balances.updateOne(
+      { sellerId, ...buildOrgScope(orgId) },
+      {
+        $inc: { availableBalance: -amount },
+        $push: { transactions: newTransaction },
+        $setOnInsert: { sellerId, orgId },
+        $set: { updatedAt: new Date() },
       },
-      $set: { updatedAt: new Date() },
-      $setOnInsert: {
-        sellerId,
-        orgId,
-        availableBalance: 0,
-        transactions: [],
-      },
-    };
-
-    // 🔐 Filter by sellerId + orgId to prevent cross-tenant balance mutations
-    await balances.updateOne({ sellerId, ...buildOrgScope(orgId) }, update, { upsert: true });
+      { upsert: true },
+    );
   }
 }
