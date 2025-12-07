@@ -269,8 +269,8 @@ export const Config = {
    * Email Configuration
    */
   email: {
-    from: getOptional("EMAIL_FROM", "noreply@fixzit.sa"),
-    replyTo: getOptional("EMAIL_REPLY_TO", "support@fixzit.sa"),
+    from: getOptional("EMAIL_FROM", `noreply@${getOptional("EMAIL_DOMAIN", "fixzit.co")}`),
+    replyTo: getOptional("EMAIL_REPLY_TO", `support@${getOptional("EMAIL_DOMAIN", "fixzit.co")}`),
 
     // SMTP (if using direct SMTP)
     smtp: {

@@ -23,7 +23,7 @@ if (!CONTACT_PHONE) {
 export const CONTACT_INFO = {
   organization: "Fixzit Enterprise",
   phone: CONTACT_PHONE,
-  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@fixzit.com",
+  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || `info@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
   address: {
     street: process.env.NEXT_PUBLIC_CONTACT_STREET || "",
     city: process.env.NEXT_PUBLIC_CONTACT_CITY || "",

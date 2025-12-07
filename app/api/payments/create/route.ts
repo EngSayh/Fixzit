@@ -13,6 +13,7 @@ import {
   handleApiError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 /**
  * @openapi
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
       currency: invoice.currency,
       customerDetails: {
         name: invoice.recipient?.name || "Unknown Customer",
-        email: invoice.recipient?.email || "customer@fixzit.co",
+        email: invoice.recipient?.email || `customer@${EMAIL_DOMAINS.primary}`,
         phone: invoice.recipient?.phone || "+966500000000",
         address: invoice.recipient?.address || "Saudi Arabia",
         city: "Riyadh",

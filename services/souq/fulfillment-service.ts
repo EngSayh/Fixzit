@@ -253,7 +253,7 @@ class FulfillmentService {
       const warehouseAddress: IAddress = {
         name: "Fixzit Fulfillment Center",
         phone: "+966123456789",
-        email: "fulfillment@fixzit.sa",
+        email: process.env.FULFILLMENT_EMAIL || `fulfillment@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
         street: "King Fahd Road",
         city: "Riyadh",
         postalCode: "11564",

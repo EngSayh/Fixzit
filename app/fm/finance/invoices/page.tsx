@@ -45,6 +45,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";
 import { parseDate } from "@/lib/date-utils";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 interface InvoiceItem {
   description: string;
@@ -704,7 +705,7 @@ function CreateInvoiceForm({
       taxId: "300000000000003",
       address: "King Fahd Road, Riyadh 11564, Saudi Arabia",
       phone: "+966 11 123 4567",
-      email: "invoices@fixzit.co",
+      email: EMAIL_DOMAINS.invoices,
       registration: "CR-1234567890",
       license: "L-1234567890",
     },

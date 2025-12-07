@@ -191,7 +191,7 @@ export default function GlobalError({
           >
             If this problem persists,{" "}
             <a
-              href="mailto:support@fixzit.co"
+              href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@" + (process.env.EMAIL_DOMAIN || "fixzit.co")}`}
               style={{ color: "#0061A8", textDecoration: "none" }}
             >
               contact support

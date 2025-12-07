@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { DOMAINS } from "@/lib/config/domains";
 import type {
   NotificationChannel,
   NotificationPayload,
@@ -306,7 +307,7 @@ export async function sendEmailNotification(
     const message = {
       to: recipient.email,
       from: {
-        email: process.env.SENDGRID_FROM_EMAIL || "noreply@fixzit.co",
+        email: process.env.SENDGRID_FROM_EMAIL || `noreply@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
         name: process.env.SENDGRID_FROM_NAME || "Fixzit",
       },
       subject: notification.title,
@@ -330,7 +331,7 @@ export async function sendEmailNotification(
           body: notification.body,
           deepLink: notification.deepLink,
           actionUrl: notification.deepLink
-            ? `https://fixzit.co${notification.deepLink.replace("fixzit://", "/")}`
+            ? `${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}`
             : undefined,
           priority: notification.priority,
           ...notification.data,
@@ -373,7 +374,7 @@ function buildEmailHTML(
   recipient: NotificationRecipient,
 ): string {
   const actionButton = notification.deepLink
-    ? `<a href="https://fixzit.co${notification.deepLink.replace("fixzit://", "/")}" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
+    ? `<a href="${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
     : "";
 
   return `
@@ -394,7 +395,7 @@ function buildEmailHTML(
           This email was sent to ${recipient.email} as part of your Fixzit notifications.
           <br>
           If you no longer wish to receive these emails, you can 
-          <a href="https://fixzit.co/settings/notifications" style="color: #0066cc;">manage your notification preferences</a>.
+          <a href="${DOMAINS.primary}/settings/notifications" style="color: #0066cc;">manage your notification preferences</a>.
         </p>
       </div>
     </body>

@@ -38,7 +38,7 @@ export async function sendEmail(
       from:
         options?.from ||
         process.env.SENDGRID_FROM_EMAIL ||
-        "notifications@fixzit.sa",
+        `notifications@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
       subject,
       text: body,
       html:
@@ -54,7 +54,7 @@ export async function sendEmail(
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
           <p style="color: #999; font-size: 12px; text-align: center;">
             This is an automated notification from Fixzit.<br>
-            For support, contact support@fixzit.sa
+            For support, contact support@${process.env.EMAIL_DOMAIN || "fixzit.co"}
           </p>
         </div>
       `,

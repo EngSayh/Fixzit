@@ -12,6 +12,7 @@ import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
 import { Types } from "mongoose";
 import PriceBook from "@/server/models/PriceBook";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 /**
  * Plan upgrade request schema
@@ -307,7 +308,7 @@ export async function POST(req: NextRequest) {
           currentPlan,
           targetPlan,
           estimatedQuote: quote,
-          contact: "sales@fixzit.app",
+          contact: EMAIL_DOMAINS.sales,
         },
         200,
         req

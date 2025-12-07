@@ -8,6 +8,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { BrandLogo } from "@/components/brand";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 /**
  * Root Error Boundary Component
@@ -22,7 +23,7 @@ import { BrandLogo } from "@/components/brand";
  */
 // Configurable support contact for different environments (prod/staging/sandbox)
 const supportEmail =
-  process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@fixzit.co";
+  process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? EMAIL_DOMAINS.support;
 
 /**
  * ErrorPage - Root App Router Error Boundary

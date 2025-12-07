@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
+import { DOMAINS } from "@/lib/config/domains";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -62,7 +63,7 @@ export async function GET() {
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>
       <company><![CDATA[Fixzit]]></company>
-      <url>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers/${j.slug}</url>
+      <url>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers/${j.slug}</url>
       <location><![CDATA[${j.location?.city || ""}, ${j.location?.country || ""}]]></location>
       <description><![CDATA[${j.description || ""}]]></description>
       <employmentType>${j.jobType}</employmentType>

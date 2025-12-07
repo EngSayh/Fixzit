@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
+import { DOMAINS } from "@/lib/config/domains";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function GET() {
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
       <error>ATS feeds not available in this deployment</error>
     </source>`;
     return new NextResponse(errorXml, {
@@ -74,7 +75,7 @@ export async function GET() {
       <title><![CDATA[${j.title}]]></title>
       <date>${new Date(j.publishedAt || j.createdAt || Date.now()).toUTCString()}</date>
       <referencenumber>${j.slug}</referencenumber>
-      <url>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers/${j.slug}</url>
+      <url>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers/${j.slug}</url>
       <company><![CDATA[Fixzit]]></company>
       <city><![CDATA[${j.location?.city || ""}]]></city>
       <country><![CDATA[${j.location?.country || ""}]]></country>
@@ -89,7 +90,7 @@ export async function GET() {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
       ${items}
     </source>`;
 
@@ -104,7 +105,7 @@ export async function GET() {
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
       <error>Failed to fetch jobs</error>
     </source>`;
     return new NextResponse(errorXml, {

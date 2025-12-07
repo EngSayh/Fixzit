@@ -15,6 +15,7 @@ import {
   isSendGridConfigured,
   getTemplateId,
 } from "@/config/sendgrid.config";
+import { DOMAINS, EMAIL_DOMAINS } from "@/lib/config/domains";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -97,8 +98,8 @@ Thank you for reporting an issue with our system. We're actively working to reso
 - ✅ 24/7 Support & Assistance
 
 **Need Immediate Help?**
-- Contact our support team: support@fixzit.com
-- Visit our help center: https://fixzit.com/help
+- Contact our support team: ${EMAIL_DOMAINS.support}
+- Visit our help center: ${DOMAINS.primary}/help
 - Call us: +966 50 123 4567
 
 Welcome to the Fixzit family! 🚀

@@ -217,7 +217,7 @@ async function sendEmail(
 
     await sgMail.send({
       to,
-      from: process.env.SENDGRID_FROM_EMAIL || "notifications@fixzit.sa",
+      from: process.env.SENDGRID_FROM_EMAIL || `notifications@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
       subject,
       text: body,
       html: `

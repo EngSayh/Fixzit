@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
 /**
@@ -33,7 +34,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: privacy@fixzit.com | Phone: +966 XX XXX XXXX`;
+For privacy inquiries: ${EMAIL_DOMAINS.privacy} | Phone: +966 XX XXX XXXX`;
 
 /**
  * Privacy Policy Page (Public View)
@@ -228,10 +229,10 @@ export default function PrivacyPage() {
                     {t("privacy.email", "Email")}
                   </div>
                   <a
-                    href="mailto:privacy@fixzit.com"
+                    href={`mailto:${EMAIL_DOMAINS.privacy}`}
                     className="text-primary hover:text-primary/90"
                   >
-                    privacy@fixzit.com
+                    {EMAIL_DOMAINS.privacy}
                   </a>
                 </div>
               </div>

@@ -14,6 +14,7 @@ import { createSecureResponse } from "@/server/security/headers";
 import { z } from "zod";
 import { getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
     });
     if (quote.contactSales) {
       return createSecureResponse(
-        { error: "SEAT_LIMIT_EXCEEDED", contact: "sales@fixzit.app" },
+        { error: "SEAT_LIMIT_EXCEEDED", contact: EMAIL_DOMAINS.sales },
         400,
         req,
       );

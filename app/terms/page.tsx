@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FileText, Scale, AlertCircle, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
 /**
@@ -70,7 +71,7 @@ Any disputes shall be resolved through:
 
 ## Contact
 For questions about these terms:
-- Email: legal@fixzit.com
+- Email: \${EMAIL_DOMAINS.legal}
 - Phone: +971 XX XXX XXXX
 
 ## Severability
@@ -271,10 +272,10 @@ export default function TermsPage() {
                     {t("terms.email", "Email")}
                   </div>
                   <a
-                    href="mailto:legal@fixzit.com"
+                    href={`mailto:${EMAIL_DOMAINS.legal}`}
                     className="text-primary hover:text-primary/90"
                   >
-                    legal@fixzit.com
+                    {EMAIL_DOMAINS.legal}
                   </a>
                 </div>
               </div>

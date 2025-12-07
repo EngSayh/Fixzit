@@ -25,7 +25,7 @@ interface ICSEvent {
  */
 export function generateICS(event: ICSEvent): string {
   const now = formatICSDate(new Date());
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@fixzit.co`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@${process.env.EMAIL_DOMAIN || "fixzit.co"}`;
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",

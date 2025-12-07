@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { BrandLogo } from "@/components/brand";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 export function GlobalNotFound() {
   const { t } = useTranslation();
@@ -113,10 +114,10 @@ export function GlobalNotFound() {
               "If you believe this is an error, please contact",
             )}{" "}
             <a
-              href="mailto:support@fixzit.co"
+              href={`mailto:${EMAIL_DOMAINS.support}`}
               className="text-primary hover:text-primary transition-colors"
             >
-              support@fixzit.co
+              {EMAIL_DOMAINS.support}
             </a>
           </p>
         </div>
