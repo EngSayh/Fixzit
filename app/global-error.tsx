@@ -145,7 +145,7 @@ export default function GlobalError({
                 gap: "8px",
                 width: "100%",
                 padding: "12px 24px",
-                backgroundColor: "hsl(30, 60%, 40%)",
+                backgroundColor: "#0061A8",
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
@@ -192,7 +192,7 @@ export default function GlobalError({
             If this problem persists,{" "}
             <a
               href="mailto:support@fixzit.co"
-              style={{ color: "hsl(30, 60%, 40%)", textDecoration: "none" }}
+              style={{ color: "#0061A8", textDecoration: "none" }}
             >
               contact support
             </a>

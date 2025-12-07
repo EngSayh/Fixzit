@@ -315,7 +315,7 @@ const config = {
         },
         ".bg-aurora": {
           background:
-            "linear-gradient(-45deg, rgba(204, 127, 50, 0.12), rgba(133, 106, 85, 0.08), rgba(204, 127, 50, 0.05), rgba(80, 60, 45, 0.04))",
+            "linear-gradient(-45deg, rgba(0, 97, 168, 0.12), rgba(0, 168, 89, 0.08), rgba(0, 97, 168, 0.05), rgba(255, 180, 0, 0.04))",
           backgroundSize: "400% 400%",
           animation: "aurora 10s ease-in-out infinite alternate",
         },
@@ -331,15 +331,15 @@ const config = {
           },
         },
         ".glass-button": {
-          background: "rgba(204, 127, 50, 0.12)",
+          background: "rgba(0, 97, 168, 0.12)",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(204, 127, 50, 0.35)",
+          border: "1px solid rgba(0, 97, 168, 0.35)",
           borderRadius: "12px",
           transition: "all 0.3s ease",
           "&:hover": {
-            background: "rgba(204, 127, 50, 0.2)",
+            background: "rgba(0, 97, 168, 0.2)",
             transform: "translateY(-2px)",
-            boxShadow: "0 12px 40px 0 rgba(204, 127, 50, 0.2)",
+            boxShadow: "0 12px 40px 0 rgba(0, 97, 168, 0.2)",
           },
         },
         /* Shimmer effect for loading states */

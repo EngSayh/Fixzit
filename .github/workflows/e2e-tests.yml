@@ -109,9 +109,9 @@ jobs:
       PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
-      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID }}
-      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID }}
-      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID || '000000000000000000000001' }}
+      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID || '000000000000000000000002' }}
+      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID || 'test-org-id' }}
 
     steps:
       - name: Checkout
