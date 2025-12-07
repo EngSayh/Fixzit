@@ -57,7 +57,8 @@ export async function POST(
     } else if (claim.sellerId && String(claim.sellerId) === session.user.id) {
       appealedBy = "seller";
     } else {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     if (claim.appeal || claim.status === "under_appeal") {

@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
 
     // Authorization: Can only view own inventory unless admin/ops/support
     if (sellerId !== session.user.id && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
     }
 
     const inventory = await inventoryService.getSellerInventory(sellerId, {
@@ -193,10 +194,8 @@ export async function POST(request: NextRequest) {
     const isSellerOwner = listingSellerId === session.user.id;
 
     if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
-      return NextResponse.json(
-        { error: "Forbidden: listing belongs to another seller" },
-        { status: 403 },
-      );
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
     if (!listingSellerId) {

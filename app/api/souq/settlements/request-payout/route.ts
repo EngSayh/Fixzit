@@ -80,10 +80,8 @@ export async function POST(request: NextRequest) {
       PAYOUT_ADMIN_ROLES.includes(userRole) ||
       PAYOUT_ADMIN_SUBROLES.includes(userSubRole);
     if (!isRequestingForSelf && !isPayoutAdmin) {
-      return NextResponse.json(
-        { error: "Forbidden: Cannot request payout for another seller" },
-        { status: 403 },
-      );
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
     }
 
     // Normalize orgId to match both legacy ObjectId and current string storage in souq_settlements/souq_payouts

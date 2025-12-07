@@ -76,7 +76,8 @@ export async function GET(request: Request) {
       !!normalizedSubRole &&
       normalizedSubRole === SubRole.FINANCE_OFFICER;
     if (!isSuperAdmin && !isAdmin && !isFinance && sellerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Settlements not found" }, { status: 404 });
     }
 
     const query: Record<string, unknown> = { sellerId, orgId };

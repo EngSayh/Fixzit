@@ -153,7 +153,8 @@ export async function GET(request: NextRequest) {
         total: returns.length,
       });
     } else {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Return 404 to prevent cross-tenant existence leak (type=admin but not admin role)
+      return NextResponse.json({ error: "Returns not found" }, { status: 404 });
     }
   } catch (error) {
     logger.error("List returns error", error as Error);
