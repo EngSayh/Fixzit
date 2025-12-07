@@ -1239,5 +1239,63 @@ System has hardcoded "SAR" currency in 40+ UI components. While SAR is the prima
 
 ---
 
+### ISSUE-019: Missing Webhook Signature Verification (Carrier Tracking)
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The carrier tracking webhook endpoint (`app/api/webhooks/carrier/tracking/route.ts`) had commented-out signature verification code, allowing anyone to send fake tracking updates.
+
+**Resolution**:
+- Implemented HMAC-SHA256 signature verification with timing-safe comparison
+- Added Zod validation schema for request body
+- Added carrier-specific webhook secrets configuration
+- Required orgId field for tenant isolation
+
+**Files**:
+- `app/api/webhooks/carrier/tracking/route.ts`: Complete security overhaul
+
+---
+
+### ISSUE-020: Missing Rate Limiting on Vendor Application Endpoint
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The vendor application endpoint (`app/api/vendor/apply/route.ts`) had no rate limiting, allowing unlimited form spam and potential DoS attacks. Also logged full PII in production.
+
+**Resolution**:
+- Added rate limiting: 5 requests per minute per IP
+- Added comprehensive Zod validation schema
+- Sanitized PII logging (only partial name, email domain)
+- Proper phone number format validation
+
+**Files**:
+- `app/api/vendor/apply/route.ts`: Added rate limiting and validation
+
+---
+
+### ISSUE-021: Missing Rate Limiting on i18n Locale Endpoint
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The i18n locale preference endpoint (`app/api/i18n/route.ts`) had no rate limiting, allowing cookie manipulation at scale.
+
+**Resolution**:
+- Added rate limiting: 30 requests per minute per IP
+- Updated OpenAPI documentation to include 429 response
+
+**Files**:
+- `app/api/i18n/route.ts`: Added rate limiting
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

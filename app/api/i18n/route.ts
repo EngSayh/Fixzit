@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * @openapi
@@ -22,8 +23,18 @@ import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
  *         description: Locale preference saved
  *       400:
  *         description: Invalid or unsupported locale
+ *       429:
+ *         description: Rate limit exceeded
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP to prevent abuse
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "i18n-locale",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const body = await request.json().catch(() => ({}));
   const locale = body?.locale as Locale | undefined;
 
