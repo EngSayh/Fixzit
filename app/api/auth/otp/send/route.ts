@@ -926,14 +926,13 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Internal server error",
-        // Include error hint in non-development for debugging (no sensitive data)
-        errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
-          ? "database_connection" 
-          : errorName === "MONGO_DISABLED_FOR_BUILD"
-          ? "build_mode"
-          : "unknown",
-        // In development, include full error details for debugging
-        ...(process.env.NODE_ENV === "development" && { 
+        // Only include error hint in non-production environments (security fix from PR #436 feedback)
+        ...(process.env.NODE_ENV !== "production" && { 
+          errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
+            ? "database_connection" 
+            : errorName === "MONGO_DISABLED_FOR_BUILD"
+            ? "build_mode"
+            : "unknown",
           debug: { name: errorName, message: errorMessage }
         }),
       },

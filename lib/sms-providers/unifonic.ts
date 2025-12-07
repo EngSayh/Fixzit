@@ -312,8 +312,8 @@ export class UnifonicProvider implements SMSProvider {
     let successful = 0;
     let failed = 0;
 
-    // Send sequentially to avoid rate limiting
-    for (const recipient of recipients) {
+    // Send sequentially to avoid rate limiting (O(n) with entries())
+    for (const [index, recipient] of recipients.entries()) {
       const result = await this.sendSMS(recipient, message);
       results.push(result);
       if (result.success) {
@@ -322,7 +322,7 @@ export class UnifonicProvider implements SMSProvider {
         failed++;
       }
       // Small delay between sends to respect rate limits
-      if (recipients.indexOf(recipient) < recipients.length - 1) {
+      if (index < recipients.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }

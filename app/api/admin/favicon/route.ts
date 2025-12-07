@@ -81,7 +81,10 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename
     const timestamp = Date.now();
-    const extension = faviconFile.name.split(".").pop()?.toLowerCase() || "png";
+    // Sanitize extension to prevent path traversal (security fix from PR #416 feedback)
+    const rawExtension = faviconFile.name.split(".").pop()?.toLowerCase() || "png";
+    const allowedExtensions = ["png", "ico", "svg", "jpg", "jpeg", "gif", "webp"];
+    const extension = allowedExtensions.includes(rawExtension) ? rawExtension : "png";
     const tempFileName = `favicon-${timestamp}.${extension}`;
 
     // Define storage paths

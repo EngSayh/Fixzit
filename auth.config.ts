@@ -405,10 +405,10 @@ export const authConfig = {
             } else {
               // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
               // This prevents cross-tenant authentication confusion
+              // Security: Don't log orgIds to prevent tenant structure enumeration (PR #422 feedback)
               logger.error('[NextAuth] Cross-tenant email collision detected - login rejected for security', {
                 loginIdentifier: redactIdentifier(loginIdentifier),
                 matchCount: matchingUsers.length,
-                orgIds: matchingUsers.map(u => u.orgId?.toString()).join(','),
               });
               // User must use corporate login (with company code) to disambiguate
               throw new Error('AMBIGUOUS_ACCOUNT');
