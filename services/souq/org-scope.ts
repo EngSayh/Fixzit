@@ -45,3 +45,22 @@ export const buildSouqOrgFilter = (
     $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
   };
 };
+
+/**
+ * Build a simpler org filter that only uses orgId field (not org_id).
+ * Used by claims API routes.
+ * 
+ * @deprecated Prefer buildSouqOrgFilter which handles both orgId and org_id
+ */
+export const buildOrgScopeFilter = (orgId: string | MongoObjectId) => {
+  const normalized =
+    typeof orgId === "string" ? orgId.trim() : orgId?.toString?.();
+  const candidates: Array<string | MongoObjectId> = [];
+  if (normalized) {
+    candidates.push(normalized);
+    if (MongoObjectId.isValid(normalized)) {
+      candidates.push(new MongoObjectId(normalized));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId: normalized };
+};
