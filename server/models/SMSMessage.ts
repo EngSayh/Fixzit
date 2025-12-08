@@ -203,15 +203,18 @@ SMSMessageSchema.statics.getPendingForRetry = async function (
 };
 
 SMSMessageSchema.statics.getStatusCounts = async function (
-  orgId?: string
+  orgId?: string,
+  options?: { allowGlobal?: boolean }
 ): Promise<Record<TSMSStatus, number>> {
+  if (!orgId && !options?.allowGlobal) {
+    throw new Error("orgId is required to fetch status counts (set allowGlobal to true for global stats)");
+  }
+
   const match: Record<string, unknown> = {};
   if (orgId) match.orgId = orgId;
 
-  const result = await this.aggregate([
-    { $match: match },
-    { $group: { _id: "$status", count: { $sum: 1 } } },
-  ]);
+  const pipeline = [{ $match: match }, { $group: { _id: "$status", count: { $sum: 1 } } }];
+  const result = await this.aggregate(pipeline);
 
   const counts: Record<string, number> = {};
   for (const status of SMSStatus) {
@@ -225,8 +228,13 @@ SMSMessageSchema.statics.getStatusCounts = async function (
 
 SMSMessageSchema.statics.getSLABreachCount = async function (
   orgId?: string,
-  since?: Date
+  since?: Date,
+  options?: { allowGlobal?: boolean }
 ): Promise<number> {
+  if (!orgId && !options?.allowGlobal) {
+    throw new Error("orgId is required to fetch SLA breach counts (set allowGlobal to true for global stats)");
+  }
+
   const match: Record<string, unknown> = { slaBreached: true };
   if (orgId) match.orgId = orgId;
   if (since) match.slaBreachAt = { $gte: since };
@@ -308,8 +316,8 @@ SMSMessageSchema.plugin(auditPlugin);
 // ---------- Type Extensions ----------
 interface SMSMessageStatics {
   getPendingForRetry(limit?: number): Promise<ISMSMessage[]>;
-  getStatusCounts(orgId?: string): Promise<Record<TSMSStatus, number>>;
-  getSLABreachCount(orgId?: string, since?: Date): Promise<number>;
+  getStatusCounts(orgId?: string, options?: { allowGlobal?: boolean }): Promise<Record<TSMSStatus, number>>;
+  getSLABreachCount(orgId?: string, since?: Date, options?: { allowGlobal?: boolean }): Promise<number>;
   recordAttempt(
     messageId: string | Types.ObjectId,
     attempt: Omit<ISMSRetryHistory, "attemptNumber">

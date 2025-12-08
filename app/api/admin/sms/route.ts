@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSMessage, SMSStatus, TSMSStatus } from "@/server/models/SMSMessage";
-import { getSMSQueueStats, retryFailedMessages } from "@/lib/queues/sms-queue";
+import {
+  getSMSQueue,
+  getSMSQueueStats,
+  retryFailedMessages,
+  enqueueExistingSMS,
+  removePendingSMSJobs,
+} from "@/lib/queues/sms-queue";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -104,10 +110,11 @@ export async function GET(request: NextRequest) {
 
     // Include aggregate stats if requested
     if (includeStats) {
-      const statusCounts = await SMSMessage.getStatusCounts(orgId || undefined);
+      const statusCounts = await SMSMessage.getStatusCounts(orgId || undefined, { allowGlobal: true });
       const slaBreachCount = await SMSMessage.getSLABreachCount(
         orgId || undefined,
-        new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+        new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+        { allowGlobal: true }
       );
       response.stats = {
         statusCounts,
@@ -194,13 +201,38 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Reset for retry
+        if (!message.orgId) {
+          return NextResponse.json(
+            { error: "orgId missing on message; cannot retry without tenant scope" },
+            { status: 400 }
+          );
+        }
+
+        const queue = getSMSQueue();
+        const nextStatus = queue ? "QUEUED" : "PENDING";
+
         await SMSMessage.findByIdAndUpdate(messageId, {
-          status: "PENDING",
+          status: nextStatus,
           retryCount: 0,
           nextRetryAt: new Date(),
           lastError: null,
           lastErrorCode: null,
+        });
+
+        // Ensure no stale jobs exist before re-queueing
+        await removePendingSMSJobs(messageId);
+
+        await enqueueExistingSMS({
+          _id: message._id,
+          to: message.to,
+          message: message.message,
+          type: message.type,
+          priority: message.priority,
+          orgId: message.orgId,
+          userId: message.userId,
+          referenceType: message.referenceType,
+          referenceId: message.referenceId,
+          metadata: message.metadata as Record<string, unknown> | undefined,
         });
 
         logger.info("[Admin SMS] Manual retry triggered", {
@@ -215,6 +247,13 @@ export async function POST(request: NextRequest) {
       }
 
       case "retry-all-failed": {
+        if (!orgId) {
+          return NextResponse.json(
+            { error: "orgId is required to retry failed messages" },
+            { status: 400 }
+          );
+        }
+
         const retriedCount = await retryFailedMessages(orgId, limit || 100);
 
         logger.info("[Admin SMS] Bulk retry triggered", {
@@ -252,10 +291,18 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        await SMSMessage.findByIdAndUpdate(messageId, { status: "EXPIRED" });
+        // 🚫 FIXED: Remove all pending BullMQ jobs to prevent post-cancel delivery
+        const removedJobs = await removePendingSMSJobs(messageId);
+
+        // Set expiresAt to now to ensure date-based expiry covers edge cases
+        await SMSMessage.findByIdAndUpdate(messageId, {
+          status: "EXPIRED",
+          expiresAt: new Date(),
+        });
 
         logger.info("[Admin SMS] Message cancelled", {
           messageId,
+          removedJobs,
           by: session.user.email,
         });
 

@@ -11,10 +11,11 @@ import { Queue, Worker, Job } from "bullmq";
 import type Redis from "ioredis";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
-import { SMSMessage, TSMSType, TSMSPriority } from "@/server/models/SMSMessage";
+import { SMSMessage, TSMSType, TSMSPriority, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
 import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { decryptField } from "@/lib/security/encryption";
 
 // Queue name
 export const SMS_QUEUE_NAME = "sms:outbound";
@@ -36,6 +37,94 @@ export interface ISMSJobData {
 // Queue instance (singleton)
 let smsQueue: Queue<ISMSJobData> | null = null;
 let smsWorker: Worker<ISMSJobData> | null = null;
+
+/**
+ * Decrypt provider auth token if stored encrypted; swallow failures to avoid crashing queue.
+ */
+function decryptProviderToken(encrypted?: string): string | undefined {
+  if (!encrypted) return undefined;
+  try {
+    return decryptField(encrypted, "sms.providerApiKey");
+  } catch (error) {
+    logger.error("[SMS Queue] Failed to decrypt provider API key", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+type ProviderCandidate = SMSProviderOptions & {
+  name: SMSProviderOptions["provider"];
+  priority: number;
+  supportedTypes?: string[];
+};
+
+/**
+ * Select provider candidates honoring defaultProvider, priority, supportedTypes,
+ * and fall back to env Twilio creds when org settings are unusable.
+ * @internal Reserved for future provider failover feature
+ */
+function _buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
+  const candidates: ProviderCandidate[] = [];
+
+  for (const p of settings.providers || []) {
+    if (!p.enabled) continue;
+    if (p.supportedTypes?.length && !p.supportedTypes.includes(messageType as TSMSType)) continue;
+    candidates.push({
+      name: p.provider as ProviderCandidate["name"],
+      provider: p.provider as ProviderCandidate["provider"],
+      from: p.fromNumber,
+      accountSid: p.accountId,
+      authToken: decryptProviderToken(p.encryptedApiKey),
+      priority: typeof p.priority === "number" ? p.priority : 99,
+      supportedTypes: p.supportedTypes,
+    });
+  }
+
+  candidates.sort((a, b) => {
+    const aDefault = a.name === settings.defaultProvider;
+    const bDefault = b.name === settings.defaultProvider;
+    if (aDefault && !bDefault) return -1;
+    if (bDefault && !aDefault) return 1;
+    return (a.priority ?? 99) - (b.priority ?? 99);
+  });
+
+  const hasEnvTwilio =
+    Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
+  if (hasEnvTwilio) {
+    candidates.push({
+      name: "TWILIO",
+      provider: "TWILIO",
+      from: process.env.TWILIO_PHONE_NUMBER,
+      accountSid: process.env.TWILIO_ACCOUNT_SID,
+      authToken: process.env.TWILIO_AUTH_TOKEN,
+      priority: 999,
+    });
+  }
+
+  return candidates;
+}
+
+/**
+ * Remove pending BullMQ jobs for a given SMS messageId to prevent duplicate or cancelled sends.
+ */
+export async function removePendingSMSJobs(messageId: string): Promise<number> {
+  const queue = getSMSQueue();
+  if (!queue) return 0;
+
+  const jobs = await queue.getJobs(["waiting", "delayed", "active"]);
+  let removed = 0;
+
+  for (const job of jobs) {
+    if (!job) continue;
+    if (job.data?.messageId === messageId || job.id === `sms-${messageId}`) {
+      await job.remove();
+      removed++;
+    }
+  }
+
+  return removed;
+}
 
 /**
  * Get or create the SMS queue instance
@@ -184,6 +273,52 @@ export async function queueSMS(options: {
   return { messageId: smsMessage._id.toString(), queued: true };
 }
 
+type ExistingSMS = Pick<
+  ISMSMessage,
+  "_id" | "to" | "message" | "type" | "priority" | "orgId" | "userId" | "referenceType" | "referenceId" | "metadata"
+>;
+
+/**
+ * Enqueue an existing SMS record for delivery without creating a new document.
+ * Falls back to immediate send when the queue is disabled.
+ */
+export async function enqueueExistingSMS(message: ExistingSMS): Promise<void> {
+  if (!message.orgId) {
+    throw new Error("[SMS Queue] orgId is required to enqueue SMS");
+  }
+
+  const queue = getSMSQueue();
+  const messageId = typeof message._id === "string" ? message._id : message._id.toString();
+
+  if (!queue) {
+    await processSMSJob(messageId);
+    return;
+  }
+
+  const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[message.priority];
+  const jobId = `sms-${messageId}-retry-${Date.now()}`;
+
+  await queue.add(
+    "send",
+    {
+      messageId,
+      to: message.to,
+      message: message.message,
+      type: message.type,
+      priority: message.priority,
+      orgId: message.orgId,
+      userId: message.userId,
+      referenceType: message.referenceType,
+      referenceId: message.referenceId,
+      metadata: message.metadata as Record<string, unknown> | undefined,
+    },
+    {
+      priority: priorityValue,
+      jobId,
+    }
+  );
+}
+
 /**
  * Process a single SMS job
  */
@@ -209,68 +344,88 @@ async function processSMSJob(messageId: string): Promise<void> {
     return;
   }
 
+  // 🚫 Skip cancelled/expired messages - admin may have cancelled after queueing
+  if (message.status === "EXPIRED") {
+    logger.info("[SMS Queue] Message cancelled/expired; skipping send", { messageId });
+    return;
+  }
+
   const startTime = Date.now();
 
   try {
-    // 🔒 SECURITY: Get org-specific provider settings
     const settings = await SMSSettings.getEffectiveSettings(message.orgId);
-    const provider = settings.defaultProvider;
+    const candidates = buildProviderCandidates(settings, message.type);
 
-    // Find the enabled provider config for this org
-    const providerConfig = settings.providers?.find(
-      (p: { provider: string; enabled: boolean }) => p.provider === provider && p.enabled
-    );
-
-    // 📧 FIXED: Pass provider options to sendSMS instead of hardcoding Twilio
-    const providerOptions: SMSProviderOptions = {
-      provider: provider as SMSProviderOptions['provider'],
-      from: providerConfig?.fromNumber,
-      accountSid: providerConfig?.accountId,
-      // Note: authToken should be decrypted before use if encrypted
-      // For now, we pass it as-is; encryption handling is a future enhancement
-      authToken: providerConfig?.encryptedApiKey,
-    };
-
-    // Send SMS with org-specific provider config
-    const result = await sendSMS(message.to, message.message, providerOptions);
-    const durationMs = Date.now() - startTime;
-
-    if (result.success) {
-      await SMSMessage.recordAttempt(messageId, {
-        attemptedAt: new Date(),
-        provider,
-        success: true,
-        providerMessageId: result.messageSid,
-        durationMs,
-      });
-
-      logger.info("[SMS Queue] Message sent successfully", {
-        messageId,
-        provider,
-        messageSid: result.messageSid,
-        durationMs,
-      });
-    } else {
-      await SMSMessage.recordAttempt(messageId, {
-        attemptedAt: new Date(),
-        provider,
-        success: false,
-        errorMessage: result.error,
-        durationMs,
-      });
-
-      // Re-throw to trigger BullMQ retry
-      throw new Error(result.error || "SMS send failed");
+    if (!candidates.length) {
+      throw new Error("No SMS providers configured (org or env)");
     }
+
+    let lastError = "Unknown SMS failure";
+    for (const candidate of candidates) {
+      const result = await sendSMS(message.to, message.message, {
+        provider: candidate.provider,
+        from: candidate.from,
+        accountSid: candidate.accountSid,
+        authToken: candidate.authToken,
+      });
+
+      const durationMs = Date.now() - startTime;
+
+      if (result.success) {
+        await SMSMessage.recordAttempt(messageId, {
+          attemptedAt: new Date(),
+          provider: candidate.name || candidate.provider || "UNKNOWN",
+          success: true,
+          providerMessageId: result.messageSid,
+          durationMs,
+        });
+
+        logger.info("[SMS Queue] Message sent successfully", {
+          messageId,
+          provider: candidate.name,
+          messageSid: result.messageSid,
+          durationMs,
+        });
+        return;
+      }
+
+      lastError = result.error || "SMS send failed";
+      logger.warn("[SMS Queue] Provider failed, trying next candidate", {
+        messageId,
+        providerTried: candidate.name,
+        error: lastError,
+      });
+    }
+
+    const finalProvider = candidates[candidates.length - 1];
+    const durationMs = Date.now() - startTime;
+    await SMSMessage.recordAttempt(messageId, {
+      attemptedAt: new Date(),
+      provider: finalProvider?.name || "UNKNOWN",
+      success: false,
+      errorMessage: lastError,
+      durationMs,
+    });
+
+    throw new Error(lastError || "SMS send failed");
   } catch (error) {
     const durationMs = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
+    await SMSMessage.recordAttempt(messageId, {
+      attemptedAt: new Date(),
+      provider: "SYSTEM",
+      success: false,
+      errorMessage,
+      durationMs,
+    });
+
+    // 📊 FIXED: Record failed attempt for retry tracking and SLA breach detection
     logger.error("[SMS Queue] Send failed", {
       messageId,
       error: errorMessage,
       durationMs,
-      retryCount: message.retryCount,
+      retryCount: message.retryCount + 1,
       maxRetries: message.maxRetries,
     });
 
@@ -374,8 +529,12 @@ export async function getSMSQueueStats(): Promise<{
 export async function retryFailedMessages(orgId?: string, limit = 100): Promise<number> {
   await connectToDatabase();
 
-  const filter: Record<string, unknown> = { status: "FAILED" };
-  if (orgId) filter.orgId = orgId;
+  if (!orgId) {
+    throw new Error("[SMS Queue] orgId is required to retry failed messages");
+  }
+
+  const queue = getSMSQueue();
+  const filter: Record<string, unknown> = { status: "FAILED", orgId };
 
   const failedMessages = await SMSMessage.find(filter)
     .sort({ createdAt: -1 })
@@ -392,7 +551,20 @@ export async function retryFailedMessages(orgId?: string, limit = 100): Promise<
     }
 
     if (msg.retryCount < msg.maxRetries) {
-      await queueSMS({
+      const nextStatus = queue ? "QUEUED" : "PENDING";
+      await SMSMessage.findByIdAndUpdate(msg._id, {
+        status: nextStatus,
+        retryCount: 0,
+        nextRetryAt: new Date(),
+        lastError: null,
+        lastErrorCode: null,
+      });
+
+      // Clean up any pending jobs to avoid duplicate sends after retry
+      await removePendingSMSJobs(msg._id.toString());
+
+      await enqueueExistingSMS({
+        _id: msg._id as unknown as ISMSMessage["_id"],
         to: msg.to,
         message: msg.message,
         type: msg.type,
