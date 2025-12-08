@@ -1963,5 +1963,85 @@ All test and seeding scripts now use environment variables. E2E tests fail-fast 
 
 ---
 
+### ISSUE-053: TypeScript Errors in Scripts and Test Files
+
+**Severity**: 🟧 MAJOR  
+**Category**: Build, TypeScript  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Multiple TypeScript errors across scripts and test files preventing clean builds:
+- Type narrowing issues after fail-fast checks
+- Missing required parameters in JWT encode (salt)
+- Module resolution issues with @/ path aliases
+- Read-only property assignments (NODE_ENV)
+
+**Files Fixed**:
+- `qa/tests/auth-flows.spec.ts`: Fixed TEST_USER.password type narrowing
+- `tests/copilot/copilot.spec.ts`: Added required `salt` parameter to encodeJwt
+- `scripts/auth-debug.ts`: Use Object.defineProperty for NODE_ENV
+- `scripts/fix-superadmin-login.ts`: Changed @/ imports to relative paths, added type assertions
+- `scripts/quick-fix-superadmin.ts`: Changed @/ imports to relative paths
+- `scripts/validate-notification-env.ts`: Changed @/ import to dotenv
+- `scripts/seed-e2e-test-users.ts`: Fixed emailVerified property access
+
+**Resolution**:
+All TypeScript errors in affected files resolved. Main typecheck passes cleanly.
+
+---
+
+### ISSUE-054: Plaintext Passwords Logged to Console
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Logging  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Demo/seed scripts were logging actual password values to stdout. In CI or shared logs, this leaks demo/superadmin credentials.
+
+**Files Fixed**:
+- `scripts/quick-fix-superadmin.ts`: Changed password log to `[use DEMO_SUPERADMIN_PASSWORD env value]`
+- `scripts/create-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
+- `scripts/seed-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
+
+**Resolution**:
+All password logging now shows env var name instead of actual value. Added hint: "Set SHOW_DEMO_CREDS=true to display actual passwords" for local dev.
+
+---
+
+### ISSUE-055: CI Secret Wiring for QA Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: CI/CD, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+QA tests require `FIXZIT_TEST_ADMIN_PASSWORD` but CI workflow only had `TEST_ADMIN_PASSWORD`. Without this alias, QA tests would fail in CI.
+
+**Files Fixed**:
+- `.github/workflows/e2e-tests.yml`: Added `FIXZIT_TEST_ADMIN_PASSWORD` and `FIXZIT_TEST_ADMIN_EMAIL` aliases
+
+**Resolution**:
+CI now passes both env var names (TEST_ADMIN_* and FIXZIT_TEST_ADMIN_*) for backward compatibility.
+
+---
+
+### ISSUE-056: Insecure JWT Secret Fallback in Playwright Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`tests/copilot/copilot.spec.ts` used `playwright-secret` as fallback for NEXTAUTH_SECRET. This reduces test fidelity and, if services share the same fallback, could accept non-vetted tokens in lower environments.
+
+**Files Fixed**:
+- `tests/copilot/copilot.spec.ts`: Removed insecure fallback, now requires real secret with fail-fast
+
+**Resolution**:
+Tests now throw explicit error if NEXTAUTH_SECRET/AUTH_SECRET not set. Also added `org_id` (underscore version) for backend compatibility.
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
