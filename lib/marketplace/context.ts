@@ -73,19 +73,7 @@ async function readCookieValue(
 export async function resolveMarketplaceContext(
   req?: NextRequest | Request | null,
 ): Promise<MarketplaceRequestContext> {
-  const headerOrg =
-    (await readHeaderValue(req ?? null, "x-org-id")) ||
-    (await readHeaderValue(req ?? null, "x-tenant-id"));
-  const cookieOrg =
-    (await readCookieValue(
-      req instanceof NextRequest ? req : null,
-      "fixzit_org",
-    )) ||
-    (await readCookieValue(
-      req instanceof NextRequest ? req : null,
-      "fixzit_tenant",
-    ));
-
+  // SECURITY: Read auth token FIRST to establish trusted context
   const token = await readCookieValue(
     req instanceof NextRequest ? req : null,
     "fixzit_auth",
@@ -94,16 +82,46 @@ export async function resolveMarketplaceContext(
     | Record<string, unknown>
     | undefined;
 
-  const tenantKey = (headerOrg ||
-    cookieOrg ||
-    (payload as Record<string, unknown> | undefined)?.tenantId ||
-    process.env.MARKETPLACE_DEFAULT_TENANT ||
-    "demo-tenant") as string;
-  const orgId = objectIdFrom(
-    ((payload as Record<string, unknown> | undefined)?.orgId as
-      | string
-      | undefined) || tenantKey,
-  );
+  // Extract trusted orgId from verified JWT token
+  const tokenOrgId = (payload as Record<string, unknown> | undefined)?.orgId as
+    | string
+    | undefined;
+  const tokenTenantId = (payload as Record<string, unknown> | undefined)?.tenantId as
+    | string
+    | undefined;
+
+  // SECURITY FIX: Only accept header-based org/tenant for unauthenticated requests
+  // Authenticated users MUST use their token's org to prevent cross-tenant access
+  let tenantKey: string;
+  let orgId: Types.ObjectId;
+
+  if (payload && tokenOrgId) {
+    // Authenticated user: ALWAYS use token's orgId, ignore headers
+    tenantKey = tokenTenantId || tokenOrgId;
+    orgId = objectIdFrom(tokenOrgId);
+  } else {
+    // Unauthenticated: Allow header/cookie org for public marketplace routes
+    // These routes should have their own access controls for sensitive data
+    const headerOrg =
+      (await readHeaderValue(req ?? null, "x-org-id")) ||
+      (await readHeaderValue(req ?? null, "x-tenant-id"));
+    const cookieOrg =
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_org",
+      )) ||
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_tenant",
+      ));
+
+    tenantKey = (headerOrg ||
+      cookieOrg ||
+      process.env.MARKETPLACE_DEFAULT_TENANT ||
+      "demo-tenant") as string;
+    orgId = objectIdFrom(tenantKey);
+  }
+
   const userId = (payload as Record<string, unknown> | undefined)?.id
     ? objectIdFrom((payload as Record<string, unknown>).id as string)
     : undefined;

@@ -3,6 +3,9 @@ import { searchClient, INDEXES } from "@/lib/meilisearch";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 const searchQuerySchema = z.object({
   q: z.string().optional().default(""),
@@ -49,6 +52,13 @@ const searchQuerySchema = z.object({
  */
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting: 120 req/min for public search
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`/api/souq/search:${clientIp}`, 120, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Parse and validate query parameters
     const { searchParams } = new URL(req.url);
     const params = {

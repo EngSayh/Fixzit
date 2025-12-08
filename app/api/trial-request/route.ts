@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type TrialRequestBody = {
   name?: string;
@@ -12,8 +13,16 @@ type TrialRequestBody = {
 };
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 3 requests per minute per IP to prevent spam/abuse
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "trial-request",
+    requests: 3,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const body = (await req.json().catch(() => ({}))) as TrialRequestBody;
-  const { name, email, company, plan, message, phone } = body;
+  const { name, email, company, plan, message: _message, phone: _phone } = body;
 
   if (!name || !email || !company) {
     return NextResponse.json(
@@ -30,12 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   logger.info("[trial-request] Received trial request", {
-    name,
-    email,
     company,
     plan: plan || "unspecified",
-    phone,
-    message,
+    // PII redacted: name, email, phone not logged per SEC-029 compliance
   });
 
   return NextResponse.json({ ok: true });

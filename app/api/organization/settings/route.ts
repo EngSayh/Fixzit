@@ -1,12 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+// Default branding for unauthenticated or fallback scenarios
+const DEFAULT_BRANDING = {
+  name: "FIXZIT ENTERPRISE",
+  logo: "/img/fixzit-logo.png",
+  primaryColor: "#0061A8", // Business.sa primary blue
+  secondaryColor: "#1a365d", // Business.sa dark blue
+};
+
 /**
  * @openapi
  * /api/organization/settings:
  *   get:
- *     summary: Get organization settings (public)
- *     description: Retrieves public organization settings including logo, name, and branding
+ *     summary: Get organization settings (public branding)
+ *     description: Retrieves public organization settings including logo, name, and branding. Uses authenticated user's org when available, otherwise returns defaults.
  *     tags:
  *       - Organization
  *     responses:
@@ -28,11 +38,26 @@ import { logger } from "@/lib/logger";
  *       500:
  *         description: Server error
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectDb();
 
-    // Get the first active organization (or you can get by orgId from session)
+    // SECURITY FIX: Get org from authenticated session, not arbitrary first org
+    let orgId: string | undefined;
+    try {
+      const user = await getSessionUser(req);
+      orgId = user.orgId;
+    } catch {
+      // Unauthenticated - return default branding
+      return NextResponse.json(DEFAULT_BRANDING);
+    }
+
+    if (!orgId) {
+      // No org context - return default branding
+      return NextResponse.json(DEFAULT_BRANDING);
+    }
+
+    // Get the user's organization
     const { Organization } = await import("@/server/models/Organization");
     type OrgDoc = {
       name?: string;
@@ -43,21 +68,13 @@ export async function GET() {
         accentColor?: string;
       };
     };
-    const org = (await Organization.findOne({
-      /* isActive: true */
-    })
+    const org = (await Organization.findById(orgId)
       .select("name logo branding")
       .lean()) as unknown as OrgDoc | null;
 
     if (!org) {
-      // Return default settings if no organization found
-      // Business.sa brand colors (2025 rebrand)
-      return NextResponse.json({
-        name: "FIXZIT ENTERPRISE",
-        logo: "/img/fixzit-logo.png",
-        primaryColor: "#0061A8", // Business.sa primary blue
-        secondaryColor: "#1a365d", // Business.sa dark blue
-      });
+      // No org found - return default branding
+      return NextResponse.json(DEFAULT_BRANDING);
     }
 
     const orgDoc = org as {
@@ -67,20 +84,14 @@ export async function GET() {
     };
 
     return NextResponse.json({
-      name: orgDoc?.name || "FIXZIT ENTERPRISE",
-      logo: orgDoc?.logo || "/img/fixzit-logo.png",
-      primaryColor: orgDoc?.branding?.primaryColor || "#0061A8", // Business.sa primary blue
-      secondaryColor: orgDoc?.branding?.secondaryColor || "#1a365d", // Business.sa dark blue
+      name: orgDoc?.name || DEFAULT_BRANDING.name,
+      logo: orgDoc?.logo || DEFAULT_BRANDING.logo,
+      primaryColor: orgDoc?.branding?.primaryColor || DEFAULT_BRANDING.primaryColor,
+      secondaryColor: orgDoc?.branding?.secondaryColor || DEFAULT_BRANDING.secondaryColor,
     });
   } catch (error) {
     logger.error("Error fetching organization settings:", error);
     // Return default settings on error
-    // Business.sa brand colors (2025 rebrand)
-    return NextResponse.json({
-      name: "FIXZIT ENTERPRISE",
-      logo: "/img/fixzit-logo.png",
-      primaryColor: "#0061A8", // Business.sa primary blue
-      secondaryColor: "#1a365d", // Business.sa dark blue
-    });
+    return NextResponse.json(DEFAULT_BRANDING);
   }
 }

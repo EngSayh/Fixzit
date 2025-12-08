@@ -1482,5 +1482,137 @@ The OTP send route was logging full phone numbers when validation failed, exposi
 
 ---
 
+### ISSUE-031: Cross-Tenant Header Spoofing in Marketplace Context
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `resolveMarketplaceContext()` function in `lib/marketplace/context.ts` accepted `x-org-id` and `x-tenant-id` HTTP headers even for authenticated users, allowing attackers to spoof their organization and access data from other tenants. An attacker could send `x-org-id: victim-org-id` header to access checkout, orders, RFQs from any organization.
+
+**Files**:
+- `lib/marketplace/context.ts`
+
+**Impact**:
+- Cross-tenant data access
+- Potential financial fraud (accessing other org's orders/payments)
+- Complete tenant isolation bypass for all marketplace routes
+
+**Fix Applied**:
+- Authenticated users MUST use orgId from their JWT token
+- Headers only accepted for unauthenticated public browsing
+- Token claims take priority over headers
+
+---
+
+### ISSUE-032: Spoofable x-user Header in Projects Route
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/projects` route parsed `x-user` header for authentication, which can be trivially spoofed. Attackers could set `x-user: {"id":"attacker","orgId":"target"}` to create/read projects in any organization.
+
+**Files**:
+- `app/api/projects/route.ts`
+
+**Fix Applied**:
+- `x-user` header only parsed in NODE_ENV=test (for Playwright)
+- Production uses `getSessionUser()` for proper authentication
+- Backwards compatible with existing tests
+
+---
+
+### ISSUE-033: Copilot Webhook Secret Optional (Fail-Open)
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Authentication  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/copilot/knowledge` POST endpoint checked `COPILOT_WEBHOOK_SECRET` but if the env var was not set, the check was bypassed entirely. This is "fail-open" security - attackers could inject arbitrary knowledge documents if the secret wasn't configured.
+
+**Files**:
+- `app/api/copilot/knowledge/route.ts`
+
+**Fix Applied**:
+- Webhook secret is now REQUIRED
+- Returns 503 "Webhook not configured" if secret is missing
+- "Fail-closed" security pattern
+
+---
+
+### ISSUE-034: Organization Settings Returns First Org Without Auth
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Information Disclosure  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/organization/settings` endpoint returned the FIRST organization's branding (name, logo, colors) without any authentication or tenant context. This leaked org branding from org A to org B.
+
+**Files**:
+- `app/api/organization/settings/route.ts`
+
+**Fix Applied**:
+- Uses `getSessionUser()` to get authenticated user's orgId
+- Returns user's org branding, not arbitrary first org
+- Unauthenticated requests get default branding only
+
+---
+
+### ISSUE-035: Trial Request Route Missing Rate Limiting
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/trial-request` public POST endpoint had no rate limiting, vulnerable to spam and DoS attacks.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 3 requests/minute per IP
+
+---
+
+### ISSUE-036: Trial Request Route Logs PII
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The trial request route was logging user PII (name, email, phone, message) which is a compliance violation.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Removed PII from logs (only company and plan logged now)
+
+---
+
+### ISSUE-037: Souq Search Route Missing Rate Limiting
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/souq/search` public search endpoint had no rate limiting, vulnerable to DoS via expensive Meilisearch queries.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 120 requests/minute per IP
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

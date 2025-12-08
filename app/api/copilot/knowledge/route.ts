@@ -50,10 +50,16 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
+  // SECURITY FIX: Webhook secret is REQUIRED, not optional
+  // Without this, anyone can inject arbitrary knowledge documents
   const secret = process.env.COPILOT_WEBHOOK_SECRET;
-  const provided = req.headers.get("x-webhook-secret");
+  if (!secret) {
+    // Fail closed: If secret is not configured, reject all requests
+    return createSecureResponse({ error: "Webhook not configured" }, 503, req);
+  }
 
-  if (secret && (!provided || provided !== secret)) {
+  const provided = req.headers.get("x-webhook-secret");
+  if (!provided || provided !== secret) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
