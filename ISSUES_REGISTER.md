@@ -1631,5 +1631,43 @@ The `/api/public/footer/[page]` endpoint had no rate limiting. While low risk du
 
 ---
 
+### ISSUE-039: Support Welcome Email Route Missing Authentication
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/support/welcome-email` endpoint had NO authentication. Any attacker could call this endpoint with any email address to send welcome emails, potentially:
+1. Using the system as an email spamming tool
+2. Draining email service credits (SendGrid/Resend)
+3. Reputation damage (emails marked as spam)
+4. Social engineering by sending official-looking emails
+
+**Files**:
+- `app/api/support/welcome-email/route.ts`
+
+**Root Cause**:  
+Route was designed as an internal service endpoint but lacked any authentication mechanism.
+
+**Fix Applied**:
+- Added `INTERNAL_API_SECRET` header check
+- Requests without valid secret return 401 Unauthorized
+- Internal services must include `x-internal-secret` header
+
+**Code Change**:
+```typescript
+export async function POST(request: NextRequest) {
+  // Require internal API secret for security
+  const internalSecret = request.headers.get("x-internal-secret");
+  if (!internalSecret || internalSecret !== process.env.INTERNAL_API_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // ... rest of handler
+}
+```
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

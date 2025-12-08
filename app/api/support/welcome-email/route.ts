@@ -43,11 +43,20 @@ const welcomeEmailSchema = z.object({
  */
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
+  // Rate limiting - reduced to 5 req/min since this sends emails
   const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 5, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
+  }
+
+  // SECURITY FIX: Require internal API secret for email sending
+  // This endpoint should only be called by internal services
+  const internalSecret = req.headers.get("x-internal-secret");
+  const expectedSecret = process.env.INTERNAL_API_SECRET;
+  if (!expectedSecret || internalSecret !== expectedSecret) {
+    logger.warn("[welcome-email] Unauthorized access attempt", { clientIp });
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
   try {
