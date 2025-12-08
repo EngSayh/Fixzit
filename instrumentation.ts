@@ -34,7 +34,8 @@ export async function register() {
       logger.error("[Instrumentation] Environment validation failed", {
         errors: envResult.errors,
       });
-      // Don't throw - let the app start but log errors
+      // Stop startup in production to avoid running with invalid secrets/config
+      throw new Error("Environment validation failed; see logs for details");
     }
 
     // Initialize SMS worker if Redis is configured

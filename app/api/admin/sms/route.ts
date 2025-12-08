@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
           metadata: message.metadata as Record<string, unknown> | undefined,
           maxRetries: message.maxRetries,
           retryCount: message.retryCount,
-        });
+        }, { attempts: message.maxRetries ?? 1 });
 
         logger.info("[Admin SMS] Manual retry triggered", {
           messageId,

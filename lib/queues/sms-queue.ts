@@ -129,7 +129,7 @@ export async function removePendingSMSJobs(messageId: string): Promise<number> {
  * Simple per-org rate limiter using Redis counters to avoid noisy-neighbor issues.
  * @internal Reserved for future per-org rate limiting enhancement
  */
-async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | { ok: false; ttlMs: number }> {
+export async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | { ok: false; ttlMs: number }> {
   if (!orgId) return { ok: true };
 
   const connection = getRedisClient();
@@ -219,6 +219,16 @@ export async function queueSMS(options: {
   // 🔐 SECURITY: Enforce orgId requirement for tenant isolation
   if (!orgId) {
     throw new Error('orgId is required to queue SMS (tenant isolation)');
+  }
+
+  // 🚦 Pre-queue rate limiting to avoid creating messages we can't send promptly
+  const rateCheck = await checkOrgRateLimit(orgId);
+  if (!rateCheck.ok) {
+    logger.warn("[SMS Queue] Rate limit exceeded for org; rejecting enqueue", {
+      orgId,
+      ttlMs: rateCheck.ttlMs,
+    });
+    throw new Error(`SMS rate limit exceeded for org; retry after ${Math.ceil(rateCheck.ttlMs / 1000)}s`);
   }
 
   await connectToDatabase();
@@ -313,14 +323,17 @@ type ExistingSMS = Pick<
   | "referenceId"
   | "metadata"
   | "maxRetries"
-  | "retryCount"
+ | "retryCount"
 >;
 
 /**
  * Enqueue an existing SMS record for delivery without creating a new document.
  * Falls back to immediate send when the queue is disabled.
  */
-export async function enqueueExistingSMS(message: ExistingSMS): Promise<void> {
+export async function enqueueExistingSMS(
+  message: ExistingSMS,
+  options: { attempts?: number; jobId?: string } = {}
+): Promise<void> {
   if (!message.orgId) {
     throw new Error("[SMS Queue] orgId is required to enqueue SMS");
   }
@@ -334,8 +347,9 @@ export async function enqueueExistingSMS(message: ExistingSMS): Promise<void> {
   }
 
   const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[message.priority];
-  const jobId = `sms-${messageId}-retry-${Date.now()}`;
-  const attemptsRemaining = Math.max(1, (message.maxRetries ?? 1) - (message.retryCount ?? 0));
+  const jobId = options.jobId ?? `sms-${messageId}`;
+  // When callers reset retryCount before enqueue, honor the requested attempts/maxRetries directly.
+  const attemptsRemaining = Math.max(1, options.attempts ?? message.maxRetries ?? 1);
 
   await queue.add(
     "send",
@@ -371,6 +385,24 @@ async function processSMSJob(messageId: string): Promise<void> {
     return;
   }
 
+  // Skip messages that are expired/cancelled before processing
+  if (message.status === "EXPIRED") {
+    logger.info("[SMS Queue] Message cancelled/expired; skipping send", { messageId });
+    return;
+  }
+
+  // Respect max retry policy and terminal failure states to avoid double sends/costs
+  if (message.status === "FAILED" || message.retryCount >= message.maxRetries) {
+    await SMSMessage.findByIdAndUpdate(messageId, { status: "FAILED" });
+    logger.warn("[SMS Queue] Max retries reached; skipping send", {
+      messageId,
+      status: message.status,
+      retryCount: message.retryCount,
+      maxRetries: message.maxRetries,
+    });
+    return;
+  }
+
   // Check if expired
   if (message.expiresAt && new Date() > message.expiresAt) {
     await SMSMessage.findByIdAndUpdate(messageId, { status: "EXPIRED" });
@@ -378,37 +410,9 @@ async function processSMSJob(messageId: string): Promise<void> {
     return;
   }
 
-  // Respect max retry policy and terminal failure states to avoid double sends/costs
-  if (message.status === "FAILED" || message.retryCount >= message.maxRetries) {
-    logger.warn("[SMS Queue] Skipping send; max retries reached or message failed", {
-      messageId,
-      status: message.status,
-      retryCount: message.retryCount,
-      maxRetries: message.maxRetries,
-    });
-    return;
-  }
-
   // Check if already delivered
   if (message.status === "DELIVERED" || message.status === "SENT") {
     logger.info("[SMS Queue] Message already sent/delivered", { messageId, status: message.status });
-    return;
-  }
-
-  // Stop if retries are exhausted or message is already marked failed
-  if (message.status === "FAILED" || message.retryCount >= message.maxRetries) {
-    logger.info("[SMS Queue] Max retries reached; skipping send", {
-      messageId,
-      status: message.status,
-      retryCount: message.retryCount,
-      maxRetries: message.maxRetries,
-    });
-    return;
-  }
-
-  // 🚫 Skip cancelled/expired messages - admin may have cancelled after queueing
-  if (message.status === "EXPIRED") {
-    logger.info("[SMS Queue] Message cancelled/expired; skipping send", { messageId });
     return;
   }
 
@@ -697,10 +701,13 @@ export async function retryFailedMessages(orgId?: string, limit = 100): Promise<
         metadata: msg.metadata as Record<string, unknown> | undefined,
         maxRetries: msg.maxRetries,
         retryCount: msg.retryCount,
-      });
+      }, { attempts: msg.maxRetries ?? 1 });
       retried++;
     }
   }
 
   return retried;
 }
+
+// Export internals for testing/monitoring
+export { buildProviderCandidates, decryptProviderToken };

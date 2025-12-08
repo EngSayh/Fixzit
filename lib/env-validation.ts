@@ -29,10 +29,11 @@ export function validateSMSConfig(): EnvValidationResult {
     process.env.TWILIO_PHONE_NUMBER
   );
   const hasUnifonic = Boolean(process.env.UNIFONIC_APP_SID);
+  const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
-  if (!hasTwilio && !hasUnifonic) {
-    warnings.push(
-      "No SMS provider configured. Set TWILIO_* or UNIFONIC_* env vars. SMS will be disabled."
+  if (!hasTwilio && !smsDevMode) {
+    errors.push(
+      "No SMS provider configured. In production, configure TWILIO_* or enable SMS_DEV_MODE=true for stubbed delivery."
     );
   }
 
@@ -45,6 +46,30 @@ export function validateSMSConfig(): EnvValidationResult {
     }
     if (!process.env.TWILIO_PHONE_NUMBER) {
       errors.push("TWILIO_PHONE_NUMBER is missing");
+    }
+  } else if (hasUnifonic) {
+    warnings.push("UNIFONIC_* detected but provider is not implemented; SMS will fall back to Twilio if configured.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate job/cron secrets (used by scheduled endpoints)
+ */
+export function validateJobSecrets(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!process.env.CRON_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      errors.push("CRON_SECRET is required for secured cron endpoints.");
+    } else {
+      warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
     }
   }
 
@@ -142,12 +167,52 @@ export function validateDatabaseConfig(): EnvValidationResult {
 }
 
 /**
+ * Validate payment gateway configuration (PayTabs, Tap)
+ */
+export function validatePaymentConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const hasPaytabs =
+    Boolean(process.env.PAYTABS_SERVER_KEY) &&
+    Boolean(process.env.PAYTABS_PROFILE_ID);
+  const hasTap = Boolean(process.env.TAP_WEBHOOK_SECRET);
+
+  if (!hasPaytabs) {
+    const msg =
+      "PayTabs credentials missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  if (!hasTap) {
+    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
  * Validate all critical environment variables
  * Call this on application startup
  */
 export function validateAllEnv(): EnvValidationResult {
   const results: EnvValidationResult[] = [
     validateSMSConfig(),
+    validateJobSecrets(),
+    validatePaymentConfig(),
     validateEncryptionConfig(),
     validateAuthConfig(),
     validateDatabaseConfig(),
@@ -220,6 +285,9 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
       configured: Boolean(
         process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
       ),
+    },
+    cronSecret: {
+      configured: Boolean(process.env.CRON_SECRET),
     },
     sendgrid: {
       configured: Boolean(process.env.SENDGRID_API_KEY),

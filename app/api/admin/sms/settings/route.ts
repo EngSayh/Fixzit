@@ -72,7 +72,7 @@ const SLAConfigSchema = z.object({
 });
 
 const ProviderConfigSchema = z.object({
-  provider: z.enum(["TWILIO", "UNIFONIC", "LOCAL"]),
+  provider: z.enum(["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"]),
   enabled: z.boolean(),
   priority: z.number().min(1).max(10),
   accountId: z.string().optional(),
@@ -87,7 +87,7 @@ const UpdateSettingsSchema = z.object({
   orgId: z.string().optional(), // null = global settings
   slaConfigs: z.array(SLAConfigSchema).optional(),
   providers: z.array(ProviderConfigSchema).optional(),
-  defaultProvider: z.enum(["TWILIO", "UNIFONIC", "LOCAL"]).optional(),
+  defaultProvider: z.enum(["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"]).optional(),
   defaultMaxRetries: z.number().min(0).max(10).optional(),
   defaultExpiresAfterMs: z.number().min(60000).max(604800000).optional(),
   globalRateLimitPerMinute: z.number().min(1).max(1000).optional(),

@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
       "x-cron-secret",
       process.env.CRON_SECRET,
     );
-    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
+    const isSuperAdmin =
+      (session?.user?.role || "").toUpperCase() === "SUPER_ADMIN" ||
+      session?.user?.isSuperAdmin === true;
+    const isAuthorized = isSuperAdmin || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -65,7 +68,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.isSuperAdmin) {
+    const isSuperAdmin =
+      (session?.user?.role || "").toUpperCase() === "SUPER_ADMIN" ||
+      session?.user?.isSuperAdmin === true;
+    if (!isSuperAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
