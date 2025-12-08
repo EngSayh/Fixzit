@@ -33,6 +33,104 @@ const ERROR_CODES = {
   UPSTREAM: "UPSTREAM_ERROR",
 } as const;
 
+/** Validated search parameters from Zod schema */
+type ValidatedSearchParams = z.infer<typeof searchQuerySchema>;
+
+/** Common search response data structure */
+interface SearchResponseData {
+  hits: unknown[];
+  query: string | undefined;
+  page: number;
+  limit: number;
+  totalHits: number;
+  totalPages: number;
+  facets: {
+    categories: Record<string, number>;
+    subcategories: Record<string, number>;
+    ratings: Record<string, number>;
+    badges: Record<string, number>;
+    priceRanges: Record<string, number>;
+  };
+  processingTimeMs: number | undefined;
+  filters: {
+    category: string | undefined;
+    subcategory: string | undefined;
+    brandId: string | undefined;
+    minPrice: number | undefined;
+    maxPrice: number | undefined;
+    minRating: number | undefined;
+    badges: string | undefined;
+    inStock: boolean | undefined;
+    isActive: boolean;
+    sort: string;
+  };
+}
+
+/**
+ * Build the search response data object (shared between test and production paths)
+ */
+function buildSearchResponseData(
+  results: { hits: unknown[]; estimatedTotalHits?: number; processingTimeMs?: number; facetDistribution?: Record<string, Record<string, number>> },
+  validated: ValidatedSearchParams,
+  sanitizedQuery: string | undefined,
+  effectiveIsActive: boolean,
+  priceRanges: Record<string, number> = {},
+): SearchResponseData {
+  const totalHits = results.estimatedTotalHits || results.hits.length;
+  return {
+    hits: results.hits,
+    query: sanitizedQuery,
+    page: validated.page,
+    limit: validated.limit,
+    totalHits,
+    totalPages: Math.max(1, Math.ceil(totalHits / validated.limit)),
+    facets: {
+      categories: results.facetDistribution?.category || {},
+      subcategories: results.facetDistribution?.subcategory || {},
+      ratings: results.facetDistribution?.rating || {},
+      badges: results.facetDistribution?.badges || {},
+      priceRanges,
+    },
+    processingTimeMs: results.processingTimeMs,
+    filters: {
+      category: validated.category,
+      subcategory: validated.subcategory,
+      brandId: validated.brandId,
+      minPrice: validated.minPrice,
+      maxPrice: validated.maxPrice,
+      minRating: validated.minRating,
+      badges: validated.badges,
+      inStock: validated.inStock,
+      isActive: effectiveIsActive,
+      sort: validated.sort,
+    },
+  };
+}
+
+/**
+ * Build base filters (isActive + category) shared between test and production
+ */
+function buildBaseFilters(
+  validated: ValidatedSearchParams,
+  orgId: string | undefined,
+): { filters: string[]; effectiveIsActive: boolean } {
+  const filters: string[] = [];
+  const effectiveIsActive = validated.isActive ?? true;
+  filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
+  
+  // Tenant isolation - always scope by orgId
+  if (orgId) {
+    filters.push(`orgId = ${escapeMeiliFilterValue(orgId)}`);
+    filters.push(`org_id = ${escapeMeiliFilterValue(orgId)}`);
+  }
+  
+  if (validated.category) {
+    filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
+  }
+  
+  return { filters, effectiveIsActive };
+}
+
 const searchQuerySchema = z.object({
   q: z.string().optional().default(""),
   category: z.string().optional(),
@@ -140,57 +238,27 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const filters: string[] = [];
-      const effectiveIsActive = validated.isActive ?? true;
-      filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
-      filters.push(`orgId = ${escapeMeiliFilterValue(testOrgId)}`);
-      filters.push(`org_id = ${escapeMeiliFilterValue(testOrgId)}`);
-      if (validated.category) {
-        filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
-      }
+      // Use shared helper for base filters
+      const { filters: testFilters, effectiveIsActive: testEffectiveIsActive } = buildBaseFilters(validated, testOrgId);
 
       const offset = (validated.page - 1) * validated.limit;
       const index = searchClient.index(INDEXES.PRODUCTS);
       const results = await index.search(sanitizedQuery, {
-        filter: filters,
+        filter: testFilters,
         sort: undefined,
         limit: validated.limit,
         offset,
         facets: ["category", "subcategory", "rating", "badges"],
       });
 
-      const totalHits = results.estimatedTotalHits || results.hits.length;
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          hits: results.hits,
-          query: sanitizedQuery,
-          page: validated.page,
-          limit: validated.limit,
-          totalHits,
-          totalPages: Math.max(1, Math.ceil(totalHits / validated.limit)),
-          facets: {
-            categories: results.facetDistribution?.category || {},
-            subcategories: results.facetDistribution?.subcategory || {},
-            ratings: results.facetDistribution?.rating || {},
-            badges: results.facetDistribution?.badges || {},
-            priceRanges: {},
-          },
-          processingTimeMs: results.processingTimeMs,
-          filters: {
-            category: validated.category,
-            subcategory: validated.subcategory,
-            brandId: validated.brandId,
-            minPrice: validated.minPrice,
-            maxPrice: validated.maxPrice,
-            minRating: validated.minRating,
-            badges: validated.badges,
-            inStock: validated.inStock,
-            isActive: effectiveIsActive,
-            sort: validated.sort,
-          },
-        },
-      });
+      // Use shared helper for response data
+      const responseData = buildSearchResponseData(
+        results,
+        validated,
+        sanitizedQuery,
+        testEffectiveIsActive,
+      );
+      const response = NextResponse.json({ success: true, data: responseData });
       response.headers.set("X-Correlation-Id", testContext?.correlationId ?? "");
       response.headers.set("X-RateLimit-Limit", "120");
       response.headers.set("X-RateLimit-Remaining", "119");
@@ -209,9 +277,6 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
     }
-
-    // Build filter array
-    const filters: string[] = [];
 
     // Enforce tenant scoping from trusted context (session first, marketplace fallback)
     const sessionUser = await getSessionUser(req).catch(() => null);
@@ -261,13 +326,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Apply isActive filter (server-default true to avoid inactive exposure)
-    const effectiveIsActive = validated.isActive ?? true;
-    filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
-
-    if (validated.category) {
-      filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
-    }
+    // Use shared helper for base filters (isActive, orgId, category)
+    const { filters, effectiveIsActive } = buildBaseFilters(validated, orgIdFromContext);
 
     if (validated.subcategory) {
       filters.push(
@@ -308,9 +368,7 @@ export async function GET(req: NextRequest) {
       filters.push("inStock = true");
     }
 
-    // SECURITY: Tenant isolation – require org scope derived from trusted context
-    filters.push(`orgId = ${escapeMeiliFilterValue(orgIdFromContext)}`);
-    filters.push(`org_id = ${escapeMeiliFilterValue(orgIdFromContext)}`);
+    // NOTE: Tenant isolation (orgId filter) is handled by buildBaseFilters above
 
     // Determine sort order
     let sortArray: string[] = [];
@@ -361,8 +419,14 @@ export async function GET(req: NextRequest) {
       }),
     );
 
-    const totalHits = results.estimatedTotalHits || results.hits.length;
-    const totalPages = Math.ceil(totalHits / validated.limit);
+    // Use shared helper for response data
+    const responseData = buildSearchResponseData(
+      results,
+      validated,
+      sanitizedQuery,
+      effectiveIsActive,
+      priceRanges,
+    );
 
     logger.info("[Souq Search] success", {
       orgId: orgIdFromContext,
@@ -375,37 +439,7 @@ export async function GET(req: NextRequest) {
       filtersCount: filters.length,
     });
 
-    const response = NextResponse.json({
-      success: true,
-      data: {
-        hits: results.hits,
-        query: sanitizedQuery,
-        page: validated.page,
-        limit: validated.limit,
-        totalHits,
-        totalPages,
-        facets: {
-          categories: results.facetDistribution?.category || {},
-          subcategories: results.facetDistribution?.subcategory || {},
-          ratings: results.facetDistribution?.rating || {},
-          badges: results.facetDistribution?.badges || {},
-          priceRanges,
-        },
-        processingTimeMs: results.processingTimeMs,
-        filters: {
-          category: validated.category,
-          subcategory: validated.subcategory,
-          brandId: validated.brandId,
-          minPrice: validated.minPrice,
-          maxPrice: validated.maxPrice,
-          minRating: validated.minRating,
-          badges: validated.badges,
-          inStock: validated.inStock,
-          isActive: effectiveIsActive,
-          sort: validated.sort,
-        },
-      },
-    });
+    const response = NextResponse.json({ success: true, data: responseData });
     response.headers.set("X-Correlation-Id", correlationId ?? "");
     response.headers.set("X-RateLimit-Limit", "120");
     response.headers.set("X-RateLimit-Remaining", rl.remaining.toString());

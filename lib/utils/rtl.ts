@@ -1,12 +1,26 @@
 /**
  * RTL (Right-to-Left) Utility Functions
  * Provides helpers for RTL-aware styling and layout
+ *
+ * @deprecated MIGRATION NOTICE (2025-12-08):
+ * Prefer Tailwind CSS logical properties over these utilities:
+ * - Use `text-start` / `text-end` instead of `text-left` / `text-right`
+ * - Use `ps-*` / `pe-*` instead of `pl-*` / `pr-*` (padding)
+ * - Use `ms-*` / `me-*` instead of `ml-*` / `mr-*` (margin)
+ * - Use `start-*` / `end-*` instead of `left-*` / `right-*` (positioning)
+ * - Use `rounded-s-*` / `rounded-e-*` instead of `rounded-l-*` / `rounded-r-*`
+ *
+ * These utilities remain for legacy code that cannot use logical properties.
+ * New components should use Tailwind logical classes directly.
+ *
+ * @see https://tailwindcss.com/docs/logical-properties
  */
 
 /**
  * Returns RTL-aware directional class names
  * @param isRTL - Whether the current locale is RTL
  * @returns Object with directional class utilities
+ * @deprecated Use Tailwind logical properties (text-start, ps-*, ms-*, etc.) instead
  */
 export function getRTLClasses(isRTL: boolean) {
   return {
