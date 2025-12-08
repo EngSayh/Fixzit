@@ -331,7 +331,7 @@ vi.mock('mongoose', async (importOriginal) => {
   const mocked: AnyDoc = {
     ...original,
     connect: vi.fn(async (..._args: any[]) => ({ connection: mocked.connection })),
-    createConnection: (...args: any[]) => original.createConnection?.(...args),
+    createConnection: (uri: string, options?: Record<string, unknown>) => original.createConnection?.(uri, options),
     disconnect: vi.fn(async () => {}),
     connection: {
       readyState: 1,
