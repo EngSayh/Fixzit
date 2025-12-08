@@ -52,13 +52,13 @@ const mockDependencies = ({
 };
 
 const loadLive = async () => {
-  const module = await import("@/app/api/health/live/route");
-  return module.GET;
+  const mod = await import("@/app/api/health/live/route");
+  return mod.GET;
 };
 
 const loadReady = async () => {
-  const module = await import("@/app/api/health/ready/route");
-  return module.GET;
+  const mod = await import("@/app/api/health/ready/route");
+  return mod.GET;
 };
 
 describe("Health Endpoints", () => {

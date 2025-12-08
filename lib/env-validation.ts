@@ -22,44 +22,58 @@ export function validateSMSConfig(): EnvValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check for at least one SMS provider
-  const hasTwilio = Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_PHONE_NUMBER
-  );
-  // Unifonic is now a first-class implemented provider
-  const hasUnifonic = Boolean(
-    process.env.UNIFONIC_APP_SID &&
-    process.env.UNIFONIC_SENDER_ID
-  );
+  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+  const unifonicAppSid = process.env.UNIFONIC_APP_SID;
+  const unifonicSenderId = process.env.UNIFONIC_SENDER_ID;
+  const awsSnsAccessKey = process.env.AWS_SNS_ACCESS_KEY;
+  const awsSnsSecret = process.env.AWS_SNS_SECRET;
+  const awsSnsRegion = process.env.AWS_SNS_REGION;
+  const nexmoApiKey = process.env.NEXMO_API_KEY;
+  const nexmoApiSecret = process.env.NEXMO_API_SECRET;
+
+  const hasTwilio = Boolean(twilioSid && twilioToken && twilioNumber);
+  const hasUnifonic = Boolean(unifonicAppSid && unifonicSenderId);
+  const hasAwsSns = Boolean(awsSnsAccessKey && awsSnsSecret && awsSnsRegion);
+  const hasNexmo = Boolean(nexmoApiKey && nexmoApiSecret);
   const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
-  if (!hasTwilio && !hasUnifonic && !smsDevMode) {
+  if (smsDevMode) {
+    return { valid: true, errors, warnings };
+  }
+
+  if (!hasTwilio && (twilioSid || twilioToken || twilioNumber)) {
+    if (!twilioSid) errors.push("TWILIO_ACCOUNT_SID is missing");
+    if (!twilioToken) errors.push("TWILIO_AUTH_TOKEN is missing");
+    if (!twilioNumber) errors.push("TWILIO_PHONE_NUMBER is missing");
+  }
+
+  if (!hasUnifonic && (unifonicAppSid || unifonicSenderId)) {
+    if (!unifonicAppSid) warnings.push("UNIFONIC_APP_SID is missing");
+    if (!unifonicSenderId) warnings.push("UNIFONIC_SENDER_ID is missing");
+    errors.push("Unifonic is partially configured; both UNIFONIC_APP_SID and UNIFONIC_SENDER_ID are required.");
+  }
+
+  if (hasAwsSns) {
+    if (!awsSnsAccessKey) warnings.push("AWS_SNS_ACCESS_KEY is missing; AWS SNS SMS will fail.");
+    if (!awsSnsSecret) warnings.push("AWS_SNS_SECRET is missing; AWS SNS SMS will fail.");
+    if (!awsSnsRegion) warnings.push("AWS_SNS_REGION is missing; AWS SNS SMS will fail.");
+  } else if (awsSnsAccessKey || awsSnsSecret || awsSnsRegion) {
+    warnings.push("Partial AWS SNS config detected; provide ACCESS_KEY, SECRET, REGION to enable.");
+  }
+
+  if (hasNexmo) {
+    if (!nexmoApiKey) warnings.push("NEXMO_API_KEY is missing; Nexmo SMS will fail.");
+    if (!nexmoApiSecret) warnings.push("NEXMO_API_SECRET is missing; Nexmo SMS will fail.");
+  } else if (nexmoApiKey || nexmoApiSecret) {
+    warnings.push("Partial Nexmo config detected; provide API_KEY and API_SECRET to enable.");
+  }
+
+  if (!hasTwilio && !hasUnifonic && !hasAwsSns && !hasNexmo && errors.length === 0) {
     errors.push(
-      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true."
+      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER), UNIFONIC_* (APP_SID, SENDER_ID), AWS_SNS_* (ACCESS_KEY, SECRET, REGION), or NEXMO_* (API_KEY, API_SECRET), or set SMS_DEV_MODE=true."
     );
-  }
-
-  // Validate Twilio config completeness
-  if (hasTwilio) {
-    if (!process.env.TWILIO_ACCOUNT_SID) {
-      errors.push("TWILIO_ACCOUNT_SID is missing");
-    }
-    if (!process.env.TWILIO_AUTH_TOKEN) {
-      errors.push("TWILIO_AUTH_TOKEN is missing");
-    }
-    if (!process.env.TWILIO_PHONE_NUMBER) {
-      errors.push("TWILIO_PHONE_NUMBER is missing");
-    }
-  }
-
-  // Validate Unifonic config completeness (partial config is a warning)
-  if (process.env.UNIFONIC_APP_SID && !process.env.UNIFONIC_SENDER_ID) {
-    warnings.push("UNIFONIC_APP_SID is set but UNIFONIC_SENDER_ID is missing; Unifonic SMS will fail.");
-  }
-  if (process.env.UNIFONIC_SENDER_ID && !process.env.UNIFONIC_APP_SID) {
-    warnings.push("UNIFONIC_SENDER_ID is set but UNIFONIC_APP_SID is missing; Unifonic SMS will fail.");
   }
 
   return {

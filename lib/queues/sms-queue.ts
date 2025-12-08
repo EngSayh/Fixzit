@@ -649,7 +649,7 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,
     async (job: Job<ISMSJobData>) => {
-      await processSMSJob(job.data.messageId, job.data.orgId);
+      await processSMSJob(job.data.messageId);
     },
     {
       connection: connection as Redis,

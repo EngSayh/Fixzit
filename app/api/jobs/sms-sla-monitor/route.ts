@@ -54,7 +54,19 @@ export async function POST(request: NextRequest) {
       correlationId,
     });
 
-    const report = await processSLABreaches();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      body = undefined;
+    }
+    const { orgId, limit }: { orgId?: string; limit?: number } =
+      body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+
+    const report = await processSLABreaches({
+      orgId,
+      limit: typeof limit === "number" && limit > 0 ? limit : undefined,
+    });
 
     const res = NextResponse.json({
       success: true,

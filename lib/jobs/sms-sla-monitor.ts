@@ -18,31 +18,48 @@ export interface SLABreachReport {
   newBreaches: number;
   notificationsSent: number;
   errors: string[];
+  truncated: boolean;
 }
+
+const DEFAULT_SCAN_LIMIT = 5000; // safeguard to prevent unbounded collection scans
 
 /**
  * Check for and process SLA breaches
  */
-export async function processSLABreaches(): Promise<SLABreachReport> {
+export async function processSLABreaches(options?: { orgId?: string; limit?: number }): Promise<SLABreachReport> {
   await connectToDatabase();
+
+  const { orgId, limit = DEFAULT_SCAN_LIMIT } = options || {};
 
   const report: SLABreachReport = {
     totalChecked: 0,
     newBreaches: 0,
     notificationsSent: 0,
     errors: [],
+    truncated: false,
   };
 
   try {
     // Find messages that haven't been checked for SLA breach yet
     // and are past their target delivery time
     const now = new Date();
-    const pendingMessages = await SMSMessage.find({
+    const match: Record<string, unknown> = {
       status: { $in: ["PENDING", "QUEUED", "SENT"] },
       slaBreached: false,
       slaTargetMs: { $exists: true, $gt: 0 },
       orgId: { $exists: true },
-    }).lean();
+    };
+    if (orgId) match.orgId = orgId;
+
+    const pendingMessages = await SMSMessage.find(match)
+      .sort({ createdAt: -1 })
+      .limit(limit + 1) // fetch one extra to detect truncation
+      .lean();
+
+    if (pendingMessages.length > limit) {
+      report.truncated = true;
+      pendingMessages.length = limit; // trim extra for processing
+    }
 
     report.totalChecked = pendingMessages.length;
 
