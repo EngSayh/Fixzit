@@ -6,8 +6,13 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
-import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import {
+  isUnauthorizedMarketplaceContext,
+  resolveMarketplaceContext,
+} from "@/lib/marketplace/context";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { escapeMeiliFilterValue } from "@/lib/marketplace/meiliFilters";
+import crypto from "node:crypto";
 
 const MAX_QUERY_LENGTH = 256;
 const MAX_BADGES = 10;
@@ -110,21 +115,6 @@ export async function GET(req: NextRequest) {
     // Build filter array
     const filters: string[] = [];
 
-    // SECURITY: Escape filter values to prevent Meilisearch filter injection
-    // Escapes quotes and special characters that could alter filter logic
-    const escapeFilterValue = (v: string): string => {
-      // Remove any control characters (0x00-0x1f) and escape quotes
-      let sanitized = "";
-      for (let i = 0; i < v.length; i++) {
-        const charCode = v.charCodeAt(i);
-        // Skip control characters (0x00-0x1f)
-        if (charCode >= 0x20) {
-          sanitized += v[i];
-        }
-      }
-      return `"${sanitized.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
-    };
-
     // Enforce tenant scoping from trusted context (session first, marketplace fallback)
     const sessionUser = await getSessionUser(req).catch(() => null);
     const marketplaceContext = await resolveMarketplaceContext(req);
@@ -146,23 +136,31 @@ export async function GET(req: NextRequest) {
     const isAuthenticated = Boolean(sessionUser?.id || marketplaceContext?.userId);
     
     // SECURITY: Unauthenticated users must have org in explicit allowlist
-    // Empty allowlist means NO public access without authentication
-    const isPublicAllowed = isAuthenticated || 
-      (orgIdFromContext && 
-       publicOrgAllowlist.size > 0 && 
-       publicOrgAllowlist.has(orgIdFromContext));
+    const isPublicAllowed =
+      isAuthenticated ||
+      (orgIdFromContext &&
+        publicOrgAllowlist.size > 0 &&
+        publicOrgAllowlist.has(orgIdFromContext));
     
     // SECURITY: Reject unauthorized context marker from resolveMarketplaceContext
-    const isUnauthorizedContext = orgIdFromContext === "000000000000000000000000" || 
-                                   marketplaceContext?.tenantKey === "__unauthorized__";
+    const isUnauthorizedContext =
+      !orgIdFromContext || isUnauthorizedMarketplaceContext(marketplaceContext);
 
-    if (!orgIdFromContext || !isPublicAllowed || isUnauthorizedContext) {
+    if (isUnauthorizedContext || !isPublicAllowed) {
+      const clientIpHash = clientIp
+        ? crypto.createHash("sha256").update(clientIp).digest("hex").slice(0, 16)
+        : undefined;
       logger.warn("[Souq Search] Unauthorized org access attempt", {
         orgIdFromContext,
         clientIp,
+        clientIpHash,
         correlationId,
+        metric: "souq.search.unauthorized",
       });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Unauthorized", errorCode: ERROR_CODES.UNAUTHORIZED },
+        { status: 403 },
+      );
     }
 
     // Apply isActive filter (server-default true to avoid inactive exposure)
@@ -170,15 +168,17 @@ export async function GET(req: NextRequest) {
     filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
 
     if (validated.category) {
-      filters.push(`category = ${escapeFilterValue(validated.category)}`);
+      filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
     }
 
     if (validated.subcategory) {
-      filters.push(`subcategory = ${escapeFilterValue(validated.subcategory)}`);
+      filters.push(
+        `subcategory = ${escapeMeiliFilterValue(validated.subcategory)}`,
+      );
     }
 
     if (validated.brandId) {
-      filters.push(`brand = ${escapeFilterValue(validated.brandId)}`);
+      filters.push(`brand = ${escapeMeiliFilterValue(validated.brandId)}`);
     }
 
     if (validated.minPrice !== undefined || validated.maxPrice !== undefined) {
@@ -201,7 +201,7 @@ export async function GET(req: NextRequest) {
     if (badgeListRaw.length > 0) {
       // SECURITY: Escape each badge value to prevent filter injection
       const badgeFilters = badgeListRaw.map(
-        (badge) => `badges = ${escapeFilterValue(badge.trim())}`,
+        (badge) => `badges = ${escapeMeiliFilterValue(badge.trim())}`,
       );
       filters.push(`(${badgeFilters.join(" OR ")})`);
     }
@@ -211,7 +211,8 @@ export async function GET(req: NextRequest) {
     }
 
     // SECURITY: Tenant isolation – require org scope derived from trusted context
-    filters.push(`orgId = ${escapeFilterValue(orgIdFromContext)}`);
+    filters.push(`orgId = ${escapeMeiliFilterValue(orgIdFromContext)}`);
+    filters.push(`org_id = ${escapeMeiliFilterValue(orgIdFromContext)}`);
 
     // Determine sort order
     let sortArray: string[] = [];

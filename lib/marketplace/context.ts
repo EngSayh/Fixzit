@@ -123,19 +123,14 @@ export async function resolveMarketplaceContext(
         "fixzit_tenant",
       ));
 
-    const candidateOrg = headerOrg || cookieOrg || process.env.MARKETPLACE_DEFAULT_TENANT;
-    
-    // SECURITY: Validate candidate org against allowlist for unauthenticated access
-    // If no allowlist configured, reject all unauthenticated org access
-    if (!candidateOrg) {
-      // No org provided: default to configured tenant when allowlist is empty, otherwise reject
-      const defaultTenant = publicOrgAllowlist.size === 0 ? process.env.MARKETPLACE_DEFAULT_TENANT : null;
-      tenantKey = defaultTenant || "__unauthorized__";
-      orgId = objectIdFrom(
-        defaultTenant ? defaultTenant : "000000000000000000000000",
-      );
-    } else if (publicOrgAllowlist.size > 0 && !publicOrgAllowlist.has(candidateOrg)) {
-      // Provided org not in allowlist
+    const candidateOrg =
+      headerOrg ||
+      cookieOrg ||
+      process.env.MARKETPLACE_DEFAULT_TENANT ||
+      undefined;
+
+    const allowlistEnforced = publicOrgAllowlist.size > 0;
+    if (!allowlistEnforced || !candidateOrg || !publicOrgAllowlist.has(candidateOrg)) {
       tenantKey = "__unauthorized__";
       orgId = objectIdFrom("000000000000000000000000");
     } else {
@@ -163,4 +158,23 @@ export async function resolveMarketplaceContext(
     role,
     correlationId: randomUUID(),
   };
+}
+
+/**
+ * Check if a marketplace context represents an unauthorized request.
+ * Returns true if:
+ * - context is null/undefined
+ * - tenantKey is "__unauthorized__"
+ * - orgId is the zero ObjectId (000000000000000000000000)
+ */
+export function isUnauthorizedMarketplaceContext(
+  context?: MarketplaceRequestContext | null,
+): boolean {
+  if (!context) return true;
+  const orgStr = context.orgId?.toString?.() || "";
+  return (
+    context.tenantKey === "__unauthorized__" ||
+    orgStr === "000000000000000000000000" ||
+    orgStr.length === 0
+  );
 }
