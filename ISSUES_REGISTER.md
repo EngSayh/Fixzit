@@ -1444,5 +1444,43 @@ The `/api/admin/billing/pricebooks/[id]` PATCH endpoint passed request body dire
 
 ---
 
+### ISSUE-029: IBAN Exposed in Withdrawal Service Logs
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The withdrawal service was logging full IBAN values when checksum validation failed, exposing sensitive financial data in logs.
+
+**Files**:
+- `services/souq/settlements/withdrawal-service.ts`
+
+**Fix Applied**:
+- Redact IBAN in logs (show first 4 + last 4 characters only)
+
+**Commit**: 59ac92547
+
+---
+
+### ISSUE-030: Phone Number Exposed in OTP Logs
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The OTP send route was logging full phone numbers when validation failed, exposing PII in logs.
+
+**Files**:
+- `app/api/auth/otp/send/route.ts`
+
+**Fix Applied**:
+- Redact phone number in logs (show last 4 digits only)
+
+**Commit**: 59ac92547
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
