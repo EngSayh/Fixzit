@@ -24,6 +24,7 @@ const HEALTH_CHECK_TIMEOUT_MS = 3_000;
 
 interface ReadinessStatus {
   ready: boolean;
+  requiresRedis: boolean;
   checks: {
     mongodb: "ok" | "error" | "timeout";
     redis: "ok" | "error" | "disabled" | "timeout";
@@ -39,6 +40,7 @@ export async function GET(): Promise<NextResponse> {
   const redisConfigured = Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
   const status: ReadinessStatus = {
     ready: false,
+    requiresRedis: redisConfigured,
     checks: {
       mongodb: "error",
       redis: redisConfigured ? "error" : "disabled",

@@ -12,6 +12,7 @@
  */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/mongo";
+import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";
@@ -21,14 +22,19 @@ export const dynamic = "force-dynamic";
 
 // DB ping timeout - short to avoid hanging health checks
 const DB_PING_TIMEOUT_MS = 2_000;
+const REDIS_PING_TIMEOUT_MS = 2_000;
 
 export async function GET(request: NextRequest) {
   try {
     const isAuthorized = isAuthorizedHealthRequest(request);
+    const redisConfigured = Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
     
     // Check database connection with timeout to avoid false positives from stale connections
     let dbStatus: "connected" | "disconnected" | "error" | "timeout" = "disconnected";
     let dbLatency = 0;
+    let redisStatus: "connected" | "disconnected" | "error" | "timeout" | "disabled" =
+      redisConfigured ? "error" : "disabled";
+    let redisLatency = 0;
 
     const dbStart = Date.now();
     try {
@@ -67,7 +73,38 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const isHealthy = dbStatus === "connected";
+    // Check Redis if configured
+    const redisClient = redisConfigured ? getRedisClient() : null;
+    if (redisConfigured) {
+      if (redisClient) {
+        const redisStart = Date.now();
+        try {
+          await withTimeout(
+            async () => {
+              await redisClient.ping();
+            },
+            { timeoutMs: REDIS_PING_TIMEOUT_MS },
+          );
+          redisStatus = "connected";
+          redisLatency = Date.now() - redisStart;
+        } catch (redisError) {
+          redisLatency = Date.now() - redisStart;
+          const message = redisError instanceof Error ? redisError.message : String(redisError);
+          if (message.toLowerCase().includes("timeout")) {
+            redisStatus = "timeout";
+            logger.warn("[Health Check] Redis ping timeout", { latency: redisLatency });
+          } else {
+            redisStatus = "error";
+            logger.error("[Health Check] Redis error", redisError as Error);
+          }
+        }
+      } else {
+        redisStatus = "error";
+        logger.warn("[Health Check] Redis configured but client unavailable");
+      }
+    }
+
+    const isHealthy = dbStatus === "connected" && (!redisConfigured || redisStatus === "connected");
     
     const health = {
       status: isHealthy ? "healthy" : "unhealthy",
@@ -75,6 +112,7 @@ export async function GET(request: NextRequest) {
       uptime: process.uptime(),
       // Always include basic DB status for monitoring (not sensitive)
       database: dbStatus,
+      redis: redisStatus,
       // Authorized callers get detailed diagnostics
       ...(isAuthorized && {
         diagnostics: {
@@ -82,6 +120,12 @@ export async function GET(request: NextRequest) {
             status: dbStatus,
             latencyMs: dbLatency,
           },
+          redis: redisConfigured
+            ? {
+                status: redisStatus,
+                latencyMs: redisLatency,
+              }
+            : undefined,
           memory: {
             usedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
             totalMB: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),

@@ -273,6 +273,8 @@ export function validateAllEnv(): EnvValidationResult {
  * Get configuration status for health check
  */
 export function getConfigStatus(): Record<string, { configured: boolean; details?: string }> {
+  const hasUnifonicApp = Boolean(process.env.UNIFONIC_APP_SID);
+  const hasUnifonicSender = Boolean(process.env.UNIFONIC_SENDER_ID);
   return {
     twilio: {
       configured: Boolean(
@@ -282,7 +284,12 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
       ),
     },
     unifonic: {
-      configured: Boolean(process.env.UNIFONIC_APP_SID),
+      configured: hasUnifonicApp && hasUnifonicSender,
+      details: !hasUnifonicApp && hasUnifonicSender
+        ? "UNIFONIC_APP_SID missing"
+        : hasUnifonicApp && !hasUnifonicSender
+          ? "UNIFONIC_SENDER_ID missing"
+          : undefined,
     },
     encryption: {
       configured: Boolean(

@@ -120,6 +120,7 @@ export async function GET(request: NextRequest) {
       limit,
       skip,
       hasMore: skip + messages.length < total,
+      orgScoped: orgId ?? "all",
     };
 
     // Include aggregate stats if requested
