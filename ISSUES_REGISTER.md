@@ -1801,5 +1801,24 @@ Middleware trusted that headers weren't pre-set by external requests.
 
 ---
 
+### ISSUE-047: PII (Email) Logged in forgot-password Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Privacy, Compliance  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/auth/forgot-password` route was logging email addresses in multiple places, violating SEC-029 PII compliance requirements.
+
+**Files**:
+- `app/api/auth/forgot-password/route.ts`
+
+**Fix Applied**:
+- Removed email from all logger calls
+- Added "PII redacted per SEC-029" comments
+- Only messageId kept in success log (non-PII)
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

@@ -94,14 +94,16 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ orgId: resolvedOrgId, email }).lean();
 
     if (!user) {
-      logger.info("[forgot-password] Reset requested for non-existent email", { email });
+      // PII redacted per SEC-029
+      logger.info("[forgot-password] Reset requested for non-existent email");
       return NextResponse.json(successResponse);
     }
 
     // Check if account is locked
     const security = (user as { security?: { locked?: boolean } }).security;
     if (security?.locked) {
-      logger.warn("[forgot-password] Reset requested for locked account", { email });
+      // PII redacted per SEC-029
+      logger.warn("[forgot-password] Reset requested for locked account");
       // Still return success to prevent enumeration
       return NextResponse.json(successResponse);
     }
@@ -186,12 +188,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (emailResult.success) {
+      // PII redacted per SEC-029 - only log messageId
       logger.info("[forgot-password] Reset email sent", {
-        email,
         messageId: emailResult.messageId,
       });
     } else if (emailResult.error?.includes("not configured")) {
-      logger.warn("[forgot-password] SendGrid not configured", { email });
+      // PII redacted per SEC-029
+      logger.warn("[forgot-password] SendGrid not configured");
       // In development, include the link for testing
       if (process.env.NODE_ENV !== "production") {
         return NextResponse.json({
@@ -200,8 +203,8 @@ export async function POST(req: NextRequest) {
         });
       }
     } else {
+      // PII redacted per SEC-029
       logger.error("[forgot-password] Failed to send reset email", {
-        email,
         error: emailResult.error,
       });
     }
