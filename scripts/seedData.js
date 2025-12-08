@@ -102,10 +102,11 @@ const seedDatabase = async () => {
         // Skip super_admin for first org since we already created the deterministic admin
         if (orgIndex === 0 && i === 0) continue;
 
+        const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
         const user = await User.create({
           name: `User ${orgIndex + 1}-${i + 1}`,
           email: `user${orgIndex + 1}${i + 1}@${EMAIL_DOMAIN}`,
-          password: "password123", // Plain text - User model pre-save hook will hash it
+          password: DEMO_DEFAULT_PASSWORD, // From env var - model pre-save hook will hash
           role: roles[i],
           orgId: org._id,
           status: "active",
