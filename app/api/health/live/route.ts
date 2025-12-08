@@ -1,0 +1,32 @@
+/**
+ * Kubernetes Liveness Probe
+ * GET /api/health/live
+ *
+ * Returns 200 if the Node.js process is alive and responsive.
+ * This is a lightweight check that doesn't verify dependencies.
+ *
+ * Use this endpoint for k8s livenessProbe configuration.
+ * For full readiness checks, use /api/health/ready.
+ *
+ * @module api/health/live
+ */
+
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    {
+      alive: true,
+      uptime: process.uptime(),
+      memory: {
+        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      },
+      timestamp: new Date().toISOString(),
+    },
+    { status: 200 }
+  );
+}
