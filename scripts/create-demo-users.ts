@@ -6,6 +6,8 @@ import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const demoPhones = {
   superadmin:
     process.env.DEMO_SUPERADMIN_PHONE ||
@@ -22,7 +24,8 @@ const newUsers = [
   {
     code: "USR-SUPERADMIN",
     username: "superadmin",
-    email: "superadmin@fixzit.co",
+    email: `superadmin@${EMAIL_DOMAIN}`,
+
     employeeId: "SUPER-001",
     phone: demoPhones.superadmin,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -42,7 +45,7 @@ const newUsers = [
   {
     code: "USR-MANAGER",
     username: "manager",
-    email: "manager@fixzit.co",
+    email: `manager@${EMAIL_DOMAIN}`,
     employeeId: "MGR-001",
     phone: demoPhones.manager,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -62,7 +65,7 @@ const newUsers = [
   {
     code: "USR-TENANT",
     username: "tenant",
-    email: "tenant@fixzit.co",
+    email: `tenant@${EMAIL_DOMAIN}`,
     employeeId: "TENANT-001",
     phone: demoPhones.tenant,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -82,7 +85,7 @@ const newUsers = [
   {
     code: "USR-VENDOR",
     username: "vendor",
-    email: "vendor@fixzit.co",
+    email: `vendor@${EMAIL_DOMAIN}`,
     employeeId: "VENDOR-001",
     phone: demoPhones.vendor,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -102,7 +105,7 @@ const newUsers = [
   {
     code: "EMP001",
     username: "EMP001",
-    email: "emp001@fixzit.co",
+    email: `emp001@${EMAIL_DOMAIN}`,
     employeeId: "EMP001",
     phone: demoPhones.emp001,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -122,7 +125,7 @@ const newUsers = [
   {
     code: "EMP002",
     username: "EMP002",
-    email: "emp002@fixzit.co",
+    email: `emp002@${EMAIL_DOMAIN}`,
     employeeId: "EMP002",
     phone: demoPhones.emp002,
     orgId: "68dc8955a1ba6ed80ff372dc",
@@ -189,11 +192,11 @@ async function createUsers() {
 
     console.log(`\n📊 Created ${created} new users`);
     console.log("\n📝 All demo users should now be available:");
-    console.log(`   superadmin@fixzit.co / ${superAdminPassword}`);
-    console.log("   admin@fixzit.co / password123");
-    console.log("   manager@fixzit.co / password123");
-    console.log("   tenant@fixzit.co / password123");
-    console.log("   vendor@fixzit.co / password123");
+    console.log(`   superadmin@${EMAIL_DOMAIN} / ${superAdminPassword}`);
+    console.log(`   admin@${EMAIL_DOMAIN} / password123`);
+    console.log(`   manager@${EMAIL_DOMAIN} / password123`);
+    console.log(`   tenant@${EMAIL_DOMAIN} / password123`);
+    console.log(`   vendor@${EMAIL_DOMAIN} / password123`);
     console.log("   EMP001 / password123 (corporate)");
     console.log("   EMP002 / password123 (corporate)");
 
