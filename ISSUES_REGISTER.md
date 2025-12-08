@@ -1934,5 +1934,29 @@ export DEMO_DEFAULT_PASSWORD=your-secure-password
 
 ---
 
+### ISSUE-052: Additional Hard-coded Passwords in Scripts/E2E Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Additional hardcoded passwords found in E2E tests and seeding scripts that were missed in the initial scan.
+
+**Files Fixed**:
+- `tests/e2e/auth-flow.spec.ts`: Added fail-fast for `FIXZIT_TEST_ADMIN_PASSWORD`
+- `scripts/seedData.js`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/testing/test-auth.js`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/test-auth.ts`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/test-data.js`: Uses `DEMO_SUPERADMIN_PASSWORD` env var
+
+**Intentionally Excluded**:
+- `scripts/verify-passwords.ts`: Security audit tool that tests common passwords against stored hashes - intentionally contains password list
+
+**Resolution**:
+All test and seeding scripts now use environment variables. E2E tests fail-fast if required env vars not set.
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
