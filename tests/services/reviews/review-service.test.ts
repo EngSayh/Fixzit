@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Types } from "mongoose";
+import { ObjectId as MongoObjectId } from "mongodb";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { SouqReview } from "@/server/models/souq/Review";
 import { SouqProduct } from "@/server/models/souq/Product";
@@ -24,6 +25,7 @@ function makeFindMock(returnValue: unknown) {
 describe("reviewService org scoping", () => {
   const orgId = "507f1f77bcf86cd799439011";
   const orgObjectId = new Types.ObjectId(orgId);
+  const orgMongoObjectId = new MongoObjectId(orgId);
   const productId = new Types.ObjectId().toHexString();
 
   beforeEach(() => {
@@ -48,9 +50,10 @@ describe("reviewService org scoping", () => {
     expect(result.reviews.length).toBe(1);
     const query = queries[0] as Record<string, unknown>;
     expect(query.productId).toEqual({ $in: [productId, expect.any(Types.ObjectId)] });
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
     expect(query.$or).toEqual([
-      { orgId: { $in: [orgId, orgObjectId] } },
-      { org_id: { $in: [orgId, orgObjectId] } },
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
     ]);
   });
 
@@ -74,9 +77,10 @@ describe("reviewService org scoping", () => {
     });
 
     const query = queries[0] as Record<string, unknown>;
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
     expect(query.$or).toEqual([
-      { orgId: { $in: [orgId, orgObjectId] } },
-      { org_id: { $in: [orgId, orgObjectId] } },
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
     ]);
     expect(query.productId).toEqual({ $in: sellerProducts.map((p) => p._id) });
   });
@@ -93,9 +97,10 @@ describe("reviewService org scoping", () => {
 
     const query = queries[0] as Record<string, unknown>;
     expect(query.reviewId).toBe("REV-1");
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
     expect(query.$or).toEqual([
-      { orgId: { $in: [orgId, orgObjectId] } },
-      { org_id: { $in: [orgId, orgObjectId] } },
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
     ]);
   });
 });
