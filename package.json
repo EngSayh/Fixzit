@@ -154,6 +154,7 @@
     "@auth/core": "0.41.0",
     "@aws-sdk/client-s3": "^3.933.0",
     "@aws-sdk/client-secrets-manager": "^3.933.0",
+    "@aws-sdk/client-sns": "^3.946.0",
     "@aws-sdk/middleware-logger": "^3.930.0",
     "@aws-sdk/s3-request-presigner": "^3.933.0",
     "@hello-pangea/dnd": "^18.0.1",

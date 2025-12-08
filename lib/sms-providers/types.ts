@@ -7,7 +7,7 @@
 /**
  * Supported SMS provider types
  */
-export type SMSProviderType = "twilio" | "unifonic" | "mock";
+export type SMSProviderType = "twilio" | "unifonic" | "aws_sns" | "nexmo" | "mock";
 
 /**
  * SMS delivery status codes

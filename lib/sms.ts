@@ -17,6 +17,8 @@ import {
   isValidSaudiPhone,
 } from "@/lib/sms-providers/phone-utils";
 import { UnifonicProvider } from "@/lib/sms-providers/unifonic";
+import { AWSSNSProvider } from "@/lib/sms-providers/aws-sns";
+import { NexmoProvider } from "@/lib/sms-providers/nexmo";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
@@ -159,35 +161,35 @@ export async function sendSMS(
       };
     }
     
-    case 'AWS_SNS':
-      // TODO: Implement AWS SNS provider
-      logger.warn("[SMS] AWS SNS provider not yet implemented");
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        logger.warn("[SMS] Falling back to Twilio for AWS_SNS provider");
-        return sendViaTwilio(
-          formattedPhone,
-          message,
-          process.env.TWILIO_PHONE_NUMBER,
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-      }
-      return { success: false, error: 'AWS SNS provider not implemented' };
+    case 'AWS_SNS': {
+      // AWS SNS SMS provider implementation
+      const snsProvider = new AWSSNSProvider({
+        region: process.env.AWS_REGION || 'me-south-1',
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      });
+      const snsResult = await snsProvider.sendSMS(formattedPhone, message);
+      return {
+        success: snsResult.success,
+        messageSid: snsResult.messageId,
+        error: snsResult.error,
+      };
+    }
     
-    case 'NEXMO':
-      // TODO: Implement Nexmo/Vonage provider
-      logger.warn("[SMS] Nexmo provider not yet implemented");
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        logger.warn("[SMS] Falling back to Twilio for Nexmo provider");
-        return sendViaTwilio(
-          formattedPhone,
-          message,
-          process.env.TWILIO_PHONE_NUMBER,
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-      }
-      return { success: false, error: 'Nexmo provider not implemented' };
+    case 'NEXMO': {
+      // Nexmo/Vonage SMS provider implementation
+      const nexmoProvider = new NexmoProvider({
+        apiKey: process.env.NEXMO_API_KEY || '',
+        apiSecret: process.env.NEXMO_API_SECRET || '',
+        from: process.env.NEXMO_FROM_NUMBER || 'Fixzit',
+      });
+      const nexmoResult = await nexmoProvider.sendSMS(formattedPhone, message);
+      return {
+        success: nexmoResult.success,
+        messageSid: nexmoResult.messageId,
+        error: nexmoResult.error,
+      };
+    }
     
     default:
       return { success: false, error: `Unknown SMS provider: ${provider}` };

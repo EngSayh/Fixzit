@@ -34,6 +34,8 @@ export type {
 // Re-export providers
 export { TwilioProvider, createTwilioProvider } from "./twilio";
 export { UnifonicProvider, createUnifonicProvider } from "./unifonic";
+export { AWSSNSProvider } from "./aws-sns";
+export { NexmoProvider } from "./nexmo";
 
 /**
  * Environment configuration
@@ -202,6 +204,16 @@ export function getProvidersInfo(): Record<
       configured: isTwilioConfigured(),
       recommended: false,
       notes: "Limited support for Saudi Arabia",
+    },
+    aws_sns: {
+      configured: Boolean(process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY),
+      recommended: false,
+      notes: "AWS SNS for enterprise SMS delivery",
+    },
+    nexmo: {
+      configured: Boolean(process.env.NEXMO_API_KEY && process.env.NEXMO_API_SECRET),
+      recommended: false,
+      notes: "Vonage/Nexmo for global SMS delivery",
     },
     mock: {
       configured: true,
