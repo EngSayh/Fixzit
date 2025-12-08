@@ -12,6 +12,7 @@ import { SouqRMA as RMA } from "@/server/models/souq/RMA";
 import { SouqOrder as Order } from "@/server/models/souq/Order";
 import type { IOrder } from "@/server/models/souq/Order";
 import { SouqListing as Listing } from "@/server/models/souq/Listing";
+import { SouqSeller as Seller } from "@/server/models/souq/Seller";
 import { inventoryService } from "./inventory-service";
 import { fulfillmentService } from "./fulfillment-service";
 import { Config } from "@/lib/config/constants";
@@ -20,6 +21,15 @@ import { nanoid } from "nanoid";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+/**
+ * Contact information for notifications
+ * 🔒 SECURITY: Fetched from Order/Seller models, not passed as IDs
+ */
+interface ContactInfo {
+  email?: string;
+  phone?: string;
+}
 
 // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
 // Handles both orgId and legacy org_id fields with proper ObjectId matching
@@ -90,6 +100,41 @@ const safeToString = (value: unknown): string =>
     : String(value ?? '');
 
 class ReturnsService {
+  /**
+   * Lookup buyer contact info from order
+   * 🔒 SECURITY: Fetches actual email/phone, not ObjectIds
+   */
+  private async lookupBuyerContact(orderId: string, orgId: string): Promise<ContactInfo> {
+    const order = await this.findOrder(orderId, orgId);
+    if (!order) {
+      logger.warn('[Returns] Order not found for buyer contact lookup', { orderId, orgId });
+      return {};
+    }
+    return {
+      email: order.customerEmail,
+      phone: order.shippingAddress?.phone,
+    };
+  }
+
+  /**
+   * Lookup seller contact info
+   * 🔒 SECURITY: Fetches actual email/phone from Seller model
+   */
+  private async lookupSellerContact(sellerId: string, orgId: string): Promise<ContactInfo> {
+    const seller = await Seller.findOne({ 
+      _id: sellerId, 
+      ...buildOrgFilter(orgId) 
+    }).select('contactEmail contactPhone').lean();
+    if (!seller) {
+      logger.warn('[Returns] Seller not found for contact lookup', { sellerId, orgId });
+      return {};
+    }
+    return {
+      email: seller.contactEmail,
+      phone: seller.contactPhone,
+    };
+  }
+
   /**
    * Resolve seller for requested return items. Enforces single seller per RMA to avoid cross-seller returns.
    */
@@ -270,14 +315,19 @@ class ReturnsService {
       await this.autoApprove({ rmaId: rma._id.toString(), orgId });
     }
 
-    // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
-      to: sellerId.toString(),
-      orgId,
-      template: 'return_initiated',
-      data: { rmaId: rma._id.toString(), orderId, items }
-    });
+    // Notify seller - fetch actual contact info
+    const sellerContact = await this.lookupSellerContact(sellerId.toString(), orgId);
+    if (sellerContact.email) {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+        type: 'email',
+        to: sellerContact.email,
+        orgId,
+        template: 'return_initiated',
+        data: { rmaId: rma._id.toString(), orderId, items }
+      });
+    } else {
+      logger.warn('[Returns] Seller email not found, skipping notification', { sellerId: sellerId.toString(), orgId });
+    }
 
     return rma._id.toString();
   }
@@ -351,14 +401,19 @@ class ReturnsService {
     // Generate return label
     await this.generateReturnLabel(rmaId, orgId);
 
-    // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
-      to: rma.buyerId.toString(),
-      orgId,
-      template: 'return_approved',
-      data: { rmaId, returnLabel: rma.shipping?.labelUrl }
-    });
+    // Notify buyer - fetch actual contact info
+    const buyerContact = await this.lookupBuyerContact(rma.orderId, orgId);
+    if (buyerContact.email) {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+        type: 'email',
+        to: buyerContact.email,
+        orgId,
+        template: 'return_approved',
+        data: { rmaId, returnLabel: rma.shipping?.labelUrl }
+      });
+    } else {
+      logger.warn('[Returns] Buyer email not found, skipping notification', { rmaId, orderId: rma.orderId, orgId });
+    }
   }
 
   /**
@@ -408,14 +463,19 @@ class ReturnsService {
 
     await rma.reject(adminId, rejectionReason);
 
-    // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
-      to: rma.buyerId.toString(),
-      orgId,
-      template: 'return_rejected',
-      data: { rmaId, reason: rejectionReason }
-    });
+    // Notify buyer - fetch actual contact info
+    const buyerContact = await this.lookupBuyerContact(rma.orderId, orgId);
+    if (buyerContact.email) {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+        type: 'email',
+        to: buyerContact.email,
+        orgId,
+        template: 'return_rejected',
+        data: { rmaId, reason: rejectionReason }
+      });
+    } else {
+      logger.warn('[Returns] Buyer email not found, skipping rejection notification', { rmaId, orderId: rma.orderId, orgId });
+    }
   }
 
   /**
@@ -555,13 +615,18 @@ class ReturnsService {
     });
     await rma.save();
 
-    // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-sms', {
-      type: 'sms',
-      to: rma.buyerId.toString(),
-      orgId, // 🔐 Tenant-specific routing
-      message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`
-    });
+    // Notify buyer via SMS - fetch actual phone number
+    const buyerContact = await this.lookupBuyerContact(rma.orderId, orgId);
+    if (buyerContact.phone) {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-sms', {
+        type: 'sms',
+        to: buyerContact.phone,
+        orgId, // 🔐 Tenant-specific routing
+        message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`
+      });
+    } else {
+      logger.warn('[Returns] Buyer phone not found, skipping SMS notification', { rmaId, orderId: rma.orderId, orgId });
+    }
   }
 
   /**
@@ -997,6 +1062,18 @@ class ReturnsService {
     const now = new Date();
     const transactionId = `REF-${Date.now()}-${rmaId.slice(-6)}`;
 
+    // 🔒 SECURITY: Pre-fetch RMA to get orderId and sellerId for contact lookups
+    const rmaPrecheck = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
+    if (!rmaPrecheck) {
+      throw new Error('RMA not found');
+    }
+
+    // 📧 PRE-FETCH CONTACTS: Lookup actual email/phone before transaction to avoid sending to ObjectIds
+    const [buyerContact, sellerContact] = await Promise.all([
+      this.lookupBuyerContact(rmaPrecheck.orderId, orgId),
+      this.lookupSellerContact(rmaPrecheck.sellerId, orgId),
+    ]);
+
     // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
     // If status is not 'inspected', the update returns null (already processed or wrong state)
     // 🔄 TRANSACTION: Uses session if provided for atomic rollback
@@ -1079,33 +1156,37 @@ class ReturnsService {
     // Save the final completed state (within transaction if session provided)
     await rma.save(session ? { session } : undefined);
 
-    const buyerNotification: PendingNotification = {
-      queue: QUEUE_NAMES.NOTIFICATIONS,
-      jobType: 'send-email',
-      payload: { 
-        type: 'email',
-        to: rma.buyerId.toString(),
-        orgId,
-        template: 'refund_processed',
-        data: { 
-          rmaId, 
-          amount: finalRefundAmount, 
-          method: refundMethod,
-          estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
+    // 📧 FIXED: Use pre-fetched contact info instead of ObjectIds
+    if (buyerContact.email) {
+      const buyerNotification: PendingNotification = {
+        queue: QUEUE_NAMES.NOTIFICATIONS,
+        jobType: 'send-email',
+        payload: { 
+          type: 'email',
+          to: buyerContact.email,
+          orgId,
+          template: 'refund_processed',
+          data: { 
+            rmaId, 
+            amount: finalRefundAmount, 
+            method: refundMethod,
+            estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
+          }
         }
-      }
-    };
+      };
+      // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
+      pendingNotifications.push(buyerNotification);
+    } else {
+      logger.warn('[Returns] Buyer email not found, skipping refund notification', { rmaId, orgId });
+    }
 
-    // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
-    pendingNotifications.push(buyerNotification);
-
-    if (rma.inspection?.restockable === false) {
+    if (rma.inspection?.restockable === false && sellerContact.email) {
       const sellerNotification: PendingNotification = {
         queue: QUEUE_NAMES.NOTIFICATIONS,
         jobType: 'send-email',
         payload: {
           type: 'email',
-          to: rma.sellerId.toString(),
+          to: sellerContact.email,
           orgId,
           template: 'return_completed',
           data: { rmaId, restockingFee: finalRefundAmount * 0.25 }
@@ -1114,6 +1195,8 @@ class ReturnsService {
 
       // 🔄 TRANSACTION SAFETY: Collect notifications, don't fire inside transaction
       pendingNotifications.push(sellerNotification);
+    } else if (rma.inspection?.restockable === false) {
+      logger.warn('[Returns] Seller email not found, skipping completion notification', { rmaId, orgId });
     }
 
     return pendingNotifications;

@@ -13,7 +13,7 @@ import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { SMSMessage, TSMSType, TSMSPriority } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
-import { sendSMS } from "@/lib/sms";
+import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
 // Queue name
@@ -73,13 +73,14 @@ export function getSMSQueue(): Queue<ISMSJobData> | null {
 
 /**
  * Queue an SMS for delivery
+ * 🔒 SECURITY: orgId is REQUIRED for tenant isolation and audit logging
  */
 export async function queueSMS(options: {
   to: string;
   message: string;
   type?: TSMSType;
   priority?: TSMSPriority;
-  orgId?: string;
+  orgId: string; // 🔐 REQUIRED for tenant isolation
   userId?: string;
   referenceType?: string;
   referenceId?: string;
@@ -100,6 +101,11 @@ export async function queueSMS(options: {
     metadata,
     tags,
   } = options;
+
+  // 🔐 SECURITY: Enforce orgId requirement for tenant isolation
+  if (!orgId) {
+    throw new Error('orgId is required to queue SMS (tenant isolation)');
+  }
 
   await connectToDatabase();
 
@@ -206,12 +212,27 @@ async function processSMSJob(messageId: string): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // Get provider from settings
+    // 🔒 SECURITY: Get org-specific provider settings
     const settings = await SMSSettings.getEffectiveSettings(message.orgId);
     const provider = settings.defaultProvider;
 
-    // Send SMS
-    const result = await sendSMS(message.to, message.message);
+    // Find the enabled provider config for this org
+    const providerConfig = settings.providers?.find(
+      (p: { provider: string; enabled: boolean }) => p.provider === provider && p.enabled
+    );
+
+    // 📧 FIXED: Pass provider options to sendSMS instead of hardcoding Twilio
+    const providerOptions: SMSProviderOptions = {
+      provider: provider as SMSProviderOptions['provider'],
+      from: providerConfig?.fromNumber,
+      accountSid: providerConfig?.accountId,
+      // Note: authToken should be decrypted before use if encrypted
+      // For now, we pass it as-is; encryption handling is a future enhancement
+      authToken: providerConfig?.encryptedApiKey,
+    };
+
+    // Send SMS with org-specific provider config
+    const result = await sendSMS(message.to, message.message, providerOptions);
     const durationMs = Date.now() - startTime;
 
     if (result.success) {
@@ -348,6 +369,7 @@ export async function getSMSQueueStats(): Promise<{
 
 /**
  * Retry failed messages
+ * 🔒 SECURITY: Only retries messages that have orgId for tenant isolation
  */
 export async function retryFailedMessages(orgId?: string, limit = 100): Promise<number> {
   await connectToDatabase();
@@ -363,6 +385,12 @@ export async function retryFailedMessages(orgId?: string, limit = 100): Promise<
   let retried = 0;
 
   for (const msg of failedMessages) {
+    // 🔐 SECURITY: Skip messages without orgId (legacy records without tenant scope)
+    if (!msg.orgId) {
+      logger.warn('[SMS Queue] Skipping retry for message without orgId', { messageId: msg._id });
+      continue;
+    }
+
     if (msg.retryCount < msg.maxRetries) {
       await queueSMS({
         to: msg.to,

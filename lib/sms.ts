@@ -73,53 +73,114 @@ export async function withTwilioResilience<T>(
 // and re-exported at the end of this file for backward compatibility
 
 /**
- * Send SMS via Twilio (or mocked console output in dev mode)
+ * SMS provider options for org-specific configuration
+ * 🔒 SECURITY: Allows per-org SMS provider settings (Twilio, Unifonic, etc.)
  */
-export async function sendSMS(to: string, message: string): Promise<SMSResult> {
-  const twilioConfigured = hasTwilioConfiguration();
+export interface SMSProviderOptions {
+  provider?: 'TWILIO' | 'UNIFONIC' | 'AWS_SNS' | 'NEXMO';
+  from?: string;         // Override sender number
+  accountSid?: string;   // Provider account ID
+  authToken?: string;    // Provider auth token (decrypted)
+}
+
+/**
+ * Send SMS via configured provider (default: Twilio)
+ * 🔒 SECURITY: Supports per-org provider configuration via options parameter
+ */
+export async function sendSMS(
+  to: string, 
+  message: string,
+  options?: SMSProviderOptions
+): Promise<SMSResult> {
+  const provider = options?.provider || 'TWILIO';
+  const fromNumber = options?.from || process.env.TWILIO_PHONE_NUMBER;
+  const accountSid = options?.accountSid || process.env.TWILIO_ACCOUNT_SID;
+  const authToken = options?.authToken || process.env.TWILIO_AUTH_TOKEN;
+
   const formattedPhone = formatSaudiPhoneNumber(to);
 
   if (!isValidSaudiPhone(formattedPhone)) {
     const error = `Invalid Saudi phone number format: ${to}`;
-    logger.warn("[SMS] Invalid phone number", { to, formattedPhone });
+    logger.warn("[SMS] Invalid phone number", { to, formattedPhone, provider });
     return { success: false, error };
   }
 
-  if (!twilioConfigured && !SMS_DEV_MODE_ENABLED) {
-    const error =
-      "Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER";
-    logger.warn("[SMS] Configuration missing", { to: formattedPhone });
+  // Check if we have valid credentials for the selected provider
+  const hasCredentials = provider === 'TWILIO' 
+    ? Boolean(accountSid && authToken && fromNumber)
+    : false; // Other providers not yet implemented
+
+  if (!hasCredentials && !SMS_DEV_MODE_ENABLED) {
+    const error = `SMS provider ${provider} not configured. Missing credentials.`;
+    logger.warn("[SMS] Configuration missing", { to: formattedPhone, provider });
     return { success: false, error };
   }
 
   if (SMS_DEV_MODE_ENABLED) {
-    const messageSid = `dev-${Date.now()}`;
-    logger.info("[SMS] Dev mode enabled - SMS not sent via Twilio", {
+    const messageSid = `dev-${provider.toLowerCase()}-${Date.now()}`;
+    logger.info("[SMS] Dev mode enabled - SMS not sent", {
       to: formattedPhone,
       preview: message,
       messageSid,
-      twilioConfigured,
+      provider,
+      from: fromNumber,
     });
     return { success: true, messageSid };
   }
 
+  // Route to appropriate provider
+  switch (provider) {
+    case 'TWILIO':
+      return sendViaTwilio(formattedPhone, message, fromNumber!, accountSid!, authToken!);
+    
+    case 'UNIFONIC':
+      // TODO: Implement Unifonic provider for Saudi market
+      logger.warn("[SMS] Unifonic provider not yet implemented, falling back to Twilio");
+      if (accountSid && authToken && fromNumber) {
+        return sendViaTwilio(formattedPhone, message, fromNumber, accountSid, authToken);
+      }
+      return { success: false, error: 'Unifonic provider not implemented and Twilio fallback not configured' };
+    
+    case 'AWS_SNS':
+      // TODO: Implement AWS SNS provider
+      logger.warn("[SMS] AWS SNS provider not yet implemented");
+      return { success: false, error: 'AWS SNS provider not implemented' };
+    
+    case 'NEXMO':
+      // TODO: Implement Nexmo/Vonage provider
+      logger.warn("[SMS] Nexmo provider not yet implemented");
+      return { success: false, error: 'Nexmo provider not implemented' };
+    
+    default:
+      return { success: false, error: `Unknown SMS provider: ${provider}` };
+  }
+}
+
+/**
+ * Send SMS via Twilio
+ * 🔒 SECURITY: Accepts credentials as params for per-org config
+ */
+async function sendViaTwilio(
+  to: string,
+  message: string,
+  from: string,
+  accountSid: string,
+  authToken: string
+): Promise<SMSResult> {
   try {
     const { default: twilio } = await import("twilio");
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!,
-    );
+    const client = twilio(accountSid, authToken);
 
     const result = await withTwilioResilience("sms-send", () =>
       client.messages.create({
         body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: formattedPhone,
+        from,
+        to,
       }),
     );
 
-    logger.info("[SMS] Message sent successfully", {
-      to: formattedPhone,
+    logger.info("[SMS] Message sent successfully via Twilio", {
+      to,
       messageSid: result.sid,
       status: result.status,
     });
@@ -132,9 +193,9 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[SMS] Send failed", {
+    logger.error("[SMS] Twilio send failed", {
       error: errorMessage,
-      to: formattedPhone,
+      to,
     });
 
     return {
