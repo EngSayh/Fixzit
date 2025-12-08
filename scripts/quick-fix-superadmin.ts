@@ -12,10 +12,12 @@ import bcrypt from 'bcryptjs';
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
-const PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
-if (!PASSWORD) {
+const PASSWORD_RAW = process.env.DEMO_SUPERADMIN_PASSWORD;
+if (!PASSWORD_RAW) {
   throw new Error('DEMO_SUPERADMIN_PASSWORD is required (no fallback).');
 }
+// TypeScript: After the throw above, this is guaranteed to be a string
+const PASSWORD: string = PASSWORD_RAW;
 const PHONE = '+966552233456';
 
 async function quickFix() {

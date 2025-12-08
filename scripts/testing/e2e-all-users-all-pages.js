@@ -48,7 +48,6 @@ if (
   console.error(`❌ Refusing to run comprehensive E2E against ${BASE_URL} without ALLOW_E2E_PROD=1`);
   process.exit(1);
 }
-const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {

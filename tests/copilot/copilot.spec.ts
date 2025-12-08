@@ -73,6 +73,15 @@ const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
   ? "__Secure-next-auth.session-token"
   : "next-auth.session-token";
 
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run copilot Playwright tests against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
+
 /**
  * Lightweight role-based authentication using offline JWT session cookies.
  * Avoids full OTP/login flows while still exercising RBAC-aware UI paths.

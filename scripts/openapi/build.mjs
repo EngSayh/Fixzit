@@ -1,5 +1,11 @@
 import fs from "node:fs";
 
+const API_DOMAIN = process.env.OPENAPI_PRIMARY_DOMAIN || "api.fixzit.com";
+const STAGING_DOMAIN =
+  process.env.OPENAPI_STAGING_DOMAIN || "staging-api.fixzit.com";
+const LOCAL_API =
+  process.env.OPENAPI_LOCAL_URL || "http://localhost:3000/api";
+
 const candidates = [
   "openapi.yaml",
   "openapi.yml",
@@ -26,12 +32,12 @@ info:
     project-specific OpenAPI document cannot be located. Replace this file with
     the authoritative Fixzit API definition to capture every route and schema.
 servers:
-  - url: https://api.fixzit.com/v1
-    description: Production
-  - url: https://staging-api.fixzit.com/v1
-    description: Staging
-  - url: http://localhost:3000/api
-    description: Local development
+  - url: https://${API_DOMAIN}/v1
+    description: Production (override via OPENAPI_PRIMARY_DOMAIN)
+  - url: https://${STAGING_DOMAIN}/v1
+    description: Staging (override via OPENAPI_STAGING_DOMAIN)
+  - url: ${LOCAL_API}
+    description: Local development (override via OPENAPI_LOCAL_URL)
 paths:
   /health:
     get:

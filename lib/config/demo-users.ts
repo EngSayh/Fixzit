@@ -108,7 +108,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   // Corporate roles
   {
     prefix: "corp.admin",
-    role: "CORP_ADMIN",
+    role: "CORPORATE_ADMIN",
     displayRole: "Corporate Admin",
     description: "Corporate administrative access",
     password: DEMO_DEFAULT_PASSWORD,
@@ -125,16 +125,16 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   // Operations roles
   {
     prefix: "dispatcher",
-    role: "DISPATCHER",
-    displayRole: "Dispatcher",
+    role: "OPERATIONS_MANAGER",
+    displayRole: "Operations Manager",
     description: "Work order dispatch",
     password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   {
     prefix: "supervisor",
-    role: "SUPERVISOR",
-    displayRole: "Supervisor",
+    role: "MANAGER",
+    displayRole: "Manager",
     description: "Team supervision",
     password: DEMO_DEFAULT_PASSWORD,
     category: "property",
@@ -150,7 +150,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   // Vendor roles
   {
     prefix: "vendor.admin",
-    role: "VENDOR_ADMIN",
+    role: "VENDOR",
     displayRole: "Vendor Admin",
     description: "Vendor administration",
     password: DEMO_DEFAULT_PASSWORD,
@@ -158,7 +158,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   },
   {
     prefix: "vendor.tech",
-    role: "VENDOR_TECH",
+    role: "VENDOR",
     displayRole: "Vendor Technician",
     description: "Vendor technician access",
     password: DEMO_DEFAULT_PASSWORD,
@@ -183,8 +183,8 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   },
   {
     prefix: "helpdesk",
-    role: "HELPDESK",
-    displayRole: "Help Desk",
+    role: "SUPPORT_AGENT",
+    displayRole: "Support Agent",
     description: "Support desk access",
     password: DEMO_DEFAULT_PASSWORD,
     category: "hr",
@@ -200,7 +200,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   // Corporate employees (for corporate login)
   {
     prefix: "emp001",
-    role: "EMPLOYEE",
+    role: "TEAM_MEMBER",
     displayRole: "Employee 1",
     description: "Corporate employee access",
     password: DEMO_DEFAULT_PASSWORD,
@@ -208,7 +208,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
   },
   {
     prefix: "emp002",
-    role: "EMPLOYEE",
+    role: "TEAM_MEMBER",
     displayRole: "Employee 2",
     description: "Corporate employee access",
     password: DEMO_DEFAULT_PASSWORD,

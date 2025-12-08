@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import crypto from 'node:crypto';
 
 const isCI = !!process.env.CI;
 const requestedProjects = process.env.PLAYWRIGHT_PROJECTS
@@ -9,6 +10,25 @@ const requestedProjects = process.env.PLAYWRIGHT_PROJECTS
   .filter(Boolean);
 const ARTIFACTS_DIR = path.join(__dirname, '_artifacts/playwright');
 const RESULTS_DIR = path.join(ARTIFACTS_DIR, 'results');
+
+// 🔐 Resolve a non-guessable auth secret for Playwright runs
+const resolvedAuthSecret = (() => {
+  if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
+  if (process.env.AUTH_SECRET) {
+    process.env.NEXTAUTH_SECRET = process.env.AUTH_SECRET;
+    return process.env.AUTH_SECRET;
+  }
+
+  if (isCI) {
+    throw new Error('NEXTAUTH_SECRET or AUTH_SECRET is required for Playwright in CI.');
+  }
+
+  // Local/dev convenience: generate a strong secret per run (no static fallback)
+  const generated = crypto.randomBytes(32).toString('hex');
+  process.env.NEXTAUTH_SECRET = generated;
+  process.env.AUTH_SECRET = generated;
+  return generated;
+})();
 
 const useBuild = process.env.PW_USE_BUILD === 'true';
 const WEB_COMMAND = process.env.PW_WEB_SERVER
@@ -147,8 +167,8 @@ export default defineConfig({
       NODE_ENV: useBuild ? 'production' : 'test',
       PORT: process.env.PW_PORT || '3000',
       HOSTNAME: process.env.PW_HOSTNAME || '0.0.0.0',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
-      AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',
+      NEXTAUTH_SECRET: resolvedAuthSecret,
+      AUTH_SECRET: resolvedAuthSecret,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       CORS_ORIGINS: process.env.CORS_ORIGINS || 'http://localhost:3000',
       // Pass Google OAuth credentials to prevent warning logs

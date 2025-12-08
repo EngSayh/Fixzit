@@ -126,14 +126,14 @@ const newUsers = [
       lastName: "One",
       phone: demoPhones.emp001,
       address: { country: "SA" },
-    },
-    professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
-      department: "Operations",
-    },
-    status: "ACTIVE",
   },
+  professional: {
+    role: "TEAM_MEMBER",
+    title: "Team Member",
+    department: "Operations",
+  },
+  status: "ACTIVE",
+},
   {
     code: "EMP002",
     username: "EMP002",
@@ -146,14 +146,14 @@ const newUsers = [
       lastName: "Two",
       phone: demoPhones.emp002,
       address: { country: "SA" },
-    },
-    professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
-      department: "Operations",
-    },
-    status: "ACTIVE",
   },
+  professional: {
+    role: "TEAM_MEMBER",
+    title: "Team Member",
+    department: "Operations",
+  },
+  status: "ACTIVE",
+},
 ];
 
 // SEC-051: Use environment variables (no hardcoded fallbacks)

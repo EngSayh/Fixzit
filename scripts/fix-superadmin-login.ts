@@ -44,14 +44,21 @@ async function fixSuperAdminLogin() {
       process.exit(1);
     }
 
+    // Use .get() for dynamic properties that may not be in TypeScript schema
+    const userDoc = user.toObject() as Record<string, unknown>;
+    const role = userDoc.role as string | undefined;
+    const orgId = userDoc.orgId as string | undefined;
+    const contact = userDoc.contact as Record<string, unknown> | undefined;
+    const personal = userDoc.personal as Record<string, unknown> | undefined;
+
     console.log('✅ Found user:', SUPERADMIN_EMAIL);
     console.log('   ID:', user._id);
-    console.log('   Role:', user.role);
+    console.log('   Role:', role);
     console.log('   Status:', user.status);
-    console.log('   OrgId:', user.orgId || 'MISSING');
+    console.log('   OrgId:', orgId || 'MISSING');
     
     // Check phone number
-    const phone = user.contact?.phone || user.personal?.phone || user.phone;
+    const phone = (contact?.phone || personal?.phone || userDoc.phone) as string | undefined;
     console.log('   Phone:', phone || 'MISSING');
 
     let needsUpdate = false;
@@ -92,14 +99,14 @@ async function fixSuperAdminLogin() {
     }
 
     // 4. Check orgId
-    if (!user.orgId) {
+    if (!orgId) {
       console.log('   ⚠️  Missing orgId - this may cause issues');
       console.log('   Note: Run seed-test-users.js to create proper org structure');
     }
 
     // 5. Ensure role is SUPER_ADMIN
-    if (user.role !== 'SUPER_ADMIN') {
-      console.log(`   ⚠️  Role is "${user.role}" - updating to SUPER_ADMIN`);
+    if (role !== 'SUPER_ADMIN') {
+      console.log(`   ⚠️  Role is "${role}" - updating to SUPER_ADMIN`);
       updates.role = 'SUPER_ADMIN';
       updates.isSuperAdmin = true;
       updates['professional.role'] = 'SUPER_ADMIN';
@@ -120,18 +127,25 @@ async function fixSuperAdminLogin() {
     // Test password one more time
     const updatedUser = await User.findOne({ email: SUPERADMIN_EMAIL });
     if (updatedUser) {
+      const updatedDoc = updatedUser.toObject() as Record<string, unknown>;
+      const updatedContact = updatedDoc.contact as Record<string, unknown> | undefined;
+      const updatedPersonal = updatedDoc.personal as Record<string, unknown> | undefined;
+      const updatedPhone = (updatedContact?.phone || updatedPersonal?.phone || updatedDoc.phone) as string | undefined;
+      const updatedRole = updatedDoc.role as string | undefined;
+      const updatedOrgId = updatedDoc.orgId as string | undefined;
+      
       const finalPasswordCheck = await bcrypt.compare(PASSWORD, updatedUser.password as string);
       
       console.log('📋 Final Status:');
       console.log('   Email:', SUPERADMIN_EMAIL);
       console.log('   Password:', '[configured via env]');
       console.log('   Password Valid:', finalPasswordCheck ? '✅ YES' : '❌ NO');
-      console.log('   Phone:', updatedUser.contact?.phone || updatedUser.personal?.phone || updatedUser.phone || 'MISSING');
+      console.log('   Phone:', updatedPhone || 'MISSING');
       console.log('   Status:', updatedUser.status);
-      console.log('   Role:', updatedUser.role);
-      console.log('   OrgId:', updatedUser.orgId || 'MISSING');
+      console.log('   Role:', updatedRole);
+      console.log('   OrgId:', updatedOrgId || 'MISSING');
 
-      if (finalPasswordCheck && updatedUser.status === 'ACTIVE' && (updatedUser.contact?.phone || updatedUser.personal?.phone || updatedUser.phone)) {
+      if (finalPasswordCheck && updatedUser.status === 'ACTIVE' && updatedPhone) {
         console.log('\n✅ ✅ ✅ LOGIN SHOULD NOW WORK! ✅ ✅ ✅\n');
         console.log('Try logging in at: https://fixzit.co/login');
         console.log(`Email: ${SUPERADMIN_EMAIL}`);

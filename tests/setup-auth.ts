@@ -23,6 +23,17 @@ type RoleConfig = {
 
 const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
 const OFFLINE_ORG_ID = 'ffffffffffffffffffffffff';
+const resolvedNextAuthSecret = (() => {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      'NEXTAUTH_SECRET or AUTH_SECRET is required for Playwright auth setup (no insecure fallback).',
+    );
+  }
+  process.env.NEXTAUTH_SECRET = secret;
+  process.env.AUTH_SECRET = secret;
+  return secret;
+})();
 
 async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
@@ -30,7 +41,7 @@ async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
   let offlineMode = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
   const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
-  const nextAuthSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'playwright-secret';
+  const nextAuthSecret = resolvedNextAuthSecret;
 
   console.log(`📍 Base URL: ${baseURL}`);
   console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
@@ -81,6 +92,7 @@ async function globalSetup(config: FullConfig) {
       const context = await browser.newContext();
       try {
         const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+        const isSuperAdmin = normalizedRole === 'SUPER_ADMIN';
         const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
@@ -91,11 +103,11 @@ async function globalSetup(config: FullConfig) {
             name: `${role.name} (Offline)`,
             email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@offline.test`,
             id: userId,
-            role: 'ADMIN',
-            roles: ['ADMIN', 'SUPER_ADMIN'],
+            role: normalizedRole,
+            roles: [normalizedRole],
             orgId: OFFLINE_ORG_ID,
-            isSuperAdmin: true,
-            permissions: ['*'],
+            org_id: OFFLINE_ORG_ID,
+            isSuperAdmin,
             sub: userId,
           },
         });
@@ -130,6 +142,7 @@ async function globalSetup(config: FullConfig) {
       const context = await browser.newContext();
       try {
         const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+        const isSuperAdmin = normalizedRole === 'SUPER_ADMIN';
         const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
@@ -141,10 +154,10 @@ async function globalSetup(config: FullConfig) {
             email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@e2e.test`,
             id: userId,
             role: normalizedRole,
-            roles: [normalizedRole, 'SUPER_ADMIN'],
+            roles: [normalizedRole],
             orgId: OFFLINE_ORG_ID,
-            isSuperAdmin: normalizedRole === 'SUPER_ADMIN',
-            permissions: ['*'],
+            org_id: OFFLINE_ORG_ID,
+            isSuperAdmin,
             sub: userId,
           },
         });
@@ -356,7 +369,7 @@ async function mintSessionFromDb(
   const orgId = (user.orgId as ObjectId | undefined)?.toString?.() || opts.fallbackOrgId || '000000000000000000000001';
   const role = user.professional?.role || 'ADMIN';
   const isSuperAdmin = Boolean(user.isSuperAdmin);
-  const permissions = user.permissions && user.permissions.length > 0 ? user.permissions : ['*'];
+  const permissions = Array.isArray(user.permissions) ? user.permissions.filter(Boolean) : [];
   const roles = Array.isArray(user.roles) && user.roles.length > 0
     ? user.roles.map(r => (typeof r === 'string' ? r : r?.toString?.() || '')).filter(Boolean)
     : (isSuperAdmin ? ['SUPER_ADMIN', role] : [role]);
@@ -374,6 +387,7 @@ async function mintSessionFromDb(
       role,
       roles,
       orgId,
+      org_id: orgId,
       isSuperAdmin,
       permissions,
     },
