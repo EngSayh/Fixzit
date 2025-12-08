@@ -142,7 +142,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [isProd, t]);
+  }, [isProd]);
 
   // Fetch user profile data on mount
   useEffect(() => {

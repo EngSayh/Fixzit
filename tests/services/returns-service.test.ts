@@ -28,6 +28,7 @@ vi.mock("../../services/souq/fulfillment-service", () => ({
 import { SouqOrder } from "../../server/models/souq/Order";
 import { SouqListing } from "../../server/models/souq/Listing";
 import { SouqRMA } from "../../server/models/souq/RMA";
+import { SouqSeller } from "../../server/models/souq/Seller";
 
 let returnsService: typeof import("../../services/souq/returns-service").returnsService;
 
@@ -50,6 +51,21 @@ async function seedOrder({
   productId = new Types.ObjectId(),
   listingId = new Types.ObjectId(),
 } = {}) {
+
+  // Create Seller with contact info for notification tests
+  await SouqSeller.create({
+    _id: sellerId,
+    orgId,
+    sellerId: `SLR-${nanoid(6)}`,
+    legalName: "Test Seller Legal Name",
+    registrationType: "company",
+    country: "SA",
+    city: "Riyadh",
+    address: "123 Test St, Riyadh",
+    contactEmail: "seller@test.com",
+    contactPhone: "987654321",
+    status: "active",
+  });
 
   await SouqListing.create({
     _id: listingId,

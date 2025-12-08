@@ -3,8 +3,8 @@
  * Seed demo users that match the login page credentials
  * 
  * SEC-051: Passwords now configurable via environment variables:
- * - DEMO_SUPERADMIN_PASSWORD (default: admin123 for local dev only)
- * - DEMO_DEFAULT_PASSWORD (default: password123 for local dev only)
+ * - DEMO_SUPERADMIN_PASSWORD (required)
+ * - DEMO_DEFAULT_PASSWORD (required)
  * 
  * Email domain is configurable via EMAIL_DOMAIN environment variable.
  * Uses centralized demo user configuration from lib/config/demo-users.ts

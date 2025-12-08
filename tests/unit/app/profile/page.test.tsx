@@ -39,27 +39,25 @@ describe("ProfilePage", () => {
   });
 
   it("renders fetched profile data on success", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          user: {
-            name: "Jane Doe",
-            email: "jane@example.com",
-            phone: "123",
-            role: "Manager",
-            joinDate: "Feb 2024",
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    ) as unknown as typeof fetch;
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: {
+          name: "Jane Doe",
+          email: "jane@example.com",
+          phone: "123",
+          role: "Manager",
+          joinDate: "Feb 2024",
+        },
+      }),
+    }) as unknown as typeof fetch;
 
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+    await act(async () => {
+      render(<ProfilePage />);
     });
+
+    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+    expect(await screen.findByText("jane@example.com")).toBeInTheDocument();
   });
 
   it("shows retry UI and avoids admin fallback in production on fetch failure", async () => {
@@ -67,19 +65,17 @@ describe("ProfilePage", () => {
     const fetchMock = vi.fn();
     fetchMock
       .mockRejectedValueOnce(new Error("fail"))
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            user: {
-              name: "Recovered User",
-              email: "recovered@example.com",
-              role: "User",
-              joinDate: "Mar 2024",
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      );
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: {
+            name: "Recovered User",
+            email: "recovered@example.com",
+            role: "User",
+            joinDate: "Mar 2024",
+          },
+        }),
+      });
     global.fetch = fetchMock as unknown as typeof fetch;
 
     await act(async () => {
@@ -96,9 +92,7 @@ describe("ProfilePage", () => {
       fireEvent.click(screen.getByText("Retry"));
     });
 
-    await waitFor(() => {
-      expect(screen.getByText("Recovered User")).toBeInTheDocument();
-    });
+    expect(await screen.findByText("Recovered User")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

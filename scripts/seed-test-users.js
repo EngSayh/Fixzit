@@ -29,6 +29,19 @@ if (envPath) {
   console.warn('⚠️  .env.test/.env not found, relying on process environment');
 }
 
+const isProdLike =
+  process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error(
+    '❌ SEEDING BLOCKED: seed-test-users.js cannot run in production/CI',
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-test-users.js (prevents accidental prod writes)');
+  process.exit(1);
+}
+
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit_test';
 const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
@@ -49,11 +62,20 @@ const nonAdminEmployeeId = normalizeEmployeeId(
 const adminEmployeeId = normalizeEmployeeId('EMP-ADMIN-001', 'EMP-ADMIN-001');
 
 // Test user configurations from env or defaults
+const basePassword =
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD ||
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD;
+if (!basePassword) {
+  console.error('❌ TEST_USER_PASSWORD or SEED_PASSWORD is required (no hardcoded defaults)');
+  process.exit(1);
+}
+
 const TEST_USERS = [
   {
     code: 'TEST-PRIMARY-ADMIN',
     email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
-    password: process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234',
+    password: basePassword,
     employeeId: primaryEmployeeId,
     phone: process.env.TEST_SUPERADMIN_PHONE || '+966552233456',
     role: 'SUPER_ADMIN',
@@ -64,7 +86,7 @@ const TEST_USERS = [
   {
     code: 'TEST-RBAC-NONADMIN',
     email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
-    password: process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234',
+    password: basePassword,
     employeeId: nonAdminEmployeeId,
     phone: process.env.TEST_NONADMIN_PHONE || process.env.TEST_MANAGER_PHONE || '+966552233456',
     role: 'PROPERTY_MANAGER',
@@ -75,7 +97,7 @@ const TEST_USERS = [
   {
     code: 'TEST-ADMIN',
     email: process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`,
-    password: process.env.TEST_ADMIN_PASSWORD || 'Test@1234',
+    password: basePassword,
     employeeId: adminEmployeeId,
     phone: process.env.TEST_ADMIN_PHONE || '+966552233456',
     role: 'ADMIN',
@@ -219,7 +241,7 @@ async function seedTestUsers() {
       email: { $in: TEST_USERS.map((u) => u.email.toLowerCase()) },
     });
     console.log(`\n✅ Seeding complete! ${count}/${TEST_USERS.length} users available (created ${created}, updated ${updated}, failed ${failed}).`);
-    console.log('\n📝 Test credentials (password defaults to Test@1234):');
+  console.log('\n📝 Test credentials (password from TEST_USER_PASSWORD/SEED_PASSWORD):');
     console.log(`   Primary Admin: ${TEST_USERS[0].email} / ${TEST_USERS[0].password}`);
     console.log(`   Non-Admin:     ${TEST_USERS[1].email} / ${TEST_USERS[1].password}`);
     console.log('\n🧪 Run tests: npx playwright test tests/e2e/auth.spec.ts --project=chromium\n');
