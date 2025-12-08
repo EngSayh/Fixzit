@@ -28,9 +28,15 @@
 // Use the same domain as EMAIL_DOMAINS for consistency
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
-// SEC-051: Make demo passwords configurable via environment
-const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
-const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+// SEC-051: Make demo passwords configurable via environment (no hardcoded fallbacks)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set (no defaults) for demo user config.",
+  );
+}
 
 /**
  * Demo user role definitions with email prefixes

@@ -69,8 +69,9 @@ const COLLECTION = "helparticles";
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  const isPlaywright = process.env.PLAYWRIGHT_TESTS === "true";
-  if (isPlaywright) {
+  const allowPlaywright =
+    process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV === "test";
+  if (allowPlaywright) {
     return NextResponse.json({
       items: [
         {
@@ -91,6 +92,10 @@ export async function GET(req: NextRequest) {
       total: 2,
       hasMore: false,
     });
+  }
+  if (process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV !== "test") {
+    // Prevent accidental public access if flag is set outside test
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
 
   try {

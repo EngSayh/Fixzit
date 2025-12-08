@@ -97,7 +97,9 @@
               >
                 <div class="px-4 py-3">
                   <p class="font-semibold">Eng. Sultan</p>
-                  <p class="text-sm text-slate-500">sultan@fixzit.com</p>
+                  <p class="text-sm text-slate-500" id="profile-email">
+                    sultan@example.com
+                  </p>
                 </div>
                 <div class="h-px bg-slate-200"></div>
                 <a href="#profile" class="menu-item">Profile</a>
@@ -216,6 +218,16 @@
     <!-- Dynamic Footer -->
     <div id="site-footer"></div>
 
+    <script>
+      (function () {
+        const domain =
+          window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
+        const profileEmail = document.getElementById("profile-email");
+        if (profileEmail) {
+          profileEmail.textContent = `sultan@${domain}`;
+        }
+      })();
+    </script>
     <script src="assets/js/i18n.js"></script>
     <script src="assets/js/header-footer.js"></script>
     <script src="assets/js/app.js"></script>

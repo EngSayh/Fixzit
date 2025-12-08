@@ -1,7 +1,6 @@
 // Fixzit Souq Enterprise Platform - Frontend Application
-// 🔐 NOTE: Email domain is hardcoded since this runs in browser context.
-// For rebranding, update EMAIL_DOMAIN below to use the appropriate domain.
-const EMAIL_DOMAIN = window.EMAIL_DOMAIN || "fixzit.com";
+// 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
 
 class FixzitApp {
   constructor() {

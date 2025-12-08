@@ -15,7 +15,7 @@ require("dotenv").config();
 const BASE_URL = "http://localhost:5000";
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 // SEC-051: Use environment variable with local dev fallback
 const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";

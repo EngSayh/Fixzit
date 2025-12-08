@@ -129,13 +129,18 @@ function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
  * Get current user's preferences (language, theme, notifications, etc.)
  */
 export async function GET() {
-  const isPlaywright = process.env.PLAYWRIGHT_TESTS === 'true';
+  const allowPlaywright =
+    process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV === 'test';
   try {
     const session = await auth();
     if (!session?.user) {
-      if (isPlaywright) {
+      if (allowPlaywright) {
         logger.warn('PLAYWRIGHT_TESTS=true: no session detected, returning default preferences');
         return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'missing-session' });
+      }
+      if (process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV !== 'test') {
+        // Prevent accidental fallback in non-test environments
+        return NextResponse.json({ error: 'Not Found' }, { status: 404 });
       }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -148,7 +153,7 @@ export async function GET() {
     const user = await User.findById(session.user.id).select('preferences');
 
     if (!user) {
-      if (isPlaywright) {
+      if (allowPlaywright) {
         logger.warn(
           'PLAYWRIGHT_TESTS=true: user not found for preferences fetch, returning defaults',
           { userId: session.user.id }
@@ -165,7 +170,7 @@ export async function GET() {
     });
   } catch (error) {
     logger.error('Failed to fetch user preferences:', error);
-    if (isPlaywright) {
+    if (allowPlaywright) {
       logger.warn('PLAYWRIGHT_TESTS=true: returning default preferences after error');
       return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'exception' });
     }

@@ -1,9 +1,13 @@
 /* eslint-disable no-global-assign */
 // MongoDB initialization script
 // This runs when the MongoDB container starts for the first time
-// 🔐 NOTE: Email domain is hardcoded here since this runs in MongoDB shell context.
-// For rebranding, update emails below to use the appropriate domain (e.g., business.sa)
-const EMAIL_DOMAIN = "fixzit.app"; // Change this for rebranding
+// 🔐 NOTE: Email domain is configurable; works in Mongo shell or Node.
+// For rebranding, set EMAIL_DOMAIN env var (falls back to demo domain).
+const EMAIL_DOMAIN =
+  (typeof process !== "undefined" &&
+    process.env &&
+    process.env.EMAIL_DOMAIN) ||
+  "fixzit.co";
 
 db = db.getSiblingDB("fixzit");
 

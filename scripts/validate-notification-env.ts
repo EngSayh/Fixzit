@@ -9,9 +9,8 @@
  * for each notification channel before running smoke tests.
  */
 
-import { loadEnv } from "@/scripts/utils/load-env";
-
-loadEnv();
+import { config } from "dotenv";
+config();
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 

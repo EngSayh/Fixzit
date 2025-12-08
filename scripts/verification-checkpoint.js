@@ -7,7 +7,7 @@
  */
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 const VERIFICATION_CHECKPOINT = {
   name: "FIXZIT SOUQ - DO NOT MODIFY IF WORKING",

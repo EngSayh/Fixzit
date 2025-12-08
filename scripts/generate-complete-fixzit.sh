@@ -1,5 +1,6 @@
 #!/bin/bash
 # COMPLETE FIXZIT SOUQ GENERATOR WITH REAL CODE
+EMAIL_DOMAIN=${EMAIL_DOMAIN:-fixzit.co}
 
 # Create project structure
 mkdir -p fixzit-complete-docker/{backend,frontend,mobile}
@@ -324,6 +325,7 @@ import bcrypt from 'bcryptjs';
 import { Organization, User, Property, Unit, WorkOrder } from './models/index.js';
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/fixzit';
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 console.log('🌱 Starting seed process...');
 await mongoose.connect(MONGO_URL);
@@ -352,21 +354,21 @@ const demoOrg = await Organization.create({
 console.log('👥 Creating users...');
 const users = [
   {
-    email: 'admin@fixzit.com',
+    email: `admin@${EMAIL_DOMAIN}`,
     password: 'Admin@123',
     firstName: 'System',
     lastName: 'Administrator',
     role: 'SUPER_ADMIN'
   },
   {
-    email: 'manager@fixzit.com',
+    email: `manager@${EMAIL_DOMAIN}`,
     password: 'Manager@123',
     firstName: 'Property',
     lastName: 'Manager',
     role: 'PROPERTY_MANAGER'
   },
   {
-    email: 'tech@fixzit.com',
+    email: `tech@${EMAIL_DOMAIN}`,
     password: 'Tech@123',
     firstName: 'Lead',
     lastName: 'Technician',
@@ -487,9 +489,9 @@ for (const woData of workOrdersData) {
 console.log('✅ Seed completed successfully!');
 console.log('');
 console.log('📋 Available Accounts:');
-console.log('🔑 Super Admin: admin@fixzit.com / Admin@123');
-console.log('🔑 Property Manager: manager@fixzit.com / Manager@123');
-console.log('🔑 Technician: tech@fixzit.com / Tech@123');
+console.log(`🔑 Super Admin: admin@${EMAIL_DOMAIN} / Admin@123`);
+console.log(`🔑 Property Manager: manager@${EMAIL_DOMAIN} / Manager@123`);
+console.log(`🔑 Technician: tech@${EMAIL_DOMAIN} / Tech@123`);
 console.log('');
 console.log('📊 Data Summary:');
 console.log(`🏢 Organizations: 1`);
@@ -1443,9 +1445,9 @@ MongoDB: localhost:27017
 ```
 
 ## Login Credentials
-- **Super Admin**: admin@fixzit.com / Admin@123
-- **Property Manager**: manager@fixzit.com / Manager@123
-- **Technician**: tech@fixzit.com / Tech@123
+- **Super Admin**: admin@example.com / Admin@123
+- **Property Manager**: manager@example.com / Manager@123
+- **Technician**: tech@example.com / Tech@123
 
 ## API Endpoints
 - `POST /api/auth/login` - User authentication
@@ -1498,4 +1500,4 @@ echo "🚀 To run:"
 echo "   1. docker compose up -d"
 echo "   2. docker compose exec backend npm run seed"
 echo "   3. Open http://localhost:3000"
-echo "   4. Login: admin@fixzit.com / Admin@123"
+echo "   4. Login: admin@${EMAIL_DOMAIN} / Admin@123"

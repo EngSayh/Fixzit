@@ -11,6 +11,7 @@ from pathlib import Path
 errors = []
 warnings = []
 success = []
+EMAIL_DOMAIN = os.getenv("EMAIL_DOMAIN", "fixzit.co")
 
 
 def check_database():
@@ -33,7 +34,7 @@ def check_database():
 
             # Check test users
             cursor.execute(
-                "SELECT email, role FROM users WHERE email IN ('admin@fixzit.com', 'john.smith@fixzit.com', 'tenant@example.com')"
+                f"SELECT email, role FROM users WHERE email IN ('admin@{EMAIL_DOMAIN}', 'john.smith@{EMAIL_DOMAIN}', 'tenant@example.com')"
             )
             users = cursor.fetchall()
             for email, role in users:

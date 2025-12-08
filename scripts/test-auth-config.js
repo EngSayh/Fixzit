@@ -2,7 +2,7 @@
 require("dotenv").config({ path: ".env.local" });
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 console.log("\n=== PHASE 1.2: AUTHENTICATION CONFIG VERIFICATION ===\n");
 

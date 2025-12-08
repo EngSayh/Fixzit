@@ -4,10 +4,10 @@
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
-
 // Load test environment
 dotenv.config({ path: '.env.test' });
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 async function testAuth() {
   console.log('🔍 Testing authentication directly...\n');

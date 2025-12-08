@@ -3,7 +3,7 @@ const axios = require("axios");
 const BASE_URL = "http://localhost:5000";
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 const colors = {
   red: "\x1b[31m",

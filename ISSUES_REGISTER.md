@@ -16,6 +16,11 @@ This register documents all issues discovered in the Fixzit index management sys
 
 **Root Cause**: Dual-source index architecture without clear delineation of responsibilities. **FIXED** by establishing `lib/db/collections.ts` as single source of truth.
 
+## Pending Operational Checks (Auth & Email Domain)
+- Set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN` for static assets) before running demos/public pages; browser fallbacks now use a generic domain to avoid hardcoded Fixzit addresses.
+- When an API is reachable, run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth` with `BASE_URL` pointing to the active instance; investigate any non-2xx responses.
+- After auth passes, exercise auth E2E flows (`qa/tests/e2e-auth-unified.spec.ts`, `qa/tests/auth-flows.spec.ts`) against the same target to catch tenant/email regressions.
+
 ---
 
 ## 🟥 CRITICAL - Blockers (Deployment Failures)

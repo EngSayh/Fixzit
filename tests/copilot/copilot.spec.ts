@@ -79,18 +79,23 @@ const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
  * 
  * SEC-050: Removed SUPER_ADMIN elevation - tests now use actual role permissions
  * to properly exercise STRICT v4.1 RBAC boundaries.
+ * 
+ * SECURITY: Requires real NEXTAUTH_SECRET/AUTH_SECRET - no insecure fallback.
  */
 async function loginAsRole(page: Page, role: string) {
-  const secret =
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    "playwright-secret";
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "NEXTAUTH_SECRET or AUTH_SECRET is required for RBAC tests (no insecure fallback)."
+    );
+  }
   const userId = crypto.randomUUID();
   
   // SEC-050: Use only the actual role - no SUPER_ADMIN elevation
   // This ensures tests exercise real RBAC boundaries per STRICT v4.1
   const sessionToken = await encodeJwt({
     secret,
+    salt: "authjs.session-token", // Required by next-auth v5+ JWT encode
     maxAge: 30 * 24 * 60 * 60,
     token: {
       id: userId,
@@ -99,6 +104,7 @@ async function loginAsRole(page: Page, role: string) {
       role,
       roles: [role], // Only the actual role, not SUPER_ADMIN
       orgId: process.env.TEST_ORG_ID || "test-org",
+      org_id: process.env.TEST_ORG_ID || "test-org", // underscore version for backend compat
       // SEC-050: Remove permissions: ["*"] - let RBAC system determine permissions
     },
   });

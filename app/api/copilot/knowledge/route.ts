@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
@@ -7,6 +6,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 const docSchema = z.object({
   slug: z.string(),
@@ -59,15 +59,8 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Webhook not configured" }, 503, req);
   }
 
-  const provided = req.headers.get("x-webhook-secret");
-  if (!provided || provided.length !== secret.length) {
-    return createSecureResponse({ error: "Unauthorized" }, 401, req);
-  }
-
-  const providedBuffer = Buffer.from(provided, "utf-8");
-  const secretBuffer = Buffer.from(secret, "utf-8");
-
-  if (!timingSafeEqual(providedBuffer, secretBuffer)) {
+  const isValid = verifySecretHeader(req, "x-webhook-secret", secret);
+  if (!isValid) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 

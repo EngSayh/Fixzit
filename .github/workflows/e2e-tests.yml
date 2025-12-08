@@ -109,6 +109,11 @@ jobs:
       PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
+      # 🔐 Auth secrets and QA credentials required by Playwright helpers and qa/config.js
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET || secrets.NEXTAUTH_SECRET }}
+      FIXZIT_TEST_ADMIN_EMAIL: ${{ secrets.FIXZIT_TEST_ADMIN_EMAIL || 'superadmin@fixzit.co' }}
+      FIXZIT_TEST_ADMIN_PASSWORD: ${{ secrets.FIXZIT_TEST_ADMIN_PASSWORD || secrets.TEST_USER_PASSWORD || secrets.SEED_PASSWORD }}
       PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID || '000000000000000000000001' }}
       DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID || '000000000000000000000002' }}
       TEST_ORG_ID: ${{ secrets.TEST_ORG_ID || 'test-org-id' }}
@@ -385,6 +390,10 @@ jobs:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           # REQUIRED: Used by employee-number login test (auth.spec.ts)
           TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
+
+          # QA test credentials (aliases for backward compatibility)
+          FIXZIT_TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          FIXZIT_TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
 
           # Multi-tenancy validation (org_id scoping for data isolation checks)
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}

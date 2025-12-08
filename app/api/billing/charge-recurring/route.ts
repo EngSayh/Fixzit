@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "crypto";
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Subscription from "@/server/models/Subscription";
@@ -10,6 +9,7 @@ import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { Config } from "@/lib/config/constants";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 /**
@@ -37,14 +37,7 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  const provided = req.headers.get("x-cron-secret");
-  const cronSecret = Config.security.cronSecret;
-  if (
-    !cronSecret ||
-    !provided ||
-    provided.length !== cronSecret.length ||
-    !timingSafeEqual(Buffer.from(provided, "utf-8"), Buffer.from(cronSecret, "utf-8"))
-  )
+  if (!verifySecretHeader(req, "x-cron-secret", Config.security.cronSecret))
     return createSecureResponse({ error: "UNAUTH" }, 401, req);
   await connectToDatabase();
   const today = new Date();

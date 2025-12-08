@@ -15,21 +15,22 @@ const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
-// Test credentials (from database) - env-driven
-const TEST_USER = {
-  email:
-    process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
-  password:
-    process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
-    process.env.TEST_USER_PASSWORD ||
-    process.env.SEED_PASSWORD,
-};
+// Test credentials (from database) - env-driven with fail-fast
+const TEST_PASSWORD =
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
 
-if (!TEST_USER.password) {
+if (!TEST_PASSWORD) {
   throw new Error(
     "FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required for auth flow tests (no hardcoded fallback).",
   );
 }
+
+const TEST_USER = {
+  email: process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
+  password: TEST_PASSWORD, // Guaranteed to be defined after fail-fast check above
+};
 
 if (
   /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&

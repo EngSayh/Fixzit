@@ -14,9 +14,27 @@ import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
 
-// SEC-051: Use environment variables with local dev fallbacks
-const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
-const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+// SEC-051: Require environment variables (no hardcoded fallbacks)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set before seeding demo users.",
+  );
+}
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: seed-demo-users.ts cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run seed-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
 
 const demoPhones = {
   superadmin:
@@ -187,8 +205,8 @@ const demoUsers = [
       address: { country: "SA" },
     },
     professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
+      role: "TEAM_MEMBER",
+      title: "Team Member",
       department: "Operations",
       skills: [],
       licenses: [],
@@ -220,8 +238,8 @@ const demoUsers = [
       address: { country: "SA" },
     },
     professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
+      role: "TEAM_MEMBER",
+      title: "Team Member",
       department: "Operations",
       skills: [],
       licenses: [],
@@ -311,14 +329,16 @@ async function seedDemoUsers() {
     console.log(`   Skipped: ${skipped}`);
     console.log("   Total:   " + (created + updated + skipped));
     console.log("\n✅ Demo user seeding completed!");
-    console.log("\n📝 Login credentials:");
-    console.log(`   Personal:  ${getDemoEmail("superadmin")} / ${DEMO_SUPERADMIN_PASSWORD}`);
-    console.log(`   Personal:  ${getDemoEmail("admin")} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   Personal:  ${getDemoEmail("manager")} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   Personal:  ${getDemoEmail("tenant")} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   Personal:  ${getDemoEmail("vendor")} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   Corporate: EMP001 / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   Corporate: EMP002 / ${DEMO_DEFAULT_PASSWORD}`);
+    // SEC-051: Don't log passwords to console - they may end up in CI logs
+    console.log("\n📝 Login credentials (passwords from env vars):");
+    console.log(`   Personal:  ${getDemoEmail("superadmin")} / [DEMO_SUPERADMIN_PASSWORD]`);
+    console.log(`   Personal:  ${getDemoEmail("admin")} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   Personal:  ${getDemoEmail("manager")} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   Personal:  ${getDemoEmail("tenant")} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   Personal:  ${getDemoEmail("vendor")} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   Corporate: EMP001 / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   Corporate: EMP002 / [DEMO_DEFAULT_PASSWORD]`);
+    console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
 
     process.exit(0);
   } catch (error) {

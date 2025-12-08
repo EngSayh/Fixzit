@@ -69,4 +69,26 @@ describe("projects test-only route", () => {
       createdBy: "u1",
     });
   });
+
+  it("uses tenantId from session user when no x-user header provided", async () => {
+    process.env.PLAYWRIGHT_TESTS = "true";
+    process.env.NODE_ENV = "test";
+
+    const authMod = await import("@/server/middleware/withAuthRbac");
+    (authMod as any).getSessionUser.mockResolvedValue({
+      id: "session-user",
+      orgId: "org-session",
+      tenantId: "tenant-session",
+    });
+
+    const { POST } = await import("@/app/api/projects/route");
+    const mod = await import("next/server");
+    const req = new (mod.NextRequest as any)("https://example.com/api/projects");
+    const res = (await POST(req)) as { status: number; body: any };
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      tenantId: "tenant-session",
+      createdBy: "session-user",
+    });
+  });
 });

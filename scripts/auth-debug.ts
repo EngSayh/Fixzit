@@ -2,11 +2,16 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
+dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 async function main() {
-  process.env.NODE_ENV = 'development';
-  dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
+  // Use Object.defineProperty to allow setting NODE_ENV in scripts
+  Object.defineProperty(process.env, 'NODE_ENV', {
+    value: 'development',
+    writable: true,
+    configurable: true,
+  });
   const { connectToDatabase } = await import('../lib/mongodb-unified');
   const { authConfig } = await import('../auth.config');
   const { User } = await import('../server/models/User');

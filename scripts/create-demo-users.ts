@@ -8,6 +8,18 @@ import { hashPassword } from "../lib/auth";
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: create-demo-users.ts cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run create-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
+
 const demoPhones = {
   superadmin:
     process.env.DEMO_SUPERADMIN_PHONE ||
@@ -144,9 +156,20 @@ const newUsers = [
   },
 ];
 
-// SEC-051: Use environment variables with local dev fallbacks
-const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
-const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+// SEC-051: Use environment variables (no hardcoded fallbacks)
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    "DEMO_DEFAULT_PASSWORD/SEED_PASSWORD/TEST_USER_PASSWORD is required for create-demo-users.ts",
+  );
+}
+const DEMO_SUPERADMIN_PASSWORD =
+  process.env.DEMO_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const DEMO_DEFAULT_PASSWORD =
+  process.env.DEMO_DEFAULT_PASSWORD || BASE_PASSWORD;
 
 async function createUsers() {
   try {
@@ -193,14 +216,16 @@ async function createUsers() {
     }
 
     console.log(`\n📊 Created ${created} new users`);
+    // SEC-051: Don't log passwords to console - they may end up in CI logs
     console.log("\n📝 All demo users should now be available:");
-    console.log(`   superadmin@${EMAIL_DOMAIN} / ${DEMO_SUPERADMIN_PASSWORD}`);
-    console.log(`   admin@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   manager@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   tenant@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   vendor@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
-    console.log(`   EMP001 / ${DEMO_DEFAULT_PASSWORD} (corporate)`);
-    console.log(`   EMP002 / ${DEMO_DEFAULT_PASSWORD} (corporate)`);
+    console.log(`   superadmin@${EMAIL_DOMAIN} / [DEMO_SUPERADMIN_PASSWORD]`);
+    console.log(`   admin@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   manager@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   tenant@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   vendor@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   EMP001 / [DEMO_DEFAULT_PASSWORD] (corporate)`);
+    console.log(`   EMP002 / [DEMO_DEFAULT_PASSWORD] (corporate)`);
+    console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
 
     process.exit(0);
   } catch (error) {

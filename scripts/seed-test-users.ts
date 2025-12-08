@@ -31,6 +31,17 @@ if (fs.existsSync(envTestPath)) {
   console.warn('⚠️  .env.test not found, using process environment variables');
 }
 
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error('❌ SEEDING BLOCKED: seed-test-users.ts cannot run in production/CI');
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-test-users.ts (prevents accidental prod writes)');
+  process.exit(1);
+}
+
 const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 const DEFAULT_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
@@ -40,18 +51,28 @@ const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
 
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    'SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seed-test-users.ts',
+  );
+}
+
 const PRIMARY_EMAIL = process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`;
-const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234';
+const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || BASE_PASSWORD;
 const PRIMARY_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001');
 const PRIMARY_PHONE = process.env.TEST_SUPERADMIN_PHONE || DEFAULT_PHONE;
 
 const NONADMIN_EMAIL = process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`;
-const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234';
+const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || BASE_PASSWORD;
 const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100');
 const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || DEFAULT_PHONE;
 
 const ADMIN_EMAIL = process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`;
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Test@1234';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || BASE_PASSWORD;
 const ADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_ADMIN_EMPLOYEE || 'EMP-ADMIN-001');
 const ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || DEFAULT_PHONE;
 
@@ -289,7 +310,7 @@ const testUsers: SeedUser[] = [
     password: GUEST_PASSWORD,
     employeeId: GUEST_EMPLOYEE_ID,
     phone: DEFAULT_PHONE,
-    professional: { role: 'VIEWER', title: 'Guest User', department: 'N/A', skills: [], licenses: [], certifications: [] },
+    professional: { role: 'AUDITOR', title: 'Guest User', department: 'N/A', skills: [], licenses: [], certifications: [] },
     personal: { firstName: 'Test', lastName: 'Guest', nationalId: '1000000010', dateOfBirth: new Date('1992-08-15'), gender: 'Female', nationality: 'SA', address: { street: 'Test St 10', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } },
     security: { accessLevel: 'READ', permissions: ['support:read'] },
     preferences: { notifications: { email: false, sms: false, app: false, workOrders: false, maintenance: false, reports: false }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
@@ -431,7 +452,7 @@ export async function seedTestUsers() {
   }
 
   console.log(`\n📊 Summary: Created ${created}, Updated ${updated}, Skipped ${skipped}, Total ${created + updated + skipped}/${testUsers.length}`);
-  console.log('\n📝 Test Credentials (password: Test@1234 unless overridden):');
+  console.log('\n📝 Test Credentials (password from SEED_PASSWORD/TEST_USER_PASSWORD env):');
   console.log(`   Admin (TEST_USER_EMAIL):    ${PRIMARY_EMAIL}`);
   console.log(`   Non-Admin (TEST_NONADMIN):  ${NONADMIN_EMAIL}`);
   console.log('\n🎯 Run: npx tsx scripts/seed-test-users.ts');

@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -7,6 +6,7 @@ import sgMail from "@sendgrid/mail";
 import { getSendGridConfig } from "@/config/sendgrid.config";
 import { deleteObject } from "@/lib/storage/s3";
 import { DOMAINS } from "@/lib/config/domains";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 /**
  * POST /api/jobs/process
@@ -21,14 +21,11 @@ export async function POST(request: NextRequest) {
     const session = await auth();
 
     // Allow both authenticated admins and cron jobs (with secret)
-    const cronSecret = request.headers.get("x-cron-secret");
-    const configuredSecret = process.env.CRON_SECRET;
-    const cronAuthorized =
-      configuredSecret &&
-      cronSecret &&
-      cronSecret.length === configuredSecret.length &&
-      timingSafeEqual(Buffer.from(cronSecret, "utf-8"), Buffer.from(configuredSecret, "utf-8"));
-
+    const cronAuthorized = verifySecretHeader(
+      request,
+      "x-cron-secret",
+      process.env.CRON_SECRET,
+    );
     const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
 
     if (!isAuthorized) {

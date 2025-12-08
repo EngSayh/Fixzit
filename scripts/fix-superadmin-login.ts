@@ -9,8 +9,8 @@
  * 4. Missing orgId
  */
 
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { User } from '@/server/models/User';
+import { connectToDatabase } from '../lib/mongodb-unified';
+import { User } from '../server/models/User';
 import bcrypt from 'bcryptjs';
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
@@ -23,6 +23,9 @@ if (!EXPECTED_PASSWORD) {
   console.error('❌ SUPERADMIN_PASSWORD environment variable is required');
   process.exit(1);
 }
+
+// TypeScript: After the exit check above, this is guaranteed to be a string
+const PASSWORD: string = EXPECTED_PASSWORD;
 
 async function fixSuperAdminLogin() {
   console.log('🔍 Diagnosing Super Admin login issue...\n');
@@ -56,11 +59,11 @@ async function fixSuperAdminLogin() {
 
     // 1. Verify password
     console.log('\n🔐 Checking password...');
-    const isPasswordValid = await bcrypt.compare(EXPECTED_PASSWORD, user.password);
+    const isPasswordValid = await bcrypt.compare(PASSWORD, user.password as string);
     
     if (!isPasswordValid) {
       console.log('   ⚠️  Password mismatch - updating to value from SUPERADMIN_PASSWORD env');
-      const hashedPassword = await bcrypt.hash(EXPECTED_PASSWORD, 10);
+      const hashedPassword = await bcrypt.hash(PASSWORD, 10);
       updates.password = hashedPassword;
       needsUpdate = true;
     } else {
@@ -117,7 +120,7 @@ async function fixSuperAdminLogin() {
     // Test password one more time
     const updatedUser = await User.findOne({ email: SUPERADMIN_EMAIL });
     if (updatedUser) {
-      const finalPasswordCheck = await bcrypt.compare(EXPECTED_PASSWORD, updatedUser.password);
+      const finalPasswordCheck = await bcrypt.compare(PASSWORD, updatedUser.password as string);
       
       console.log('📋 Final Status:');
       console.log('   Email:', SUPERADMIN_EMAIL);

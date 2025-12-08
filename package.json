@@ -105,6 +105,7 @@
     "verify:db:deploy": "tsx scripts/deploy-db-verify.ts",
     "setup:production:db": "tsx scripts/setup-production-db.ts",
     "artifacts:init": "mkdir -p _artifacts",
+    "test:env-check": "node scripts/testing/env-check.js",
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
     "test:stable": "pnpm exec vitest run --reporter=dot --maxWorkers=1 --fileParallelism=false",

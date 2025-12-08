@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import sgMail from "@sendgrid/mail";
@@ -10,6 +9,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import {
   getSendGridConfig,
   getBaseEmailOptions,
@@ -53,14 +53,11 @@ export async function POST(req: NextRequest) {
 
   // SECURITY FIX: Require internal API secret for email sending
   // This endpoint should only be called by internal services
-  const internalSecret = req.headers.get("x-internal-secret");
-  const expectedSecret = process.env.INTERNAL_API_SECRET;
-  const secretValid =
-    expectedSecret &&
-    internalSecret &&
-    internalSecret.length === expectedSecret.length &&
-    timingSafeEqual(Buffer.from(internalSecret, "utf-8"), Buffer.from(expectedSecret, "utf-8"));
-
+  const secretValid = verifySecretHeader(
+    req,
+    "x-internal-secret",
+    process.env.INTERNAL_API_SECRET,
+  );
   if (!secretValid) {
     logger.warn("[welcome-email] Unauthorized access attempt", { clientIp });
     return createSecureResponse({ error: "Unauthorized" }, 401, req);

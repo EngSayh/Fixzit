@@ -155,6 +155,33 @@ describe('Middleware', () => {
       expect(response).toBeInstanceOf(Response);
     });
 
+    it('strips attacker-supplied x-user headers before attaching user context', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest(
+        '/fm/dashboard',
+        { fixzit_auth: token },
+        { 'x-user': 'evil', 'x-org-id': 'attacker-org' },
+        'GET',
+      );
+      const response = await middleware(request);
+
+      expect(response).toBeInstanceOf(Response);
+      const header = response.headers.get('x-user');
+      expect(header).toBeTruthy();
+      if (header) {
+        expect(header).not.toContain('evil');
+        const parsed = JSON.parse(header);
+        expect(parsed.orgId).toBe('org1');
+      }
+      expect(response.headers.get('x-org-id')).toBe('org1');
+    });
+
     it('should redirect to /login when token is invalid', async () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: 'invalid-token',

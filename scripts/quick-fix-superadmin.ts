@@ -5,15 +5,17 @@
  * SEC-051: Password now configurable via DEMO_SUPERADMIN_PASSWORD env var
  */
 
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { User } from '@/server/models/User';
+import { connectToDatabase } from '../lib/mongodb-unified';
+import { User } from '../server/models/User';
 import bcrypt from 'bcryptjs';
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
-// SEC-051: Use environment variable with fallback for local dev
-const PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || 'admin123';
+const PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+if (!PASSWORD) {
+  throw new Error('DEMO_SUPERADMIN_PASSWORD is required (no fallback).');
+}
 const PHONE = '+966552233456';
 
 async function quickFix() {
@@ -46,7 +48,8 @@ async function quickFix() {
       console.log('✅ Super admin updated successfully!');
       console.log('\nLogin credentials:');
       console.log(`Email: ${SUPERADMIN_EMAIL}`);
-      console.log(`Password: ${PASSWORD}`);
+      // SEC-051: Don't log password - use env var reference instead
+      console.log('Password: [use DEMO_SUPERADMIN_PASSWORD env value]');
       console.log(`Phone: ${PHONE}`);
       console.log('\n🎉 You can now login!');
     } else {

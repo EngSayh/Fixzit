@@ -18,7 +18,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const { encode: encodeJwt } = require("next-auth/jwt");
+const { mintSessionCookie } = require("./session-cookie");
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
@@ -35,21 +35,12 @@ if (!E2E_PASSWORD) {
 }
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const AUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
-
-if (!AUTH_SECRET) {
-  console.error(
-    "❌ ERROR: NEXTAUTH_SECRET (or AUTH_SECRET) is required to mint session cookies for E2E tests.",
-  );
-  process.exit(1);
-}
-
-const COOKIE_NAME = BASE_URL.startsWith("https")
-  ? "__Secure-authjs.session-token"
-  : "authjs.session-token";
-const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
-  ? "__Secure-next-auth.session-token"
-  : "next-auth.session-token";
+const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
+const ARTIFACT_DIR = path.join(process.cwd(), "_artifacts/all-users");
+const EXPECTED_ACCESS =
+  process.env.EXPECTED_ACCESS_FILE && fs.existsSync(process.env.EXPECTED_ACCESS_FILE)
+    ? JSON.parse(fs.readFileSync(process.env.EXPECTED_ACCESS_FILE, "utf8"))
+    : null;
 if (
   /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
   process.env.ALLOW_E2E_PROD !== "1"
@@ -63,67 +54,26 @@ const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
+if (!fs.existsSync(ARTIFACT_DIR)) {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+}
 
-// Test users (from E2E_TESTING_QUICK_START.md)
+// Test users aligned to STRICT v4.1 canonical role codes
 const TEST_USERS = [
   { email: `superadmin@${EMAIL_DOMAIN}`, role: "SUPER_ADMIN", name: "Super Admin" },
-  {
-    email: `corp.admin@${EMAIL_DOMAIN}`,
-    role: "CORPORATE_ADMIN",
-    name: "Corporate Admin",
-  },
-  {
-    email: `property.manager@${EMAIL_DOMAIN}`,
-    role: "PROPERTY_MANAGER",
-    name: "Property Manager",
-  },
-  {
-    email: `ops.dispatcher@${EMAIL_DOMAIN}`,
-    role: "OPERATIONS_MANAGER",
-    name: "Operations Manager",
-  },
-  { email: `supervisor@${EMAIL_DOMAIN}`, role: "MANAGER", name: "Manager" },
-  {
-    email: `tech.internal@${EMAIL_DOMAIN}`,
-    role: "TECHNICIAN",
-    name: "Internal Technician",
-  },
-  {
-    email: `vendor.admin@${EMAIL_DOMAIN}`,
-    role: "VENDOR",
-    name: "Vendor Admin",
-  },
-  {
-    email: `vendor.tech@${EMAIL_DOMAIN}`,
-    role: "VENDOR",
-    name: "Vendor Technician",
-  },
-  {
-    email: `tenant.resident@${EMAIL_DOMAIN}`,
-    role: "TENANT",
-    name: "Tenant/Resident",
-  },
-  {
-    email: `owner.landlord@${EMAIL_DOMAIN}`,
-    role: "OWNER",
-    name: "Owner/Landlord",
-  },
-  {
-    email: `finance.manager@${EMAIL_DOMAIN}`,
-    role: "FINANCE",
-    name: "Finance Manager",
-  },
-  { email: `hr.manager@${EMAIL_DOMAIN}`, role: "HR", name: "HR Manager" },
-  {
-    email: `helpdesk.agent@${EMAIL_DOMAIN}`,
-    role: "SUPPORT_AGENT",
-    name: "Helpdesk Agent",
-  },
-  {
-    email: `auditor.compliance@${EMAIL_DOMAIN}`,
-    role: "AUDITOR",
-    name: "Auditor/Compliance",
-  },
+  { email: `corp.admin@${EMAIL_DOMAIN}`, role: "CORPORATE_ADMIN", name: "Corporate Admin" },
+  { email: `management@${EMAIL_DOMAIN}`, role: "MANAGEMENT", name: "Management" },
+  { email: `finance@${EMAIL_DOMAIN}`, role: "FINANCE", name: "Finance" },
+  { email: `hr@${EMAIL_DOMAIN}`, role: "HR", name: "HR" },
+  { email: `employee@${EMAIL_DOMAIN}`, role: "CORPORATE_EMPLOYEE", name: "Corporate Employee" },
+  { email: `owner@${EMAIL_DOMAIN}`, role: "PROPERTY_OWNER", name: "Property Owner" },
+  { email: `technician@${EMAIL_DOMAIN}`, role: "TECHNICIAN", name: "Technician" },
+  { email: `tenant@${EMAIL_DOMAIN}`, role: "TENANT", name: "Tenant/End-User" },
+  { email: `finance.officer@${EMAIL_DOMAIN}`, role: "FINANCE_OFFICER", name: "Finance Officer" },
+  { email: `hr.officer@${EMAIL_DOMAIN}`, role: "HR_OFFICER", name: "HR Officer" },
+  { email: `support@${EMAIL_DOMAIN}`, role: "SUPPORT", name: "Support" },
+  { email: `ops@${EMAIL_DOMAIN}`, role: "OPS", name: "Operations" },
+  { email: `auditor@${EMAIL_DOMAIN}`, role: "AUDITOR_COMPLIANCE", name: "Auditor/Compliance" },
 ];
 
 // All pages to test (from grep search results)
@@ -295,24 +245,11 @@ function httpRequest(url, options = {}) {
 
 async function login(user) {
   try {
-    const sessionToken = await encodeJwt({
-      secret: AUTH_SECRET,
-      maxAge: 30 * 24 * 60 * 60,
-      token: {
-        id: `test-${user.role}`,
-        sub: `test-${user.role}`,
-        email: user.email,
-        role: user.role,
-        roles: [user.role],
-        orgId: process.env.TEST_ORG_ID || "test-org",
-        passwordSet: !!E2E_PASSWORD,
-      },
+    const { token: sessionToken, cookies } = await mintSessionCookie({
+      email: user.email,
+      role: user.role,
+      orgId: process.env.TEST_ORG_ID || "test-org",
     });
-
-    const cookies = [
-      `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`,
-      `${LEGACY_COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`,
-    ];
 
     return {
       success: true,
@@ -346,40 +283,60 @@ async function testPage(page, auth, user) {
       headers,
     });
 
-    // Determine if access was appropriate
+    let statusLabel = "FAIL";
+    let note = `HTTP ${res.statusCode}`;
+    let increment = "failed";
+
     if (page.protected && !auth) {
-      // Protected page without auth should redirect or 401
       if (res.statusCode === 401 || res.redirected) {
-        testResult.status = "PASS";
-        testResult.result = "Correctly blocked (unauthenticated)";
-        passedTests++;
+        statusLabel = "PASS";
+        note = "Correctly blocked (unauthenticated)";
+        increment = "passed";
       } else {
-        testResult.status = "FAIL";
-        testResult.result = `Expected redirect/401, got ${res.statusCode}`;
-        failedTests++;
+        note = `Expected redirect/401, got ${res.statusCode}`;
       }
     } else if (res.statusCode >= 200 && res.statusCode < 300) {
-      // Successful access
-      testResult.status = "PASS";
-      testResult.result = `HTTP ${res.statusCode} - Page loaded`;
+      statusLabel = "PASS";
+      note = `HTTP ${res.statusCode} - Page loaded`;
       testResult.hasHtml = res.data.includes("<html");
       testResult.hasError =
         res.data.includes("Error") || res.data.includes("error");
-      passedTests++;
+      increment = "passed";
     } else if (res.statusCode === 403) {
-      // Forbidden - user doesn't have permission
-      testResult.status = "BLOCKED";
-      testResult.result = "HTTP 403 - Access denied (insufficient permissions)";
-      failedTests++;
+      statusLabel = "BLOCKED";
+      note = "HTTP 403 - Access denied (insufficient permissions)";
+      increment = "failed";
     } else if (res.redirected) {
-      // Redirected (likely to login or different page)
-      testResult.status = "REDIRECT";
-      testResult.result = `HTTP ${res.statusCode} - Redirected`;
-      passedTests++;
-    } else {
-      testResult.result = `HTTP ${res.statusCode}`;
-      failedTests++;
+      statusLabel = "REDIRECT";
+      note = `HTTP ${res.statusCode} - Redirected`;
+      increment = "passed";
     }
+
+    // Optional expectation enforcement via EXPECTED_ACCESS JSON file
+    if (EXPECTED_ACCESS) {
+      const expected = EXPECTED_ACCESS[user.role]?.[page.path];
+      if (expected) {
+        testResult.expected = expected;
+        const isAllow = statusLabel === "PASS";
+        const isBlock = statusLabel === "BLOCKED" || res.statusCode === 401;
+        const isRedirect = statusLabel === "REDIRECT";
+        const matches =
+          (expected === "ALLOW" && isAllow) ||
+          (expected === "BLOCK" && isBlock) ||
+          (expected === "REDIRECT" && isRedirect);
+        if (!matches) {
+          statusLabel = "FAIL_EXPECTATION";
+          note = `Expected ${expected}, saw ${statusLabel} (${res.statusCode})`;
+          increment = "failed";
+          testResult.mismatch = true;
+        }
+      }
+    }
+
+    testResult.status = statusLabel;
+    testResult.result = note;
+    if (increment === "passed") passedTests++;
+    else failedTests++;
   } catch (err) {
     testResult.status = "ERROR";
     testResult.result = err.message;
@@ -602,6 +559,12 @@ async function runAllTests() {
   );
   fs.writeFileSync(mdFile, mdReport);
   console.log(`📄 Markdown report saved to: ${mdFile}`);
+
+  // HFV-style artifact drop for quick access
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.json"),
+    JSON.stringify(jsonOutput, null, 2),
+  );
 
   console.log("\n" + "═".repeat(80) + "\n");
 
