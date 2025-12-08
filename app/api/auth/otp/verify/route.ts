@@ -21,10 +21,11 @@ import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS 
 import jwt from "jsonwebtoken";
 import { persistRefreshJti } from "@/lib/refresh-token-store";
 
-// Validation schema
+// Validation schema - OTP can be 6 digits OR bypass code (12+ chars for production)
+// The bypass code is validated later against NEXTAUTH_BYPASS_OTP_CODE env var
 const VerifyOTPSchema = z.object({
   identifier: z.string().trim().min(1, "Email or employee number is required"),
-  otp: z.string().length(6, "OTP must be 6 digits"),
+  otp: z.string().min(6, "OTP must be at least 6 characters"),
   companyCode: z.string().trim().optional(),
 });
 
