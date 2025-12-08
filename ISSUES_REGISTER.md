@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-08  
-**Version**: 1.5  
+**Version**: 1.6  
 **Scope**: Database index management across all models
 
 ---
@@ -2040,6 +2040,38 @@ CI now passes both env var names (TEST_ADMIN_* and FIXZIT_TEST_ADMIN_*) for back
 
 **Resolution**:
 Tests now throw explicit error if NEXTAUTH_SECRET/AUTH_SECRET not set. Also added `org_id` (underscore version) for backend compatibility.
+
+---
+
+### ISSUE-057: Demo-users.ts Throws at Build Time Breaking Vercel Deployment
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Build, Deployment  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`lib/config/demo-users.ts` was modified to throw an error if `DEMO_SUPERADMIN_PASSWORD` and `DEMO_DEFAULT_PASSWORD` environment variables were not set. This caused Vercel builds to fail during the "Collecting page data" phase because the file is imported transitively by API routes via `auth.config.ts`.
+
+**Error**:
+```
+Error: DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set (no defaults) for demo user config.
+  at 116076 (.next/server/app/api/admin/audit-logs/route.js:1:502)
+[Error: Failed to collect page data for /api/admin/audit-logs]
+```
+
+**Root Cause**:
+- `auth.config.ts` imports `DEMO_EMAILS` from `lib/config/demo-users.ts`
+- API routes import `auth` which imports `auth.config.ts`
+- During build, env vars are not set, causing the throw statement to execute
+
+**Files Fixed**:
+- `lib/config/demo-users.ts`: Replaced throw with safe fallback placeholders (`[set DEMO_SUPERADMIN_PASSWORD]`)
+- `components/auth/DemoCredentialsSection.tsx`: Added check for `DEMO_PASSWORDS_CONFIGURED`
+- `scripts/seed-demo-users.ts`: Added `SHOW_DEMO_CREDS` opt-in for password logging
+- `tests/e2e/utils/auth.ts`: Improved offline fallback security
+
+**Resolution**:
+Demo passwords now use placeholder strings when env vars not set, allowing builds to succeed. Runtime validation still occurs in scripts that actually need the passwords. Components check `DEMO_PASSWORDS_CONFIGURED` before displaying credentials.
 
 ---
 
