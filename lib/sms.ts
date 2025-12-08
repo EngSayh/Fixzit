@@ -16,6 +16,7 @@ import {
   formatSaudiPhoneNumber,
   isValidSaudiPhone,
 } from "@/lib/sms-providers/phone-utils";
+import { UnifonicProvider } from "@/lib/sms-providers/unifonic";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
@@ -133,19 +134,30 @@ export async function sendSMS(
     case 'TWILIO':
       return sendViaTwilio(formattedPhone, message, fromNumber!, accountSid!, authToken!);
     
-    case 'UNIFONIC':
-      // TODO: Implement Unifonic provider for Saudi market
-      logger.warn("[SMS] Unifonic provider not yet implemented, falling back to Twilio");
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        return sendViaTwilio(
-          formattedPhone,
-          message,
-          process.env.TWILIO_PHONE_NUMBER,
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
+    case 'UNIFONIC': {
+      // Use Unifonic provider for Saudi market
+      const unifonicProvider = new UnifonicProvider();
+      if (!unifonicProvider.isConfigured()) {
+        logger.warn("[SMS] Unifonic not configured, falling back to Twilio");
+        if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+          return sendViaTwilio(
+            formattedPhone,
+            message,
+            process.env.TWILIO_PHONE_NUMBER,
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_AUTH_TOKEN
+          );
+        }
+        return { success: false, error: 'Unifonic not configured and Twilio fallback not available' };
       }
-      return { success: false, error: 'Unifonic provider not implemented and Twilio fallback not configured' };
+      
+      const result = await unifonicProvider.sendSMS(formattedPhone, message);
+      return {
+        success: result.success,
+        messageSid: result.messageId,
+        error: result.error,
+      };
+    }
     
     case 'AWS_SNS':
       // TODO: Implement AWS SNS provider

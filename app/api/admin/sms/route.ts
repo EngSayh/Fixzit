@@ -11,6 +11,9 @@ import {
 } from "@/lib/queues/sms-queue";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * GET /api/admin/sms
@@ -31,6 +34,12 @@ import { z } from "zod";
  */
 export async function GET(request: NextRequest) {
   try {
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:GET`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const session = await auth();
 
     if (!session?.user) {
@@ -90,6 +99,10 @@ export async function GET(request: NextRequest) {
       query.slaBreached = false;
     }
 
+    if (!orgId) {
+      logger.info("[Admin SMS] Global SMS query executed by superadmin", { by: session.user.email });
+    }
+
     // Fetch messages
     const [messages, total] = await Promise.all([
       SMSMessage.find(query)
@@ -128,7 +141,10 @@ export async function GET(request: NextRequest) {
       response.queueStats = queueStats;
     }
 
-    return NextResponse.json(response);
+    const res = NextResponse.json(response);
+    res.headers.set("X-RateLimit-Limit", "30");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[Admin SMS] GET failed", { error: errorMessage });
@@ -152,11 +168,17 @@ const ActionSchema = z.object({
   action: z.enum(["retry", "retry-all-failed", "cancel"]),
   messageId: z.string().optional(),
   orgId: z.string().optional(),
-  limit: z.number().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:POST`, 15, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const session = await auth();
 
     if (!session?.user) {
@@ -233,6 +255,8 @@ export async function POST(request: NextRequest) {
           referenceType: message.referenceType,
           referenceId: message.referenceId,
           metadata: message.metadata as Record<string, unknown> | undefined,
+          maxRetries: message.maxRetries,
+          retryCount: message.retryCount,
         });
 
         logger.info("[Admin SMS] Manual retry triggered", {
@@ -321,9 +345,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[Admin SMS] POST failed", { error: errorMessage });
-    return NextResponse.json(
+    const res = NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
+    return res;
   }
 }
