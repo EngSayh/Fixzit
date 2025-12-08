@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-07  
-**Version**: 1.4  
+**Last Updated**: 2025-12-08  
+**Version**: 1.5  
 **Scope**: Database index management across all models
 
 ---
@@ -1362,6 +1362,85 @@ These are guarded by specific test environment variables (`DEBUG_CLAIM_TEST`, `D
 - Already has eslint-disable comments indicating intentional usage
 
 **Action**: No changes needed. Documented for awareness.
+
+---
+
+### ISSUE-025: Missing Rate Limiting on Aqar Chatbot Endpoint
+
+**Severity**: 🟧 MAJOR  
+**Category**: API Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/aqar/support/chatbot` endpoint was a public POST endpoint without rate limiting, making it vulnerable to DoS attacks. It also lacked proper input validation.
+
+**Files**:
+- `app/api/aqar/support/chatbot/route.ts`
+
+**Fix Applied**:
+- Added `smartRateLimit` with 30 requests/minute per IP
+- Added Zod schema for input validation with max length (2000 chars)
+
+**Commit**: cb615d96a
+
+---
+
+### ISSUE-026: Missing Rate Limiting on Aqar Listings Search
+
+**Severity**: 🟧 MAJOR  
+**Category**: API Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/aqar/listings/search` endpoint was a public GET endpoint without rate limiting, vulnerable to DoS via expensive Atlas Search queries.
+
+**Files**:
+- `app/api/aqar/listings/search/route.ts`
+
+**Fix Applied**:
+- Added `smartRateLimit` with 60 requests/minute per IP
+
+**Commit**: cb615d96a
+
+---
+
+### ISSUE-027: Mass Assignment in Admin Benchmark Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: API Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/admin/billing/benchmark/[id]` PATCH endpoint passed request body directly to `findByIdAndUpdate`, allowing modification of any field including protected ones like `_id`, `createdAt`.
+
+**Files**:
+- `app/api/admin/billing/benchmark/[id]/route.ts`
+
+**Fix Applied**:
+- Added field whitelisting for allowed fields
+- Only `name`, `description`, `category`, `value`, `unit`, `metadata`, `isActive` can be updated
+
+**Commit**: 527e3b597
+
+---
+
+### ISSUE-028: Mass Assignment in Admin PriceBook Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: API Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/admin/billing/pricebooks/[id]` PATCH endpoint passed request body directly to `findByIdAndUpdate`, allowing modification of any field.
+
+**Files**:
+- `app/api/admin/billing/pricebooks/[id]/route.ts`
+
+**Fix Applied**:
+- Added field whitelisting for allowed fields
+- Only `name`, `description`, `prices`, `currency`, `effectiveDate`, `expiryDate`, `isActive`, `metadata` can be updated
+
+**Commit**: 527e3b597
 
 ---
 
