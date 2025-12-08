@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import type { ObjectId } from 'mongodb';
 import fetch from 'node-fetch';
 import { isTruthy } from '@/lib/utils/env';
+import { buildSessionClaims, resolveOrgId } from './e2e/utils/session-claims';
 
 /**
  * Playwright global auth setup
@@ -22,7 +23,7 @@ type RoleConfig = {
 };
 
 const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
-const OFFLINE_ORG_ID = 'ffffffffffffffffffffffff';
+const OFFLINE_ORG_ID = resolveOrgId();
 const resolvedNextAuthSecret = (() => {
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
@@ -92,24 +93,18 @@ async function globalSetup(config: FullConfig) {
       const context = await browser.newContext();
       try {
         const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
-        const isSuperAdmin = normalizedRole === 'SUPER_ADMIN';
-        const userId = randomBytes(12).toString('hex');
+        const claims = buildSessionClaims({
+          role: normalizedRole,
+          email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@offline.test`,
+          orgId: OFFLINE_ORG_ID,
+          userId: randomBytes(12).toString('hex'),
+        });
 
         const token = await encodeJwt({
           secret: nextAuthSecret,
           maxAge: 30 * 24 * 60 * 60,
           salt: sessionSalt,
-          token: {
-            name: `${role.name} (Offline)`,
-            email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@offline.test`,
-            id: userId,
-            role: normalizedRole,
-            roles: [normalizedRole],
-            orgId: OFFLINE_ORG_ID,
-            org_id: OFFLINE_ORG_ID,
-            isSuperAdmin,
-            sub: userId,
-          },
+          token: claims,
         });
 
         const { hostname } = new URL(baseOrigin);

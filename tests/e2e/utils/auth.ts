@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { encode as encodeJwt } from 'next-auth/jwt';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { buildSessionClaims, resolveOrgId } from './session-claims';
 
 export type TestUser = {
   email: string;
@@ -319,23 +320,17 @@ export async function attemptLogin(page: Page, identifier: string, password: str
           'NEXTAUTH_SECRET or AUTH_SECRET is required for offline login fallback (no default).'
         );
       }
-      const userId = crypto.randomUUID();
       const role = process.env.OFFLINE_LOGIN_ROLE || 'ADMIN';
-      const isSuperAdmin = role === 'SUPER_ADMIN';
+      const claims = buildSessionClaims({
+        role,
+        email: identifier || `${role.toLowerCase()}@offline.test`,
+        orgId: resolveOrgId(),
+        userId: crypto.randomUUID(),
+      });
       const sessionToken = await encodeJwt({
         secret,
         maxAge: 30 * 24 * 60 * 60,
-        token: {
-          id: userId,
-          sub: userId,
-          email: identifier || `${role.toLowerCase()}@offline.test`,
-          role,
-          roles: [role],
-          orgId: 'ffffffffffffffffffffffff',
-          org_id: 'ffffffffffffffffffffffff',
-          isSuperAdmin,
-          permissions: [],
-        },
+        token: claims,
       });
 
         const origin = new URL(baseUrl);

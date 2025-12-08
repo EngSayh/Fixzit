@@ -157,15 +157,9 @@ class FulfillmentService {
       };
       const order = await SouqOrder.findOne(scopedQuery);
 
-      if (!order) {
-        throw new Error(`Order not found for org: ${request.orderId}`);
-      }
-      if (
-        order.orgId &&
-        request.orgId &&
-        order.orgId.toString() !== request.orgId.toString()
-      ) {
-        throw new Error(`Order not found for org: ${request.orderId}`);
+      const orderOrg = order?.orgId?.toString?.();
+      if (!order || !orderOrg || orderOrg !== request.orgId.toString()) {
+        throw new Error("Order not found for org");
       }
 
       // Group items by fulfillment type
@@ -587,11 +581,9 @@ class FulfillmentService {
       ...orgFilter,
     });
 
-    if (!order) {
-      throw new Error(`Order not found for org: ${orderId}`);
-    }
-    if (order.orgId && order.orgId.toString() !== orgId.toString()) {
-      throw new Error(`Order not found for org: ${orderId}`);
+    const orderOrg = order?.orgId?.toString?.();
+    if (!order || !orderOrg || orderOrg !== orgId.toString()) {
+      throw new Error("Order not found for org");
     }
 
     const orderDate = order.createdAt;

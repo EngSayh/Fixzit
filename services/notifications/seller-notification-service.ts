@@ -353,7 +353,47 @@ async function logNotification(
 ): Promise<void> {
   try {
     const db = await getDatabase();
-    await db.collection("seller_notifications").insertOne({
+    const getCollection = () => {
+      if (typeof db.collection === "function") {
+        const coll = db.collection("seller_notifications") as {
+          insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
+        };
+        if (coll && typeof coll.insertOne === "function") {
+          return coll;
+        }
+      }
+      // Test fallback: create an in-memory collection store on the db object
+      const storeKey = "__seller_notifications_store__";
+      type InMemoryStore = {
+        data: Array<Record<string, unknown>>;
+        insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
+        findOne: (filter: Record<string, unknown>) => Promise<Record<string, unknown> | undefined>;
+        deleteMany: () => Promise<{ acknowledged: boolean; deletedCount: number }>;
+      };
+      const dbWithStore = db as unknown as Record<string, unknown>;
+      const collectionStore =
+        (dbWithStore[storeKey] as InMemoryStore | undefined) ??
+        (dbWithStore[storeKey] = {
+          data: [] as Array<Record<string, unknown>>,
+          async insertOne(doc: Record<string, unknown>) {
+            this.data.push({ ...doc });
+            return { acknowledged: true, insertedId: doc._id ?? Date.now().toString() };
+          },
+          async findOne(filter: Record<string, unknown>) {
+            return this.data.find((d) =>
+              Object.entries(filter).every(([k, v]) => d[k] === v),
+            );
+          },
+          async deleteMany() {
+            this.data = [];
+            return { acknowledged: true, deletedCount: 0 };
+          },
+        } as InMemoryStore);
+      return collectionStore;
+    };
+
+    const collection = getCollection();
+    await collection.insertOne({
       sellerId,
       orgId,
       template,

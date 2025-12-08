@@ -427,6 +427,22 @@ describe("Finance Model PII Encryption", () => {
         "@/server/models/FMFinancialTransaction"
       );
 
+      const ensureCollection = (
+        model: mongoose.Model<mongoose.Document>,
+        fallback: string,
+      ) => {
+        if (!(model as any).collection || !(model as any).collection.findOne) {
+          (model as any).collection = mongoose.connection.collection(fallback);
+        }
+        return model;
+      };
+
+      ensureCollection(Invoice as mongoose.Model<mongoose.Document>, "invoices");
+      ensureCollection(
+        FMFinancialTransaction as mongoose.Model<mongoose.Document>,
+        "fmfinancialtransactions",
+      );
+
       const invoiceData = createTestInvoiceData();
       const transactionData = createTestTransactionData();
 
