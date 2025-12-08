@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import sgMail from "@sendgrid/mail";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";

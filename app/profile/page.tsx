@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 type TabType = "account" | "notifications" | "security";
 
 interface UserData {

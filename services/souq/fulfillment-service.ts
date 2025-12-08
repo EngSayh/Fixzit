@@ -6,6 +6,7 @@ import { smsaCarrier } from "@/lib/carriers/smsa";
 import { splCarrier } from "@/lib/carriers/spl";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import type { IOrder } from "@/server/models/souq/Order";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 

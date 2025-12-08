@@ -3,6 +3,7 @@ import { createPaymentPage } from "@/lib/paytabs";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Invoice } from "@/server/models/Invoice";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { z } from "zod";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {

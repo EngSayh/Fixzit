@@ -3,6 +3,8 @@
  * Phase 2 implementation
  */
 
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
 interface ICSEvent {
   summary: string; // Event title
   description?: string; // Event details

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Subscription from "@/server/models/Subscription";
 import { computeQuote } from "@/lib/pricing";

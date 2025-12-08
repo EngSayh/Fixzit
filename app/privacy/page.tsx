@@ -7,6 +7,7 @@ import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
  * Defined at module level to prevent recreation on each render.

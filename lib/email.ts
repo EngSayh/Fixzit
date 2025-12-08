@@ -4,6 +4,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 export interface EmailResult {
   success: boolean;

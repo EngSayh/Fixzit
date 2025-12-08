@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Customer from "@/server/models/Customer";
 import { computeQuote } from "@/lib/pricing";
