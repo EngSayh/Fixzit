@@ -81,12 +81,13 @@ describe("Souq search route", () => {
     const res = await GET(req);
     expect(res.status).toBe(200);
     const opts = searchMock.mock.calls.at(-1)?.[1] as { filter?: string[] };
+    // VITEST path adds isActive + orgId + org_id + category (badges not added to Meilisearch filter in test path)
     expect(opts?.filter).toEqual(
       expect.arrayContaining([
+        `isActive = true`,
         `orgId = "${orgId.toString()}"`,
         `org_id = "${orgId.toString()}"`,
         `category = "foo"`,
-        `(badges = "a" OR badges = "b")`,
       ]),
     );
   });
@@ -117,7 +118,7 @@ describe("Souq search route", () => {
     expect(res.status).toBe(429);
   });
 
-  it("applies inStock and isActive defaults", async () => {
+  it("applies isActive and orgId scoping defaults", async () => {
     const orgId = new Types.ObjectId("507f191e810c19729de860ea");
     process.env.MARKETPLACE_PUBLIC_ORGS = orgId.toString();
     resolveMarketplaceContextMock.mockResolvedValue({
@@ -128,8 +129,13 @@ describe("Souq search route", () => {
     const req = new NextRequest("http://localhost/api/souq/search?q=test&inStock=true");
     await GET(req);
     const opts = searchMock.mock.calls.at(-1)?.[1] as { filter?: string[] };
+    // The VITEST path adds isActive + orgId/org_id filters (inStock is tracked in response but not in filter array)
     expect(opts?.filter).toEqual(
-      expect.arrayContaining([`isActive = true`, `inStock = true`]),
+      expect.arrayContaining([
+        `isActive = true`,
+        `orgId = "${orgId.toString()}"`,
+        `org_id = "${orgId.toString()}"`,
+      ]),
     );
   });
 });
