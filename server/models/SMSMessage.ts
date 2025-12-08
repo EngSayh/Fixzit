@@ -250,11 +250,20 @@ SMSMessageSchema.statics.getSLABreachCount = async function (
   return this.countDocuments(match);
 };
 
+/**
+ * Record a delivery attempt for an SMS message
+ * @param messageId - The message ID
+ * @param attempt - The attempt details
+ * @param orgId - Optional orgId for tenant isolation (STRICT v4.1)
+ */
 SMSMessageSchema.statics.recordAttempt = async function (
   messageId: string | Types.ObjectId,
-  attempt: Omit<ISMSRetryHistory, "attemptNumber">
+  attempt: Omit<ISMSRetryHistory, "attemptNumber">,
+  orgId?: string
 ): Promise<ISMSMessage | null> {
-  const message = await this.findById(messageId);
+  // 🔐 STRICT v4.1: Use org-scoped query when orgId provided
+  const query = orgId ? { _id: messageId, orgId } : { _id: messageId };
+  const message = await this.findOne(query);
   if (!message) return null;
 
   const attemptNumber = message.retryCount + 1;
@@ -299,7 +308,9 @@ SMSMessageSchema.statics.recordAttempt = async function (
     }
   }
 
-  return this.findByIdAndUpdate(messageId, update, { new: true });
+  // 🔐 STRICT v4.1: Use org-scoped update when orgId available
+  const updateFilter = orgId ? { _id: messageId, orgId } : { _id: messageId };
+  return this.findOneAndUpdate(updateFilter, update, { new: true });
 };
 
 SMSMessageSchema.statics.markDelivered = async function (
