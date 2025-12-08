@@ -22,6 +22,9 @@
     "AUTH_SECRET",
     "BULLMQ_REDIS_URL",
     "DEFAULT_ORG_ID",
+    "ENABLE_SADAD_PAYOUTS",
+    "FIXZIT_TEST_ADMIN_EMAIL",
+    "FIXZIT_TEST_ADMIN_PASSWORD",
     "GITHUB_TOKEN",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
@@ -38,6 +41,11 @@
     "PUBLIC_ORG_ID",
     "REDIS_URL",
     "RENOVATE_TOKEN",
+    "SADAD_API_ENDPOINT",
+    "SADAD_API_KEY",
+    "SADAD_API_SECRET",
+    "SADAD_SPAN_MODE",
+    "SEED_PASSWORD",
     "SENTRY_AUTH_TOKEN",
     "SENTRY_ORG",
     "SENTRY_PROJECT",
@@ -63,10 +71,15 @@
     "TEST_TEAM_MEMBER_EMPLOYEE",
     "TEST_TEAM_MEMBER_PASSWORD",
     "TEST_TEAM_MEMBER_USER_ID",
+    "TEST_USER_PASSWORD",
     "ZATCA_API_KEY",
     "ZATCA_SELLER_ADDRESS",
     "ZATCA_SELLER_NAME",
     "ZATCA_VAT_NUMBER"
+  ],
+  "github-actions.workflows.variables": [
+    "ENABLE_SADAD_PAYOUTS",
+    "SADAD_SPAN_MODE"
   ],
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
