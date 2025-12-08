@@ -76,6 +76,9 @@ const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
 /**
  * Lightweight role-based authentication using offline JWT session cookies.
  * Avoids full OTP/login flows while still exercising RBAC-aware UI paths.
+ * 
+ * SEC-050: Removed SUPER_ADMIN elevation - tests now use actual role permissions
+ * to properly exercise STRICT v4.1 RBAC boundaries.
  */
 async function loginAsRole(page: Page, role: string) {
   const secret =
@@ -83,6 +86,9 @@ async function loginAsRole(page: Page, role: string) {
     process.env.AUTH_SECRET ||
     "playwright-secret";
   const userId = crypto.randomUUID();
+  
+  // SEC-050: Use only the actual role - no SUPER_ADMIN elevation
+  // This ensures tests exercise real RBAC boundaries per STRICT v4.1
   const sessionToken = await encodeJwt({
     secret,
     maxAge: 30 * 24 * 60 * 60,
@@ -91,9 +97,9 @@ async function loginAsRole(page: Page, role: string) {
       sub: userId,
       email: `${role.toLowerCase()}@test.local`,
       role,
-      roles: [role, "SUPER_ADMIN"],
-      orgId: "test-org",
-      permissions: ["*"],
+      roles: [role], // Only the actual role, not SUPER_ADMIN
+      orgId: process.env.TEST_ORG_ID || "test-org",
+      // SEC-050: Remove permissions: ["*"] - let RBAC system determine permissions
     },
   });
 

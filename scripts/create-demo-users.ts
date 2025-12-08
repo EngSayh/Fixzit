@@ -144,15 +144,17 @@ const newUsers = [
   },
 ];
 
+// SEC-051: Use environment variables with local dev fallbacks
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
 async function createUsers() {
   try {
     await db;
     console.log("🌱 Creating missing demo users...\n");
 
-    const superAdminPassword = "admin123";
-    const defaultPassword = "password123";
     const [hashedSuperAdminPassword, hashedDefaultPassword] = await Promise.all(
-      [hashPassword(superAdminPassword), hashPassword(defaultPassword)],
+      [hashPassword(DEMO_SUPERADMIN_PASSWORD), hashPassword(DEMO_DEFAULT_PASSWORD)],
     );
     let created = 0;
 
@@ -192,13 +194,13 @@ async function createUsers() {
 
     console.log(`\n📊 Created ${created} new users`);
     console.log("\n📝 All demo users should now be available:");
-    console.log(`   superadmin@${EMAIL_DOMAIN} / ${superAdminPassword}`);
-    console.log(`   admin@${EMAIL_DOMAIN} / password123`);
-    console.log(`   manager@${EMAIL_DOMAIN} / password123`);
-    console.log(`   tenant@${EMAIL_DOMAIN} / password123`);
-    console.log(`   vendor@${EMAIL_DOMAIN} / password123`);
-    console.log("   EMP001 / password123 (corporate)");
-    console.log("   EMP002 / password123 (corporate)");
+    console.log(`   superadmin@${EMAIL_DOMAIN} / ${DEMO_SUPERADMIN_PASSWORD}`);
+    console.log(`   admin@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
+    console.log(`   manager@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
+    console.log(`   tenant@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
+    console.log(`   vendor@${EMAIL_DOMAIN} / ${DEMO_DEFAULT_PASSWORD}`);
+    console.log(`   EMP001 / ${DEMO_DEFAULT_PASSWORD} (corporate)`);
+    console.log(`   EMP002 / ${DEMO_DEFAULT_PASSWORD} (corporate)`);
 
     process.exit(0);
   } catch (error) {

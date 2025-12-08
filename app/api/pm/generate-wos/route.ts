@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto, { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { Config } from "@/lib/config/constants";
@@ -29,6 +29,13 @@ interface PMPlanDocument {
   estimatedCost?: number;
   [key: string]: unknown;
 }
+const isValidSecret = (req: NextRequest, headerName: string, secret: string | undefined): boolean => {
+  if (!secret) return false;
+  const provided = req.headers.get(headerName);
+  if (!provided || provided.length !== secret.length) return false;
+  return timingSafeEqual(Buffer.from(provided, "utf-8"), Buffer.from(secret, "utf-8"));
+};
+
 /**
  * POST /api/pm/generate-wos
  * Auto-generate work orders from PM plans that are due
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 🔒 CRON AUTH: Only allow calls with valid cron secret
-  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret) {
+  if (!isValidSecret(req, "x-cron-secret", Config.security.cronSecret)) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
@@ -171,7 +178,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 🔒 CRON AUTH: Only allow calls with valid cron secret
-  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret) {
+  if (!isValidSecret(req, "x-cron-secret", Config.security.cronSecret)) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 

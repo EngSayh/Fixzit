@@ -4,6 +4,13 @@
  * This file contains all demo user credentials for development and testing.
  * All demo users are configurable via environment variables to support white-label deployments.
  *
+ * ⚠️ SECURITY NOTE (SEC-051):
+ * These passwords are ONLY for local development and should NEVER be used in production.
+ * In production environments:
+ * - Set DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD environment variables
+ * - Or disable demo user seeding entirely
+ * - The passwords below are intentional defaults for developer convenience only
+ *
  * @module lib/config/demo-users
  *
  * Usage:
@@ -13,11 +20,17 @@
  *
  * Environment Variables:
  * - EMAIL_DOMAIN: The domain for demo user emails (default: "fixzit.co")
+ * - DEMO_SUPERADMIN_PASSWORD: Override super admin demo password
+ * - DEMO_DEFAULT_PASSWORD: Override default demo password
  * - NEXT_PUBLIC_SHOW_DEMO_CREDS: Show demo credentials in UI (default: false in production)
  */
 
 // Use the same domain as EMAIL_DOMAINS for consistency
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// SEC-051: Make demo passwords configurable via environment
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
 
 /**
  * Demo user role definitions with email prefixes
@@ -43,7 +56,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "SUPER_ADMIN",
     displayRole: "Super Admin",
     description: "Full system access",
-    password: "admin123",
+    password: DEMO_SUPERADMIN_PASSWORD,
     category: "core",
   },
   {
@@ -51,7 +64,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "ADMIN",
     displayRole: "Admin",
     description: "Administrative access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "core",
   },
   {
@@ -59,7 +72,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "MANAGER",
     displayRole: "Property Manager",
     description: "Property management",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   {
@@ -67,7 +80,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "TENANT",
     displayRole: "Tenant",
     description: "Tenant portal access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   {
@@ -75,7 +88,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "VENDOR",
     displayRole: "Vendor",
     description: "Vendor marketplace access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "vendor",
   },
   {
@@ -83,7 +96,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "OWNER",
     displayRole: "Property Owner",
     description: "Property owner access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   // Corporate roles
@@ -92,7 +105,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "CORP_ADMIN",
     displayRole: "Corporate Admin",
     description: "Corporate administrative access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "corporate",
   },
   {
@@ -100,7 +113,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "PROPERTY_MANAGER",
     displayRole: "Property Manager (Corporate)",
     description: "Corporate property management",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "corporate",
   },
   // Operations roles
@@ -109,7 +122,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "DISPATCHER",
     displayRole: "Dispatcher",
     description: "Work order dispatch",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   {
@@ -117,7 +130,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "SUPERVISOR",
     displayRole: "Supervisor",
     description: "Team supervision",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "property",
   },
   {
@@ -125,7 +138,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "TECHNICIAN",
     displayRole: "Technician",
     description: "Field technician access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "vendor",
   },
   // Vendor roles
@@ -134,7 +147,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "VENDOR_ADMIN",
     displayRole: "Vendor Admin",
     description: "Vendor administration",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "vendor",
   },
   {
@@ -142,7 +155,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "VENDOR_TECH",
     displayRole: "Vendor Technician",
     description: "Vendor technician access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "vendor",
   },
   // HR/Finance roles
@@ -151,7 +164,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "FINANCE",
     displayRole: "Finance",
     description: "Financial access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "hr",
   },
   {
@@ -159,7 +172,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "HR",
     displayRole: "HR Manager",
     description: "Human resources access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "hr",
   },
   {
@@ -167,7 +180,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "HELPDESK",
     displayRole: "Help Desk",
     description: "Support desk access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "hr",
   },
   {
@@ -175,7 +188,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "AUDITOR",
     displayRole: "Auditor",
     description: "Audit and compliance",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "hr",
   },
   // Corporate employees (for corporate login)
@@ -184,7 +197,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "EMPLOYEE",
     displayRole: "Employee 1",
     description: "Corporate employee access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "corporate",
   },
   {
@@ -192,7 +205,7 @@ export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
     role: "EMPLOYEE",
     displayRole: "Employee 2",
     description: "Corporate employee access",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     category: "corporate",
   },
 ] as const;
@@ -299,13 +312,13 @@ export const DEMO_CREDENTIALS_CORPORATE = [
   {
     role: "Property Manager (Corporate)",
     employeeNumber: "EMP001",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     description: "Corporate account access",
   },
   {
     role: "Admin (Corporate)",
     employeeNumber: "EMP002",
-    password: "password123",
+    password: DEMO_DEFAULT_PASSWORD,
     description: "Corporate administrative access",
   },
 ];

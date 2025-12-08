@@ -15,11 +15,30 @@ const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
-// Test credentials (from database)
+// Test credentials (from database) - env-driven
 const TEST_USER = {
-  email: `admin@${EMAIL_DOMAIN}`,
-  password: "password123",
+  email:
+    process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
+  password:
+    process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+    process.env.TEST_USER_PASSWORD ||
+    process.env.SEED_PASSWORD,
 };
+
+if (!TEST_USER.password) {
+  throw new Error(
+    "FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required for auth flow tests (no hardcoded fallback).",
+  );
+}
+
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run auth flows against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
 
 test.describe("Authentication Flows", () => {
   test.beforeEach(async ({ page }) => {

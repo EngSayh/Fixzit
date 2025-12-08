@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -21,9 +22,14 @@ export async function POST(request: NextRequest) {
 
     // Allow both authenticated admins and cron jobs (with secret)
     const cronSecret = request.headers.get("x-cron-secret");
-    const isAuthorized =
-      session?.user?.isSuperAdmin ||
-      (cronSecret && cronSecret === process.env.CRON_SECRET);
+    const configuredSecret = process.env.CRON_SECRET;
+    const cronAuthorized =
+      configuredSecret &&
+      cronSecret &&
+      cronSecret.length === configuredSecret.length &&
+      timingSafeEqual(Buffer.from(cronSecret, "utf-8"), Buffer.from(configuredSecret, "utf-8"));
+
+    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -23,6 +23,9 @@ const VERBOSE = process.argv.includes("--verbose");
 const ENDPOINT_FILTER = process.argv
   .find((arg) => arg.startsWith("--endpoint="))
   ?.split("=")[1];
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+const TEST_ADMIN_IDENTIFIER =
+  process.env.TEST_ADMIN_IDENTIFIER || `admin@test.${EMAIL_DOMAIN}`;
 
 interface TestResult {
   endpoint: string;
@@ -46,7 +49,7 @@ async function authenticateTestUser() {
   try {
     // Use the test admin user
     const loginData = {
-      identifier: "admin@test.fixzit.co",
+      identifier: TEST_ADMIN_IDENTIFIER,
       password: "Test@1234",
     };
     const companyCode =
@@ -357,7 +360,7 @@ async function testAuthEndpoints() {
     "/api/auth/signup",
     {
       body: {
-        email: `test-${timestamp}@fixzit.test`,
+        email: `test-${timestamp}@${EMAIL_DOMAIN}`,
         password: "Test123!@#",
         confirmPassword: "Test123!@#",
         firstName: "Test",
@@ -386,7 +389,7 @@ async function testAuthEndpoints() {
     "/api/auth/otp/send",
     {
       body: {
-        identifier: "admin@test.fixzit.co",
+        identifier: TEST_ADMIN_IDENTIFIER,
         password: "Test@1234",
       },
       skipOnFilter: true,

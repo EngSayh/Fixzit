@@ -1,6 +1,8 @@
 /**
  * Quick Fix for Super Admin Login
  * Directly updates database without complex logic
+ * 
+ * SEC-051: Password now configurable via DEMO_SUPERADMIN_PASSWORD env var
  */
 
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -10,7 +12,8 @@ import bcrypt from 'bcryptjs';
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
-const PASSWORD = 'admin123';
+// SEC-051: Use environment variable with fallback for local dev
+const PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || 'admin123';
 const PHONE = '+966552233456';
 
 async function quickFix() {

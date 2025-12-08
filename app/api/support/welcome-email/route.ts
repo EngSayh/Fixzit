@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import sgMail from "@sendgrid/mail";
@@ -54,7 +55,13 @@ export async function POST(req: NextRequest) {
   // This endpoint should only be called by internal services
   const internalSecret = req.headers.get("x-internal-secret");
   const expectedSecret = process.env.INTERNAL_API_SECRET;
-  if (!expectedSecret || internalSecret !== expectedSecret) {
+  const secretValid =
+    expectedSecret &&
+    internalSecret &&
+    internalSecret.length === expectedSecret.length &&
+    timingSafeEqual(Buffer.from(internalSecret, "utf-8"), Buffer.from(expectedSecret, "utf-8"));
+
+  if (!secretValid) {
     logger.warn("[welcome-email] Unauthorized access attempt", { clientIp });
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }

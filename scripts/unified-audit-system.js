@@ -5,6 +5,8 @@
  * Complete implementation treating the system
  * as ONE integrated platform with three faces
  * ========================================
+ * 
+ * SEC-051: Password now configurable via DEMO_SUPERADMIN_PASSWORD env var
  */
 
 const axios = require("axios");
@@ -14,6 +16,9 @@ const BASE_URL = "http://localhost:5000";
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+
+// SEC-051: Use environment variable with local dev fallback
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
 
 // ============================================
 // UNIFIED PLATFORM DEFINITION
@@ -41,7 +46,7 @@ class FixzitEcosystem {
     try {
       const response = await axios.post(`${BASE_URL}/api/auth/login`, {
         email: `admin@${EMAIL_DOMAIN}`,
-        password: "admin123",
+        password: DEMO_SUPERADMIN_PASSWORD,
       });
       this.authToken = response.data.token;
       console.log("✅ Unified authentication successful");

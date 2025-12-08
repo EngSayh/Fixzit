@@ -3,12 +3,16 @@ import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 import { getDemoEmail } from "../lib/config/demo-users";
 
+// SEC-051: Use environment variables with local dev fallbacks
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
 const initialUsers = [
   {
     code: "USR-001",
     username: "admin",
     email: getDemoEmail("admin"),
-    password: "admin123",
+    password: DEMO_SUPERADMIN_PASSWORD,
     personal: {
       firstName: "System",
       lastName: "Administrator",
@@ -75,7 +79,7 @@ const initialUsers = [
     code: "USR-002",
     username: "manager",
     email: getDemoEmail("manager"),
-    password: "Manager@123",
+    password: DEMO_DEFAULT_PASSWORD,
     personal: {
       firstName: "Ahmed",
       lastName: "Al-Rashid",
@@ -142,7 +146,7 @@ const initialUsers = [
     code: "USR-003",
     username: "technician",
     email: getDemoEmail("technician"),
-    password: "Tech@123",
+    password: DEMO_DEFAULT_PASSWORD,
     personal: {
       firstName: "Mohammed",
       lastName: "Al-Harbi",

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Subscription from "@/server/models/Subscription";
@@ -36,7 +37,14 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret)
+  const provided = req.headers.get("x-cron-secret");
+  const cronSecret = Config.security.cronSecret;
+  if (
+    !cronSecret ||
+    !provided ||
+    provided.length !== cronSecret.length ||
+    !timingSafeEqual(Buffer.from(provided, "utf-8"), Buffer.from(cronSecret, "utf-8"))
+  )
     return createSecureResponse({ error: "UNAUTH" }, 401, req);
   await connectToDatabase();
   const today = new Date();

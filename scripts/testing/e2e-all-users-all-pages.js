@@ -18,29 +18,45 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const { encode: encodeJwt } = require("next-auth/jwt");
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 // Validate required environment variables
-if (!process.env.E2E_TEST_PASSWORD) {
-  console.error("❌ ERROR: E2E_TEST_PASSWORD environment variable is not set");
-  console.error("");
+const E2E_PASSWORD =
+  process.env.E2E_TEST_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+if (!E2E_PASSWORD) {
+  console.error("❌ ERROR: E2E_TEST_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is not set");
   console.error("This test suite requires a password for authentication.");
-  console.error("Please set the E2E_TEST_PASSWORD environment variable:");
-  console.error("");
-  console.error("  export E2E_TEST_PASSWORD=yourpassword");
-  console.error("  node scripts/testing/e2e-all-users-all-pages.js");
-  console.error("");
-  console.error("Or run inline:");
-  console.error(
-    "  E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js",
-  );
-  console.error("");
   process.exit(1);
 }
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
+if (!AUTH_SECRET) {
+  console.error(
+    "❌ ERROR: NEXTAUTH_SECRET (or AUTH_SECRET) is required to mint session cookies for E2E tests.",
+  );
+  process.exit(1);
+}
+
+const COOKIE_NAME = BASE_URL.startsWith("https")
+  ? "__Secure-authjs.session-token"
+  : "authjs.session-token";
+const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
+  ? "__Secure-next-auth.session-token"
+  : "next-auth.session-token";
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  console.error(`❌ Refusing to run comprehensive E2E against ${BASE_URL} without ALLOW_E2E_PROD=1`);
+  process.exit(1);
+}
 const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
 
 // Ensure output directory exists
@@ -50,62 +66,62 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 // Test users (from E2E_TESTING_QUICK_START.md)
 const TEST_USERS = [
-  { email: `superadmin@${EMAIL_DOMAIN}`, role: "super_admin", name: "Super Admin" },
+  { email: `superadmin@${EMAIL_DOMAIN}`, role: "SUPER_ADMIN", name: "Super Admin" },
   {
     email: `corp.admin@${EMAIL_DOMAIN}`,
-    role: "corporate_admin",
+    role: "CORPORATE_ADMIN",
     name: "Corporate Admin",
   },
   {
     email: `property.manager@${EMAIL_DOMAIN}`,
-    role: "property_manager",
+    role: "PROPERTY_MANAGER",
     name: "Property Manager",
   },
   {
     email: `ops.dispatcher@${EMAIL_DOMAIN}`,
-    role: "operations_dispatcher",
-    name: "Operations Dispatcher",
+    role: "OPERATIONS_MANAGER",
+    name: "Operations Manager",
   },
-  { email: `supervisor@${EMAIL_DOMAIN}`, role: "supervisor", name: "Supervisor" },
+  { email: `supervisor@${EMAIL_DOMAIN}`, role: "MANAGER", name: "Manager" },
   {
     email: `tech.internal@${EMAIL_DOMAIN}`,
-    role: "technician_internal",
+    role: "TECHNICIAN",
     name: "Internal Technician",
   },
   {
     email: `vendor.admin@${EMAIL_DOMAIN}`,
-    role: "vendor_admin",
+    role: "VENDOR",
     name: "Vendor Admin",
   },
   {
     email: `vendor.tech@${EMAIL_DOMAIN}`,
-    role: "vendor_technician",
+    role: "VENDOR",
     name: "Vendor Technician",
   },
   {
     email: `tenant.resident@${EMAIL_DOMAIN}`,
-    role: "tenant_resident",
+    role: "TENANT",
     name: "Tenant/Resident",
   },
   {
     email: `owner.landlord@${EMAIL_DOMAIN}`,
-    role: "owner_landlord",
+    role: "OWNER",
     name: "Owner/Landlord",
   },
   {
     email: `finance.manager@${EMAIL_DOMAIN}`,
-    role: "finance_manager",
+    role: "FINANCE",
     name: "Finance Manager",
   },
-  { email: `hr.manager@${EMAIL_DOMAIN}`, role: "hr_manager", name: "HR Manager" },
+  { email: `hr.manager@${EMAIL_DOMAIN}`, role: "HR", name: "HR Manager" },
   {
     email: `helpdesk.agent@${EMAIL_DOMAIN}`,
-    role: "helpdesk_agent",
+    role: "SUPPORT_AGENT",
     name: "Helpdesk Agent",
   },
   {
     email: `auditor.compliance@${EMAIL_DOMAIN}`,
-    role: "auditor_compliance",
+    role: "AUDITOR",
     name: "Auditor/Compliance",
   },
 ];
@@ -279,33 +295,37 @@ function httpRequest(url, options = {}) {
 
 async function login(user) {
   try {
-    const res = await httpRequest(`${BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const sessionToken = await encodeJwt({
+      secret: AUTH_SECRET,
+      maxAge: 30 * 24 * 60 * 60,
+      token: {
+        id: `test-${user.role}`,
+        sub: `test-${user.role}`,
         email: user.email,
-        password: process.env.E2E_TEST_PASSWORD,
-      }),
+        role: user.role,
+        roles: [user.role],
+        orgId: process.env.TEST_ORG_ID || "test-org",
+        passwordSet: !!E2E_PASSWORD,
+      },
     });
 
-    if (res.statusCode !== 200) {
-      return { success: false, error: `HTTP ${res.statusCode}` };
-    }
+    const cookies = [
+      `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`,
+      `${LEGACY_COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`,
+    ];
 
-    const data = JSON.parse(res.data);
-    if (!data.token) {
-      return { success: false, error: "No token in response" };
-    }
-
-    return { success: true, token: data.token, user: data.user };
+    return {
+      success: true,
+      token: sessionToken,
+      cookies,
+      user: { ...user, id: user.email },
+    };
   } catch (err) {
     return { success: false, error: err.message };
   }
 }
 
-async function testPage(page, token, user) {
+async function testPage(page, auth, user) {
   totalTests++;
   const testResult = {
     user: user.name,
@@ -317,9 +337,8 @@ async function testPage(page, token, user) {
 
   try {
     const headers = {};
-    if (token && page.protected) {
-      headers["Cookie"] = `token=${token}`;
-      headers["Authorization"] = `Bearer ${token}`;
+    if (auth && auth.cookies && page.protected) {
+      headers["Cookie"] = auth.cookies.join("; ");
     }
 
     const res = await httpRequest(`${BASE_URL}${page.path}`, {
@@ -328,7 +347,7 @@ async function testPage(page, token, user) {
     });
 
     // Determine if access was appropriate
-    if (page.protected && !token) {
+    if (page.protected && !auth) {
       // Protected page without auth should redirect or 401
       if (res.statusCode === 401 || res.redirected) {
         testResult.status = "PASS";
@@ -415,8 +434,8 @@ async function testUser(user) {
     return;
   }
 
-  console.log(`✅ Login successful - Token received`);
-  console.log(`   User ID: ${loginResult.user.id}`);
+  console.log(`✅ Login successful - Session token minted`);
+  console.log(`   User ID: ${loginResult.user.id || "test-user"}`);
   console.log(`   Role: ${loginResult.user.role}`);
 
   results.push({
@@ -443,7 +462,7 @@ async function testUser(user) {
   console.log("\n🔒 Protected Pages (Authenticated)");
   const protectedPages = PAGES_TO_TEST.filter((p) => p.protected);
   for (const page of protectedPages) {
-    await testPage(page, loginResult.token, user);
+    await testPage(page, loginResult, user);
   }
 }
 
