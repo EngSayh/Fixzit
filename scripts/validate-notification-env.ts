@@ -13,6 +13,8 @@ import { loadEnv } from "@/scripts/utils/load-env";
 
 loadEnv();
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 interface ValidationResult {
   channel: string;
   required: string[];
@@ -267,7 +269,7 @@ function printQuickFixes(results: ValidationResult[]): void {
         console.log("   2. Create API Key → Mail Send permission");
         console.log("   3. Add to .env.local:");
         console.log("      SENDGRID_API_KEY=SG.your_key_here");
-        console.log("      SENDGRID_FROM_EMAIL=noreply@fixzit.co");
+        console.log(`      SENDGRID_FROM_EMAIL=noreply@${EMAIL_DOMAIN}`);
         console.log('      SENDGRID_FROM_NAME="Fixzit Notifications"\n');
         break;
 

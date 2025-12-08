@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createHash } from "crypto";
 
 // Default branding for unauthenticated or fallback scenarios
 // Colors aligned with design tokens from tailwind.config.js
@@ -10,7 +11,12 @@ const DEFAULT_BRANDING = {
   logo: "/img/fixzit-logo.png",
   primaryColor: "#0061A8", // Business.sa primary blue
   secondaryColor: "#00A859", // Fixzit green - aligned with design tokens
+  accentColor: "#00A859",
 };
+
+const CACHE_TTL_MS = 60_000;
+type CachedBranding = { payload: Record<string, unknown>; etag: string; expires: number };
+const brandingCache = new Map<string, CachedBranding>();
 
 /**
  * @openapi
@@ -50,12 +56,41 @@ export async function GET(req: NextRequest) {
       orgId = user.orgId;
     } catch {
       // Unauthenticated - return default branding
-      return NextResponse.json(DEFAULT_BRANDING);
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
     }
 
     if (!orgId) {
       // No org context - return default branding
-      return NextResponse.json(DEFAULT_BRANDING);
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
+    }
+
+    const cached = brandingCache.get(orgId);
+    if (cached && cached.expires > Date.now()) {
+      const res = NextResponse.json(cached.payload);
+      res.headers.set("ETag", cached.etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
     }
 
     // Get the user's organization
@@ -75,21 +110,42 @@ export async function GET(req: NextRequest) {
 
     if (!org) {
       // No org found - return default branding
-      return NextResponse.json(DEFAULT_BRANDING);
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
     }
 
     const orgDoc = org as {
       name?: string;
       logo?: string;
-      branding?: { primaryColor?: string; secondaryColor?: string };
+      branding?: { primaryColor?: string; secondaryColor?: string; accentColor?: string };
     };
 
-    return NextResponse.json({
+    const payload = {
       name: orgDoc?.name || DEFAULT_BRANDING.name,
       logo: orgDoc?.logo || DEFAULT_BRANDING.logo,
       primaryColor: orgDoc?.branding?.primaryColor || DEFAULT_BRANDING.primaryColor,
       secondaryColor: orgDoc?.branding?.secondaryColor || DEFAULT_BRANDING.secondaryColor,
+      accentColor: orgDoc?.branding?.accentColor || DEFAULT_BRANDING.accentColor,
+    };
+
+    const res = NextResponse.json(payload);
+    const etag = createHash("md5").update(JSON.stringify(payload)).digest("hex");
+    res.headers.set("ETag", etag);
+    res.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
+    brandingCache.set(orgId, {
+      payload,
+      etag,
+      expires: Date.now() + CACHE_TTL_MS,
     });
+    return res;
   } catch (error) {
     logger.error("Error fetching organization settings:", error);
     return NextResponse.json(

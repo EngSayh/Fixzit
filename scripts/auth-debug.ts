@@ -2,6 +2,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function main() {
   process.env.NODE_ENV = 'development';
   dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
@@ -67,7 +69,7 @@ async function main() {
   console.log('env NEXTAUTH_REQUIRE_SMS_OTP:', process.env.NEXTAUTH_REQUIRE_SMS_OTP);
   logger.error('logger test error output');
   await connectToDatabase();
-  const user = await User.findOne({ email: 'test-admin@fixzit.co' }).lean();
+  const user = await User.findOne({ email: `test-admin@${EMAIL_DOMAIN}` }).lean();
   console.log('user record:', {
     exists: Boolean(user),
     status: user?.status,
@@ -85,7 +87,7 @@ async function main() {
       console.error('lastLogin update error:', err);
     }
   }
-  const parsed = LoginSchema.safeParse({ identifier: 'test-admin@fixzit.co', password: 'Test@1234', rememberMe: 'on' });
+  const parsed = LoginSchema.safeParse({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' });
   console.log('schema valid:', parsed.success, parsed.success ? parsed.data : parsed.error.flatten());
   const cred = (authConfig.providers as any[]).find((p: any) => p.id === 'credentials');
   console.log('cred provider keys:', cred ? Object.keys(cred) : null);
@@ -95,9 +97,9 @@ async function main() {
   if (cred?.options?.authorize) {
     console.log('options authorize snippet:', cred.options.authorize.toString().slice(0, 200));
   }
-  const res = await cred.authorize({ identifier: 'test-admin@fixzit.co', password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  const res = await cred.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
   console.log('authorize result:', res);
-  const resOptions = await cred.options.authorize({ identifier: 'test-admin@fixzit.co', password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  const resOptions = await cred.options.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
   console.log('options authorize result:', resOptions);
 }
 

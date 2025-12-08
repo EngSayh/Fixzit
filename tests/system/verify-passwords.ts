@@ -4,6 +4,8 @@
 import { db } from '../../lib/mongo';
 import { User } from '../../server/models/User';
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function checkPasswords() {
   // ✅ SECURITY GATE: Only allow in test environment
   if (process.env.NODE_ENV === 'production') {
@@ -26,7 +28,7 @@ async function checkPasswords() {
     }).collection;
 
     const users = await userCollection.find({
-      email: { $in: ['superadmin@fixzit.co', 'admin@fixzit.co'] }
+      email: { $in: [`superadmin@${EMAIL_DOMAIN}`, `admin@${EMAIL_DOMAIN}`] }
     }).toArray();
     
     users.forEach((user) => {

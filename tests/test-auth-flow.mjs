@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env.development" });
 dotenv.config();
@@ -56,7 +58,7 @@ async function testAuthFlow() {
 
     // Simulate credentials from client
     const credentials = {
-      identifier: "admin@fixzit.co",
+      identifier: `admin@${EMAIL_DOMAIN}`,
       password: "password123",
       rememberMe: false,
     };

@@ -13,6 +13,8 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const envTestPath = path.resolve(__dirname, '../.env.test');
 const envPath = fs.existsSync(envTestPath)
   ? envTestPath
@@ -50,7 +52,7 @@ const adminEmployeeId = normalizeEmployeeId('EMP-ADMIN-001', 'EMP-ADMIN-001');
 const TEST_USERS = [
   {
     code: 'TEST-PRIMARY-ADMIN',
-    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co',
+    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
     password: process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234',
     employeeId: primaryEmployeeId,
     phone: process.env.TEST_SUPERADMIN_PHONE || '+966552233456',
@@ -61,7 +63,7 @@ const TEST_USERS = [
   },
   {
     code: 'TEST-RBAC-NONADMIN',
-    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co',
+    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
     password: process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234',
     employeeId: nonAdminEmployeeId,
     phone: process.env.TEST_NONADMIN_PHONE || process.env.TEST_MANAGER_PHONE || '+966552233456',
@@ -72,7 +74,7 @@ const TEST_USERS = [
   },
   {
     code: 'TEST-ADMIN',
-    email: process.env.TEST_ADMIN_IDENTIFIER || 'admin@fixzit.co',
+    email: process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`,
     password: process.env.TEST_ADMIN_PASSWORD || 'Test@1234',
     employeeId: adminEmployeeId,
     phone: process.env.TEST_ADMIN_PHONE || '+966552233456',

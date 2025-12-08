@@ -1755,5 +1755,51 @@ Default branding used `secondaryColor: #1a365d` which didn't match the documente
 
 ---
 
+### ISSUE-045: Header Spoofing in resolveRequestSession - CRITICAL AUTH BYPASS
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `resolveRequestSession()` function in `lib/auth/request-session.ts` accepted `x-user-id`, `x-user-role`, `x-user-email`, and `x-user-org-id` headers WITHOUT any environment check. Any attacker could impersonate any user by sending these headers.
+
+**Files**:
+- `lib/auth/request-session.ts`
+
+**Root Cause**:  
+Header-based auth was intended for tests but lacked NODE_ENV guard.
+
+**Fix Applied**:
+- Wrapped header parsing in `process.env.NODE_ENV === "test"` check
+- Production ignores all x-user-* headers
+- Only real NextAuth session is trusted in production
+
+---
+
+### ISSUE-046: Incoming x-user Headers Not Stripped in Middleware
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The Next.js middleware set `x-user` headers for internal use after validating sessions. However, it did NOT strip incoming `x-user` headers first. An attacker could send spoofed headers that would be passed to API routes.
+
+**Files**:
+- `middleware.ts`
+- `server/middleware/withAuthRbac.ts`
+
+**Root Cause**:  
+Middleware trusted that headers weren't pre-set by external requests.
+
+**Fix Applied**:
+- Added header stripping at start of middleware:
+  - `x-user`, `x-org-id`, `x-impersonated-org-id` always stripped
+  - `x-user-id`, `x-user-role`, `x-user-email`, `x-user-org-id` stripped in production
+- Added security comments in `withAuthRbac.ts` documenting this dependency
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

@@ -16,6 +16,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { Types } from 'mongoose';
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const envTestPath = path.resolve(process.cwd(), '.env.test');
 if (fs.existsSync(envTestPath)) {
   dotenv.config({ path: envTestPath });
@@ -63,7 +65,7 @@ const e2eTestUsers = [
     },
     code: 'TEST-PRIMARY-ADMIN',
     username: PRIMARY_EMPLOYEE_ID,
-    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co',
+    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
     password: PRIMARY_PASSWORD,
     phone: PRIMARY_PHONE,
     employeeId: PRIMARY_EMPLOYEE_ID,
@@ -148,7 +150,7 @@ const e2eTestUsers = [
     },
     code: 'TEST-NONADMIN',
     username: NONADMIN_EMPLOYEE_ID,
-    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co',
+    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
     password: NONADMIN_PASSWORD,
     phone: NONADMIN_PHONE,
     employeeId: NONADMIN_EMPLOYEE_ID,
@@ -233,7 +235,7 @@ const e2eTestUsers = [
     },
     code: 'DEMO-SUPERADMIN',
     username: DEMO_EMPLOYEE_ID,
-    email: 'superadmin@fixzit.co',
+    email: `superadmin@${EMAIL_DOMAIN}`,
     password: DEMO_SUPERADMIN_PASSWORD,
     phone: DEMO_PHONE,
     employeeId: DEMO_EMPLOYEE_ID,
@@ -307,7 +309,7 @@ const e2eTestUsers = [
     envVars: null,
     code: 'DEMO-ADMIN',
     username: normalizeEmployeeId('EMP-DEMO-002'),
-    email: 'admin@fixzit.co',
+    email: `admin@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
     employeeId: normalizeEmployeeId('EMP-DEMO-002'),
@@ -381,7 +383,7 @@ const e2eTestUsers = [
     envVars: null,
     code: 'DEMO-MANAGER',
     username: normalizeEmployeeId('EMP-DEMO-003'),
-    email: 'manager@fixzit.co',
+    email: `manager@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
     employeeId: normalizeEmployeeId('EMP-DEMO-003'),
@@ -455,7 +457,7 @@ const e2eTestUsers = [
     envVars: null,
     code: 'DEMO-EMP001',
     username: normalizeEmployeeId('EMP001'),
-    email: 'emp001@fixzit.co',
+    email: `emp001@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
     employeeId: normalizeEmployeeId('EMP001'),

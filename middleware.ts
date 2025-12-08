@@ -255,6 +255,21 @@ export async function middleware(request: NextRequest) {
     process.env.PLAYWRIGHT_STUB_PAGES === 'true';
   const clientIp = getClientIP(request) || 'unknown';
 
+  // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
+  // These headers are set by middleware ONLY after validating the session
+  // Attackers cannot inject them because we delete them here first
+  const sanitizedHeaders = new Headers(request.headers);
+  sanitizedHeaders.delete('x-user');
+  sanitizedHeaders.delete('x-org-id');
+  sanitizedHeaders.delete('x-impersonated-org-id');
+  // Only strip x-user-id headers in production (tests may use them)
+  if (process.env.NODE_ENV !== 'test') {
+    sanitizedHeaders.delete('x-user-id');
+    sanitizedHeaders.delete('x-user-role');
+    sanitizedHeaders.delete('x-user-email');
+    sanitizedHeaders.delete('x-user-org-id');
+  }
+
   // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
   if (!isPlaywright && pathname === '/api/auth/callback/credentials' && method === 'POST') {
     const entry = loginAttempts.get(clientIp);

@@ -35,19 +35,20 @@ async function loadAuth(): Promise<AuthFn | null> {
 export async function resolveRequestSession(
   request: NextRequest,
 ): Promise<SessionShape | null> {
-  const headerUserId = request.headers.get("x-user-id");
-  if (headerUserId) {
-    return {
-      user: {
-        id: headerUserId,
-        role: request.headers.get("x-user-role") ?? undefined,
-        email: request.headers.get("x-user-email") ?? undefined,
-        orgId: request.headers.get("x-user-org-id") ?? undefined,
-      },
-    };
-  }
-
+  // SECURITY: Only allow x-user-id header spoofing in test environment
+  // In production, these headers are IGNORED to prevent impersonation attacks
   if (process.env.NODE_ENV === "test") {
+    const headerUserId = request.headers.get("x-user-id");
+    if (headerUserId) {
+      return {
+        user: {
+          id: headerUserId,
+          role: request.headers.get("x-user-role") ?? undefined,
+          email: request.headers.get("x-user-email") ?? undefined,
+          orgId: request.headers.get("x-user-org-id") ?? undefined,
+        },
+      };
+    }
     return null;
   }
 

@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
+import { getClientIP } from "@/server/security/headers";
 
 // SECURITY: Zod schema with proper email validation and honeypot field
 const trialRequestSchema = z.object({
@@ -53,6 +54,18 @@ export async function POST(req: NextRequest) {
     phone,
   } = result.data;
 
+  // Secondary rate limit per email to prevent spray attacks
+  const emailRateLimit = enforceRateLimit(req, {
+    keyPrefix: "trial-request:email",
+    identifier: email.toLowerCase(),
+    requests: 3,
+    windowMs: 60_000,
+  });
+  if (emailRateLimit) return emailRateLimit;
+
+  const clientIp = getClientIP(req);
+  const userAgent = req.headers.get("user-agent") || undefined;
+
   try {
     // Best-effort: connect so the request can be persisted
     await connectToDatabase().catch(() => null);
@@ -65,6 +78,8 @@ export async function POST(req: NextRequest) {
         plan: plan || "unspecified",
         message,
         phone,
+        clientIp,
+        userAgent,
         createdAt: new Date(),
       });
     }

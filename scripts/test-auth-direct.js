@@ -4,6 +4,8 @@
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 // Load test environment
 dotenv.config({ path: '.env.test' });
 
@@ -26,7 +28,7 @@ async function testAuth() {
     const UserSchema = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
 
     // 3. Find test user
-    const testEmail = process.env.TEST_USER_EMAIL || 'test-admin@fixzit.co';
+    const testEmail = process.env.TEST_USER_EMAIL || `test-admin@${EMAIL_DOMAIN}`;
     const testPassword = process.env.TEST_USER_PASSWORD || 'Test@1234';
     
     console.log(`👤 Looking for user: ${testEmail}`);

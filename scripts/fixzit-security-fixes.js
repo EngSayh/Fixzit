@@ -8,6 +8,8 @@
 const fs = require("fs").promises;
 const crypto = require("crypto");
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 // Security configuration
 const SECURITY_CONFIG = {
   // Environment variables for sensitive data
@@ -124,7 +126,7 @@ async function seedDatabase() {
     // Create admin user
     const admin = await User.create({
       name: 'System Administrator',
-      email: 'admin@fixzit.com',
+      email: `admin@${EMAIL_DOMAIN}`,
       password: hashedPassword,
       role: 'admin',
       organization: 'Fixzit'

@@ -2,6 +2,8 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) throw new Error("MONGODB_URI missing");
 
@@ -135,7 +137,7 @@ async function seed() {
     // 1. Platform role
     {
       orgId: fixzitOrg._id,
-      email: "superadmin@fixzit.co",
+      email: `superadmin@${EMAIL_DOMAIN}`,
       employeeId: "SA001",
       name: "Super Admin",
       role: "super_admin",
@@ -145,7 +147,7 @@ async function seed() {
     // 2-3. Core admin roles
     {
       orgId: acmeOrg._id,
-      email: "corp.admin@fixzit.co",
+      email: `corp.admin@${EMAIL_DOMAIN}`,
       employeeId: "CA001",
       name: "Corporate Admin",
       role: "corporate_admin",
@@ -153,7 +155,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "property.manager@fixzit.co",
+      email: `property.manager@${EMAIL_DOMAIN}`,
       employeeId: "PM001",
       name: "Property Manager",
       role: "property_manager",
@@ -163,7 +165,7 @@ async function seed() {
     // 4-5. Operations roles
     {
       orgId: acmeOrg._id,
-      email: "dispatcher@fixzit.co",
+      email: `dispatcher@${EMAIL_DOMAIN}`,
       employeeId: "DISP001",
       name: "Operations Dispatcher",
       role: "operations_dispatcher",
@@ -171,7 +173,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "supervisor@fixzit.co",
+      email: `supervisor@${EMAIL_DOMAIN}`,
       employeeId: "SUP001",
       name: "Supervisor",
       role: "supervisor",
@@ -181,7 +183,7 @@ async function seed() {
     // 6. Technical role (internal)
     {
       orgId: acmeOrg._id,
-      email: "technician@fixzit.co",
+      email: `technician@${EMAIL_DOMAIN}`,
       employeeId: "TECH001",
       name: "Technician (Internal)",
       role: "technician_internal",
@@ -191,7 +193,7 @@ async function seed() {
     // 7-8. Vendor roles
     {
       orgId: acmeOrg._id,
-      email: "vendor.admin@fixzit.co",
+      email: `vendor.admin@${EMAIL_DOMAIN}`,
       employeeId: "VEND001",
       name: "Vendor Admin",
       role: "vendor_admin",
@@ -199,7 +201,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "vendor.tech@fixzit.co",
+      email: `vendor.tech@${EMAIL_DOMAIN}`,
       employeeId: "VTECH001",
       name: "Vendor Technician",
       role: "vendor_technician",
@@ -209,7 +211,7 @@ async function seed() {
     // 9-10. Customer roles
     {
       orgId: acmeOrg._id,
-      email: "tenant@fixzit.co",
+      email: `tenant@${EMAIL_DOMAIN}`,
       employeeId: null,
       name: "Tenant / Resident",
       role: "tenant_resident",
@@ -217,7 +219,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "owner@fixzit.co",
+      email: `owner@${EMAIL_DOMAIN}`,
       employeeId: "OWN001",
       name: "Owner / Landlord",
       role: "owner_landlord",
@@ -227,7 +229,7 @@ async function seed() {
     // 11-14. Support & Management roles
     {
       orgId: acmeOrg._id,
-      email: "finance@fixzit.co",
+      email: `finance@${EMAIL_DOMAIN}`,
       employeeId: "FIN001",
       name: "Finance Manager",
       role: "finance_manager",
@@ -235,7 +237,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "hr@fixzit.co",
+      email: `hr@${EMAIL_DOMAIN}`,
       employeeId: "HR001",
       name: "HR Manager",
       role: "hr_manager",
@@ -243,7 +245,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "helpdesk@fixzit.co",
+      email: `helpdesk@${EMAIL_DOMAIN}`,
       employeeId: "HELP001",
       name: "Helpdesk Agent",
       role: "helpdesk_agent",
@@ -251,7 +253,7 @@ async function seed() {
     },
     {
       orgId: acmeOrg._id,
-      email: "auditor@fixzit.co",
+      email: `auditor@${EMAIL_DOMAIN}`,
       employeeId: "AUD001",
       name: "Auditor / Compliance",
       role: "auditor_compliance",

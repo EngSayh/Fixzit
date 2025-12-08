@@ -308,7 +308,10 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     logger.error("Failed to get NextAuth session", { error: e });
   }
 
-  // Inspect middleware-provided x-user header to capture impersonation context
+  // SECURITY: x-user header is ONLY trusted because middleware.ts strips any
+  // externally-provided x-user headers before setting them from validated sessions.
+  // This header is set by Next.js middleware after session validation.
+  // Do NOT remove the header stripping in middleware.ts or this becomes a vulnerability!
   const xUserHeader = req.headers.get("x-user");
   if (xUserHeader) {
     try {

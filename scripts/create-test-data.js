@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 // Connect to MongoDB
 mongoose.connect(
   process.env.MONGODB_URI || "mongodb://localhost:27017/fixzitsouq",
@@ -30,9 +32,9 @@ async function createTestData() {
 
     const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     const admin = await User.findOneAndUpdate(
-      { email: "admin@fixzit.com" },
+      { email: `admin@${EMAIL_DOMAIN}` },
       {
-        email: "admin@fixzit.com",
+        email: `admin@${EMAIL_DOMAIN}`,
         password: hashedPassword,
         name: "Admin User",
         role: "super_admin",
@@ -135,7 +137,7 @@ async function createTestData() {
     });
 
     console.log("\n🎯 Test Credentials:");
-    console.log("Email: admin@fixzit.com");
+    console.log(`Email: admin@${EMAIL_DOMAIN}`);
     console.log("Password: [REDACTED - check .env.local]");
 
     mongoose.connection.close();

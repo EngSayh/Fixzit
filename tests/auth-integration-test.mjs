@@ -12,6 +12,7 @@
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const TEST_PASSWORD = "password123"; // Default test password
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 // ANSI colors for output
 const colors = {
@@ -47,12 +48,12 @@ function logWarning(message) {
 // Test user credentials
 const testUsers = {
   email: {
-    identifier: "admin@fixzit.co",
+    identifier: `admin@${EMAIL_DOMAIN}`,
     password: TEST_PASSWORD,
     type: "email",
   },
   manager: {
-    identifier: "manager@fixzit.co",
+    identifier: `manager@${EMAIL_DOMAIN}`,
     password: TEST_PASSWORD,
     type: "email",
   },
