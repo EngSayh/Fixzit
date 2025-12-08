@@ -28,7 +28,8 @@ if (!PASSWORD_RAW) {
 }
 // TypeScript: After the throw above, this is guaranteed to be a string
 const PASSWORD: string = PASSWORD_RAW;
-const PHONE = '+966552233456';
+// Use non-dialable test number as default (ITU-T E.164 test range)
+const PHONE = process.env.DEMO_SUPERADMIN_PHONE || '+15005550000';
 
 async function quickFix() {
   try {

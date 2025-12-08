@@ -95,13 +95,21 @@ export async function resolveMarketplaceContext(
   let tenantKey: string;
   let orgId: Types.ObjectId;
 
+  // SECURITY: Build public org allowlist from env (comma-separated ObjectIds)
+  // Empty list means NO public access without auth - strict default
+  const publicOrgAllowlistRaw = (process.env.MARKETPLACE_PUBLIC_ORGS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const publicOrgAllowlist = new Set(publicOrgAllowlistRaw);
+
   if (payload && tokenOrgId) {
     // Authenticated user: ALWAYS use token's orgId, ignore headers
     tenantKey = tokenTenantId || tokenOrgId;
     orgId = objectIdFrom(tokenOrgId);
   } else {
-    // Unauthenticated: Allow header/cookie org for public marketplace routes
-    // These routes should have their own access controls for sensitive data
+    // Unauthenticated: Only allow header/cookie org if explicitly allowlisted
+    // SECURITY FIX: Reject untrusted headers unless org is in allowlist
     const headerOrg =
       (await readHeaderValue(req ?? null, "x-org-id")) ||
       (await readHeaderValue(req ?? null, "x-tenant-id"));
@@ -115,11 +123,25 @@ export async function resolveMarketplaceContext(
         "fixzit_tenant",
       ));
 
-    tenantKey = (headerOrg ||
-      cookieOrg ||
-      process.env.MARKETPLACE_DEFAULT_TENANT ||
-      "demo-tenant") as string;
-    orgId = objectIdFrom(tenantKey);
+    const candidateOrg = headerOrg || cookieOrg || process.env.MARKETPLACE_DEFAULT_TENANT;
+    
+    // SECURITY: Validate candidate org against allowlist for unauthenticated access
+    // If no allowlist configured, reject all unauthenticated org access
+    if (!candidateOrg) {
+      // No org provided: default to configured tenant when allowlist is empty, otherwise reject
+      const defaultTenant = publicOrgAllowlist.size === 0 ? process.env.MARKETPLACE_DEFAULT_TENANT : null;
+      tenantKey = defaultTenant || "__unauthorized__";
+      orgId = objectIdFrom(
+        defaultTenant ? defaultTenant : "000000000000000000000000",
+      );
+    } else if (publicOrgAllowlist.size > 0 && !publicOrgAllowlist.has(candidateOrg)) {
+      // Provided org not in allowlist
+      tenantKey = "__unauthorized__";
+      orgId = objectIdFrom("000000000000000000000000");
+    } else {
+      tenantKey = candidateOrg;
+      orgId = objectIdFrom(candidateOrg);
+    }
   }
 
   const userId = (payload as Record<string, unknown> | undefined)?.id

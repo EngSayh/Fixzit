@@ -91,6 +91,8 @@ describe("GET /api/souq/search", () => {
   }
 
   it("applies isActive and org filters with escaping and sets headers", async () => {
+    // Allow org-1 in the allowlist so the search proceeds
+    process.env.MARKETPLACE_PUBLIC_ORGS = "org-1";
     const { GET } = await import("@/app/api/souq/search/route");
     const req = await makeRequest(
       "https://example.com/api/souq/search?q=watch&category=elec\"tronics",

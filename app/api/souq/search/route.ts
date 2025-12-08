@@ -134,18 +134,29 @@ export async function GET(req: NextRequest) {
       sessionUser?.id || marketplaceContext?.correlationId || undefined;
 
     // Allowlist public catalogs via env (comma-separated ObjectIds)
+    // SECURITY FIX: Empty allowlist = NO public access (strict default)
     const publicOrgAllowlist = new Set(
       (process.env.MARKETPLACE_PUBLIC_ORGS || "")
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),
     );
-    const isPublicAllowed =
-      publicOrgAllowlist.size === 0 ||
-      (orgIdFromContext && publicOrgAllowlist.has(orgIdFromContext)) ||
-      Boolean(marketplaceContext?.userId);
+    
+    // SECURITY: Authenticated users (session or marketplace token) are allowed
+    const isAuthenticated = Boolean(sessionUser?.id || marketplaceContext?.userId);
+    
+    // SECURITY: Unauthenticated users must have org in explicit allowlist
+    // Empty allowlist means NO public access without authentication
+    const isPublicAllowed = isAuthenticated || 
+      (orgIdFromContext && 
+       publicOrgAllowlist.size > 0 && 
+       publicOrgAllowlist.has(orgIdFromContext));
+    
+    // SECURITY: Reject unauthorized context marker from resolveMarketplaceContext
+    const isUnauthorizedContext = orgIdFromContext === "000000000000000000000000" || 
+                                   marketplaceContext?.tenantKey === "__unauthorized__";
 
-    if (!orgIdFromContext || !isPublicAllowed) {
+    if (!orgIdFromContext || !isPublicAllowed || isUnauthorizedContext) {
       logger.warn("[Souq Search] Unauthorized org access attempt", {
         orgIdFromContext,
         clientIp,
