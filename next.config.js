@@ -116,6 +116,7 @@ const nextConfig = {
   // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
   experimental: {
     // Enable optimized package imports (reduces bundle size & build time)
+    // 🔧 MEMORY FIX: Added more packages to reduce memory during tree-shaking
     optimizePackageImports: [
       'lucide-react',
       'date-fns',
@@ -123,6 +124,13 @@ const nextConfig = {
       'framer-motion',
       'sonner',
       'react-day-picker',
+      // Additional heavy packages to optimize
+      '@tanstack/react-query',
+      'react-hook-form',
+      'zod',
+      '@hookform/resolvers',
+      'clsx',
+      'tailwind-merge',
     ],
     // Use 1 CPU for build to prevent OOM kills in memory-constrained environments
     // Root Cause: Limited RAM - Multi-threaded builds cause memory spikes
@@ -136,6 +144,8 @@ const nextConfig = {
     webpackMemoryOptimizations: true,
     // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
     parallelServerCompiles: false,
+    // 🔧 MEMORY FIX: Reduce parallel server builds
+    parallelServerBuildTraces: false,
   },
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
@@ -335,6 +345,19 @@ const nextConfig = {
 
     config.plugins = config.plugins || [];
     config.plugins.push(new EnsureManifestsPlugin());
+
+    // 🔧 MEMORY FIX: Configure webpack cache to use filesystem instead of memory
+    // This reduces memory pressure during large builds by writing cache to disk
+    if (!dev) {
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+        compression: false, // Avoid compression overhead
+        maxMemoryGenerations: 1, // Minimize memory retention
+      };
+    }
 
     // Production-only webpack optimizations below
     const otelShim = resolveFromRoot('lib/vendor/opentelemetry/global-utils.js');
