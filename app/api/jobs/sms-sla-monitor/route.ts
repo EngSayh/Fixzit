@@ -84,7 +84,13 @@ export async function GET(request: NextRequest) {
   try {
     const correlationId = request.headers.get("x-correlation-id") || randomUUID();
     const clientIp = getClientIP(request);
-    const rl = await smartRateLimit(`/api/jobs/sms-sla-monitor:${clientIp}:GET`, 30, 60_000);
+    const url = new URL(request.url);
+    const orgId = url.searchParams.get("orgId") || undefined;
+    const rl = await smartRateLimit(
+      `/api/jobs/sms-sla-monitor:${clientIp}:${orgId ?? "all"}:GET`,
+      30,
+      60_000
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -98,8 +104,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const url = new URL(request.url);
-    const orgId = url.searchParams.get("orgId") || undefined;
     const sinceParam = url.searchParams.get("since");
     const since = sinceParam ? new Date(sinceParam) : undefined;
 

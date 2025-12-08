@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
   try {
     const correlationId = request.headers.get("x-correlation-id") || randomUUID();
     const clientIp = getClientIP(request);
-    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:GET`, 30, 60_000);
+    const orgIdParam = request.nextUrl.searchParams.get("orgId") || "all";
+    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:${orgIdParam}:GET`, 30, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -173,22 +174,34 @@ export async function GET(request: NextRequest) {
  * - messageId: For single message actions
  * - orgId: For org-scoped actions
  */
-const ActionSchema = z.object({
-  action: z.enum(["retry", "retry-all-failed", "cancel"]),
-  messageId: z.string().optional(),
-  orgId: z.string().optional(),
-  limit: z.number().int().min(1).max(500).optional(),
-});
+const ActionSchema = z
+  .object({
+    action: z.enum(["retry", "retry-all-failed", "cancel"]),
+    messageId: z.string().optional(),
+    orgId: z.string().optional(),
+    limit: z.number().int().min(1).max(500).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.action === "retry" || value.action === "cancel") && (!value.messageId || !value.orgId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "messageId and orgId are required for retry/cancel",
+        path: ["messageId"],
+      });
+    }
+    if (value.action === "retry-all-failed" && !value.orgId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "orgId is required for retry-all-failed",
+        path: ["orgId"],
+      });
+    }
+  });
 
 export async function POST(request: NextRequest) {
   try {
     const correlationId = request.headers.get("x-correlation-id") || randomUUID();
     const clientIp = getClientIP(request);
-    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:POST`, 15, 60_000);
-    if (!rl.allowed) {
-      return rateLimitError();
-    }
-
     const session = await auth();
 
     if (!session?.user) {
@@ -207,6 +220,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = ActionSchema.safeParse(body);
 
+    const rl = await smartRateLimit(
+      `/api/admin/sms:${clientIp}:${parsed.success ? parsed.data.orgId ?? "all" : "unknown"}:POST`,
+      15,
+      60_000
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request", details: parsed.error.flatten() },
@@ -218,17 +240,18 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "retry": {
-        if (!messageId) {
+        if (!messageId || !orgId) {
           return NextResponse.json(
-            { error: "messageId required for retry action" },
+            { error: "messageId and orgId required for retry action" },
             { status: 400 }
           );
         }
 
-        const message = await SMSMessage.findById(messageId);
+        // 🔐 STRICT v4.1: For admin ops, use org-scoped queries
+        const message = await SMSMessage.findOne({ _id: messageId, orgId });
         if (!message) {
           return NextResponse.json(
-            { error: "Message not found" },
+            { error: "Message not found for org" },
             { status: 404 }
           );
         }
@@ -240,10 +263,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // 🔐 STRICT v4.1: All updates use org-scoped filter
+        const orgScopedFilter = { _id: messageId, orgId: message.orgId };
         const queue = getSMSQueue();
         const nextStatus = queue ? "QUEUED" : "PENDING";
 
-        await SMSMessage.findByIdAndUpdate(messageId, {
+        await SMSMessage.findOneAndUpdate(orgScopedFilter, {
           status: nextStatus,
           retryCount: 0,
           nextRetryAt: new Date(),
@@ -305,17 +330,17 @@ export async function POST(request: NextRequest) {
       }
 
       case "cancel": {
-        if (!messageId) {
+        if (!messageId || !orgId) {
           return NextResponse.json(
-            { error: "messageId required for cancel action" },
+            { error: "messageId and orgId required for cancel action" },
             { status: 400 }
           );
         }
 
-        const message = await SMSMessage.findById(messageId);
+        const message = await SMSMessage.findOne({ _id: messageId, orgId });
         if (!message) {
           return NextResponse.json(
-            { error: "Message not found" },
+            { error: "Message not found for org" },
             { status: 404 }
           );
         }
@@ -330,8 +355,13 @@ export async function POST(request: NextRequest) {
         // 🚫 FIXED: Remove all pending BullMQ jobs to prevent post-cancel delivery
         const removedJobs = await removePendingSMSJobs(messageId);
 
+        // 🔐 STRICT v4.1: Use org-scoped filter for cancel update
+        const cancelFilter = message.orgId
+          ? { _id: messageId, orgId: message.orgId }
+          : { _id: messageId };
+
         // Set expiresAt to now to ensure date-based expiry covers edge cases
-        await SMSMessage.findByIdAndUpdate(messageId, {
+        await SMSMessage.findOneAndUpdate(cancelFilter, {
           status: "EXPIRED",
           expiresAt: new Date(),
         });

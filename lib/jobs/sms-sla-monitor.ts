@@ -41,6 +41,7 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
       status: { $in: ["PENDING", "QUEUED", "SENT"] },
       slaBreached: false,
       slaTargetMs: { $exists: true, $gt: 0 },
+      orgId: { $exists: true },
     }).lean();
 
     report.totalChecked = pendingMessages.length;
@@ -53,10 +54,13 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
 
       if (message.slaTargetMs && elapsed > message.slaTargetMs) {
         // Mark as breached
-        await SMSMessage.findByIdAndUpdate(message._id, {
-          slaBreached: true,
-          slaBreachAt: now,
-        });
+        await SMSMessage.findOneAndUpdate(
+          { _id: message._id, orgId: message.orgId },
+          {
+            slaBreached: true,
+            slaBreachAt: now,
+          }
+        );
 
         report.newBreaches++;
 

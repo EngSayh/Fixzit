@@ -296,10 +296,14 @@ SMSMessageSchema.statics.recordAttempt = async function (
 
 SMSMessageSchema.statics.markDelivered = async function (
   providerMessageId: string,
-  deliveredAt?: Date
+  deliveredAt?: Date,
+  orgId?: string
 ): Promise<ISMSMessage | null> {
+  const filter: Record<string, unknown> = { providerMessageId, status: "SENT" };
+  if (orgId) filter.orgId = orgId;
+
   return this.findOneAndUpdate(
-    { providerMessageId, status: "SENT" },
+    filter,
     {
       $set: {
         status: "DELIVERED",
@@ -324,7 +328,8 @@ interface SMSMessageStatics {
   ): Promise<ISMSMessage | null>;
   markDelivered(
     providerMessageId: string,
-    deliveredAt?: Date
+    deliveredAt?: Date,
+    orgId?: string
   ): Promise<ISMSMessage | null>;
 }
 

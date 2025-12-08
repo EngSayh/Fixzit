@@ -287,7 +287,7 @@ export async function queueSMS(options: {
       orgId,
       toMasked: maskPhone(to),
     });
-    await processSMSJob(smsMessage._id.toString());
+    await processSMSJob(smsMessage._id.toString(), orgId);
     return { messageId: smsMessage._id.toString(), queued: false };
   }
 
@@ -367,7 +367,7 @@ export async function enqueueExistingSMS(
   const messageId = typeof message._id === "string" ? message._id : message._id.toString();
 
   if (!queue) {
-    await processSMSJob(messageId);
+    await processSMSJob(messageId, message.orgId as unknown as string | undefined);
     return;
   }
 
@@ -407,24 +407,34 @@ export async function enqueueExistingSMS(
 
 /**
  * Process a single SMS job
+ * @param messageId - The SMS message ID to process
+ * @param expectedOrgId - Optional orgId to validate against (for strict tenant isolation)
  */
-async function processSMSJob(messageId: string): Promise<void> {
+async function processSMSJob(messageId: string, expectedOrgId?: string): Promise<void> {
   await connectToDatabase();
 
-  const message = await SMSMessage.findById(messageId);
+  // 🔐 STRICT v4.1: Use orgId scoping when available to prevent cross-tenant access
+  const query = expectedOrgId
+    ? { _id: messageId, orgId: expectedOrgId }
+    : { _id: messageId };
+
+  const message = await SMSMessage.findOne(query);
   if (!message) {
-    logger.error("[SMS Queue] Message not found", { messageId });
+    logger.error("[SMS Queue] Message not found or org mismatch", { messageId, expectedOrgId });
     return;
   }
 
   if (!message.orgId) {
-    await SMSMessage.findByIdAndUpdate(messageId, {
-      status: "FAILED",
-      lastError: "Missing orgId",
-    });
+    await SMSMessage.findOneAndUpdate(
+      { _id: messageId },
+      { status: "FAILED", lastError: "Missing orgId" }
+    );
     logger.error("[SMS Queue] Missing orgId on message; aborting", { messageId });
     return;
   }
+
+  // 🔐 STRICT v4.1: All subsequent updates use org-scoped filter
+  const orgScopedFilter = { _id: messageId, orgId: message.orgId };
 
   // Skip messages that are expired/cancelled before processing
   if (message.status === "EXPIRED") {
@@ -437,7 +447,7 @@ async function processSMSJob(messageId: string): Promise<void> {
 
   // Respect max retry policy and terminal failure states to avoid double sends/costs
   if (message.status === "FAILED" || message.retryCount >= message.maxRetries) {
-    await SMSMessage.findByIdAndUpdate(messageId, { status: "FAILED" });
+    await SMSMessage.findOneAndUpdate(orgScopedFilter, { status: "FAILED" });
     logger.warn("[SMS Queue] Max retries reached; skipping send", {
       messageId,
       orgId: message.orgId,
@@ -450,7 +460,7 @@ async function processSMSJob(messageId: string): Promise<void> {
 
   // Check if expired
   if (message.expiresAt && new Date() > message.expiresAt) {
-    await SMSMessage.findByIdAndUpdate(messageId, { status: "EXPIRED" });
+    await SMSMessage.findOneAndUpdate(orgScopedFilter, { status: "EXPIRED" });
     logger.warn("[SMS Queue] Message expired", { messageId, orgId: message.orgId });
     return;
   }
@@ -468,7 +478,7 @@ async function processSMSJob(messageId: string): Promise<void> {
     const queue = getSMSQueue();
     const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[message.priority];
 
-    await SMSMessage.findByIdAndUpdate(messageId, {
+    await SMSMessage.findOneAndUpdate(orgScopedFilter, {
       status: "PENDING",
       nextRetryAt: new Date(Date.now() + delayMs),
     });
@@ -631,7 +641,7 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,
     async (job: Job<ISMSJobData>) => {
-      await processSMSJob(job.data.messageId);
+      await processSMSJob(job.data.messageId, job.data.orgId);
     },
     {
       connection: connection as Redis,
@@ -735,13 +745,17 @@ export async function retryFailedMessages(orgId?: string, limit = 100): Promise<
 
     if (msg.retryCount < msg.maxRetries) {
       const nextStatus = queue ? "QUEUED" : "PENDING";
-      await SMSMessage.findByIdAndUpdate(msg._id, {
-        status: nextStatus,
-        retryCount: 0,
-        nextRetryAt: new Date(),
-        lastError: null,
-        lastErrorCode: null,
-      });
+      // 🔐 STRICT v4.1: Use org-scoped filter for updates
+      await SMSMessage.findOneAndUpdate(
+        { _id: msg._id, orgId: msg.orgId },
+        {
+          status: nextStatus,
+          retryCount: 0,
+          nextRetryAt: new Date(),
+          lastError: null,
+          lastErrorCode: null,
+        }
+      );
 
       // Clean up any pending jobs to avoid duplicate sends after retry
       await removePendingSMSJobs(msg._id.toString());

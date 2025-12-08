@@ -36,11 +36,12 @@ interface ReadinessStatus {
 }
 
 export async function GET(): Promise<NextResponse> {
+  const redisConfigured = Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
   const status: ReadinessStatus = {
     ready: false,
     checks: {
       mongodb: "error",
-      redis: "disabled",
+      redis: redisConfigured ? "error" : "disabled",
     },
     latency: {},
     timestamp: new Date().toISOString(),
@@ -78,29 +79,36 @@ export async function GET(): Promise<NextResponse> {
 
     // Check Redis (optional - if configured)
     const redisClient = getRedisClient();
-    if (redisClient) {
-      const redisStart = Date.now();
-      try {
-        await withTimeout(
-          async () => {
-            await redisClient.ping();
-          },
-          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
-        );
-        status.checks.redis = "ok";
-        status.latency.redis = Date.now() - redisStart;
-      } catch (redisError) {
-        status.latency.redis = Date.now() - redisStart;
-        const isTimeout = redisError instanceof Error && redisError.message.includes("timeout");
-        status.checks.redis = isTimeout ? "timeout" : "error";
-        logger.warn("[Health/Ready] Redis check failed", {
-          error: redisError instanceof Error ? redisError.message : String(redisError),
-        });
+    if (redisConfigured) {
+      if (redisClient) {
+        const redisStart = Date.now();
+        try {
+          await withTimeout(
+            async () => {
+              await redisClient.ping();
+            },
+            { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
+          );
+          status.checks.redis = "ok";
+          status.latency.redis = Date.now() - redisStart;
+        } catch (redisError) {
+          status.latency.redis = Date.now() - redisStart;
+          const isTimeout = redisError instanceof Error && redisError.message.includes("timeout");
+          status.checks.redis = isTimeout ? "timeout" : "error";
+          logger.warn("[Health/Ready] Redis check failed", {
+            error: redisError instanceof Error ? redisError.message : String(redisError),
+          });
+        }
+      } else {
+        status.checks.redis = "error";
+        logger.warn("[Health/Ready] Redis configured but client unavailable");
       }
     }
 
-    // Ready if MongoDB is OK (Redis is optional)
-    status.ready = status.checks.mongodb === "ok";
+    // Ready if MongoDB is OK and Redis (when configured) is OK
+    status.ready =
+      status.checks.mongodb === "ok" &&
+      (!redisConfigured || status.checks.redis === "ok");
 
     if (status.ready) {
       return NextResponse.json(status, { status: 200 });

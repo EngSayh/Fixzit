@@ -1,10 +1,23 @@
-import { vi } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 /**
  * Test framework: Vitest (TypeScript)
  */
 
 import path from 'node:path'
 import url from 'node:url'
+
+let exitSpy: ReturnType<typeof vi.spyOn> | undefined
+const originalCI = process.env.CI
+const originalAllowSeed = process.env.ALLOW_SEED
+
+// 🔐 CI-SAFE: Set env vars BEFORE any imports to bypass seed-marketplace-shared.js guard
+beforeAll(() => {
+  // Disable CI detection and enable seeding for tests
+  process.env.CI = 'false';
+  process.env.ALLOW_SEED = '1';
+  process.env.NODE_ENV = 'test';
+  exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined as never));
+});
 
 /**
  * We import the seed-marketplace.ts module.
@@ -78,6 +91,20 @@ beforeEach(() => {
 afterEach(() => {
   consoleSpy.mockRestore()
   delete globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__
+})
+
+afterAll(() => {
+  exitSpy?.mockRestore()
+  if (originalCI === undefined) {
+    delete process.env.CI
+  } else {
+    process.env.CI = originalCI
+  }
+  if (originalAllowSeed === undefined) {
+    delete process.env.ALLOW_SEED
+  } else {
+    process.env.ALLOW_SEED = originalAllowSeed
+  }
 })
 
 async function importTargetModule(): Promise<SeedModule> {
@@ -201,6 +228,7 @@ describe('seed-marketplace script', () => {
       x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant'
     ) as Doc | undefined
     expect(product).toBeTruthy()
+    if (!product) throw new Error('Product not found'); // TypeScript guard
     expect(product).toMatchObject({
       tenantId: 'demo-tenant',
       sku: 'CEM-001-50',
@@ -215,9 +243,9 @@ describe('seed-marketplace script', () => {
     expect(product.searchable).toEqual(
       expect.objectContaining({ en: expect.stringContaining('Portland Cement') })
     )
-    expect((product as { _id?: unknown })._id).toBeDefined()
-    expect((product as { createdAt?: unknown }).createdAt).toBeDefined()
-    expect((product as { updatedAt?: unknown }).updatedAt).toBeDefined()
+    expect(product._id).toBeDefined()
+    expect(product.createdAt).toBeDefined()
+    expect(product.updatedAt).toBeDefined()
 
     // Verify console side effect
   })

@@ -117,22 +117,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ignored: true });
     }
 
-    // Find and update the message
+    // Find and update the message (org-scoped to prevent cross-tenant leakage)
     const message = await SMSMessage.findOne({ providerMessageId: MessageSid });
     if (!message) {
       logger.warn("[Twilio Webhook] Message not found", { messageSid: MessageSid });
       return NextResponse.json({ success: true, notFound: true });
     }
+    const orgScopedFilter = { _id: message._id, orgId: message.orgId };
 
     // Update based on status
     if (ourStatus === "DELIVERED") {
-      await SMSMessage.markDelivered(MessageSid, new Date());
+      await SMSMessage.markDelivered(MessageSid, new Date(), message.orgId);
       logger.info("[Twilio Webhook] Message marked as delivered", {
         messageId: message._id.toString(),
         messageSid: MessageSid,
       });
     } else if (ourStatus === "FAILED") {
-      await SMSMessage.findByIdAndUpdate(message._id, {
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
         status: "FAILED",
         lastError: ErrorMessage || `Twilio error: ${ErrorCode}`,
         lastErrorCode: ErrorCode,
