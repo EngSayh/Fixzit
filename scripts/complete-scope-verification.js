@@ -18,7 +18,7 @@ async function getAuthToken() {
 
 async function testAllEndpoints() {
   console.log("\n🔍 COMPLETE SCOPE VERIFICATION - ALL 80+ ENDPOINTS\n");
-  console.log("=" * 60);
+  console.log("=".repeat(60));
 
   const token = await getAuthToken();
   if (!token) {

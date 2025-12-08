@@ -1,4 +1,7 @@
 // Simple React App - No external dependencies
+// 🔐 NOTE: Email domain is hardcoded since this runs in browser context.
+// For rebranding, update EMAIL_DOMAIN below to use the appropriate domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || "fixzit.com";
 console.log("App.js loading...");
 
 // Wait for React to load
@@ -29,7 +32,7 @@ function initializeApp() {
       this.setState({
         user: {
           name: "Demo User",
-          email: "demo@fixzit.com",
+          email: `demo@${EMAIL_DOMAIN}`,
           role: "admin",
         },
       });
@@ -173,7 +176,7 @@ function initializeApp() {
                 this.setState({
                   user: {
                     name: "Demo User",
-                    email: "demo@fixzit.com",
+                    email: `demo@${EMAIL_DOMAIN}`,
                     role: "admin",
                   },
                 }),

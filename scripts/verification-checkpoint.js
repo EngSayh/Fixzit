@@ -6,6 +6,9 @@
  * Only fix what's actually broken, not what "could be improved".
  */
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+
 const VERIFICATION_CHECKPOINT = {
   name: "FIXZIT SOUQ - DO NOT MODIFY IF WORKING",
   version: "1.0.0",
@@ -41,7 +44,7 @@ async function quickHealthCheck() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: "admin@fixzit.com",
+        email: `admin@${EMAIL_DOMAIN}`,
         password: "Admin@1234",
       }),
     });

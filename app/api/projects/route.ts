@@ -81,7 +81,7 @@ async function getAuthenticatedUser(req: NextRequest): Promise<
     return {
       id: user.id,
       orgId: user.orgId,
-      tenantId: user.tenantId ?? user.orgId,
+      tenantId: user.tenantId,
     };
   } catch {
     return null;

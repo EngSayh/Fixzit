@@ -12,6 +12,9 @@ require("dotenv").config();
 
 const BASE_URL = "http://localhost:5000";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+
 // ============================================
 // UNIFIED PLATFORM DEFINITION
 // ============================================
@@ -37,7 +40,7 @@ class FixzitEcosystem {
   async authenticate() {
     try {
       const response = await axios.post(`${BASE_URL}/api/auth/login`, {
-        email: "admin@fixzit.com",
+        email: `admin@${EMAIL_DOMAIN}`,
         password: "admin123",
       });
       this.authToken = response.data.token;

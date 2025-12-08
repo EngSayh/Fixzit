@@ -1,6 +1,9 @@
 /* eslint-disable no-global-assign */
 // MongoDB initialization script
 // This runs when the MongoDB container starts for the first time
+// 🔐 NOTE: Email domain is hardcoded here since this runs in MongoDB shell context.
+// For rebranding, update emails below to use the appropriate domain (e.g., business.sa)
+const EMAIL_DOMAIN = "fixzit.app"; // Change this for rebranding
 
 db = db.getSiblingDB("fixzit");
 
@@ -58,7 +61,7 @@ db.organizations.insertOne(defaultOrg);
 
 const adminUser = {
   _id: ObjectId(),
-  email: "admin@fixzit.app",
+  email: "admin@" + EMAIL_DOMAIN,
   name: "System Administrator",
   orgId: defaultOrg._id.toString(),
   role: "SUPER_ADMIN",
@@ -73,4 +76,4 @@ db.users.insertOne(adminUser);
 
 print("MongoDB initialization complete!");
 print("Default organization created: demo-tenant");
-print("Admin user: admin@fixzit.app / Admin@123");
+print("Admin user: admin@" + EMAIL_DOMAIN + " / Admin@123");

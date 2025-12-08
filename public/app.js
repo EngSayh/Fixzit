@@ -1,4 +1,8 @@
 // Fixzit Souq Enterprise Platform - Frontend Application
+// 🔐 NOTE: Email domain is hardcoded since this runs in browser context.
+// For rebranding, update EMAIL_DOMAIN below to use the appropriate domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || "fixzit.com";
+
 class FixzitApp {
   constructor() {
     this.token = localStorage.getItem("fixzit_token");
@@ -143,7 +147,7 @@ class FixzitApp {
       // Pre-fill credentials only in development (NOT FOR PRODUCTION)
       // Removed hardcoded password for security. Use browser autofill or password manager.
       if (emailInput && passwordInput) {
-        emailInput.value = "admin@fixzit.com";
+        emailInput.value = `admin@${EMAIL_DOMAIN}`;
         // Password must be entered manually - no default for security
       }
     } else {

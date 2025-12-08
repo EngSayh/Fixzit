@@ -19,6 +19,9 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 // Validate required environment variables
 if (!process.env.E2E_TEST_PASSWORD) {
   console.error("❌ ERROR: E2E_TEST_PASSWORD environment variable is not set");
@@ -47,61 +50,61 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 // Test users (from E2E_TESTING_QUICK_START.md)
 const TEST_USERS = [
-  { email: "superadmin@fixzit.co", role: "super_admin", name: "Super Admin" },
+  { email: `superadmin@${EMAIL_DOMAIN}`, role: "super_admin", name: "Super Admin" },
   {
-    email: "corp.admin@fixzit.co",
+    email: `corp.admin@${EMAIL_DOMAIN}`,
     role: "corporate_admin",
     name: "Corporate Admin",
   },
   {
-    email: "property.manager@fixzit.co",
+    email: `property.manager@${EMAIL_DOMAIN}`,
     role: "property_manager",
     name: "Property Manager",
   },
   {
-    email: "ops.dispatcher@fixzit.co",
+    email: `ops.dispatcher@${EMAIL_DOMAIN}`,
     role: "operations_dispatcher",
     name: "Operations Dispatcher",
   },
-  { email: "supervisor@fixzit.co", role: "supervisor", name: "Supervisor" },
+  { email: `supervisor@${EMAIL_DOMAIN}`, role: "supervisor", name: "Supervisor" },
   {
-    email: "tech.internal@fixzit.co",
+    email: `tech.internal@${EMAIL_DOMAIN}`,
     role: "technician_internal",
     name: "Internal Technician",
   },
   {
-    email: "vendor.admin@fixzit.co",
+    email: `vendor.admin@${EMAIL_DOMAIN}`,
     role: "vendor_admin",
     name: "Vendor Admin",
   },
   {
-    email: "vendor.tech@fixzit.co",
+    email: `vendor.tech@${EMAIL_DOMAIN}`,
     role: "vendor_technician",
     name: "Vendor Technician",
   },
   {
-    email: "tenant.resident@fixzit.co",
+    email: `tenant.resident@${EMAIL_DOMAIN}`,
     role: "tenant_resident",
     name: "Tenant/Resident",
   },
   {
-    email: "owner.landlord@fixzit.co",
+    email: `owner.landlord@${EMAIL_DOMAIN}`,
     role: "owner_landlord",
     name: "Owner/Landlord",
   },
   {
-    email: "finance.manager@fixzit.co",
+    email: `finance.manager@${EMAIL_DOMAIN}`,
     role: "finance_manager",
     name: "Finance Manager",
   },
-  { email: "hr.manager@fixzit.co", role: "hr_manager", name: "HR Manager" },
+  { email: `hr.manager@${EMAIL_DOMAIN}`, role: "hr_manager", name: "HR Manager" },
   {
-    email: "helpdesk.agent@fixzit.co",
+    email: `helpdesk.agent@${EMAIL_DOMAIN}`,
     role: "helpdesk_agent",
     name: "Helpdesk Agent",
   },
   {
-    email: "auditor.compliance@fixzit.co",
+    email: `auditor.compliance@${EMAIL_DOMAIN}`,
     role: "auditor_compliance",
     name: "Auditor/Compliance",
   },

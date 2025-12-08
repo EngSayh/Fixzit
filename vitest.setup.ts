@@ -112,12 +112,15 @@ vi.mock("bcryptjs", () => ({
 }));
 
 // MOCK NEXT-AUTH (Fixes 'useSession' errors)
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const TEST_EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 vi.mock("next-auth/react", () => ({
   useSession: vi.fn(() => ({
     data: {
       user: {
         id: "test-user-id",
-        email: "admin@fixzit.co",
+        email: `admin@${TEST_EMAIL_DOMAIN}`,
         name: "Test Admin",
         role: "SUPER_ADMIN",
         orgId: "test-org-id",

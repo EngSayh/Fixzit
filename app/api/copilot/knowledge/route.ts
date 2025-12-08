@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
@@ -59,7 +60,14 @@ export async function POST(req: NextRequest) {
   }
 
   const provided = req.headers.get("x-webhook-secret");
-  if (!provided || provided !== secret) {
+  if (!provided || provided.length !== secret.length) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  const providedBuffer = Buffer.from(provided, "utf-8");
+  const secretBuffer = Buffer.from(secret, "utf-8");
+
+  if (!timingSafeEqual(providedBuffer, secretBuffer)) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 

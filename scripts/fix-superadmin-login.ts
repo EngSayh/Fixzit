@@ -1,7 +1,7 @@
 /**
  * Fix Super Admin Login Issue
  * 
- * Diagnoses and fixes login issues for superadmin@fixzit.co
+ * Diagnoses and fixes login issues for superadmin account
  * Common issues:
  * 1. Missing or invalid phone number (needed for OTP)
  * 2. Incorrect password hash
@@ -13,7 +13,9 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import bcrypt from 'bcryptjs';
 
-const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
 const EXPECTED_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 const FALLBACK_PHONE = process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966552233456'; // Updated to user's number
 

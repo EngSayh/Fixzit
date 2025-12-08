@@ -1652,6 +1652,7 @@ Route was designed as an internal service endpoint but lacked any authentication
 - Internal services must include `x-internal-secret` header
 
 **Code Change**:
+
 ```typescript
 export async function POST(request: NextRequest) {
   // Require internal API secret for security

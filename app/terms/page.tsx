@@ -71,7 +71,7 @@ Any disputes shall be resolved through:
 
 ## Contact
 For questions about these terms:
-- Email: \${EMAIL_DOMAINS.legal}
+- Email: ${EMAIL_DOMAINS.legal}
 - Phone: +966 XX XXX XXXX
 
 ## Severability

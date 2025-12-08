@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 require("dotenv").config({ path: ".env.local" });
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.com";
+
 console.log("\n=== PHASE 1.2: AUTHENTICATION CONFIG VERIFICATION ===\n");
 
 const results = {
@@ -39,7 +42,7 @@ try {
   console.log("\n[4/4] Testing JWT operations...");
   const token = generateToken({
     id: "123",
-    email: "test@fixzit.com",
+    email: `test@${EMAIL_DOMAIN}`,
     role: "super_admin",
     orgId: "456",
   });

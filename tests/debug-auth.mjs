@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
-
 // Load environment variables
 dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env.development" });
 dotenv.config();
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 async function debugAuth() {
   try {

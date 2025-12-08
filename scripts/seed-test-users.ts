@@ -35,43 +35,46 @@ const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 const DEFAULT_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
 
-const PRIMARY_EMAIL = process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co';
+const PRIMARY_EMAIL = process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`;
 const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234';
 const PRIMARY_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001');
 const PRIMARY_PHONE = process.env.TEST_SUPERADMIN_PHONE || DEFAULT_PHONE;
 
-const NONADMIN_EMAIL = process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co';
+const NONADMIN_EMAIL = process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`;
 const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234';
 const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100');
 const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || DEFAULT_PHONE;
 
-const ADMIN_EMAIL = process.env.TEST_ADMIN_IDENTIFIER || 'admin@fixzit.co';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`;
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Test@1234';
 const ADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_ADMIN_EMPLOYEE || 'EMP-ADMIN-001');
 const ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || DEFAULT_PHONE;
 
-const TECH_EMAIL = process.env.TEST_TECHNICIAN_IDENTIFIER || 'technician@test.fixzit.co';
+const TECH_EMAIL = process.env.TEST_TECHNICIAN_IDENTIFIER || `technician@test.${EMAIL_DOMAIN}`;
 const TECH_PASSWORD = process.env.TEST_TECHNICIAN_PASSWORD || PRIMARY_PASSWORD;
 const TECH_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_TECHNICIAN_EMPLOYEE || 'EMP-TEST-004');
 const TECH_PHONE = process.env.TEST_TECHNICIAN_PHONE || DEFAULT_PHONE;
 
-const TENANT_EMAIL = process.env.TEST_TENANT_IDENTIFIER || 'tenant@test.fixzit.co';
+const TENANT_EMAIL = process.env.TEST_TENANT_IDENTIFIER || `tenant@test.${EMAIL_DOMAIN}`;
 const TENANT_PASSWORD = process.env.TEST_TENANT_PASSWORD || PRIMARY_PASSWORD;
 const TENANT_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_TENANT_EMPLOYEE || 'EMP-TEST-005');
 const TENANT_PHONE = process.env.TEST_TENANT_PHONE || DEFAULT_PHONE;
 
-const VENDOR_EMAIL = process.env.TEST_VENDOR_IDENTIFIER || 'vendor@test.fixzit.co';
+const VENDOR_EMAIL = process.env.TEST_VENDOR_IDENTIFIER || `vendor@test.${EMAIL_DOMAIN}`;
 const VENDOR_PASSWORD = process.env.TEST_VENDOR_PASSWORD || PRIMARY_PASSWORD;
 const VENDOR_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_VENDOR_EMPLOYEE || 'EMP-TEST-006');
 const VENDOR_PHONE = process.env.TEST_VENDOR_PHONE || DEFAULT_PHONE;
 
-const OWNER_EMAIL = 'owner@fixzit.co';
+const OWNER_EMAIL = `owner@${EMAIL_DOMAIN}`;
 const OWNER_PASSWORD = PRIMARY_PASSWORD;
 const OWNER_EMPLOYEE_ID = normalizeEmployeeId('EMP-TEST-007');
 
-const GUEST_EMAIL = 'guest@fixzit.co';
+const GUEST_EMAIL = `guest@${EMAIL_DOMAIN}`;
 const GUEST_PASSWORD = PRIMARY_PASSWORD;
 const GUEST_EMPLOYEE_ID = normalizeEmployeeId('EMP-TEST-008');
 

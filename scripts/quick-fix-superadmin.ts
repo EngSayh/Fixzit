@@ -7,7 +7,9 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import bcrypt from 'bcryptjs';
 
-const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
 const PASSWORD = 'admin123';
 const PHONE = '+966552233456';
 

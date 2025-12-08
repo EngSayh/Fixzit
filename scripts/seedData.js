@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 // Import models
 const User = require("../models/User");
 const Organization = require("../models/Organization");
@@ -76,14 +79,14 @@ const seedDatabase = async () => {
     const adminOrg = organizations[0]; // Use first organization for admin
     const adminUser = await User.create({
       name: "System Administrator",
-      email: "admin@fixzit.co",
+      email: `admin@${EMAIL_DOMAIN}`,
       password: "Admin@1234", // Plain text - User model pre-save hook will hash it
       role: "super_admin",
       orgId: adminOrg.org._id,
       status: "active",
     });
     console.log(
-      "🔑 Created deterministic admin account: admin@fixzit.co / Admin@1234",
+      `🔑 Created deterministic admin account: admin@${EMAIL_DOMAIN} / Admin@1234`,
     );
 
     // Create Users
@@ -101,7 +104,7 @@ const seedDatabase = async () => {
 
         const user = await User.create({
           name: `User ${orgIndex + 1}-${i + 1}`,
-          email: `user${orgIndex + 1}${i + 1}@fixzit.co`,
+          email: `user${orgIndex + 1}${i + 1}@${EMAIL_DOMAIN}`,
           password: "password123", // Plain text - User model pre-save hook will hash it
           role: roles[i],
           orgId: org._id,

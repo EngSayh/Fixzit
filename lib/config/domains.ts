@@ -128,9 +128,18 @@ export const CORS_ALLOWLIST = [
  */
 export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
-  return CORS_ALLOWLIST.some(
-    (allowed) => origin === allowed || origin.startsWith(allowed)
-  );
+  try {
+    const normalizedOrigin = new URL(origin).origin;
+    return CORS_ALLOWLIST.some((allowed) => {
+      try {
+        return normalizedOrigin === new URL(allowed).origin;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -175,17 +184,28 @@ export function buildWhatsAppLink(phone: string, message?: string): string {
  * Check if a domain is trusted (belongs to our platform)
  */
 export function isTrustedDomain(url: string): boolean {
+  const stripWww = (h: string) => h.replace(/^www\./, "");
   try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname;
-    const primaryDomain = new URL(DOMAINS.primary).hostname.replace('www.', '');
-    
-    // Check if hostname ends with our primary domain
-    return hostname === primaryDomain || 
-           hostname.endsWith(`.${primaryDomain}`) ||
-           // Also check .sa variant
-           hostname === primaryDomain.replace('.co', '.sa') ||
-           hostname.endsWith(`.${primaryDomain.replace('.co', '.sa')}`);
+    const hostname = new URL(url).hostname;
+    const primaryHost = stripWww(new URL(DOMAINS.primary).hostname);
+    const configuredHosts = [
+      primaryHost,
+      stripWww(new URL(DOMAINS.app).hostname),
+      stripWww(new URL(DOMAINS.dashboard).hostname),
+      stripWww(new URL(DOMAINS.api).hostname),
+      stripWww(new URL(DOMAINS.staging).hostname),
+    ];
+
+    const saVariant = process.env.PRIMARY_SA_DOMAIN
+      ? stripWww(new URL(process.env.PRIMARY_SA_DOMAIN).hostname)
+      : null;
+    if (saVariant) {
+      configuredHosts.push(saVariant);
+    }
+
+    return configuredHosts.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`),
+    );
   } catch {
     return false;
   }

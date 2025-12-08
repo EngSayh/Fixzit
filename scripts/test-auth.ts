@@ -6,11 +6,14 @@ import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import bcrypt from "bcryptjs";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 async function testAuth() {
   try {
     await db;
 
-    const email = "admin@fixzit.co";
+    const email = `admin@${EMAIL_DOMAIN}`;
     const password = "password123";
 
     console.log(`🔍 Testing authentication for ${email}...\n`);

@@ -19,6 +19,9 @@
  * - Assertion results
  */
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
 import { test, expect, Page } from "@playwright/test";
 import { encode as encodeJwt } from "next-auth/jwt";
 import crypto from "node:crypto";
@@ -329,13 +332,13 @@ test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
       await page.goto("/login");
 
       // Set authentication session in localStorage
-      await page.evaluate(() => {
+      await page.evaluate((domain) => {
         localStorage.setItem(
           "next-auth.session-token",
           JSON.stringify({
             user: {
               id: "test-tenant-id",
-              email: "test@fixzit.sa",
+              email: `test@${domain}`,
               name: "Test Tenant",
               role: "TENANT",
               tenantId: "org-123",
@@ -345,7 +348,7 @@ test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
             ).toISOString(),
           }),
         );
-      });
+      }, EMAIL_DOMAIN);
 
       await page.goto("/");
       await openAssistant(page);

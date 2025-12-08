@@ -10,11 +10,14 @@ import { test, expect } from "@playwright/test";
  * 3. Protected route access (no redirect loops)
  */
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 // Test credentials (from database)
 const TEST_USER = {
-  email: "admin@fixzit.co",
+  email: `admin@${EMAIL_DOMAIN}`,
   password: "password123",
 };
 

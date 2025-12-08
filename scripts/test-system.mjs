@@ -1,3 +1,6 @@
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const testPages = [
   "/",
   "/login",
@@ -80,7 +83,7 @@ async function testSystem() {
           : { "User-Agent": "Test-Script" },
         body: api.includes("login")
           ? JSON.stringify({
-              email: "admin@fixzit.co",
+              email: `admin@${EMAIL_DOMAIN}`,
               password: "Admin@123",
             })
           : undefined,
@@ -107,7 +110,7 @@ async function testSystem() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: "admin@fixzit.co",
+        email: `admin@${EMAIL_DOMAIN}`,
         password: "Admin@123",
       }),
     });

@@ -10,8 +10,11 @@
 
 import { test, expect } from "@playwright/test";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const TEST_EMAIL = "admin@fixzit.co";
+const TEST_EMAIL = `admin@${EMAIL_DOMAIN}`;
 const TEST_PASSWORD = "password123";
 
 test.describe("Unified NextAuth Authentication", () => {

@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 // Connect to MongoDB
 mongoose.connect("mongodb://localhost:27017/fixzitsouq", {
   useNewUrlParser: true,
@@ -16,10 +19,11 @@ async function createTestData() {
   try {
     // Create admin user
     const hashedPassword = await bcrypt.hash("admin123", 10);
+    const adminEmail = `admin@${EMAIL_DOMAIN}`;
     const admin = await User.findOneAndUpdate(
-      { email: "admin@fixzit.co" },
+      { email: adminEmail },
       {
-        email: "admin@fixzit.co",
+        email: adminEmail,
         password: hashedPassword,
         name: "Admin User",
         role: "super_admin",

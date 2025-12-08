@@ -291,6 +291,7 @@ export async function GET(req: NextRequest) {
           minRating: validated.minRating,
           badges: validated.badges,
           inStock: validated.inStock,
+          isActive: effectiveIsActive,
           sort: validated.sort,
         },
       },

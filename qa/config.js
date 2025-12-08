@@ -1,10 +1,13 @@
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 export const cfg = {
   baseURL: process.env.NEXT_PUBLIC_APP_BASE_URL || "http://localhost:3000",
   mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017",
   mongoDb: process.env.MONGODB_DB || "fixzit_dev",
   users: {
     admin: {
-      email: process.env.FIXZIT_TEST_ADMIN_EMAIL || "admin@fixzit.co",
+      email: process.env.FIXZIT_TEST_ADMIN_EMAIL || `admin@${EMAIL_DOMAIN}`,
       password: process.env.FIXZIT_TEST_ADMIN_PASSWORD || "admin123",
     },
   },

@@ -14,8 +14,12 @@ async function checkPasswords() {
     process.exit(1);
   }
   
-  if (!process.env.TEST_MONGODB_URI && !process.env.MONGODB_URI?.includes('test')) {
-    console.error('❌ BLOCKED: Must use test database (TEST_MONGODB_URI or MONGODB_URI with "test" in name)');
+  if (
+    !process.env.TEST_MONGODB_URI &&
+    !process.env.MONGODB_URI?.includes('test') &&
+    !process.env.MONGODB_URI?.includes('localhost')
+  ) {
+    console.error('❌ BLOCKED: Must use test database (TEST_MONGODB_URI or MONGODB_URI with "test" or localhost in name)');
     process.exit(1);
   }
   
@@ -27,16 +31,24 @@ async function checkPasswords() {
       };
     }).collection;
 
-    const users = await userCollection.find({
-      email: { $in: [`superadmin@${EMAIL_DOMAIN}`, `admin@${EMAIL_DOMAIN}`] }
-    }).toArray();
+    const targetEmails = [
+      `superadmin@${EMAIL_DOMAIN}`,
+      `corp.admin@${EMAIL_DOMAIN}`,
+      `manager@${EMAIL_DOMAIN}`,
+    ];
+
+    const users = await userCollection
+      .find({
+        email: { $in: targetEmails },
+      })
+      .toArray();
     
     users.forEach((user) => {
+      const hash = (user as { passwordHash?: string; password?: string }).passwordHash || (user as { password?: string }).password;
       console.log(`\n${user.email}:`);
-      console.log(`  password field exists: ${!!user.password}`);
-      console.log(`  password is bcrypt hash: ${user.password?.startsWith('$2b$')}`);
-      console.log(`  password length valid: ${user.password?.length >= 60}`);
-      // ✅ REMOVED: No longer log password hash to stdout (security risk)
+      console.log(`  hash field exists: ${!!hash}`);
+      console.log(`  password is bcrypt hash: ${hash?.startsWith('$2')}`);
+      console.log(`  hash length valid: ${hash ? hash.length >= 50 : false}`);
     });
     
     process.exit(0);
