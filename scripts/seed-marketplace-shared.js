@@ -4,6 +4,19 @@ const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { createRequire } = require("node:module");
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-marketplace-shared.js in non-production.");
+  process.exit(1);
+}
+
 // Define marketplace collection names inline
 const MARKETPLACE_COLLECTIONS = {
   PRODUCTS: "marketplace_products",

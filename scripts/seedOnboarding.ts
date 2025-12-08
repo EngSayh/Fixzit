@@ -2,6 +2,19 @@ import mongoose from 'mongoose';
 import { DocumentType } from '@/server/models/onboarding/DocumentType';
 import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 
+const isProdLike =
+  process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error(
+    'Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.',
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('Set ALLOW_SEED=1 to run seed scripts in non-production.');
+  process.exit(1);
+}
+
 // Type guard for MongoDB bulk write errors
 interface MongoWriteError {
   code?: number;

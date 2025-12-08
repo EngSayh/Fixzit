@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import React from "react";
+import { useState, useEffect, useCallback } from "react";
 import { User, Settings, Shield, Bell } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -42,6 +43,7 @@ export default function ProfilePage() {
   const { t, isRTL } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>("account");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Original data for reset functionality
   const [originalUser, setOriginalUser] = useState<UserData>({
@@ -77,51 +79,56 @@ export default function ProfilePage() {
     twoFactorEnabled: false,
   });
 
-  // Fetch user profile data on mount
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/user/profile", {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+  const isProd = typeof process !== "undefined" && process.env.NODE_ENV === "production";
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile data");
-        }
+  const fetchProfileData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const response = await fetch("/api/user/profile", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-        const data = await response.json();
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile data");
+      }
 
-        if (data.user) {
-          const userData: UserData = {
-            name: data.user.name || "Admin User",
-            email: data.user.email || EMAILS.admin,
-            phone: data.user.phone || "",
-            role: data.user.role || "Administrator",
-            joinDate: data.user.joinDate || "January 2024",
-          };
-          setUser(userData);
-          setOriginalUser(userData);
-        }
+      const data = await response.json();
 
-        if (data.notificationSettings) {
-          setNotificationSettings(data.notificationSettings);
-        }
+      if (data.user) {
+        const userData: UserData = {
+          name: data.user.name || "Admin User",
+          email: data.user.email || EMAILS.admin,
+          phone: data.user.phone || "",
+          role: data.user.role || "Administrator",
+          joinDate: data.user.joinDate || "January 2024",
+        };
+        setUser(userData);
+        setOriginalUser(userData);
+      }
 
-        if (data.securitySettings) {
-          setSecuritySettings((prev) => ({
-            ...prev,
-            twoFactorEnabled: data.securitySettings.twoFactorEnabled || false,
-          }));
-        }
-      } catch (error) {
-        logger.error("Error fetching profile:", error);
-        toast.error(
-          t("profile.toast.loadError", "Failed to load profile data"),
-        );
-        // Set default values on error
+      if (data.notificationSettings) {
+        setNotificationSettings(data.notificationSettings);
+      }
+
+      if (data.securitySettings) {
+        setSecuritySettings((prev) => ({
+          ...prev,
+          twoFactorEnabled: data.securitySettings.twoFactorEnabled || false,
+        }));
+      }
+    } catch (error) {
+      logger.error("Error fetching profile:", error);
+      const friendlyError = t(
+        "profile.toast.loadError",
+        "Failed to load profile data",
+      );
+      setLoadError(friendlyError);
+      toast.error(friendlyError);
+      // Only seed defaults in non-production to keep UI usable for dev
+      if (!isProd) {
         const defaultUser: UserData = {
           name: "Admin User",
           email: EMAILS.admin,
@@ -131,13 +138,16 @@ export default function ProfilePage() {
         };
         setUser(defaultUser);
         setOriginalUser(defaultUser);
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  }, [isProd, t]);
 
+  // Fetch user profile data on mount
+  useEffect(() => {
     fetchProfileData();
-  }, [t]);
+  }, [fetchProfileData]);
 
   const handleSaveAccount = async () => {
     try {
@@ -287,6 +297,20 @@ export default function ProfilePage() {
           )}
         </p>
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-destructive"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span>{loadError}</span>
+            <Button variant="outline" onClick={fetchProfileData} size="sm">
+              {t("profile.retry", "Retry")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}

@@ -3,8 +3,28 @@ import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
 
 /**
  * Shared tenant filter for Souq services/routes.
+ * 
+ * ## 3-Variant ObjectId Matching (PERMANENT - Dec 2024)
+ * 
+ * This function implements a permanent 3-variant ObjectId matching strategy to handle
+ * data stored in different formats across the codebase and database:
+ * 
+ * 1. **String format**: Plain string representation of ObjectId (e.g., "507f1f77bcf86cd799439011")
+ * 2. **MongoDB driver ObjectId**: Native driver ObjectId (`new mongodb.ObjectId(...)`)
+ * 3. **Mongoose Types.ObjectId**: Mongoose wrapper ObjectId (`new mongoose.Types.ObjectId(...)`)
+ * 
+ * This is necessary because:
+ * - Legacy data may have been stored as strings
+ * - Different parts of the codebase may use different ObjectId implementations
+ * - MongoDB driver and Mongoose ObjectId are technically different classes
+ * - Prevents "no documents found" issues due to type mismatches
+ * 
+ * @note This 3-variant matching is INTENTIONAL and PERMANENT. Do not reduce to 2 variants.
+ * @see PR #464 for the history of this decision
+ * 
+ * Behavior:
  * - Throws on empty orgId by default (STRICT v4.1).
- * - Accepts string/ObjectId and matches both string + ObjectId forms for legacy data.
+ * - Accepts string/ObjectId and matches all three forms for robust tenant isolation.
  * - allowOrgless is for tests/legacy only.
  */
 export const buildSouqOrgFilter = (

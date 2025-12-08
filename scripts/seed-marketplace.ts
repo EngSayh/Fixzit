@@ -4,6 +4,19 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-marketplace.ts in non-production.");
+  process.exit(1);
+}
+
 const logInfo = (message: string) => {
   process.stdout.write(`${message}\n`);
 };

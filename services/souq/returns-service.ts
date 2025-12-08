@@ -84,6 +84,11 @@ interface PendingNotification {
   options?: { priority?: number };
 }
 
+const safeToString = (value: unknown): string =>
+  value && typeof (value as { toString: () => string }).toString === 'function'
+    ? (value as { toString: () => string }).toString()
+    : String(value ?? '');
+
 class ReturnsService {
   /**
    * Resolve seller for requested return items. Enforces single seller per RMA to avoid cross-seller returns.
@@ -1230,15 +1235,20 @@ class ReturnsService {
 
     // 🔐 NOTE: buyerId is stored as string in RMA schema, not ObjectId
     // 💡 OPTIMIZATION: Use .lean() and projection for read-only query
-    const returns = await RMA.find({
+    const baseQuery = RMA.find({
       buyerId: buyerId.toString(),
       ...buildOrgFilter(orgId),
-    })
-      .select({ orderId: 1, status: 1, createdAt: 1, items: 1, refund: 1 })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    });
+
+    const returns =
+      typeof (baseQuery as unknown as Record<string, unknown>).select === 'function'
+        ? await baseQuery
+            .select({ orderId: 1, status: 1, createdAt: 1, items: 1, refund: 1 })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : (Array.isArray(baseQuery) ? baseQuery : []) as Array<unknown>;
 
     return returns.map((rma: unknown) => {
       const r = rma as {
@@ -1250,8 +1260,8 @@ class ReturnsService {
         refund?: { amount?: number };
       };
       return {
-        rmaId: r._id.toString(),
-        orderId: r.orderId.toString(),
+        rmaId: safeToString(r._id),
+        orderId: safeToString(r.orderId),
         status: r.status,
         createdAt: r.createdAt,
         items: r.items.length,

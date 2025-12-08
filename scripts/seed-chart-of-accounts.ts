@@ -21,6 +21,19 @@ import mongoose, { Types } from "mongoose";
 import { dbConnect } from "../db/mongoose";
 import ChartAccountModel from "../server/models/finance/ChartAccount";
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
 const args = process.argv.slice(2);
 const orgIdArg = args.find((arg) => arg.startsWith("--orgId="));
 
