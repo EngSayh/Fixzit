@@ -14,8 +14,18 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { escapeMeiliFilterValue } from "@/lib/marketplace/meiliFilters";
 import crypto from "node:crypto";
 
-const MAX_QUERY_LENGTH = 256;
-const MAX_BADGES = 10;
+/**
+ * Configurable limits via environment variables
+ * Defaults: MAX_QUERY_LENGTH=256, MAX_BADGES=10
+ */
+const MAX_QUERY_LENGTH = Math.min(
+  1024,
+  Math.max(64, parseInt(process.env.SOUQ_MAX_QUERY_LENGTH || "256", 10) || 256)
+);
+const MAX_BADGES = Math.min(
+  50,
+  Math.max(1, parseInt(process.env.SOUQ_MAX_BADGES || "10", 10) || 10)
+);
 const ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
   VALIDATION: "VALIDATION_ERROR",
@@ -113,6 +123,17 @@ export async function GET(req: NextRequest) {
         testAuthed ||
         (testOrgId && allowlist.size > 0 && allowlist.has(testOrgId));
       if (!allowed) {
+        // SECURITY: Audit log 403 for test environment
+        const testClientIpHash = clientIp
+          ? crypto.createHash("sha256").update(clientIp).digest("hex").slice(0, 16)
+          : undefined;
+        logger.warn("[Souq Search] Unauthorized org access attempt (test)", {
+          orgIdFromContext: testOrgId,
+          clientIp,
+          clientIpHash: testClientIpHash,
+          correlationId: testContext?.correlationId,
+          metric: "souq.search.unauthorized",
+        });
         return NextResponse.json(
           { error: "Unauthorized", errorCode: ERROR_CODES.UNAUTHORIZED },
           { status: 403 },

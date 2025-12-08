@@ -57,6 +57,7 @@ type ProviderCandidate = SMSProviderOptions & {
   name: SMSProviderOptions["provider"];
   priority: number;
   supportedTypes?: string[];
+  costPerMessage?: number;
 };
 
 const maskPhone = (to: string | undefined) => {
@@ -84,6 +85,7 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
       authToken: decryptProviderToken(p.encryptedApiKey),
       priority: typeof p.priority === "number" ? p.priority : 99,
       supportedTypes: p.supportedTypes,
+      costPerMessage: p.costPerMessage,
     });
   }
 
@@ -556,6 +558,15 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
         });
         recordedAttempt = true;
 
+        // Record cost if available from provider settings
+        const cost = candidate.costPerMessage;
+        if (cost && cost > 0) {
+          await SMSMessage.findByIdAndUpdate(messageId, {
+            cost,
+            currency: "OMR", // Default currency, could be made configurable
+          });
+        }
+
         logger.info("[SMS Queue] Message sent successfully", {
           messageId,
           orgId: message.orgId,
@@ -563,6 +574,7 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
           provider: candidate.name,
           messageSid: result.messageSid,
           durationMs,
+          cost: cost ?? undefined,
         });
         return;
       }
@@ -649,7 +661,8 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,
     async (job: Job<ISMSJobData>) => {
-      await processSMSJob(job.data.messageId);
+      // 🔐 STRICT v4.1: Pass orgId from job data for tenant-scoped message lookup
+      await processSMSJob(job.data.messageId, job.data.orgId);
     },
     {
       connection: connection as Redis,

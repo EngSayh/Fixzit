@@ -92,6 +92,10 @@ export interface ISMSMessage {
   metadata?: Record<string, unknown>;
   tags?: string[];
 
+  // Cost tracking (populated from SMSSettings.costPerMessage on send)
+  cost?: number;
+  currency?: string; // e.g., "OMR", "USD"
+
   // Error tracking
   lastError?: string;
   lastErrorCode?: string;
@@ -160,6 +164,10 @@ const SMSMessageSchema = new Schema<ISMSMessage>(
 
     metadata: { type: Schema.Types.Mixed },
     tags: { type: [String], index: true },
+
+    // Cost tracking
+    cost: { type: Number },
+    currency: { type: String, default: "OMR" },
 
     lastError: { type: String },
     lastErrorCode: { type: String },
