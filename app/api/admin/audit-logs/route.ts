@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+
+// Prevent prerendering/export of this API route (requires auth + database)
+export const dynamic = "force-dynamic";
 import { auth } from "@/auth";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { connectDb } from "@/lib/mongo";

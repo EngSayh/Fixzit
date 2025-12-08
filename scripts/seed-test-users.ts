@@ -131,7 +131,7 @@ const testUsers: SeedUser[] = [
       licenses: [],
       certifications: [],
     },
-    security: { accessLevel: 'ADMIN', permissions: ['*'] },
+    security: { accessLevel: 'ADMIN', permissions: [] },
     preferences: {
       notifications: { email: true, sms: false, app: true, workOrders: true, maintenance: true, reports: true },
       language: 'en',
@@ -295,7 +295,7 @@ const testUsers: SeedUser[] = [
     phone: DEFAULT_PHONE,
     professional: { role: 'OWNER', title: 'Corporate Owner', department: 'Executive', skills: [], licenses: [], certifications: [] },
     personal: { firstName: 'Test', lastName: 'Owner', nationalId: '1000000009', dateOfBirth: new Date('1975-06-20'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 9', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } },
-    security: { accessLevel: 'ADMIN', permissions: ['*'] },
+    security: { accessLevel: 'ADMIN', permissions: [] },
     preferences: { notifications: { email: true, sms: false, app: true, workOrders: true, maintenance: true, reports: true }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
     workload: { maxAssignments: 0, currentAssignments: 0, available: false, location: { city: 'Riyadh', region: 'Riyadh', radius: 0 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } },
     performance: { reviews: [] },

@@ -12,6 +12,9 @@
  */
 
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+type PageFixtures = { page: Page };
 
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
@@ -41,13 +44,13 @@ if (
 }
 
 test.describe("Unified NextAuth Authentication", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: PageFixtures) => {
     // Clear all cookies and storage before each test
     await page.context().clearCookies();
     await page.goto(`${BASE_URL}/login`);
   });
 
-  test("should load login page successfully", async ({ page }) => {
+  test("should load login page successfully", async ({ page }: PageFixtures) => {
     await page.goto(`${BASE_URL}/login`);
 
     // Check for key elements
@@ -61,7 +64,7 @@ test.describe("Unified NextAuth Authentication", () => {
 
   test("should login with email and password (Credentials provider)", async ({
     page,
-  }) => {
+  }: PageFixtures) => {
     await page.goto(`${BASE_URL}/login`);
 
     // Fill in credentials
@@ -91,7 +94,7 @@ test.describe("Unified NextAuth Authentication", () => {
 
   test("should NOT have redirect loop when accessing protected route", async ({
     page,
-  }) => {
+  }: PageFixtures) => {
     // First login
     await page.goto(`${BASE_URL}/login`);
     await page.fill('input[name="identifier"]', TEST_EMAIL);
@@ -124,7 +127,7 @@ test.describe("Unified NextAuth Authentication", () => {
     console.log(`✅ No redirect loop detected (${redirectCount} redirects)`);
   });
 
-  test("should redirect unauthenticated user to login", async ({ page }) => {
+  test("should redirect unauthenticated user to login", async ({ page }: PageFixtures) => {
     // Try to access protected route without login
     await page.goto(`${BASE_URL}/fm/dashboard`);
 
@@ -135,7 +138,7 @@ test.describe("Unified NextAuth Authentication", () => {
     console.log("✅ Unauthenticated user correctly redirected to login");
   });
 
-  test("should logout successfully", async ({ page }) => {
+  test("should logout successfully", async ({ page }: PageFixtures) => {
     // First login
     await page.goto(`${BASE_URL}/login`);
     await page.fill('input[name="identifier"]', TEST_EMAIL);

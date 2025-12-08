@@ -3,9 +3,15 @@ import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 import { getDemoEmail } from "../lib/config/demo-users";
 
-// SEC-051: Use environment variables with local dev fallbacks
-const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
-const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+// SEC-051: Require explicit demo passwords (no baked defaults)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD are required for seed-users.ts (no defaults)."
+  );
+}
 
 const initialUsers = [
   {
@@ -36,7 +42,7 @@ const initialUsers = [
     },
     security: {
       accessLevel: "ADMIN",
-      permissions: ["*"],
+      permissions: [],
       mfa: {
         enabled: false,
         type: "EMAIL",

@@ -15,6 +15,8 @@
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**' --ignore-pattern 'tests/playwright-report/**'",
     "lint:prod": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0 --report-unused-disable-directives",
     "lint:prod:fix": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --fix",
+    "lint:e2e-env": "node scripts/check-e2e-env.js",
+    "lint:rbac-perms": "node scripts/check-no-wildcard-perms.js",
     "lint:inventory-org": "tsx scripts/lint-inventory-orgid.ts",
     "lint:mongo-unwrap": "node tools/check-mongo-unwrap.js",
     "lint:prod:baseline": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --format json -o _artifacts/eslint-baseline.json",

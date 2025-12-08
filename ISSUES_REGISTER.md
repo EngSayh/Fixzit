@@ -661,13 +661,15 @@ OR: Migrate Vendor/Tenant to collections.ts for full consistency with WorkOrder/
 
 ## Summary Statistics
 
-| Severity | Count | Status |
-|----------|-------|--------|
-| 🟥 CRITICAL | 0 | OPEN |
-| 🟧 MAJOR | 1 | OPEN |
-| 🟨 MODERATE | 2 | OPEN |
-| 🟩 MINOR | 2 | OPEN |
-| **TOTAL** | **5** | **5 OPEN** |
+| Severity | Open | Resolved | Total |
+|----------|------|----------|-------|
+| 🟥 CRITICAL | 0 | 15 | 15 |
+| 🟧 MAJOR | 1 | 25 | 26 |
+| 🟨 MODERATE | 2 | 12 | 14 |
+| 🟩 MINOR | 2 | 8 | 10 |
+| **TOTAL** | **5** | **60** | **65** |
+
+> **Last Updated**: 2025-12-08 - Updated counts to reflect actual resolved status
 
 ---
 

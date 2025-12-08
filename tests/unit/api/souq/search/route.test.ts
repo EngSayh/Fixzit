@@ -102,8 +102,8 @@ describe("GET /api/souq/search", () => {
     const searchArgs = searchMock.mock.calls[0][1];
     expect(searchArgs.filter).toContain('isActive = true');
     expect(searchArgs.filter).toContain('orgId = "org-1"');
-    // Escaping should preserve quote safely
-    expect(searchArgs.filter).toContain('category = "elec\\\\"tronics"');
+    // Escaping should preserve quote safely: " -> \"
+    expect(searchArgs.filter).toContain('category = "elec\\"tronics"');
 
     expect(res.headers.get("X-Correlation-Id")).toBe("corr-123");
     expect(res.headers.get("X-RateLimit-Limit")).toBe("120");

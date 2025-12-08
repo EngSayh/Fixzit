@@ -110,13 +110,13 @@ jobs:
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
       # 🔐 Auth secrets and QA credentials required by Playwright helpers and qa/config.js
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET || secrets.NEXTAUTH_SECRET }}
-      FIXZIT_TEST_ADMIN_EMAIL: ${{ secrets.FIXZIT_TEST_ADMIN_EMAIL || 'superadmin@fixzit.co' }}
-      FIXZIT_TEST_ADMIN_PASSWORD: ${{ secrets.FIXZIT_TEST_ADMIN_PASSWORD || secrets.TEST_USER_PASSWORD || secrets.SEED_PASSWORD }}
-      PUBLIC_ORG_ID: ${{ secrets.PUBLIC_ORG_ID || '000000000000000000000001' }}
-      DEFAULT_ORG_ID: ${{ secrets.DEFAULT_ORG_ID || '000000000000000000000002' }}
-      TEST_ORG_ID: ${{ secrets.TEST_ORG_ID || 'test-org-id' }}
+      NEXTAUTH_SECRET: "${{ secrets.NEXTAUTH_SECRET }}"
+      AUTH_SECRET: "${{ secrets.AUTH_SECRET || secrets.NEXTAUTH_SECRET }}"
+      FIXZIT_TEST_ADMIN_EMAIL: "${{ secrets.FIXZIT_TEST_ADMIN_EMAIL || 'superadmin@fixzit.co' }}"
+      FIXZIT_TEST_ADMIN_PASSWORD: "${{ secrets.FIXZIT_TEST_ADMIN_PASSWORD || secrets.TEST_USER_PASSWORD || secrets.SEED_PASSWORD }}"
+      PUBLIC_ORG_ID: "${{ secrets.PUBLIC_ORG_ID || '000000000000000000000001' }}"
+      DEFAULT_ORG_ID: "${{ secrets.DEFAULT_ORG_ID || '000000000000000000000002' }}"
+      TEST_ORG_ID: "${{ secrets.TEST_ORG_ID || 'test-org-id' }}"
 
     steps:
       - name: Checkout

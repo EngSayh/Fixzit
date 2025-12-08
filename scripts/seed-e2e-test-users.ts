@@ -72,6 +72,9 @@ const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(
   process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100'
 );
 const DEMO_EMPLOYEE_ID = normalizeEmployeeId(process.env.DEMO_SUPERADMIN_EMPLOYEE || 'EMP-DEMO-001');
+const DEMO_ADMIN_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-002');
+const DEMO_MANAGER_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-003');
+const DEMO_EMP001_ID = normalizeEmployeeId('EMP001');
 
 const e2eTestUsers = [
   // ============================================
@@ -118,7 +121,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'ADMIN',
-      permissions: ['*']
+      permissions: []
     },
     preferences: {
       notifications: {
@@ -288,7 +291,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'ADMIN',
-      permissions: ['*']
+      permissions: []
     },
     preferences: {
       notifications: {
@@ -328,11 +331,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-ADMIN',
-    username: normalizeEmployeeId('EMP-DEMO-002'),
+    username: DEMO_ADMIN_EMPLOYEE_ID,
     email: `admin@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP-DEMO-002'),
+    employeeId: DEMO_ADMIN_EMPLOYEE_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -391,7 +394,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP-DEMO-002',
+      employeeId: DEMO_ADMIN_EMPLOYEE_ID,
       benefits: []
     },
     compliance: { training: [] },
@@ -402,11 +405,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-MANAGER',
-    username: normalizeEmployeeId('EMP-DEMO-003'),
+    username: DEMO_MANAGER_EMPLOYEE_ID,
     email: `manager@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP-DEMO-003'),
+    employeeId: DEMO_MANAGER_EMPLOYEE_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -465,7 +468,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP-DEMO-003',
+      employeeId: DEMO_MANAGER_EMPLOYEE_ID,
       benefits: []
     },
     compliance: { training: [] },
@@ -476,11 +479,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-EMP001',
-    username: normalizeEmployeeId('EMP001'),
+    username: DEMO_EMP001_ID,
     email: `emp001@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP001'),
+    employeeId: DEMO_EMP001_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -539,7 +542,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP001',
+      employeeId: DEMO_EMP001_ID,
       benefits: []
     },
     compliance: { training: [] },

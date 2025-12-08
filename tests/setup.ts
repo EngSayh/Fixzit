@@ -10,9 +10,10 @@ const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 process.env.SUPPRESS_JEST_WARNINGS = 'true';
 
 // Mock Next.js environment for comprehensive testing
-global.Request = global.Request || class Request {};
-global.Response = global.Response || class Response {};
-global.fetch = global.fetch || vi.fn();
+const globalAny = globalThis as any;
+globalAny.Request = globalAny.Request || class Request {};
+globalAny.Response = globalAny.Response || class Response {};
+globalAny.fetch = globalAny.fetch || vi.fn();
 
 // ============================================
 // 1. MOCK MONGOOSE (Fixes "reading 'Mixed'" error)
@@ -20,9 +21,9 @@ global.fetch = global.fetch || vi.fn();
 vi.mock('mongoose', async (importOriginal) => {
   const original = await importOriginal<typeof import('mongoose')>();
 
-  type AnyDoc = Record<string, unknown>;
+  type AnyDoc = Record<string, any>;
   type IdLike = { toString(): string } | string | number | undefined;
-  type QueryValue = string | number | boolean | Date | IdLike | { $in?: unknown[]; $gte?: unknown; $lte?: unknown; _bsontype?: string };
+  type QueryValue = any;
   type QueryFilter = Record<string, QueryValue>;
   
   type ModelInstance = AnyDoc & {
@@ -73,12 +74,13 @@ vi.mock('mongoose', async (importOriginal) => {
     return update;
   };
 
-  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
-    obj.populate = vi.fn().mockReturnValue(obj);
-    obj.select = vi.fn().mockReturnValue(obj);
-    obj.lean = vi.fn().mockResolvedValue(obj);
-    return obj;
-  }
+	  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
+	    const target = obj as AnyDoc;
+	    target.populate = vi.fn().mockReturnValue(target);
+	    target.select = vi.fn().mockReturnValue(target);
+	    target.lean = vi.fn().mockResolvedValue(target);
+	    return target as T;
+	  }
 
   class MockSchema {
     static Types = original.Schema?.Types || original.Types || { ObjectId: Object };
@@ -203,7 +205,7 @@ vi.mock('mongoose', async (importOriginal) => {
         const instance = new Model(found);
         const self = instance as unknown as ModelInstance;
         self.lean = vi.fn(async () => self.toObject());
-        self.exec = vi.fn(async () => instance);
+	        self.exec = vi.fn(async () => self);
         self.populate = vi.fn().mockReturnValue(instance);
         self.select = vi.fn().mockReturnValue(instance);
         return instance;
@@ -326,10 +328,10 @@ vi.mock('mongoose', async (importOriginal) => {
     return Model;
   };
 
-  const mocked: Partial<typeof original> & { models: Record<string, unknown>; default?: unknown; connection: AnyDoc } = {
+  const mocked: AnyDoc = {
     ...original,
-    connect: vi.fn(async (..._args: unknown[]) => ({ connection: mocked.connection })),
-    createConnection: (...args: unknown[]) => original.createConnection?.(...args),
+    connect: vi.fn(async (..._args: any[]) => ({ connection: mocked.connection })),
+    createConnection: (...args: any[]) => original.createConnection?.(...args),
     disconnect: vi.fn(async () => {}),
     connection: {
       readyState: 1,
@@ -364,7 +366,7 @@ vi.mock('mongoose', async (importOriginal) => {
   };
 
   mocked.default = mocked;
-  return mocked;
+  return mocked as typeof import('mongoose');
 });
 // ============================================
 // 1.5. MOCK USER MODEL (for auth tests)

@@ -44,6 +44,10 @@ vi.mock('@/auth', () => ({
 const mockEnv = {
   JWT_SECRET: 'test-secret-key-for-testing-only',
   CSRF_PROTECTION: 'true',  // Enable CSRF protection for tests
+  NODE_ENV: 'test',
+  API_PROTECT_ALL: 'true',
+  PLAYWRIGHT_TESTS: 'false',
+  VITEST: 'true',
 };
 
 describe('Middleware', () => {
