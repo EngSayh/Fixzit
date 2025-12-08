@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 type TabType = "account" | "notifications" | "security";
 
 interface UserData {
@@ -96,7 +97,7 @@ export default function ProfilePage() {
         if (data.user) {
           const userData: UserData = {
             name: data.user.name || "Admin User",
-            email: data.user.email || "admin@fixzit.co",
+            email: data.user.email || EMAIL_DOMAINS.admin,
             phone: data.user.phone || "",
             role: data.user.role || "Administrator",
             joinDate: data.user.joinDate || "January 2024",
@@ -123,7 +124,7 @@ export default function ProfilePage() {
         // Set default values on error
         const defaultUser: UserData = {
           name: "Admin User",
-          email: "admin@fixzit.co",
+          email: EMAIL_DOMAINS.admin,
           phone: "",
           role: "Administrator",
           joinDate: "January 2024",

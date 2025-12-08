@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, Lock, User, Palette } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 const NOTIFICATION_LABELS: Record<string, { key: string; fallback: string }> = {
   email: { key: "settings.notifications.email", fallback: "Email Alerts" },
@@ -120,7 +121,7 @@ export default function SettingsPage() {
                   <Input
                     id="email"
                     type="email"
-                    defaultValue="admin@fixzit.co"
+                    defaultValue={EMAIL_DOMAINS.admin}
                   />
                 </div>
                 <div>

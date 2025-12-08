@@ -1,5 +1,6 @@
 "use client";
 import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { useState } from "react";
 import useSWR from "swr";
@@ -704,7 +705,7 @@ function CreateInvoiceForm({
       taxId: "300000000000003",
       address: "King Fahd Road, Riyadh 11564, Saudi Arabia",
       phone: "+966 11 123 4567",
-      email: "invoices@fixzit.co",
+      email: EMAIL_DOMAINS.invoices,
       registration: "CR-1234567890",
       license: "L-1234567890",
     },

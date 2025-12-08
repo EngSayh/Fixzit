@@ -1,4 +1,5 @@
 import ICAL from "ical.js";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 export type InterviewInviteInput = {
   uid?: string;
@@ -25,7 +26,7 @@ export function generateInterviewICS(input: InterviewInviteInput) {
 
   const event = new ICAL.Component("vevent");
   const vevent = new ICAL.Event(event);
-  vevent.uid = input.uid || `${Date.now()}@fixzit.com`;
+  vevent.uid = input.uid || `${Date.now()}@${EMAIL_DOMAINS.primary}`;
   vevent.summary = input.title;
   vevent.description = input.description || "";
   vevent.location = input.location || "Virtual";

@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import { EMAIL_DOMAINS } from '@/lib/config/domains';
 
 import { useState, useEffect, useRef } from 'react';
 
@@ -102,7 +103,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       }, 3000);
     } catch (error) {
       logger.error('Failed to submit contact request', { error });
-      setError(t('upgrade.error.submitFailed', 'Failed to submit request. Please email sales@fixzit.sa directly.'));
+      setError(t('upgrade.error.submitFailed', `Failed to submit request. Please email ${EMAIL_DOMAINS.sales} directly.`));
     } finally {
       setSubmitting(false);
     }
@@ -207,8 +208,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
         {/* Alternative contact */}
         <p className="text-xs text-muted-foreground text-center mt-4">
           {t('upgrade.alternative.prefix', 'Or email us directly at')}{' '}
-          <a href="mailto:sales@fixzit.sa" className="text-primary hover:underline">
-            sales@fixzit.sa
+          <a href={`mailto:${EMAIL_DOMAINS.sales}`} className="text-primary hover:underline">
+            {EMAIL_DOMAINS.sales}
           </a>
         </p>
       </DialogContent>

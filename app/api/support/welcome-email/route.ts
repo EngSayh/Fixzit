@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import sgMail from "@sendgrid/mail";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -97,7 +98,7 @@ Thank you for reporting an issue with our system. We're actively working to reso
 - ✅ 24/7 Support & Assistance
 
 **Need Immediate Help?**
-- Contact our support team: support@fixzit.com
+- Contact our support team: ${EMAIL_DOMAINS.support}
 - Visit our help center: https://fixzit.com/help
 - Call us: +966 50 123 4567
 

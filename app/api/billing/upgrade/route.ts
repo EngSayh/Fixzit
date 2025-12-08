@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Subscription from "@/server/models/Subscription";
 import { computeQuote } from "@/lib/pricing";
@@ -307,7 +308,7 @@ export async function POST(req: NextRequest) {
           currentPlan,
           targetPlan,
           estimatedQuote: quote,
-          contact: "sales@fixzit.app",
+          contact: EMAIL_DOMAINS.sales,
         },
         200,
         req

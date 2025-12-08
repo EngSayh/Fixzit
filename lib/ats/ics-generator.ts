@@ -3,6 +3,8 @@
  * Phase 2 implementation
  */
 
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
 interface ICSEvent {
   summary: string; // Event title
   description?: string; // Event details
@@ -25,7 +27,7 @@ interface ICSEvent {
  */
 export function generateICS(event: ICSEvent): string {
   const now = formatICSDate(new Date());
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@fixzit.co`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@${EMAIL_DOMAINS.primary}`;
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",

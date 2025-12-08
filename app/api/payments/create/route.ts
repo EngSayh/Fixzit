@@ -3,6 +3,7 @@ import { createPaymentPage } from "@/lib/paytabs";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Invoice } from "@/server/models/Invoice";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { z } from "zod";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
       currency: invoice.currency,
       customerDetails: {
         name: invoice.recipient?.name || "Unknown Customer",
-        email: invoice.recipient?.email || "customer@fixzit.co",
+        email: invoice.recipient?.email || EMAIL_DOMAINS.support,
         phone: invoice.recipient?.phone || "+966500000000",
         address: invoice.recipient?.address || "Saudi Arabia",
         city: "Riyadh",

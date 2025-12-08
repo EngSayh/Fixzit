@@ -4,6 +4,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { sendSMS as sendSMSViaService } from "@/lib/sms";
 import { loadTranslations } from "@/lib/i18n/translation-loader";
 import { Config } from "@/lib/config/constants";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 // Lazy-load translations
 let translations: ReturnType<typeof loadTranslations> | null = null;
@@ -217,7 +218,7 @@ async function sendEmail(
 
     await sgMail.send({
       to,
-      from: process.env.SENDGRID_FROM_EMAIL || "notifications@fixzit.sa",
+      from: process.env.SENDGRID_FROM_EMAIL || EMAIL_DOMAINS.notifications,
       subject,
       text: body,
       html: `
