@@ -162,11 +162,22 @@ export async function POST(request: NextRequest) {
     const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
     const bypassEnabled = Boolean(bypassCode && bypassCode.length >= 12);
     
+    // Check if this is a superadmin email that can use direct bypass (without prior OTP send)
+    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || '').toLowerCase();
+    const isSuperadminEmail = loginIdentifier.toLowerCase() === superadminEmail;
+    
     // Check if this is a bypass verification
     const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
     const bypassData = await redisOtpStore.get(bypassOtpKey);
     
-    if (bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode) {
+    // Allow bypass if:
+    // 1. Regular bypass: bypassData exists with __bypassed flag AND otp matches bypassCode
+    // 2. Direct superadmin bypass: superadmin email AND otp matches bypassCode (no prior send required)
+    //    This handles serverless stateless environment where Redis isn't configured
+    const isRegularBypass = bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode;
+    const isDirectSuperadminBypass = bypassEnabled && isSuperadminEmail && otp === bypassCode;
+    
+    if (isRegularBypass || isDirectSuperadminBypass) {
       // SECURITY: Validate user exists and is ACTIVE before issuing bypass session (CodeRabbit critical fix)
       await connectToDatabase();
       const bypassUser = await User.findOne({ email: loginIdentifier.toLowerCase() })
@@ -188,7 +199,8 @@ export async function POST(request: NextRequest) {
       }
       
       // SECURITY: Validate org context matches to prevent cross-tenant bypass reuse (CodeRabbit review fix)
-      if (bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
+      // Only check if bypassData exists (not for direct superadmin bypass)
+      if (bypassData && bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
         logger.warn("[OTP] Bypass org mismatch - potential cross-tenant attack", {
           identifier: redactIdentifier(loginIdentifier),
           storedOrgId: bypassData.orgId,
@@ -222,7 +234,7 @@ export async function POST(request: NextRequest) {
         userId: bypassUser._id.toString(),
         identifier: loginIdentifier,
         orgId: bypassUser.orgId?.toString() || orgScopeId,
-        companyCode: bypassData.companyCode || normalizedCompanyCode,
+        companyCode: bypassData?.companyCode || normalizedCompanyCode,
         expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
         __bypassed: true,
       });
