@@ -1,7 +1,5 @@
 "use client";
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
 import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";

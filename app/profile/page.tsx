@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
+import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
 type TabType = "account" | "notifications" | "security";
 
 interface UserData {
@@ -98,7 +97,7 @@ export default function ProfilePage() {
         if (data.user) {
           const userData: UserData = {
             name: data.user.name || "Admin User",
-            email: data.user.email || EMAIL_DOMAINS.admin,
+            email: data.user.email || EMAILS.admin,
             phone: data.user.phone || "",
             role: data.user.role || "Administrator",
             joinDate: data.user.joinDate || "January 2024",
@@ -125,7 +124,7 @@ export default function ProfilePage() {
         // Set default values on error
         const defaultUser: UserData = {
           name: "Admin User",
-          email: EMAIL_DOMAINS.admin,
+          email: EMAILS.admin,
           phone: "",
           role: "Administrator",
           joinDate: "January 2024",

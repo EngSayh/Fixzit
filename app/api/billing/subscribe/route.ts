@@ -15,7 +15,6 @@ import { createSecureResponse } from "@/server/security/headers";
 import { z } from "zod";
 import { getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 const subscriptionSchema = z.object({
   customer: z.object({

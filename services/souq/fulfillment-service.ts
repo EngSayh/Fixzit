@@ -6,7 +6,6 @@ import { smsaCarrier } from "@/lib/carriers/smsa";
 import { splCarrier } from "@/lib/carriers/spl";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import type { IOrder } from "@/server/models/souq/Order";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
@@ -248,7 +247,7 @@ class FulfillmentService {
       const warehouseAddress: IAddress = {
         name: "Fixzit Fulfillment Center",
         phone: "+966123456789",
-        email: process.env.FULFILLMENT_EMAIL || `fulfillment@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+        email: EMAIL_DOMAINS.fulfillment,
         street: "King Fahd Road",
         city: "Riyadh",
         postalCode: "11564",

@@ -7,7 +7,6 @@ import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
 /**
  * Default terms of service content shown when CMS content is not available or not published.
  */
