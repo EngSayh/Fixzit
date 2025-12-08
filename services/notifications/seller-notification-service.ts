@@ -355,12 +355,12 @@ async function logNotification(
   try {
     const db = await getDatabase();
     const getCollection = () => {
-      if (typeof db.collection === "function") {
-        const coll = db.collection("seller_notifications") as {
-          insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
-        };
-        if (coll && typeof coll.insertOne === "function") {
-          return coll;
+      if (typeof (db as unknown as Record<string, unknown>).collection === "function") {
+        const raw = (db as unknown as { collection: (name: string) => unknown }).collection("seller_notifications");
+        if (raw && typeof (raw as Record<string, unknown>).insertOne === "function") {
+          return raw as {
+            insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
+          };
         }
       }
       // Test fallback: create an in-memory collection store on the db object

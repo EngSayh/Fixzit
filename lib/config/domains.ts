@@ -129,10 +129,19 @@ export const CORS_ALLOWLIST = [
 export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   try {
-    const normalizedOrigin = new URL(origin).origin;
+    const parsed = new URL(origin);
+    const normalizedOrigin = parsed.origin;
+    const hostname = parsed.hostname.replace(/^www\./, "");
     return CORS_ALLOWLIST.some((allowed) => {
       try {
-        return normalizedOrigin === new URL(allowed).origin;
+        const allowedUrl = new URL(allowed);
+        const allowedHost = allowedUrl.hostname.replace(/^www\./, "");
+        // Allow exact match or subdomains of allowed host
+        return (
+          normalizedOrigin === allowedUrl.origin ||
+          hostname === allowedHost ||
+          hostname.endsWith(`.${allowedHost}`)
+        );
       } catch {
         return false;
       }

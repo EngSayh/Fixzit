@@ -12,6 +12,15 @@ export interface EmailResult {
   error?: string;
 }
 
+function maskEmailAddress(address: string): string {
+  const parts = address.split("@");
+  if (parts.length !== 2) return "***";
+  const [user, domain] = parts;
+  if (!user) return `***@${domain}`;
+  const visible = user.slice(0, 2);
+  return `${visible}***@${domain}`;
+}
+
 /**
  * Send email via SendGrid
  */
@@ -24,9 +33,10 @@ export async function sendEmail(
     html?: string;
   },
 ): Promise<EmailResult> {
+  const maskedTo = maskEmailAddress(to);
   if (!process.env.SENDGRID_API_KEY) {
     const error = "SendGrid not configured. Missing SENDGRID_API_KEY";
-    logger.warn("[Email] Configuration missing", { to });
+    logger.warn("[Email] Configuration missing", { to: maskedTo });
     return { success: false, error };
   }
 
@@ -67,7 +77,7 @@ export async function sendEmail(
       undefined;
 
     logger.info("[Email] Message sent successfully", {
-      to,
+      to: maskedTo,
       subject,
       messageId,
     });
@@ -82,7 +92,7 @@ export async function sendEmail(
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[Email] Send failed", {
       error: errorMessage,
-      to,
+      to: maskedTo,
       subject,
     });
 

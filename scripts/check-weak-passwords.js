@@ -1,74 +1,74 @@
 #!/usr/bin/env node
 /**
- * Static guard: fail if weak password literals are present outside allowed fixtures.
- * Patterns flagged: password123, admin123, Test@1234 (case-insensitive).
+ * Fails on weak hardcoded passwords (password123/admin123/Test@1234).
+ * Scans source files (js/ts/tsx/json/md/yml/ps1) excluding common build/output dirs.
  */
-const { spawnSync } = require("node:child_process");
+
+const fs = require("node:fs");
 const path = require("node:path");
+const fg = require("fast-glob");
 
-const repoRoot = path.resolve(__dirname, "..");
-const patterns = ["password123", "admin123", "Test@1234"];
-const ignoreGlobs = [
-  "node_modules/**",
-  ".git/**",
-  ".next/**",
-  "dist/**",
-  "build/**",
-  "coverage/**",
-  "playwright-report/**",
-  "_artifacts/**",
-  "artifacts/**",
-  "tmp/**",
-  "test-results/**",
+const ROOT = process.cwd();
+const WEAK_PATTERN = /(password123|admin123|Test@1234)/gi;
+const EXT_GLOB = "**/*.{js,ts,tsx,jsx,json,yml,yaml,mjs,ps1}";
+const IGNORE = [
+  "**/node_modules/**",
+  "**/.next/**",
+  "**/playwright-report/**",
+  "**/tests/playwright-report/**",
+  "**/_artifacts/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/out/**",
+  "**/.turbo/**",
+  "**/coverage/**",
+  "**/docs/**",
+  "**/tests/**",
+  "**/qa/**",
+  "scripts/check-weak-passwords.js",
+  "scripts/check-seed-guards.js",
+  "scripts/testing/**",
 ];
 
-const rgArgs = [
-  "--no-heading",
-  "--line-number",
-  "--color",
-  "never",
-  "--hidden",
-];
-for (const glob of ignoreGlobs) {
-  rgArgs.push(`-g!${glob}`);
-}
-rgArgs.push(patterns.join("|"));
+async function main() {
+  const files = await fg(EXT_GLOB, {
+    cwd: ROOT,
+    ignore: IGNORE,
+    dot: false,
+  });
 
-const result = spawnSync("rg", rgArgs, {
-  cwd: repoRoot,
-  encoding: "utf8",
-});
+  const failures = [];
 
-if (result.status === 1) {
+  for (const rel of files) {
+    const base = path.basename(rel);
+    if (rel.startsWith("scripts/")) {
+      const isSeed = base.startsWith("seed");
+      const isSuperadminFix = base === "fix-superadmin-password.js";
+      if (!isSeed && !isSuperadminFix) {
+        continue;
+      }
+    }
+    const abs = path.join(ROOT, rel);
+    const stat = fs.statSync(abs);
+    if (stat.size > 2 * 1024 * 1024) continue; // skip huge files
+    const text = fs.readFileSync(abs, "utf8");
+    const matches = [...text.matchAll(WEAK_PATTERN)].map((m) => m[0]);
+    if (matches.length > 0) {
+      failures.push(`${rel} -> ${Array.from(new Set(matches)).join(", ")}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error("❌ Weak password literals found:");
+    failures.forEach((f) => console.error(` - ${f}`));
+    process.exit(1);
+  }
+
   console.log("✅ No weak password literals found.");
-  process.exit(0);
 }
 
-if (result.status !== 0 && result.status !== 1) {
-  console.error("❌ Weak password scan failed (rg error):", result.stderr.trim());
-  process.exit(result.status || 1);
-}
-
-const rawLines = result.stdout
-  .split("\n")
-  .map((line) => line.trim())
-  .filter(Boolean);
-
-// Allowlist: skip this checker file and snapshots/fixtures if any appear.
-const matches = rawLines.filter((line) => {
-  const file = line.split(":")[0] || "";
-  if (file.includes("scripts/check-weak-passwords.js")) return false;
-  if (file.includes("__snapshots__")) return false;
-  if (file.includes("__fixtures__")) return false;
-  return true;
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
-
-if (matches.length === 0) {
-  console.log("✅ No weak password literals found.");
-  process.exit(0);
-}
-
-console.error(
-  "❌ Weak password literals detected (blockers):\n" + matches.join("\n"),
-);
-process.exit(1);

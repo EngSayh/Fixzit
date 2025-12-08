@@ -1,3 +1,12 @@
+if ($env:NODE_ENV -eq "production" -or $env:CI -eq "true") {
+    Write-Error "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production." -ErrorAction Stop
+    exit 1
+}
+if ($env:ALLOW_SEED -ne "1") {
+    Write-Error "Set ALLOW_SEED=1 to run seed scripts in non-production." -ErrorAction Stop
+    exit 1
+}
+
 Write-Host "🌱 Seeding CMS Pages..." -ForegroundColor Cyan
 
 $headers = @{
@@ -127,4 +136,3 @@ foreach ($page in $pages) {
         Write-Host "❌ Failed: $($page.slug) - $_" -ForegroundColor Red
     }
 }
-

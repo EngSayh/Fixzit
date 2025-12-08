@@ -12,6 +12,19 @@
 import crypto from "crypto";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-copilot-knowledge.ts in non-production.");
+  process.exit(1);
+}
+
 const GLOBAL_ORG_ID = "000000000000000000000000";
 
 const docs = [

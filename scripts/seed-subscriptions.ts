@@ -5,6 +5,19 @@ import PriceBook from "../server/models/PriceBook";
 import DiscountRule from "../server/models/DiscountRule";
 import Benchmark from "../server/models/Benchmark";
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-subscriptions.ts in non-production.");
+  process.exit(1);
+}
+
 const USD_PRICES = [
   { module_key: "FM_CORE", monthly_usd: 22, monthly_sar: 82 },
   { module_key: "PM", monthly_usd: 8, monthly_sar: 30 },

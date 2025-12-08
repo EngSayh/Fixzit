@@ -3,6 +3,19 @@ import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 import { getDemoEmail } from "../lib/config/demo-users";
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-users.ts in non-production.");
+  process.exit(1);
+}
+
 // SEC-051: Require explicit demo passwords (no baked defaults)
 const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
 const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;

@@ -11,6 +11,7 @@ import { requireEnv, TEST_JWT_SECRET } from "./env";
 
 export function validateStartup(): void {
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   try {
     const jwtSecret = requireEnv("JWT_SECRET", {
@@ -27,12 +28,44 @@ export function validateStartup(): void {
     errors.push(error instanceof Error ? error.message : String(error));
   }
 
+  // Payment gateway secrets - warn (or fail in production) when missing
+  const paytabsMissing =
+    !process.env.PAYTABS_SERVER_KEY || !process.env.PAYTABS_PROFILE_ID;
+  if (paytabsMissing) {
+    const msg =
+      "PayTabs gateway secrets missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  const tapMissing = !process.env.TAP_WEBHOOK_SECRET;
+  if (tapMissing) {
+    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
   // Throw all errors at once for comprehensive startup feedback
   if (errors.length > 0) {
     throw new Error(
       `FATAL STARTUP ERRORS - Application cannot start:\n${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}\n\n` +
         "Fix these configuration issues and restart the application.",
     );
+  }
+
+  if (warnings.length > 0) {
+    for (const w of warnings) {
+      // eslint-disable-next-line no-console -- startup warnings are intentional for operators
+      console.warn(
+        `[Startup Warning] ${w}. Configure these secrets to enable payment callbacks.`,
+      );
+    }
   }
 }
 

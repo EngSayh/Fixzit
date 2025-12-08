@@ -19,6 +19,15 @@ if (!allowFix) {
   process.exit(1);
 }
 
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike && process.env.ALLOW_SEED !== "1") {
+  console.error(
+    "❌ Blocked in production/CI. Set ALLOW_SEED=1 only for controlled maintenance.",
+  );
+  process.exit(1);
+}
+
 const ORG_ID =
   process.env.DEFAULT_ORG_ID ||
   process.env.PUBLIC_ORG_ID ||
@@ -29,14 +38,23 @@ if (!ORG_ID || !mongoose.Types.ObjectId.isValid(ORG_ID)) {
   process.exit(1);
 }
 
-const EMAIL = process.env.FIX_SUPERADMIN_EMAIL || process.env.TEST_USER_EMAIL || "superadmin@fixzit.co";
-const PASSWORD =
-  process.env.FIX_SUPERADMIN_PASSWORD ||
-  process.env.SUPERADMIN_PASSWORD ||
-  process.env.TEST_USER_PASSWORD;
+const EMAIL = process.env.FIX_SUPERADMIN_EMAIL || process.env.TEST_USER_EMAIL;
+const PASSWORD = process.env.FIX_SUPERADMIN_PASSWORD || process.env.TEST_USER_PASSWORD;
 
-if (!PASSWORD) {
-  console.error("❌ FIX_SUPERADMIN_PASSWORD / SUPERADMIN_PASSWORD / TEST_USER_PASSWORD is required (no default)");
+if (!EMAIL || !PASSWORD) {
+  console.error("❌ FIX_SUPERADMIN_EMAIL and FIX_SUPERADMIN_PASSWORD (or TEST_USER_EMAIL/TEST_USER_PASSWORD) are required (no defaults)");
+  process.exit(1);
+}
+if (
+  PASSWORD.length < 12 ||
+  !/[A-Z]/.test(PASSWORD) ||
+  !/[a-z]/.test(PASSWORD) ||
+  !/[0-9]/.test(PASSWORD) ||
+  !/[^A-Za-z0-9]/.test(PASSWORD)
+) {
+  console.error(
+    "❌ FIX_SUPERADMIN_PASSWORD must be at least 12 chars and include upper, lower, number, and symbol",
+  );
   process.exit(1);
 }
 

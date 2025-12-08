@@ -2077,5 +2077,112 @@ Demo passwords now use placeholder strings when env vars not set, allowing build
 
 ---
 
+## 🟢 SMS Queue System Issues
+
+### ISSUE-SMS-001: Cancel Action Didn't Stop BullMQ Delivery
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Cost  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+When an admin cancelled an SMS via `/api/admin/sms` PATCH, the message status was set to EXPIRED but the BullMQ job remained queued. This could result in cancelled messages still being delivered (and billed).
+
+**Files Fixed**:
+- `app/api/admin/sms/route.ts`: Cancel action now calls `removePendingSMSJobs(messageId)` before setting status
+- `lib/queues/sms-queue.ts`: Added `removePendingSMSJobs()` export
+
+**Resolution**:
+Cancel now removes the BullMQ job from waiting/delayed/active states AND sets status to EXPIRED. Worker also checks EXPIRED status before processing.
+
+---
+
+### ISSUE-SMS-002: Worker Didn't Check FAILED Status Before Sending
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Cost  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`processSMSJob()` checked for EXPIRED, SENT, DELIVERED statuses but not FAILED. Messages marked as FAILED after max retries could still be processed if the job was requeued.
+
+**Files Fixed**:
+- `lib/queues/sms-queue.ts`: Added guard `if (message.status === "FAILED" || message.retryCount >= message.maxRetries)`
+
+**Resolution**:
+Worker now skips any message that has FAILED status OR has exhausted its maxRetries.
+
+---
+
+### ISSUE-SMS-003: Worker Didn't Enforce retryCount >= maxRetries Guard
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, SLA  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Even though BullMQ `attempts` was configured, the worker itself didn't check if the message's `retryCount` had reached `maxRetries`. This could lead to exceeding SLA-configured retry limits.
+
+**Files Fixed**:
+- `lib/queues/sms-queue.ts`: Combined guard checks `message.status === "FAILED" || message.retryCount >= message.maxRetries`
+
+**Resolution**:
+Worker enforces retry ceiling based on per-message SLA configuration, not just BullMQ's attempt count.
+
+---
+
+### ISSUE-SMS-004: BullMQ Attempts Hardcoded to 5
+
+**Severity**: 🟨 MODERATE  
+**Category**: Correctness, Configuration  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Default `attempts: 5` was set in queue creation, ignoring per-message `maxRetries` from SLA configuration.
+
+**Files Fixed**:
+- `lib/queues/sms-queue.ts`: `queue.add()` now passes `attempts: smsMessage.maxRetries` per-job
+- `lib/queues/sms-queue.ts`: `enqueueExistingSMS()` calculates `attemptsRemaining = maxRetries - retryCount`
+
+**Resolution**:
+BullMQ retry attempts now align with SLA-configured maxRetries per message.
+
+---
+
+### ISSUE-SMS-005: No Per-Org Rate Limiting (Noisy Neighbor)
+
+**Severity**: 🟨 MODERATE  
+**Category**: Reliability, Multi-tenancy  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+A single tenant could overwhelm the SMS infrastructure by queueing many messages, affecting delivery times for other tenants.
+
+**Files Fixed**:
+- `lib/queues/sms-queue.ts`: Added `checkOrgRateLimit()` using Redis counters, reads `globalRateLimitPerMinute` from SMSSettings
+- `lib/queues/sms-queue.ts`: Integrated rate check in `processSMSJob()` before sending
+
+**Resolution**:
+Per-org rate limiting (default 30/min, configurable via SMSSettings) prevents noisy-neighbor issues. Rate-limited messages are delayed and requeued.
+
+---
+
+### ISSUE-SMS-006: Missing Failure Tracking for Audit/SLA
+
+**Severity**: 🟧 MAJOR  
+**Category**: Observability, SLA  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+When SMS delivery failed, the attempt wasn't always recorded in `retryHistory`, making it difficult to diagnose issues and track SLA breaches.
+
+**Files Fixed**:
+- `lib/queues/sms-queue.ts`: `processSMSJob()` catch block now calls `SMSMessage.recordAttempt()` with error details
+
+**Resolution**:
+Every send attempt (success or failure) is recorded with timestamp, provider, duration, and error message.
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution

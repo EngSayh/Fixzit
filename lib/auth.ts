@@ -129,7 +129,7 @@ export interface AuthToken {
  * @security Always hash passwords before storing in database.
  *
  * @example
- * const hashedPassword = await hashPassword('userPassword123');
+ * const hashedPassword = await hashPassword('userPass!234');
  * // Store hashedPassword in database
  */
 export async function hashPassword(password: string): Promise<string> {
@@ -148,7 +148,7 @@ export async function hashPassword(password: string): Promise<string> {
  * @security Uses constant-time comparison to prevent timing attacks.
  *
  * @example
- * const isValid = await verifyPassword('userPassword123', user.password);
+ * const isValid = await verifyPassword('userPass!234', user.password);
  * if (!isValid) {
  *   throw new Error('Invalid credentials');
  * }
@@ -247,7 +247,7 @@ export async function verifyToken(token: string): Promise<AuthToken | null> {
  * // Personal login (email) - requires orgId
  * const { token, user } = await authenticateUser(
  *   'user@company.com',
- *   'password123',
+ *   '<user-password>',
  *   'personal',
  *   'org-123'
  * );
@@ -256,7 +256,7 @@ export async function verifyToken(token: string): Promise<AuthToken | null> {
  * // Corporate login (employee number) - requires companyCode
  * const { token, user } = await authenticateUser(
  *   'EMP001',
- *   'password123',
+ *   '<user-password>',
  *   'corporate',
  *   undefined,
  *   'ACME-001'

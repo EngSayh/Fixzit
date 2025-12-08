@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 
+// Guard moved to main() execution, not module load time, to allow test imports
+
 const logInfo = (message: string) => {
   process.stdout.write(`${message}\n`);
 };
@@ -135,6 +137,19 @@ const db = MockDatabase.getInstance();
 export const upsert = createUpsert(db);
 
 export async function main() {
+  // Guard: prevent accidental execution in production/CI (skip in test environment)
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const isProdLike =
+    process.env.NODE_ENV === "production" || process.env.CI === "true";
+  if (isProdLike && !isTest) {
+    logError("Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.");
+    process.exit(1);
+  }
+  if (process.env.ALLOW_SEED !== "1" && !isTest) {
+    logError("Set ALLOW_SEED=1 to run seed-marketplace.ts in non-production.");
+    process.exit(1);
+  }
+
   const tenantId = DEFAULT_TENANT_ID;
   const { synonyms, products } = getSeedData(tenantId);
 

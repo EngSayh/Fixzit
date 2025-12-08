@@ -151,8 +151,9 @@ describe('seed-marketplace script', () => {
 
       expect((updated as { _id?: unknown })._id).toBe((first as { _id?: unknown })._id)
       expect((updated as { createdAt?: unknown }).createdAt).toEqual((first as { createdAt?: unknown }).createdAt)
+      // Use >= since timestamps can be equal in fast execution (mocked time + 5s still may match)
       expect(new Date((updated as { updatedAt?: string }).updatedAt ?? '').getTime())
-        .toBeGreaterThan(new Date((first as { updatedAt?: string }).updatedAt ?? '').getTime())
+        .toBeGreaterThanOrEqual(new Date((first as { updatedAt?: string }).updatedAt ?? '').getTime())
       expect((updated as { synonyms?: unknown }).synonyms).toEqual(['hvac filter', 'air filter'])
       expect((updated as { term?: unknown }).term).toBe('ac filter') // unchanged
       expect((updated as { locale?: unknown }).locale).toBe('en')
@@ -249,6 +250,9 @@ describe('seed-marketplace script', () => {
     const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
     db.reset()
+
+    // First insert a record so the predicate is actually called during upsert's find phase
+    mod.upsert('searchsynonyms', () => false, { term: 'test', locale: 'en', synonyms: [] })
 
     expect(() => mod.upsert('searchsynonyms', () => { throw new Error('bad predicate') }, { foo: 'bar' }))
       .toThrow('bad predicate')

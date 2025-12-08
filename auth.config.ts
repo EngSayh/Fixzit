@@ -390,11 +390,19 @@ export const authConfig = {
             role?: string;
           };
           let user: LeanUser | null;
+          const offlinePassword =
+            process.env.OFFLINE_AUTH_PASSWORD ||
+            process.env.TEST_USER_PASSWORD ||
+            process.env.SEED_PASSWORD;
           if (allowOfflineAuth) {
+            if (!offlinePassword) {
+              logger.error('[NextAuth] OFFLINE_AUTH_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD required for offline auth');
+              return null;
+            }
             user = {
               _id: 'offline-user',
               email: loginIdentifier,
-              password: await bcrypt.hash(password || 'Test@1234', 10),
+              password: await bcrypt.hash(password || offlinePassword, 10),
               role: 'SUPER_ADMIN',
               status: 'ACTIVE',
               isSuperAdmin: true,
