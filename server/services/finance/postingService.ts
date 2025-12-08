@@ -202,9 +202,15 @@ class PostingService {
    * - Bulk-fetches all accounts in one query (no N+1 bug)
    * - Uses MongoDB $inc for atomic balance updates (no race conditions)
    * - Runs in database transaction (no partial failures)
+   * - 🔐 STRICT v4.1: Optional expectedOrgId for tenant isolation verification
    */
-  async postJournal(journalId: Types.ObjectId): Promise<PostJournalResult> {
-    const journal = await JournalModel.findById(journalId);
+  async postJournal(journalId: Types.ObjectId, expectedOrgId?: Types.ObjectId | string): Promise<PostJournalResult> {
+    // 🔐 STRICT v4.1: Use org-scoped query if expectedOrgId provided
+    const query: { _id: Types.ObjectId; orgId?: Types.ObjectId | string } = { _id: journalId };
+    if (expectedOrgId) {
+      query.orgId = expectedOrgId;
+    }
+    const journal = await JournalModel.findOne(query);
 
     if (!journal) {
       throw new Error("Journal entry not found");

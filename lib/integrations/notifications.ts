@@ -139,9 +139,10 @@ export async function sendFCMNotification(
     }
 
     // Get user's FCM tokens from database
-    const tokens = await getUserFCMTokens(userId);
+    // 🔐 STRICT v4.1: Pass orgId for tenant-scoped user lookup
+    const tokens = await getUserFCMTokens(userId, notification.orgId);
     if (tokens.length === 0) {
-      logger.info("[FCM] No tokens found for user", { userId });
+      logger.info("[FCM] No tokens found for user", { userId, orgId: notification.orgId });
       return;
     }
 
@@ -204,29 +205,35 @@ export async function sendFCMNotification(
         )
         .filter(Boolean) as string[];
 
-      await removeInvalidFCMTokens(userId, failedTokens);
+      // 🔐 STRICT v4.1: Pass orgId for tenant-scoped token removal
+      await removeInvalidFCMTokens(userId, failedTokens, notification.orgId);
     }
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error("[FCM] Failed to send push notification", { error, userId });
+    logger.error("[FCM] Failed to send push notification", { error, userId, orgId: notification.orgId });
     throw error;
   }
 }
 
-async function getUserFCMTokens(userId: string): Promise<string[]> {
+async function getUserFCMTokens(userId: string, orgId?: string): Promise<string[]> {
   // Query database for user's FCM tokens
-  // This would come from a UserDevices collection
+  // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
   try {
     const { User } = await import("@/server/models/User");
-    const user = (await User.findOne({ userId })
+    // Build query with optional orgId for tenant scoping
+    const query: { _id: string; orgId?: string } = { _id: userId };
+    if (orgId) {
+      query.orgId = orgId;
+    }
+    const user = (await User.findOne(query)
       .select("fcmTokens")
       .lean()) as { fcmTokens?: string[] } | null;
     return user?.fcmTokens || [];
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error("[FCM] Failed to get user tokens", { error, userId });
+    logger.error("[FCM] Failed to get user tokens", { error, userId, orgId });
     return [];
   }
 }
@@ -234,18 +241,26 @@ async function getUserFCMTokens(userId: string): Promise<string[]> {
 async function removeInvalidFCMTokens(
   userId: string,
   tokens: string[],
+  orgId?: string,
 ): Promise<void> {
+  // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
   try {
     const { User } = await import("@/server/models/User");
-    await User.updateOne({ userId }, { $pull: { fcmTokens: { $in: tokens } } });
+    // Build query with optional orgId for tenant scoping
+    const query: { _id: string; orgId?: string } = { _id: userId };
+    if (orgId) {
+      query.orgId = orgId;
+    }
+    await User.updateOne(query, { $pull: { fcmTokens: { $in: tokens } } });
     logger.info("[FCM] Removed invalid tokens", {
       userId,
+      orgId,
       count: tokens.length,
     });
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error("[FCM] Failed to remove invalid tokens", { error, userId });
+    logger.error("[FCM] Failed to remove invalid tokens", { error, userId, orgId });
   }
 }
 
