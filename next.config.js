@@ -183,6 +183,8 @@ const nextConfig = {
     'mongoose', 
     'bcryptjs',
     'ioredis', // Keep ioredis server-side only - requires 'dns' module not available in Edge
+    'bullmq', // Keep bullmq server-side only - uses path, child_process, worker_threads, crypto
+    'twilio', // Keep twilio server-side only - uses crypto, stream, etc.
   ],
 
   // ✅ FIXED: Turbopack configuration added above to silence warning

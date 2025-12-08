@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -34,6 +35,7 @@ import { getClientIP } from "@/server/security/headers";
  */
 export async function GET(request: NextRequest) {
   try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
     const clientIp = getClientIP(request);
     const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:GET`, 30, 60_000);
     if (!rl.allowed) {
@@ -99,9 +101,7 @@ export async function GET(request: NextRequest) {
       query.slaBreached = false;
     }
 
-    if (!orgId) {
-      logger.info("[Admin SMS] Global SMS query executed by superadmin", { by: session.user.email });
-    }
+    logger.info("[Admin SMS] Query start", { by: session.user.email, orgId, correlationId, limit, skip });
 
     // Fetch messages
     const [messages, total] = await Promise.all([
@@ -141,6 +141,15 @@ export async function GET(request: NextRequest) {
       response.queueStats = queueStats;
     }
 
+    logger.info("[Admin SMS] Query complete", {
+      by: session.user.email,
+      orgId,
+      correlationId,
+      limit,
+      skip,
+      total,
+    });
+
     const res = NextResponse.json(response);
     res.headers.set("X-RateLimit-Limit", "30");
     res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
@@ -173,6 +182,7 @@ const ActionSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
     const clientIp = getClientIP(request);
     const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:POST`, 15, 60_000);
     if (!rl.allowed) {
@@ -262,6 +272,7 @@ export async function POST(request: NextRequest) {
         logger.info("[Admin SMS] Manual retry triggered", {
           messageId,
           by: session.user.email,
+          correlationId,
         });
 
         return NextResponse.json({
@@ -284,6 +295,7 @@ export async function POST(request: NextRequest) {
           orgId,
           retriedCount,
           by: session.user.email,
+          correlationId,
         });
 
         return NextResponse.json({
@@ -328,6 +340,7 @@ export async function POST(request: NextRequest) {
           messageId,
           removedJobs,
           by: session.user.email,
+          correlationId,
         });
 
         return NextResponse.json({

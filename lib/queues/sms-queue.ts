@@ -59,6 +59,13 @@ type ProviderCandidate = SMSProviderOptions & {
   supportedTypes?: string[];
 };
 
+const maskPhone = (to: string | undefined) => {
+  if (!to) return undefined;
+  const digits = to.replace(/\D/g, "");
+  if (digits.length <= 4) return "***";
+  return `${"*".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+};
+
 /**
  * Select provider candidates honoring defaultProvider, priority, supportedTypes,
  * and fall back to env Twilio creds when org settings are unusable.
@@ -101,7 +108,10 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
     });
   }
 
-  return candidates;
+  // Filter out providers missing any required credential
+  return candidates.filter(
+    (c) => Boolean(c.from) && Boolean(c.accountSid) && Boolean(c.authToken),
+  );
 }
 
 /**
@@ -130,13 +140,15 @@ export async function removePendingSMSJobs(messageId: string): Promise<number> {
  * @internal Reserved for future per-org rate limiting enhancement
  */
 export async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | { ok: false; ttlMs: number }> {
-  if (!orgId) return { ok: true };
+  // 🔒 Enforce orgId presence to avoid unscoped throttling bypass
+  if (!orgId) return { ok: false, ttlMs: 0 };
 
   const connection = getRedisClient();
   if (!connection) return { ok: true };
 
+  const settings = await SMSSettings.getEffectiveSettings(orgId);
+  const maxPerMinute = settings?.globalRateLimitPerMinute ?? 30;
   const key = `sms:rate:${orgId}`;
-  const maxPerMinute = 30;
   const ttlMs = await connection.pttl(key);
   const count = await connection.incr(key);
   if (ttlMs < 0) {
@@ -221,6 +233,12 @@ export async function queueSMS(options: {
     throw new Error('orgId is required to queue SMS (tenant isolation)');
   }
 
+  // Basic E.164 validation to reduce provider rejects
+  const E164 = /^\+?[1-9]\d{7,14}$/;
+  if (!E164.test(to)) {
+    throw new Error("Invalid destination phone (E.164 format required)");
+  }
+
   // 🚦 Pre-queue rate limiting to avoid creating messages we can't send promptly
   const rateCheck = await checkOrgRateLimit(orgId);
   if (!rateCheck.ok) {
@@ -262,7 +280,11 @@ export async function queueSMS(options: {
   const queue = getSMSQueue();
   if (!queue || !settings.queueEnabled) {
     // Send immediately without queue
-    logger.info("[SMS Queue] Queue disabled, sending immediately", { messageId: smsMessage._id.toString() });
+    logger.info("[SMS Queue] Queue disabled, sending immediately", {
+      messageId: smsMessage._id.toString(),
+      orgId,
+      toMasked: maskPhone(to),
+    });
     await processSMSJob(smsMessage._id.toString());
     return { messageId: smsMessage._id.toString(), queued: false };
   }
@@ -301,7 +323,8 @@ export async function queueSMS(options: {
 
   logger.info("[SMS Queue] Message queued", {
     messageId: smsMessage._id.toString(),
-    to,
+    orgId,
+    toMasked: maskPhone(to),
     type,
     priority,
     delay,
@@ -371,6 +394,13 @@ export async function enqueueExistingSMS(
       attempts: attemptsRemaining,
     }
   );
+
+  logger.info("[SMS Queue] Existing message queued", {
+    messageId,
+    orgId: message.orgId,
+    toMasked: maskPhone(message.to),
+    priority: message.priority,
+  });
 }
 
 /**
@@ -385,9 +415,21 @@ async function processSMSJob(messageId: string): Promise<void> {
     return;
   }
 
+  if (!message.orgId) {
+    await SMSMessage.findByIdAndUpdate(messageId, {
+      status: "FAILED",
+      lastError: "Missing orgId",
+    });
+    logger.error("[SMS Queue] Missing orgId on message; aborting", { messageId });
+    return;
+  }
+
   // Skip messages that are expired/cancelled before processing
   if (message.status === "EXPIRED") {
-    logger.info("[SMS Queue] Message cancelled/expired; skipping send", { messageId });
+    logger.info("[SMS Queue] Message cancelled/expired; skipping send", {
+      messageId,
+      orgId: message.orgId,
+    });
     return;
   }
 
@@ -396,6 +438,7 @@ async function processSMSJob(messageId: string): Promise<void> {
     await SMSMessage.findByIdAndUpdate(messageId, { status: "FAILED" });
     logger.warn("[SMS Queue] Max retries reached; skipping send", {
       messageId,
+      orgId: message.orgId,
       status: message.status,
       retryCount: message.retryCount,
       maxRetries: message.maxRetries,
@@ -406,7 +449,7 @@ async function processSMSJob(messageId: string): Promise<void> {
   // Check if expired
   if (message.expiresAt && new Date() > message.expiresAt) {
     await SMSMessage.findByIdAndUpdate(messageId, { status: "EXPIRED" });
-    logger.warn("[SMS Queue] Message expired", { messageId });
+    logger.warn("[SMS Queue] Message expired", { messageId, orgId: message.orgId });
     return;
   }
 
@@ -468,7 +511,7 @@ async function processSMSJob(messageId: string): Promise<void> {
     const candidates = buildProviderCandidates(settings, message.type);
 
     if (!candidates.length) {
-      throw new Error("No SMS providers configured (org or env)");
+      throw new Error("No valid SMS providers configured (org or env)");
     }
 
     let lastError = "Unknown SMS failure";
@@ -503,6 +546,8 @@ async function processSMSJob(messageId: string): Promise<void> {
 
         logger.info("[SMS Queue] Message sent successfully", {
           messageId,
+          orgId: message.orgId,
+          toMasked: maskPhone(message.to),
           provider: candidate.name,
           messageSid: result.messageSid,
           durationMs,
@@ -513,6 +558,8 @@ async function processSMSJob(messageId: string): Promise<void> {
       lastError = result.error || "SMS send failed";
       logger.warn("[SMS Queue] Provider failed, trying next candidate", {
         messageId,
+        orgId: message.orgId,
+        toMasked: maskPhone(message.to),
         providerTried: candidate.name,
         error: lastError,
       });
@@ -548,6 +595,8 @@ async function processSMSJob(messageId: string): Promise<void> {
     // 📊 FIXED: Record failed attempt for retry tracking and SLA breach detection
     logger.error("[SMS Queue] Send failed", {
       messageId,
+      orgId: message.orgId,
+      toMasked: maskPhone(message.to),
       error: errorMessage,
       durationMs,
       retryCount: message.retryCount + 1,

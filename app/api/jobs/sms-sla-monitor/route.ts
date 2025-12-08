@@ -7,11 +7,15 @@
  * @module app/api/jobs/sms-sla-monitor/route
  */
 
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import { processSLABreaches, getSLABreachStats } from "@/lib/jobs/sms-sla-monitor";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * POST /api/jobs/sms-sla-monitor
@@ -21,6 +25,13 @@ import { processSLABreaches, getSLABreachStats } from "@/lib/jobs/sms-sla-monito
  */
 export async function POST(request: NextRequest) {
   try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/jobs/sms-sla-monitor:${clientIp}:POST`, 20, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const session = await auth();
 
     // Allow both authenticated admins and cron jobs (with secret)
@@ -40,14 +51,19 @@ export async function POST(request: NextRequest) {
 
     logger.info("[SLA Monitor] Starting breach check", {
       triggeredBy: cronAuthorized ? "cron" : session?.user?.email,
+      correlationId,
     });
 
     const report = await processSLABreaches();
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       report,
     });
+    res.headers.set("x-correlation-id", correlationId);
+    res.headers.set("X-RateLimit-Limit", "20");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
   } catch (error) {
     logger.error("[SLA Monitor] Endpoint error", {
       error: error instanceof Error ? error.message : String(error),
@@ -66,6 +82,13 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/jobs/sms-sla-monitor:${clientIp}:GET`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const session = await auth();
 
     const isSuperAdmin =
@@ -82,10 +105,14 @@ export async function GET(request: NextRequest) {
 
     const stats = await getSLABreachStats(orgId, since);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       stats,
     });
+    res.headers.set("x-correlation-id", correlationId);
+    res.headers.set("X-RateLimit-Limit", "30");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
   } catch (error) {
     logger.error("[SLA Monitor] Stats endpoint error", {
       error: error instanceof Error ? error.message : String(error),

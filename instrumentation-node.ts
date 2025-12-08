@@ -1,0 +1,59 @@
+/**
+ * Node.js-specific Instrumentation
+ *
+ * This file contains Node.js-specific initialization code that requires
+ * Node.js-only modules (bullmq, twilio, etc.) and should NOT be bundled
+ * for Edge runtime or client-side.
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ *
+ * @module instrumentation-node
+ */
+
+import { logger } from "@/lib/logger";
+
+export async function registerNode(): Promise<void> {
+  logger.info("[Instrumentation] Starting Node.js server initialization...");
+
+  try {
+    // Validate environment variables
+    const { validateAllEnv } = await import("@/lib/env-validation");
+    const envResult = validateAllEnv();
+
+    if (!envResult.valid && process.env.NODE_ENV === "production") {
+      logger.error("[Instrumentation] Environment validation failed", {
+        errors: envResult.errors,
+      });
+      // Stop startup in production to avoid running with invalid secrets/config
+      throw new Error("Environment validation failed; see logs for details");
+    }
+
+    // Initialize SMS worker if Redis is configured
+    if (process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL) {
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      const worker = startSMSWorker();
+
+      if (worker) {
+        logger.info("[Instrumentation] SMS Worker started successfully");
+      } else {
+        logger.info("[Instrumentation] SMS Worker not started (Redis not configured or disabled)");
+      }
+    } else {
+      logger.info("[Instrumentation] Skipping SMS Worker (no Redis configuration)");
+    }
+
+    // Log startup info
+    logger.info("[Instrumentation] Server initialization complete", {
+      nodeEnv: process.env.NODE_ENV,
+      hasRedis: Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
+      hasTwilio: Boolean(process.env.TWILIO_ACCOUNT_SID),
+      hasUnifonic: Boolean(process.env.UNIFONIC_APP_SID),
+      hasEncryption: Boolean(process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY),
+    });
+  } catch (error) {
+    logger.error("[Instrumentation] Initialization error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't throw - let the app start but log the error
+  }
+}

@@ -31,9 +31,9 @@ export function validateSMSConfig(): EnvValidationResult {
   const hasUnifonic = Boolean(process.env.UNIFONIC_APP_SID);
   const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
-  if (!hasTwilio && !smsDevMode) {
+  if (!hasTwilio && !hasUnifonic && !smsDevMode) {
     errors.push(
-      "No SMS provider configured. In production, configure TWILIO_* or enable SMS_DEV_MODE=true for stubbed delivery."
+      "No SMS provider configured. In production, configure TWILIO_* or UNIFONIC_APP_SID (when implemented) or enable SMS_DEV_MODE=true for stubbed delivery."
     );
   }
 
@@ -298,6 +298,14 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
         process.env.AWS_ACCESS_KEY_ID &&
         process.env.AWS_SECRET_ACCESS_KEY
       ),
+    },
+    paytabs: {
+      configured: Boolean(
+        process.env.PAYTABS_SERVER_KEY && process.env.PAYTABS_PROFILE_ID
+      ),
+    },
+    tap: {
+      configured: Boolean(process.env.TAP_WEBHOOK_SECRET),
     },
   };
 }

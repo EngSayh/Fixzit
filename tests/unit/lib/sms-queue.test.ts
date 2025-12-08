@@ -21,6 +21,12 @@ vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => null),
 }));
 
+vi.mock("@/server/models/SMSSettings", () => ({
+  SMSSettings: {
+    getEffectiveSettings: vi.fn(async () => ({ globalRateLimitPerMinute: 30 })),
+  },
+}));
+
 describe("SMS Queue - Provider utilities", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,12 +98,30 @@ describe("SMS Queue - Provider utilities", () => {
       expect(fallback?.accountSid).toBe("sid");
       expect(fallback?.authToken).toBe("token");
     });
+
+    it("filters out providers missing required credentials", () => {
+      const settings = {
+        defaultProvider: "TWILIO",
+        providers: [
+          { provider: "TWILIO", enabled: true, priority: 1, fromNumber: "", accountId: "a", encryptedApiKey: "k" },
+          { provider: "UNIFONIC", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "" },
+        ],
+      } as any;
+
+      const candidates = buildProviderCandidates(settings, "OTP");
+      expect(candidates).toEqual([]);
+    });
   });
 });
 
 describe("SMS Queue - Rate limiter", () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("fails fast when orgId is missing", async () => {
+    const result = await checkOrgRateLimit(undefined);
+    expect(result.ok).toBe(false);
   });
 
   it("allows when Redis is not configured", async () => {
