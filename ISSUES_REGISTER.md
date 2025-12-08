@@ -1864,5 +1864,75 @@ export EMAIL_DOMAIN=business.sa
 
 ---
 
+### ISSUE-049: Hard-coded Test Passwords in QA/E2E Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+QA and E2E test files contained hard-coded passwords (`password123`, `admin123`) instead of requiring environment variables. Risk: accidental use against shared/staging/prod, leaked credentials in logs, brittle CI when credentials rotate.
+
+**Files Fixed**:
+- `qa/tests/e2e-auth-unified.spec.ts`
+- `qa/tests/auth-flows.spec.ts` (already had fix)
+- `qa/config.js`
+
+**Resolution**:
+All test files now require `FIXZIT_TEST_ADMIN_PASSWORD` environment variable with fail-fast behavior if not set. No hardcoded fallbacks for test credentials.
+
+---
+
+### ISSUE-050: SUPER_ADMIN Elevation in Copilot Test Fixtures
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing, RBAC  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`tests/copilot/copilot.spec.ts` `loginAsRole` function granted every role `roles: [role, "SUPER_ADMIN"]` and `permissions: ["*"]`. This nullified STRICT v4.1 coverage - cross-tenant/role checks would silently pass/fail for wrong reasons, masking RBAC regressions.
+
+**File Fixed**:
+- `tests/copilot/copilot.spec.ts`: Lines 80-97
+
+**Resolution**:
+- Removed `"SUPER_ADMIN"` from roles array - now only uses actual role
+- Removed `permissions: ["*"]` - let RBAC system determine permissions
+- Added `TEST_ORG_ID` env var support for orgId
+- Tests now properly exercise STRICT v4.1 RBAC boundaries
+
+---
+
+### ISSUE-051: Hard-coded Demo Passwords Across Scripts
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Configuration  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Multiple seed and utility scripts had hard-coded demo passwords (`admin123`, `password123`) that couldn't be overridden via environment variables. While these are local dev defaults, they should be configurable for staging/production deployments.
+
+**Files Fixed**:
+- `lib/config/demo-users.ts`: Centralized with `DEMO_SUPERADMIN_PASSWORD` and `DEMO_DEFAULT_PASSWORD` env vars
+- `scripts/seed-demo-users.ts`
+- `scripts/create-demo-users.ts`
+- `scripts/seed-users.ts`
+- `scripts/quick-fix-superadmin.ts`
+- `scripts/update-demo-passwords.ts`
+- `scripts/unified-audit-system.js`
+
+**Resolution**:
+All scripts now use environment variables with local dev fallbacks:
+- `DEMO_SUPERADMIN_PASSWORD` (default: `admin123` for local dev only)
+- `DEMO_DEFAULT_PASSWORD` (default: `password123` for local dev only)
+
+**Usage for non-dev environments**:
+```bash
+export DEMO_SUPERADMIN_PASSWORD=your-secure-password
+export DEMO_DEFAULT_PASSWORD=your-secure-password
+```
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
