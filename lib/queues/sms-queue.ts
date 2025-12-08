@@ -550,13 +550,14 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
       const durationMs = Date.now() - startTime;
 
       if (result.success) {
+        // 🔐 STRICT v4.1: Pass orgId for tenant-scoped update
         await SMSMessage.recordAttempt(messageId, {
           attemptedAt: new Date(),
           provider: (candidate.name || candidate.provider || "LOCAL") as TSMSProvider,
           success: true,
           providerMessageId: result.messageSid,
           durationMs,
-        });
+        }, message.orgId as string);
         recordedAttempt = true;
 
         // Record cost if available from provider settings
@@ -593,13 +594,14 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
 
     const finalProvider = candidates[candidates.length - 1];
     const durationMs = Date.now() - startTime;
+    // 🔐 STRICT v4.1: Pass orgId for tenant-scoped update
     await SMSMessage.recordAttempt(messageId, {
       attemptedAt: new Date(),
       provider: (finalProvider?.name || "LOCAL") as TSMSProvider,
       success: false,
       errorMessage: lastError,
       durationMs,
-    });
+    }, message.orgId as string);
     recordedAttempt = true;
 
     throw new Error(lastError || "SMS send failed");
@@ -608,13 +610,14 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (!recordedAttempt) {
+      // 🔐 STRICT v4.1: Pass orgId for tenant-scoped update
       await SMSMessage.recordAttempt(messageId, {
         attemptedAt: new Date(),
         provider: "LOCAL", // System-level failure before reaching provider
         success: false,
         errorMessage,
         durationMs,
-      });
+      }, message.orgId as string);
       recordedAttempt = true;
     }
 

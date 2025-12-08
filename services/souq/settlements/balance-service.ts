@@ -636,43 +636,15 @@ export class SellerBalanceService {
         ["withdrawal", "commission", "gateway_fee", "vat", "refund", "chargeback", "reserve_hold"].includes(type) &&
         amount >= 0
       ) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
-        logger.warn("[SellerBalance] Rejected transaction due to non-negative debit amount", {
-          type,
-          amount,
-          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
-          orgId: orgFilter?.toString?.() ?? String(orgFilter),
-          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
-          validation: "amount_must_be_negative",
-          env: process.env.NODE_ENV,
-        });
+        // VALIDATION: Debit transactions must have negative amounts
         throw new Error(`${type} amount must be negative`);
       }
       if (type === "reserve_release" && amount <= 0) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
-        logger.warn("[SellerBalance] Rejected transaction due to non-positive reserve_release", {
-          type,
-          amount,
-          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
-          orgId: orgFilter?.toString?.() ?? String(orgFilter),
-          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
-          validation: "reserve_release_positive",
-          env: process.env.NODE_ENV,
-        });
+        // VALIDATION: reserve_release must have positive amounts
         throw new Error("reserve_release amount must be positive");
       }
       if (type === "reserve_release" && reservedBefore < amount) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
-        logger.warn("[SellerBalance] Rejected reserve_release exceeding reserved balance", {
-          type,
-          amount,
-          reservedBefore,
-          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
-          orgId: orgFilter?.toString?.() ?? String(orgFilter),
-          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
-          validation: "reserve_release_exceeds_reserved",
-          env: process.env.NODE_ENV,
-        });
+        // VALIDATION: Cannot release more than reserved balance
         throw new Error(
           `Cannot release more than reserved. Reserved: ${reservedBefore} SAR, requested release: ${amount} SAR`,
         );

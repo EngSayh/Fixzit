@@ -160,10 +160,9 @@ export async function sendSMS(
     }
     
     case 'AWS_SNS':
-      // TODO: Implement AWS SNS provider
-      logger.warn("[SMS] AWS SNS provider not yet implemented");
+      // AWS SNS: Not yet implemented - fallback to Twilio if available
+      logger.warn("[SMS] AWS SNS provider not yet implemented, attempting Twilio fallback");
       if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        logger.warn("[SMS] Falling back to Twilio for AWS_SNS provider");
         return sendViaTwilio(
           formattedPhone,
           message,
@@ -172,13 +171,12 @@ export async function sendSMS(
           process.env.TWILIO_AUTH_TOKEN
         );
       }
-      return { success: false, error: 'AWS SNS provider not implemented' };
+      return { success: false, error: 'AWS_SNS provider not implemented and no Twilio fallback configured' };
     
     case 'NEXMO':
-      // TODO: Implement Nexmo/Vonage provider
-      logger.warn("[SMS] Nexmo provider not yet implemented");
+      // Nexmo/Vonage: Not yet implemented - fallback to Twilio if available
+      logger.warn("[SMS] Nexmo provider not yet implemented, attempting Twilio fallback");
       if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        logger.warn("[SMS] Falling back to Twilio for Nexmo provider");
         return sendViaTwilio(
           formattedPhone,
           message,
@@ -187,7 +185,7 @@ export async function sendSMS(
           process.env.TWILIO_AUTH_TOKEN
         );
       }
-      return { success: false, error: 'Nexmo provider not implemented' };
+      return { success: false, error: 'NEXMO provider not implemented and no Twilio fallback configured' };
     
     default:
       return { success: false, error: `Unknown SMS provider: ${provider}` };

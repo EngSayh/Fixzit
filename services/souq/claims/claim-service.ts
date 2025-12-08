@@ -332,11 +332,6 @@ export class ClaimService {
       updatedAt: new Date(),
     };
 
-    if (process.env.DEBUG_CLAIM_TEST === "1") {
-      // eslint-disable-next-line no-console
-      console.log("[ClaimService][TestDebug] inserting claim", { claimId, orgId: input.orgId });
-    }
-
     await collection.insertOne(claim);
 
     await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-filed", {
@@ -366,10 +361,6 @@ export class ClaimService {
     }
     const collection = await this.collection();
     const orgFilter = this.buildOrgFilter(orgId, { allowOrgless });
-    if (process.env.DEBUG_CLAIM_TEST === "1") {
-      // eslint-disable-next-line no-console
-      console.log("[ClaimService][TestDebug] getClaim filter", { claimId, orgId, orgFilter });
-    }
     if (ObjectId.isValid(claimId)) {
       const byObjectId = await collection.findOne({
         _id: new ObjectId(claimId),

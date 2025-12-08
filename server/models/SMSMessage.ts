@@ -343,7 +343,8 @@ interface SMSMessageStatics {
   getSLABreachCount(orgId?: string, since?: Date, options?: { allowGlobal?: boolean }): Promise<number>;
   recordAttempt(
     messageId: string | Types.ObjectId,
-    attempt: Omit<ISMSRetryHistory, "attemptNumber">
+    attempt: Omit<ISMSRetryHistory, "attemptNumber">,
+    orgId?: string  // 🔐 STRICT v4.1: Optional orgId for tenant isolation
   ): Promise<ISMSMessage | null>;
   markDelivered(
     providerMessageId: string,
