@@ -323,7 +323,8 @@ export async function queueSMS(options: {
   );
 
   // Update status to QUEUED
-  await SMSMessage.findByIdAndUpdate(smsMessage._id, { status: "QUEUED" });
+  // 🔐 STRICT v4.1: Use org-scoped filter for consistency and defense in depth
+  await SMSMessage.findOneAndUpdate({ _id: smsMessage._id, orgId }, { status: "QUEUED" });
 
   logger.info("[SMS Queue] Message queued", {
     messageId: smsMessage._id.toString(),
@@ -561,7 +562,8 @@ async function processSMSJob(messageId: string, expectedOrgId?: string): Promise
         // Record cost if available from provider settings
         const cost = candidate.costPerMessage;
         if (cost && cost > 0) {
-          await SMSMessage.findByIdAndUpdate(messageId, {
+          // 🔐 STRICT v4.1: Use org-scoped filter for tenant isolation
+          await SMSMessage.findOneAndUpdate(orgScopedFilter, {
             cost,
             currency: "OMR", // Default currency, could be made configurable
           });
