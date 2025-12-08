@@ -6,6 +6,7 @@ import sgMail from "@sendgrid/mail";
 import { getSendGridConfig } from "@/config/sendgrid.config";
 import { deleteObject } from "@/lib/storage/s3";
 import { DOMAINS } from "@/lib/config/domains";
+import { joinUrl } from "@/lib/utils/url";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 /**
@@ -132,7 +133,8 @@ async function processEmailInvitation(job: Job): Promise<void> {
 
   sgMail.setApiKey(config.apiKey);
 
-  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || DOMAINS.primary}/signup?invite=${inviteId}`;
+  const baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app || DOMAINS.primary;
+  const inviteLink = joinUrl(baseAppUrl, `/signup?invite=${inviteId}`);
 
   const emailContent = {
     to: email as string,

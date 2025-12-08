@@ -1,0 +1,58 @@
+{
+  "SUPER_ADMIN": {
+    "/dashboard": "ALLOW",
+    "/fm/dashboard": "ALLOW",
+    "/admin": "ALLOW"
+  },
+  "CORPORATE_ADMIN": {
+    "/dashboard": "ALLOW",
+    "/fm/dashboard": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "FINANCE": {
+    "/finance": "ALLOW",
+    "/admin": "BLOCK",
+    "/fm/hr": "BLOCK"
+  },
+  "HR": {
+    "/fm/hr": "ALLOW",
+    "/admin": "BLOCK",
+    "/finance": "BLOCK"
+  },
+  "CORPORATE_EMPLOYEE": {
+    "/fm/dashboard": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "PROPERTY_OWNER": {
+    "/fm/dashboard": "BLOCK",
+    "/properties": "ALLOW"
+  },
+  "TECHNICIAN": {
+    "/work-orders": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "TENANT": {
+    "/work-orders": "BLOCK",
+    "/properties": "BLOCK"
+  },
+  "FINANCE_OFFICER": {
+    "/finance": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "HR_OFFICER": {
+    "/fm/hr": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "SUPPORT": {
+    "/support": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "OPS": {
+    "/fm/maintenance": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "AUDITOR_COMPLIANCE": {
+    "/compliance": "ALLOW",
+    "/admin": "BLOCK"
+  }
+}

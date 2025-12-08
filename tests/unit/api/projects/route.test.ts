@@ -59,9 +59,10 @@ describe("projects test-only route", () => {
     const headers = new Headers({
       "x-user": JSON.stringify({ id: "u1", orgId: "org1", tenantId: "t1" }),
     });
-    const req = new (mod.NextRequest as any)("https://example.com/api/projects", {
+    const req = new (mod.NextRequest as any)(
+      "https://example.com/api/projects",
       headers,
-    });
+    );
     const res = (await POST(req)) as { status: number; body: any };
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({

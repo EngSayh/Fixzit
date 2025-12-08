@@ -245,10 +245,8 @@ function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
 }
 
 // ---------- Middleware ----------
-export async function middleware(request: NextRequest) {
-  // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
-  // These headers are set by middleware ONLY after validating the session
-  // Attackers cannot inject them because we delete them here first
+// Exported for testing: sanitize incoming headers to avoid spoofing
+export function sanitizeIncomingHeaders(request: NextRequest): Headers {
   const sanitizedHeaders = new Headers(request.headers);
   sanitizedHeaders.delete('x-user');
   sanitizedHeaders.delete('x-org-id');
@@ -260,6 +258,13 @@ export async function middleware(request: NextRequest) {
     sanitizedHeaders.delete('x-user-email');
     sanitizedHeaders.delete('x-user-org-id');
   }
+  return sanitizedHeaders;
+}
+
+export async function middleware(request: NextRequest) {
+  // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
+  // These headers are set by middleware ONLY after validating the session
+  const sanitizedHeaders = sanitizeIncomingHeaders(request);
 
   // Use a request clone with sanitized headers for all downstream logic
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });

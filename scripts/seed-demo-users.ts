@@ -17,6 +17,7 @@ import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
 // SEC-051: Require environment variables (no hardcoded fallbacks)
 const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
 const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+const SHOW_DEMO_CREDS_IN_LOGS = process.env.SHOW_DEMO_CREDS === "true";
 
 if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
   throw new Error(
@@ -329,16 +330,27 @@ async function seedDemoUsers() {
     console.log(`   Skipped: ${skipped}`);
     console.log("   Total:   " + (created + updated + skipped));
     console.log("\n✅ Demo user seeding completed!");
-    // SEC-051: Don't log passwords to console - they may end up in CI logs
-    console.log("\n📝 Login credentials (passwords from env vars):");
-    console.log(`   Personal:  ${getDemoEmail("superadmin")} / [DEMO_SUPERADMIN_PASSWORD]`);
-    console.log(`   Personal:  ${getDemoEmail("admin")} / [DEMO_DEFAULT_PASSWORD]`);
-    console.log(`   Personal:  ${getDemoEmail("manager")} / [DEMO_DEFAULT_PASSWORD]`);
-    console.log(`   Personal:  ${getDemoEmail("tenant")} / [DEMO_DEFAULT_PASSWORD]`);
-    console.log(`   Personal:  ${getDemoEmail("vendor")} / [DEMO_DEFAULT_PASSWORD]`);
-    console.log(`   Corporate: EMP001 / [DEMO_DEFAULT_PASSWORD]`);
-    console.log(`   Corporate: EMP002 / [DEMO_DEFAULT_PASSWORD]`);
-    console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
+    if (SHOW_DEMO_CREDS_IN_LOGS) {
+      console.log("\n📝 Login credentials:");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / ${DEMO_SUPERADMIN_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP001 / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP002 / ${DEMO_DEFAULT_PASSWORD}`);
+    } else {
+      // SEC-051: Don't log passwords to console - they may end up in CI logs
+      console.log("\n📝 Login credentials (passwords hidden; use env vars):");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / [DEMO_SUPERADMIN_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP001 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP002 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
+    }
 
     process.exit(0);
   } catch (error) {

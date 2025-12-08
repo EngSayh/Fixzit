@@ -7,13 +7,15 @@ import { ArrowRight, Shield, User, Building2, Users } from "lucide-react";
 import {
   DEMO_CREDENTIALS_PERSONAL,
   DEMO_CREDENTIALS_CORPORATE,
+  DEMO_PASSWORDS_CONFIGURED,
 } from "@/lib/config/demo-users";
 
 // 🔒 SECURITY: Check if demo credentials should be shown
 // Only true in development or if explicitly enabled via env var
 const SHOW_DEMO_CREDS =
-  process.env.NODE_ENV === "development" ||
-  process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true";
+  (process.env.NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true") &&
+  DEMO_PASSWORDS_CONFIGURED;
 
 interface DemoCredential {
   role: string;

@@ -564,6 +564,10 @@ async function runAllTests() {
     path.join(ARTIFACT_DIR, "latest-results.json"),
     JSON.stringify(jsonOutput, null, 2),
   );
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.ndjson"),
+    results.map((r) => JSON.stringify(r)).join("\n"),
+  );
 
   console.log("\n" + "═".repeat(80) + "\n");
 

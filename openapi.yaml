@@ -229,6 +229,98 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /copilot/knowledge:
+    post:
+      summary: Upsert knowledge documents for Copilot search
+      tags: [Copilot]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                docs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      slug: { type: string }
+                      title: { type: string }
+                      content: { type: string }
+                      orgId: { type: string, nullable: true }
+                      roles:
+                        type: array
+                        items: { type: string }
+                      locale:
+                        type: string
+                        enum: [en, ar]
+                      tags:
+                        type: array
+                        items: { type: string }
+                      source: { type: string }
+                      checksum: { type: string }
+      responses:
+        "200": { description: Upserted }
+        "401": { description: Unauthorized }
+        "429": { description: Rate limit exceeded }
+        "503": { description: Webhook not configured }
+
+  /souq/search:
+    get:
+      summary: Search Souq products
+      tags: [Souq]
+      security: []
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, maxLength: 256 }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: subcategory
+          schema: { type: string }
+        - in: query
+          name: brandId
+          schema: { type: string }
+        - in: query
+          name: minPrice
+          schema: { type: number }
+        - in: query
+          name: maxPrice
+          schema: { type: number }
+        - in: query
+          name: minRating
+          schema: { type: number, minimum: 0, maximum: 5 }
+        - in: query
+          name: badges
+          schema: { type: string, description: "Comma-separated badges" }
+        - in: query
+          name: inStock
+          schema: { type: boolean }
+        - in: query
+          name: isActive
+          schema: { type: boolean, default: true }
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [relevance, price_asc, price_desc, rating, newest]
+            default: relevance
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200": { description: Search results }
+        "400": { description: Invalid parameters }
+        "403": { description: Unauthorized org context }
+        "429": { description: Rate limit exceeded }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1707,4 +1799,3 @@ components:
                           type: boolean
                         requiresApproval:
                           type: boolean
-
