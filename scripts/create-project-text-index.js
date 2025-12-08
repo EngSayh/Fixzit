@@ -6,7 +6,7 @@
  */
 
 require("dotenv/config");
-require("tsx/register");
+require("tsx/cjs");
 
 const { createIndexes } = require("../lib/db/collections.ts");
 const { disconnectFromDatabase } = require("../lib/mongodb-unified");

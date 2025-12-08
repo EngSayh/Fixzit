@@ -658,27 +658,23 @@ OR: Migrate Vendor/Tenant to collections.ts for full consistency with WorkOrder/
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| 🟥 CRITICAL | 3 | OPEN |
-| 🟧 MAJOR | 3 | OPEN |
+| 🟥 CRITICAL | 0 | OPEN |
+| 🟧 MAJOR | 1 | OPEN |
 | 🟨 MODERATE | 2 | OPEN |
-| 🟩 MINOR | 1 | OPEN |
-| **TOTAL** | **9** | **9 OPEN** |
+| 🟩 MINOR | 2 | OPEN |
+| **TOTAL** | **5** | **5 OPEN** |
 
 ---
 
 ## Priority Fix Order
 
-Based on severity and dependencies:
+Based on current open items and dependencies:
 
-1. **ISSUE-006** (autoIndex: false) - Enabler for other fixes
-2. **ISSUE-001** (WorkOrder conflicts) - Blocker
-3. **ISSUE-002** (Product conflicts) - Blocker
-4. **ISSUE-003** (Property conflicts) - Blocker
-5. **ISSUE-004** (User index names) - Major architectural
-6. **ISSUE-005** (Documentation) - Major architectural
-7. **ISSUE-007** (Remove redundant schema indexes) - Moderate cleanup
-8. **ISSUE-008** (Test coverage) - Moderate reliability
-9. **ISSUE-009** (Vendor/Tenant verification) - Minor documentation
+1. **ISSUE-005** (Mixed orgId storage in souq payouts/withdrawals) - 🟧 MAJOR
+2. **ISSUE-007** (Redundant schema index definitions) - 🟨 MODERATE
+3. **ISSUE-008** (Index coverage verification test) - 🟨 MODERATE
+4. **ISSUE-006** (Ledger sign-validation canary warnings) - 🟩 MINOR
+5. **ISSUE-009** (Vendor/Tenant index approach documentation) - 🟩 MINOR
 
 ---
 
@@ -1666,6 +1662,96 @@ export async function POST(request: NextRequest) {
   // ... rest of handler
 }
 ```
+
+---
+
+### ISSUE-040: Souq Search isActive Filter Bug
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Data Visibility  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/souq/search` endpoint had an incorrect filter - when `isActive=true` was set, it incorrectly pushed `inStock = true` instead of `isActive = true`. This caused inactive products to potentially appear in search results.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Changed filter from `inStock = true` to `isActive = true` when isActive param is set
+
+---
+
+### ISSUE-041: Souq Search Meilisearch Filter Injection
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Injection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+User-supplied values (category, subcategory, brandId, badges, orgId) were interpolated directly into Meilisearch filter strings without escaping. Crafted values containing quotes or filter operators could alter query logic.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Added `escapeFilterValue()` function that sanitizes control characters and escapes quotes
+- Applied escaping to all user-supplied filter values
+
+---
+
+### ISSUE-042: Projects API Test Stub Exposed in Production
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Test Code in Production  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/projects` endpoint was a test-only in-memory stub but was accessible in production. It used non-persistent storage and had weak tenancy mapping.
+
+**Files**:
+- `app/api/projects/route.ts`
+
+**Fix Applied**:
+- Added environment check: `IS_TEST_ENV = NODE_ENV === "test" || PLAYWRIGHT_TESTS === "true"`
+- Both GET and POST handlers now return 404 in production
+- Test-only nature documented in code comments
+
+---
+
+### ISSUE-043: Trial Request Missing Email Validation
+
+**Severity**: 🟨 MINOR  
+**Category**: Validation, Bot Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/trial-request` endpoint accepted any string for email field without format validation, and had no bot mitigation.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Added Zod schema with proper email validation (`z.string().email()`)
+- Added honeypot field (`website`) - bots filling this field are silently rejected
+- All fields now have max length limits
+
+---
+
+### ISSUE-044: Organization Settings Secondary Color Mismatch
+
+**Severity**: 🟩 MINOR  
+**Category**: Branding Consistency  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Default branding used `secondaryColor: #1a365d` which didn't match the documented Fixzit green `#00A859`.
+
+**Files**:
+- `app/api/organization/settings/route.ts`
+
+**Fix Applied**:
+- Changed `secondaryColor` to `#00A859` to align with design tokens
 
 ---
 

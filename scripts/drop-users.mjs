@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import "tsx/register";
+import "tsx/esm";
 import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
 import { COLLECTIONS } from "../lib/db/collections";
 

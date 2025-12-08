@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { requireEnv } from '@/lib/env';
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 // Hide Mongoose's "Jest + jsdom" warning noise
 process.env.SUPPRESS_JEST_WARNINGS = 'true';
 
@@ -368,11 +370,12 @@ vi.mock('mongoose', async (importOriginal) => {
 // 1.5. MOCK USER MODEL (for auth tests)
 // ============================================
 vi.mock('@/modules/users/schema', () => {
+  const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
   const makeDefaultUser = () => ({
     _id: '1',
     code: 'USR-001',
     username: 'superadmin',
-    email: 'superadmin@fixzit.co',
+    email: `superadmin@${EMAIL_DOMAIN}`,
     password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W', // bcrypt hash of 'admin123'
     personal: { firstName: 'System', lastName: 'Administrator' },
     professional: { role: 'SUPER_ADMIN' },
@@ -404,7 +407,7 @@ vi.mock('@/modules/users/schema', () => {
         }
         
         // Default superadmin user
-        if (query.email === 'superadmin@fixzit.co' || query.username === 'superadmin') {
+        if (query.email === `superadmin@${EMAIL_DOMAIN}` || query.username === 'superadmin') {
           return makeDefaultUser();
         }
         
@@ -458,12 +461,14 @@ vi.mock('@/modules/users/schema', () => {
 // ============================================
 // 2. MOCK NEXT-AUTH
 // ============================================
-vi.mock('next-auth/react', () => ({
+vi.mock('next-auth/react', () => {
+  const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+  return {
   useSession: vi.fn(() => ({
     data: {
       user: {
         id: 'test-user-id',
-        email: 'admin@fixzit.co',
+        email: `admin@${EMAIL_DOMAIN}`,
         name: 'Test Admin',
         role: 'SUPER_ADMIN',
         orgId: 'test-org-id',
@@ -482,14 +487,14 @@ vi.mock('next-auth/react', () => ({
   getSession: vi.fn(() => Promise.resolve({
     user: {
       id: 'test-user-id',
-      email: 'admin@fixzit.co',
+      email: `admin@${EMAIL_DOMAIN}`,
       name: 'Test Admin',
       role: 'SUPER_ADMIN',
       orgId: 'test-org-id',
     },
     expires: '9999-12-31T23:59:59.999Z',
   })),
-}));
+}});
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -651,7 +656,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const mockSession = {
   user: {
     id: 'test-user-id',
-    email: 'admin@fixzit.co',
+    email: `admin@${EMAIL_DOMAIN}`,
     name: 'Test Admin',
     role: 'SUPER_ADMIN',
     orgId: 'test-org-id',

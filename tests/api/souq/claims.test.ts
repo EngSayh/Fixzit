@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Db } from "mongodb";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 /**
  * Claims API Test Suite
  *
@@ -504,7 +506,7 @@ describe("Claims API - Core Functionality", () => {
 
     beforeEach(async () => {
       const adminResult = await db.collection("users").insertOne({
-        email: "admin@fixzit.co",
+        email: `admin@${EMAIL_DOMAIN}`,
         // 🔒 SECURITY FIX: Use standard role name from UserRole enum (SUPER_ADMIN not SUPERADMIN)
         role: "SUPER_ADMIN",
         orgId: testOrgId,

@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 
 const searchQuerySchema = z.object({
   q: z.string().optional().default(""),
@@ -17,7 +18,7 @@ const searchQuerySchema = z.object({
   minRating: z.coerce.number().min(0).max(5).optional(),
   badges: z.string().optional(), // Comma-separated
   inStock: z.coerce.boolean().optional(),
-  isActive: z.coerce.boolean().optional().default(true),
+  isActive: z.coerce.boolean().optional(),
   orgId: z.string().optional(),
   sort: z
     .enum(["relevance", "price_asc", "price_desc", "rating", "newest"])
@@ -42,7 +43,7 @@ const searchQuerySchema = z.object({
  * - minRating: Minimum rating (0-5)
  * - badges: Comma-separated badges (e.g., "fbf,top-seller")
  * - inStock: Filter in-stock only (boolean)
- * - isActive: Filter by active status (default: true)
+ * - isActive: Filter by active status (optional)
  * - orgId: Filter by organization ID
  * - sort: Sort order (relevance|price_asc|price_desc|rating|newest)
  * - page: Page number (default: 1)
@@ -83,20 +84,40 @@ export async function GET(req: NextRequest) {
     // Build filter array
     const filters: string[] = [];
 
-    if (validated.isActive) {
-      filters.push("inStock = true");
+    // SECURITY: Escape filter values to prevent Meilisearch filter injection
+    // Escapes quotes and special characters that could alter filter logic
+    const escapeFilterValue = (v: string): string => {
+      // Remove any control characters (0x00-0x1f) and escape quotes
+      let sanitized = "";
+      for (let i = 0; i < v.length; i++) {
+        const charCode = v.charCodeAt(i);
+        // Skip control characters (0x00-0x1f)
+        if (charCode >= 0x20) {
+          sanitized += v[i];
+        }
+      }
+      return `"${sanitized.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
+    };
+
+    // Enforce tenant scoping from trusted marketplace context
+    const marketplaceContext = await resolveMarketplaceContext(req);
+    const orgIdFromContext = marketplaceContext?.orgId?.toString();
+
+    // Apply explicit isActive filter only when provided
+    if (validated.isActive !== undefined) {
+      filters.push(`isActive = ${validated.isActive ? "true" : "false"}`);
     }
 
     if (validated.category) {
-      filters.push(`category = "${validated.category}"`);
+      filters.push(`category = ${escapeFilterValue(validated.category)}`);
     }
 
     if (validated.subcategory) {
-      filters.push(`subcategory = "${validated.subcategory}"`);
+      filters.push(`subcategory = ${escapeFilterValue(validated.subcategory)}`);
     }
 
     if (validated.brandId) {
-      filters.push(`brand = "${validated.brandId}"`);
+      filters.push(`brand = ${escapeFilterValue(validated.brandId)}`);
     }
 
     if (validated.minPrice !== undefined || validated.maxPrice !== undefined) {
@@ -119,8 +140,9 @@ export async function GET(req: NextRequest) {
     if (validated.badges) {
       const badgeList = validated.badges.split(",").filter(Boolean);
       if (badgeList.length > 0) {
+        // SECURITY: Escape each badge value to prevent filter injection
         const badgeFilters = badgeList.map(
-          (badge) => `badges = "${badge.trim()}"`,
+          (badge) => `badges = ${escapeFilterValue(badge.trim())}`,
         );
         filters.push(`(${badgeFilters.join(" OR ")})`);
       }
@@ -130,8 +152,9 @@ export async function GET(req: NextRequest) {
       filters.push("inStock = true");
     }
 
-    if (validated.orgId) {
-      filters.push(`sellerId = "${validated.orgId}"`);
+    // SECURITY: Derive org scope from trusted context (JWT/header defaults), ignore arbitrary query overrides
+    if (orgIdFromContext) {
+      filters.push(`orgId = ${escapeFilterValue(orgIdFromContext)}`);
     }
 
     // Determine sort order

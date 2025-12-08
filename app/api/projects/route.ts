@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+/**
+ * SECURITY: This is a TEST-ONLY endpoint for Playwright E2E tests.
+ * It uses in-memory storage and is NOT suitable for production.
+ * The endpoint is locked to NODE_ENV=test or PLAYWRIGHT_TESTS=true.
+ */
+
+// Environment check - must be test environment
+const IS_TEST_ENV = process.env.NODE_ENV === "test" || process.env.PLAYWRIGHT_TESTS === "true";
+
 // In-memory store for test runs (Playwright uses mock headers)
 const projects: Array<Record<string, unknown>> = [];
 
@@ -48,7 +57,7 @@ async function getAuthenticatedUser(req: NextRequest): Promise<
   | null
 > {
   // In test environment (NODE_ENV=test), allow x-user header for Playwright
-  if (process.env.NODE_ENV === "test") {
+  if (IS_TEST_ENV) {
     const header = req.headers.get("x-user");
     if (header) {
       try {
@@ -69,7 +78,11 @@ async function getAuthenticatedUser(req: NextRequest): Promise<
   // Production: Use proper session authentication
   try {
     const user = await getSessionUser(req);
-    return { id: user.id, orgId: user.orgId, tenantId: user.orgId };
+    return {
+      id: user.id,
+      orgId: user.orgId,
+      tenantId: user.tenantId ?? user.orgId,
+    };
   } catch {
     return null;
   }
@@ -79,7 +92,16 @@ function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
+function notFound() {
+  return NextResponse.json({ error: "Not Found" }, { status: 404 });
+}
+
 export async function POST(req: NextRequest) {
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
 
@@ -131,6 +153,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
 

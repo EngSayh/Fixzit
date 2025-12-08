@@ -4,11 +4,12 @@ import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 // Default branding for unauthenticated or fallback scenarios
+// Colors aligned with design tokens from tailwind.config.js
 const DEFAULT_BRANDING = {
   name: "FIXZIT ENTERPRISE",
   logo: "/img/fixzit-logo.png",
   primaryColor: "#0061A8", // Business.sa primary blue
-  secondaryColor: "#1a365d", // Business.sa dark blue
+  secondaryColor: "#00A859", // Fixzit green - aligned with design tokens
 };
 
 /**
@@ -91,7 +92,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     logger.error("Error fetching organization settings:", error);
-    // Return default settings on error
-    return NextResponse.json(DEFAULT_BRANDING);
+    return NextResponse.json(
+      { error: "Failed to load organization settings" },
+      { status: 500 },
+    );
   }
 }

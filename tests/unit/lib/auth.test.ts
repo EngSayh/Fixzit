@@ -3,6 +3,8 @@ import { logger } from "@/lib/logger";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { AuthToken } from "@/lib/auth";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 // Store original env
 const originalEnv = { ...process.env };
 
@@ -303,7 +305,7 @@ describe("auth lib - authenticateUser", () => {
     _id: { toString: () => "1" }, // Mock MongoDB ObjectId
     code: "USR-001",
     username: "superadmin",
-    email: "superadmin@fixzit.co",
+    email: `superadmin@${EMAIL_DOMAIN}`,
     password: "hashed:admin123", // matches bcrypt mock behavior
     personal: { firstName: "System", lastName: "Administrator" },
     professional: { role: "SUPER_ADMIN" },
@@ -319,17 +321,17 @@ describe("auth lib - authenticateUser", () => {
 
     const auth = await loadAuthModule();
     const result = await auth.authenticateUser(
-      "superadmin@fixzit.co",
+      `superadmin@${EMAIL_DOMAIN}`,
       "admin123",
       "personal",
       "org1", // orgId required for personal login
     );
 
-    expect(mockFindOne).toHaveBeenCalledWith({ email: "superadmin@fixzit.co", orgId: "org1" });
+    expect(mockFindOne).toHaveBeenCalledWith({ email: `superadmin@${EMAIL_DOMAIN}`, orgId: "org1" });
     expect(result).toHaveProperty("token");
     expect(result.user).toEqual({
       id: expect.any(String),
-      email: "superadmin@fixzit.co",
+      email: `superadmin@${EMAIL_DOMAIN}`,
       name: "System Administrator",
       role: "SUPER_ADMIN",
       orgId: expect.any(String),
@@ -350,7 +352,7 @@ describe("auth lib - authenticateUser", () => {
     );
 
     expect(mockFindOne).toHaveBeenCalledWith({ username: "superadmin", code: "ACME-001" });
-    expect(res.user.email).toBe("superadmin@fixzit.co");
+    expect(res.user.email).toBe(`superadmin@${EMAIL_DOMAIN}`);
   });
 
   it("fails when user not found", async () => {
@@ -368,7 +370,7 @@ describe("auth lib - authenticateUser", () => {
 
     const auth = await loadAuthModule();
     await expect(
-      auth.authenticateUser("superadmin@fixzit.co", "wrong", "personal", "org1"),
+      auth.authenticateUser(`superadmin@${EMAIL_DOMAIN}`, "wrong", "personal", "org1"),
     ).rejects.toThrow("Invalid credentials");
   });
 

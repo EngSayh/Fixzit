@@ -17,6 +17,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+// Use environment variable for email domain (Business.sa rebrand)
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 describe("RBAC Cross-Tenant Isolation", () => {
   // Mock user sessions for different tenants
   const mockUserTenant1 = {
@@ -35,7 +38,7 @@ describe("RBAC Cross-Tenant Isolation", () => {
 
   const mockSuperAdmin = {
     id: "superadmin-001",
-    email: "admin@fixzit.com",
+    email: `admin@${EMAIL_DOMAIN}`,
     orgId: "fixzit-global",
     role: "SUPER_ADMIN" as const,
   };
