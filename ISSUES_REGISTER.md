@@ -1614,5 +1614,22 @@ The `/api/souq/search` public search endpoint had no rate limiting, vulnerable t
 
 ---
 
+### ISSUE-038: Public Footer Route Missing Rate Limiting
+
+**Severity**: 🟩 MINOR  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/public/footer/[page]` endpoint had no rate limiting. While low risk due to simple DB queries, rate limiting prevents abuse.
+
+**Files**:
+- `app/api/public/footer/[page]/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 60 requests/minute per IP
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
