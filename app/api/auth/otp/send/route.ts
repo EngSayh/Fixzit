@@ -776,7 +776,7 @@ export async function POST(request: NextRequest) {
     if (!isValidSaudiPhone(userPhone)) {
       logger.error("[OTP] Invalid phone number format", {
         userId: user._id?.toString?.() || loginIdentifier,
-        phone: userPhone,
+        phone: userPhone ? `****${userPhone.slice(-4)}` : 'UNKNOWN',
       });
       return NextResponse.json(
         {

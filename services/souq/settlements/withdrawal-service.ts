@@ -184,8 +184,10 @@ export class WithdrawalService {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
       void error;
+      // AUDIT-2025-12-08: Redact IBAN in logs to protect sensitive data
+      const redactedIban = iban ? `${iban.slice(0, 4)}****${iban.slice(-4)}` : 'UNKNOWN';
       logger.error("[Withdrawal] IBAN checksum validation error", error, {
-        iban,
+        iban: redactedIban,
       });
       return false;
     }
