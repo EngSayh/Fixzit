@@ -239,7 +239,11 @@ export async function queueSMS(options: {
     throw new Error("Invalid destination phone (E.164 format required)");
   }
 
+  // 🗄️ Ensure DB connection BEFORE any Mongo operations (fixes cold-start race condition)
+  await connectToDatabase();
+
   // 🚦 Pre-queue rate limiting to avoid creating messages we can't send promptly
+  // Note: checkOrgRateLimit queries SMSSettings, so DB must be connected first
   const rateCheck = await checkOrgRateLimit(orgId);
   if (!rateCheck.ok) {
     logger.warn("[SMS Queue] Rate limit exceeded for org; rejecting enqueue", {
@@ -248,8 +252,6 @@ export async function queueSMS(options: {
     });
     throw new Error(`SMS rate limit exceeded for org; retry after ${Math.ceil(rateCheck.ttlMs / 1000)}s`);
   }
-
-  await connectToDatabase();
 
   // Get SLA settings
   const settings = await SMSSettings.getEffectiveSettings(orgId);
@@ -619,6 +621,13 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
     return null;
   }
 
+  // Worker throughput limit: configurable via env, default 120/min to accommodate multiple orgs
+  // Per-org limits are enforced separately via checkOrgRateLimit (default 60/org/min)
+  // Global worker limit should be >= max expected concurrent orgs * per-org limit
+  const workerMaxPerMinute = process.env.SMS_WORKER_MAX_PER_MIN
+    ? Math.max(30, Number(process.env.SMS_WORKER_MAX_PER_MIN))
+    : 120;
+
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,
     async (job: Job<ISMSJobData>) => {
@@ -628,8 +637,8 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
       connection: connection as Redis,
       concurrency: 5,
       limiter: {
-        max: 30, // Max 30 SMS per minute
-        duration: 60000,
+        max: workerMaxPerMinute,
+        duration: 60_000,
       },
     }
   );

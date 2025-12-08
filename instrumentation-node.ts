@@ -54,6 +54,10 @@ export async function registerNode(): Promise<void> {
     logger.error("[Instrumentation] Initialization error", {
       error: error instanceof Error ? error.message : String(error),
     });
-    // Don't throw - let the app start but log the error
+    // In production, re-throw to prevent boot with missing/invalid config
+    // In non-production, log and continue to allow development flexibility
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
   }
 }

@@ -28,15 +28,20 @@ export function validateSMSConfig(): EnvValidationResult {
     process.env.TWILIO_AUTH_TOKEN &&
     process.env.TWILIO_PHONE_NUMBER
   );
-  const hasUnifonic = Boolean(process.env.UNIFONIC_APP_SID);
+  // Unifonic is now a first-class implemented provider
+  const hasUnifonic = Boolean(
+    process.env.UNIFONIC_APP_SID &&
+    process.env.UNIFONIC_SENDER_ID
+  );
   const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
   if (!hasTwilio && !hasUnifonic && !smsDevMode) {
     errors.push(
-      "No SMS provider configured. In production, configure TWILIO_* or UNIFONIC_APP_SID (when implemented) or enable SMS_DEV_MODE=true for stubbed delivery."
+      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true."
     );
   }
 
+  // Validate Twilio config completeness
   if (hasTwilio) {
     if (!process.env.TWILIO_ACCOUNT_SID) {
       errors.push("TWILIO_ACCOUNT_SID is missing");
@@ -47,8 +52,14 @@ export function validateSMSConfig(): EnvValidationResult {
     if (!process.env.TWILIO_PHONE_NUMBER) {
       errors.push("TWILIO_PHONE_NUMBER is missing");
     }
-  } else if (hasUnifonic) {
-    warnings.push("UNIFONIC_* detected but provider is not implemented; SMS will fall back to Twilio if configured.");
+  }
+
+  // Validate Unifonic config completeness (partial config is a warning)
+  if (process.env.UNIFONIC_APP_SID && !process.env.UNIFONIC_SENDER_ID) {
+    warnings.push("UNIFONIC_APP_SID is set but UNIFONIC_SENDER_ID is missing; Unifonic SMS will fail.");
+  }
+  if (process.env.UNIFONIC_SENDER_ID && !process.env.UNIFONIC_APP_SID) {
+    warnings.push("UNIFONIC_SENDER_ID is set but UNIFONIC_APP_SID is missing; Unifonic SMS will fail.");
   }
 
   return {
