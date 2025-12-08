@@ -5,6 +5,9 @@ import { JobQueue, Job } from "@/lib/jobs/queue";
 import sgMail from "@sendgrid/mail";
 import { getSendGridConfig } from "@/config/sendgrid.config";
 import { deleteObject } from "@/lib/storage/s3";
+import { DOMAINS } from "@/lib/config/domains";
+import { joinUrl } from "@/lib/utils/url";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 /**
  * POST /api/jobs/process
@@ -19,10 +22,12 @@ export async function POST(request: NextRequest) {
     const session = await auth();
 
     // Allow both authenticated admins and cron jobs (with secret)
-    const cronSecret = request.headers.get("x-cron-secret");
-    const isAuthorized =
-      session?.user?.isSuperAdmin ||
-      (cronSecret && cronSecret === process.env.CRON_SECRET);
+    const cronAuthorized = verifySecretHeader(
+      request,
+      "x-cron-secret",
+      process.env.CRON_SECRET,
+    );
+    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -128,7 +133,8 @@ async function processEmailInvitation(job: Job): Promise<void> {
 
   sgMail.setApiKey(config.apiKey);
 
-  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://fixzit.com"}/signup?invite=${inviteId}`;
+  const baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app || DOMAINS.primary;
+  const inviteLink = joinUrl(baseAppUrl, `/signup?invite=${inviteId}`);
 
   const emailContent = {
     to: email as string,

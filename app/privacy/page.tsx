@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
-
+import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
  * Defined at module level to prevent recreation on each render.
@@ -34,7 +34,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: ${EMAIL_DOMAINS.privacy} | Phone: +966 XX XXX XXXX`;
+For privacy inquiries: ${EMAILS.privacy} | Phone: +966 XX XXX XXXX`;
 
 /**
  * Privacy Policy Page (Public View)
@@ -229,10 +229,10 @@ export default function PrivacyPage() {
                     {t("privacy.email", "Email")}
                   </div>
                   <a
-                    href={`mailto:${EMAIL_DOMAINS.privacy}`}
+                    href={`mailto:${EMAILS.privacy}`}
                     className="text-primary hover:text-primary/90"
                   >
-                    {EMAIL_DOMAINS.privacy}
+                    {EMAILS.privacy}
                   </a>
                 </div>
               </div>
@@ -244,10 +244,10 @@ export default function PrivacyPage() {
                     {t("privacy.phone", "Phone")}
                   </div>
                   <a
-                    href="tel:+971XXXXXXXX"
+                    href="tel:+966XXXXXXXX"
                     className="text-primary hover:text-primary/90"
                   >
-                    +971 XX XXX XXXX
+                    +966 XX XXX XXXX
                   </a>
                 </div>
               </div>

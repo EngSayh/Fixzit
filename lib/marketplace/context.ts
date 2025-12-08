@@ -73,19 +73,7 @@ async function readCookieValue(
 export async function resolveMarketplaceContext(
   req?: NextRequest | Request | null,
 ): Promise<MarketplaceRequestContext> {
-  const headerOrg =
-    (await readHeaderValue(req ?? null, "x-org-id")) ||
-    (await readHeaderValue(req ?? null, "x-tenant-id"));
-  const cookieOrg =
-    (await readCookieValue(
-      req instanceof NextRequest ? req : null,
-      "fixzit_org",
-    )) ||
-    (await readCookieValue(
-      req instanceof NextRequest ? req : null,
-      "fixzit_tenant",
-    ));
-
+  // SECURITY: Read auth token FIRST to establish trusted context
   const token = await readCookieValue(
     req instanceof NextRequest ? req : null,
     "fixzit_auth",
@@ -94,16 +82,63 @@ export async function resolveMarketplaceContext(
     | Record<string, unknown>
     | undefined;
 
-  const tenantKey = (headerOrg ||
-    cookieOrg ||
-    (payload as Record<string, unknown> | undefined)?.tenantId ||
-    process.env.MARKETPLACE_DEFAULT_TENANT ||
-    "demo-tenant") as string;
-  const orgId = objectIdFrom(
-    ((payload as Record<string, unknown> | undefined)?.orgId as
-      | string
-      | undefined) || tenantKey,
-  );
+  // Extract trusted orgId from verified JWT token
+  const tokenOrgId = (payload as Record<string, unknown> | undefined)?.orgId as
+    | string
+    | undefined;
+  const tokenTenantId = (payload as Record<string, unknown> | undefined)?.tenantId as
+    | string
+    | undefined;
+
+  // SECURITY FIX: Only accept header-based org/tenant for unauthenticated requests
+  // Authenticated users MUST use their token's org to prevent cross-tenant access
+  let tenantKey: string;
+  let orgId: Types.ObjectId;
+
+  // SECURITY: Build public org allowlist from env (comma-separated ObjectIds)
+  // Empty list means NO public access without auth - strict default
+  const publicOrgAllowlistRaw = (process.env.MARKETPLACE_PUBLIC_ORGS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const publicOrgAllowlist = new Set(publicOrgAllowlistRaw);
+
+  if (payload && tokenOrgId) {
+    // Authenticated user: ALWAYS use token's orgId, ignore headers
+    tenantKey = tokenTenantId || tokenOrgId;
+    orgId = objectIdFrom(tokenOrgId);
+  } else {
+    // Unauthenticated: Only allow header/cookie org if explicitly allowlisted
+    // SECURITY FIX: Reject untrusted headers unless org is in allowlist
+    const headerOrg =
+      (await readHeaderValue(req ?? null, "x-org-id")) ||
+      (await readHeaderValue(req ?? null, "x-tenant-id"));
+    const cookieOrg =
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_org",
+      )) ||
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_tenant",
+      ));
+
+    const candidateOrg =
+      headerOrg ||
+      cookieOrg ||
+      process.env.MARKETPLACE_DEFAULT_TENANT ||
+      undefined;
+
+    const allowlistEnforced = publicOrgAllowlist.size > 0;
+    if (!allowlistEnforced || !candidateOrg || !publicOrgAllowlist.has(candidateOrg)) {
+      tenantKey = "__unauthorized__";
+      orgId = objectIdFrom("000000000000000000000000");
+    } else {
+      tenantKey = candidateOrg;
+      orgId = objectIdFrom(candidateOrg);
+    }
+  }
+
   const userId = (payload as Record<string, unknown> | undefined)?.id
     ? objectIdFrom((payload as Record<string, unknown>).id as string)
     : undefined;
@@ -123,4 +158,23 @@ export async function resolveMarketplaceContext(
     role,
     correlationId: randomUUID(),
   };
+}
+
+/**
+ * Check if a marketplace context represents an unauthorized request.
+ * Returns true if:
+ * - context is null/undefined
+ * - tenantKey is "__unauthorized__"
+ * - orgId is the zero ObjectId (000000000000000000000000)
+ */
+export function isUnauthorizedMarketplaceContext(
+  context?: MarketplaceRequestContext | null,
+): boolean {
+  if (!context) return true;
+  const orgStr = context.orgId?.toString?.() || "";
+  return (
+    context.tenantKey === "__unauthorized__" ||
+    orgStr === "000000000000000000000000" ||
+    orgStr.length === 0
+  );
 }

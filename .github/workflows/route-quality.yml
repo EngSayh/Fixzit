@@ -24,6 +24,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Run Drift Guard (tenancy/roles)
+        run: pnpm tsx scripts/check-tenant-role-drift.ts
       - name: Install ripgrep for org guard checks
         run: |
           sudo apt-get update
@@ -63,6 +65,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Run Drift Guard (tenancy/roles)
+        run: pnpm tsx scripts/check-tenant-role-drift.ts
       - name: Install Playwright (chromium)
         run: npx playwright install --with-deps chromium
       - name: RTL smoke tests (layout + dashboard + souq)

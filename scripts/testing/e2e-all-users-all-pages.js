@@ -18,93 +18,61 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const { mintSessionCookie } = require("./session-cookie");
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 // Validate required environment variables
-if (!process.env.E2E_TEST_PASSWORD) {
-  console.error("❌ ERROR: E2E_TEST_PASSWORD environment variable is not set");
-  console.error("");
+const E2E_PASSWORD =
+  process.env.E2E_TEST_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+if (!E2E_PASSWORD) {
+  console.error("❌ ERROR: E2E_TEST_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is not set");
   console.error("This test suite requires a password for authentication.");
-  console.error("Please set the E2E_TEST_PASSWORD environment variable:");
-  console.error("");
-  console.error("  export E2E_TEST_PASSWORD=yourpassword");
-  console.error("  node scripts/testing/e2e-all-users-all-pages.js");
-  console.error("");
-  console.error("Or run inline:");
-  console.error(
-    "  E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js",
-  );
-  console.error("");
   process.exit(1);
 }
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
+const ARTIFACT_DIR = path.join(process.cwd(), "_artifacts/all-users");
+const EXPECTED_ACCESS =
+  process.env.EXPECTED_ACCESS_FILE && fs.existsSync(process.env.EXPECTED_ACCESS_FILE)
+    ? JSON.parse(fs.readFileSync(process.env.EXPECTED_ACCESS_FILE, "utf8"))
+    : null;
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  console.error(`❌ Refusing to run comprehensive E2E against ${BASE_URL} without ALLOW_E2E_PROD=1`);
+  process.exit(1);
+}
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
+if (!fs.existsSync(ARTIFACT_DIR)) {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+}
 
-// Test users (from E2E_TESTING_QUICK_START.md)
+// Test users aligned to STRICT v4.1 canonical role codes
 const TEST_USERS = [
-  { email: "superadmin@fixzit.co", role: "super_admin", name: "Super Admin" },
-  {
-    email: "corp.admin@fixzit.co",
-    role: "corporate_admin",
-    name: "Corporate Admin",
-  },
-  {
-    email: "property.manager@fixzit.co",
-    role: "property_manager",
-    name: "Property Manager",
-  },
-  {
-    email: "ops.dispatcher@fixzit.co",
-    role: "operations_dispatcher",
-    name: "Operations Dispatcher",
-  },
-  { email: "supervisor@fixzit.co", role: "supervisor", name: "Supervisor" },
-  {
-    email: "tech.internal@fixzit.co",
-    role: "technician_internal",
-    name: "Internal Technician",
-  },
-  {
-    email: "vendor.admin@fixzit.co",
-    role: "vendor_admin",
-    name: "Vendor Admin",
-  },
-  {
-    email: "vendor.tech@fixzit.co",
-    role: "vendor_technician",
-    name: "Vendor Technician",
-  },
-  {
-    email: "tenant.resident@fixzit.co",
-    role: "tenant_resident",
-    name: "Tenant/Resident",
-  },
-  {
-    email: "owner.landlord@fixzit.co",
-    role: "owner_landlord",
-    name: "Owner/Landlord",
-  },
-  {
-    email: "finance.manager@fixzit.co",
-    role: "finance_manager",
-    name: "Finance Manager",
-  },
-  { email: "hr.manager@fixzit.co", role: "hr_manager", name: "HR Manager" },
-  {
-    email: "helpdesk.agent@fixzit.co",
-    role: "helpdesk_agent",
-    name: "Helpdesk Agent",
-  },
-  {
-    email: "auditor.compliance@fixzit.co",
-    role: "auditor_compliance",
-    name: "Auditor/Compliance",
-  },
+  { email: `superadmin@${EMAIL_DOMAIN}`, role: "SUPER_ADMIN", name: "Super Admin" },
+  { email: `corp.admin@${EMAIL_DOMAIN}`, role: "CORPORATE_ADMIN", name: "Corporate Admin" },
+  { email: `management@${EMAIL_DOMAIN}`, role: "MANAGEMENT", name: "Management" },
+  { email: `finance@${EMAIL_DOMAIN}`, role: "FINANCE", name: "Finance" },
+  { email: `hr@${EMAIL_DOMAIN}`, role: "HR", name: "HR" },
+  { email: `employee@${EMAIL_DOMAIN}`, role: "CORPORATE_EMPLOYEE", name: "Corporate Employee" },
+  { email: `owner@${EMAIL_DOMAIN}`, role: "PROPERTY_OWNER", name: "Property Owner" },
+  { email: `technician@${EMAIL_DOMAIN}`, role: "TECHNICIAN", name: "Technician" },
+  { email: `tenant@${EMAIL_DOMAIN}`, role: "TENANT", name: "Tenant/End-User" },
+  { email: `finance.officer@${EMAIL_DOMAIN}`, role: "FINANCE_OFFICER", name: "Finance Officer" },
+  { email: `hr.officer@${EMAIL_DOMAIN}`, role: "HR_OFFICER", name: "HR Officer" },
+  { email: `support@${EMAIL_DOMAIN}`, role: "SUPPORT", name: "Support" },
+  { email: `ops@${EMAIL_DOMAIN}`, role: "OPS", name: "Operations" },
+  { email: `auditor@${EMAIL_DOMAIN}`, role: "AUDITOR_COMPLIANCE", name: "Auditor/Compliance" },
 ];
 
 // All pages to test (from grep search results)
@@ -276,33 +244,24 @@ function httpRequest(url, options = {}) {
 
 async function login(user) {
   try {
-    const res = await httpRequest(`${BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: user.email,
-        password: process.env.E2E_TEST_PASSWORD,
-      }),
+    const { token: sessionToken, cookies } = await mintSessionCookie({
+      email: user.email,
+      role: user.role,
+      orgId: process.env.TEST_ORG_ID || "test-org",
     });
 
-    if (res.statusCode !== 200) {
-      return { success: false, error: `HTTP ${res.statusCode}` };
-    }
-
-    const data = JSON.parse(res.data);
-    if (!data.token) {
-      return { success: false, error: "No token in response" };
-    }
-
-    return { success: true, token: data.token, user: data.user };
+    return {
+      success: true,
+      token: sessionToken,
+      cookies,
+      user: { ...user, id: user.email },
+    };
   } catch (err) {
     return { success: false, error: err.message };
   }
 }
 
-async function testPage(page, token, user) {
+async function testPage(page, auth, user) {
   totalTests++;
   const testResult = {
     user: user.name,
@@ -314,9 +273,8 @@ async function testPage(page, token, user) {
 
   try {
     const headers = {};
-    if (token && page.protected) {
-      headers["Cookie"] = `token=${token}`;
-      headers["Authorization"] = `Bearer ${token}`;
+    if (auth && auth.cookies && page.protected) {
+      headers["Cookie"] = auth.cookies.join("; ");
     }
 
     const res = await httpRequest(`${BASE_URL}${page.path}`, {
@@ -324,40 +282,60 @@ async function testPage(page, token, user) {
       headers,
     });
 
-    // Determine if access was appropriate
-    if (page.protected && !token) {
-      // Protected page without auth should redirect or 401
+    let statusLabel = "FAIL";
+    let note = `HTTP ${res.statusCode}`;
+    let increment = "failed";
+
+    if (page.protected && !auth) {
       if (res.statusCode === 401 || res.redirected) {
-        testResult.status = "PASS";
-        testResult.result = "Correctly blocked (unauthenticated)";
-        passedTests++;
+        statusLabel = "PASS";
+        note = "Correctly blocked (unauthenticated)";
+        increment = "passed";
       } else {
-        testResult.status = "FAIL";
-        testResult.result = `Expected redirect/401, got ${res.statusCode}`;
-        failedTests++;
+        note = `Expected redirect/401, got ${res.statusCode}`;
       }
     } else if (res.statusCode >= 200 && res.statusCode < 300) {
-      // Successful access
-      testResult.status = "PASS";
-      testResult.result = `HTTP ${res.statusCode} - Page loaded`;
+      statusLabel = "PASS";
+      note = `HTTP ${res.statusCode} - Page loaded`;
       testResult.hasHtml = res.data.includes("<html");
       testResult.hasError =
         res.data.includes("Error") || res.data.includes("error");
-      passedTests++;
+      increment = "passed";
     } else if (res.statusCode === 403) {
-      // Forbidden - user doesn't have permission
-      testResult.status = "BLOCKED";
-      testResult.result = "HTTP 403 - Access denied (insufficient permissions)";
-      failedTests++;
+      statusLabel = "BLOCKED";
+      note = "HTTP 403 - Access denied (insufficient permissions)";
+      increment = "failed";
     } else if (res.redirected) {
-      // Redirected (likely to login or different page)
-      testResult.status = "REDIRECT";
-      testResult.result = `HTTP ${res.statusCode} - Redirected`;
-      passedTests++;
-    } else {
-      testResult.result = `HTTP ${res.statusCode}`;
-      failedTests++;
+      statusLabel = "REDIRECT";
+      note = `HTTP ${res.statusCode} - Redirected`;
+      increment = "passed";
     }
+
+    // Optional expectation enforcement via EXPECTED_ACCESS JSON file
+    if (EXPECTED_ACCESS) {
+      const expected = EXPECTED_ACCESS[user.role]?.[page.path];
+      if (expected) {
+        testResult.expected = expected;
+        const isAllow = statusLabel === "PASS";
+        const isBlock = statusLabel === "BLOCKED" || res.statusCode === 401;
+        const isRedirect = statusLabel === "REDIRECT";
+        const matches =
+          (expected === "ALLOW" && isAllow) ||
+          (expected === "BLOCK" && isBlock) ||
+          (expected === "REDIRECT" && isRedirect);
+        if (!matches) {
+          statusLabel = "FAIL_EXPECTATION";
+          note = `Expected ${expected}, saw ${statusLabel} (${res.statusCode})`;
+          increment = "failed";
+          testResult.mismatch = true;
+        }
+      }
+    }
+
+    testResult.status = statusLabel;
+    testResult.result = note;
+    if (increment === "passed") passedTests++;
+    else failedTests++;
   } catch (err) {
     testResult.status = "ERROR";
     testResult.result = err.message;
@@ -412,8 +390,8 @@ async function testUser(user) {
     return;
   }
 
-  console.log(`✅ Login successful - Token received`);
-  console.log(`   User ID: ${loginResult.user.id}`);
+  console.log(`✅ Login successful - Session token minted`);
+  console.log(`   User ID: ${loginResult.user.id || "test-user"}`);
   console.log(`   Role: ${loginResult.user.role}`);
 
   results.push({
@@ -440,7 +418,7 @@ async function testUser(user) {
   console.log("\n🔒 Protected Pages (Authenticated)");
   const protectedPages = PAGES_TO_TEST.filter((p) => p.protected);
   for (const page of protectedPages) {
-    await testPage(page, loginResult.token, user);
+    await testPage(page, loginResult, user);
   }
 }
 
@@ -580,6 +558,16 @@ async function runAllTests() {
   );
   fs.writeFileSync(mdFile, mdReport);
   console.log(`📄 Markdown report saved to: ${mdFile}`);
+
+  // HFV-style artifact drop for quick access
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.json"),
+    JSON.stringify(jsonOutput, null, 2),
+  );
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.ndjson"),
+    results.map((r) => JSON.stringify(r)).join("\n"),
+  );
 
   console.log("\n" + "═".repeat(80) + "\n");
 

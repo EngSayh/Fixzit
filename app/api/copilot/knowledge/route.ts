@@ -6,6 +6,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 const docSchema = z.object({
   slug: z.string(),
@@ -50,10 +51,16 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
+  // SECURITY FIX: Webhook secret is REQUIRED, not optional
+  // Without this, anyone can inject arbitrary knowledge documents
   const secret = process.env.COPILOT_WEBHOOK_SECRET;
-  const provided = req.headers.get("x-webhook-secret");
+  if (!secret) {
+    // Fail closed: If secret is not configured, reject all requests
+    return createSecureResponse({ error: "Webhook not configured" }, 503, req);
+  }
 
-  if (secret && (!provided || provided !== secret)) {
+  const isValid = verifySecretHeader(req, "x-webhook-secret", secret);
+  if (!isValid) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 

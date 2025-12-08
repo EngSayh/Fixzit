@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+/**
+ * SECURITY: This is a TEST-ONLY endpoint for Playwright E2E tests.
+ * It uses in-memory storage and is NOT suitable for production.
+ * The endpoint is locked to NODE_ENV=test or PLAYWRIGHT_TESTS=true.
+ */
+
+// Environment check - must be test environment
+const IS_TEST_ENV = process.env.NODE_ENV === "test" || process.env.PLAYWRIGHT_TESTS === "true";
 
 // In-memory store for test runs (Playwright uses mock headers)
 const projects: Array<Record<string, unknown>> = [];
@@ -40,26 +50,59 @@ const projectSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-function parseUser(req: NextRequest):
-  | { id: string; orgId?: string | null; tenantId?: string | null }
-  | null {
-  const header = req.headers.get("x-user");
-  if (!header) return null;
+// SECURITY FIX: Only parse x-user header in test environment
+// In production, always use getSessionUser for proper authentication
+async function getAuthenticatedUser(req: NextRequest): Promise<
+  | { id: string; orgId: string; tenantId?: string }
+  | null
+> {
+  // In test environment (NODE_ENV=test), allow x-user header for Playwright
+  if (IS_TEST_ENV) {
+    const header = req.headers.get("x-user");
+    if (header) {
+      try {
+        const parsed = JSON.parse(header);
+        if (parsed && parsed.id) {
+          return {
+            id: parsed.id,
+            orgId: parsed.orgId || "test-org",
+            tenantId: parsed.tenantId,
+          };
+        }
+      } catch {
+        // Invalid header, fall through to session auth
+      }
+    }
+  }
+
+  // Production: Use proper session authentication
   try {
-    const parsed = JSON.parse(header);
-    if (parsed && parsed.id) return parsed;
+    const user = await getSessionUser(req);
+    return {
+      id: user.id,
+      orgId: user.orgId,
+      tenantId: user.tenantId,
+    };
   } catch {
     return null;
   }
-  return null;
 }
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
+function notFound() {
+  return NextResponse.json({ error: "Not Found" }, { status: 404 });
+}
+
 export async function POST(req: NextRequest) {
-  const user = parseUser(req);
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
+  const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
 
   const body = await req.json().catch(() => null);
@@ -110,7 +153,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const user = parseUser(req);
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
+  const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
 
   const url = new URL(req.url);

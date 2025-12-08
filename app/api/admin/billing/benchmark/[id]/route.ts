@@ -36,7 +36,16 @@ export async function PATCH(
   await requireSuperAdmin(req);
   const body = await req.json();
 
-  const doc = await Benchmark.findByIdAndUpdate(params.id, body, { new: true });
+  // AUDIT-2025-12-08: Whitelist allowed fields to prevent mass assignment
+  const allowedFields = ['name', 'description', 'category', 'value', 'unit', 'metadata', 'isActive'];
+  const sanitizedBody: Record<string, unknown> = {};
+  for (const key of allowedFields) {
+    if (body[key] !== undefined) {
+      sanitizedBody[key] = body[key];
+    }
+  }
+
+  const doc = await Benchmark.findByIdAndUpdate(params.id, sanitizedBody, { new: true });
   if (!doc) {
     return createSecureResponse({ error: "NOT_FOUND" }, 404, req);
   }

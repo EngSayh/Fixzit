@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "🚀 FIXZIT SOUQ FINAL IMPLEMENTATION - NO LOOPS, JUST EXECUTION"
+EMAIL_DOMAIN=${EMAIL_DOMAIN:-fixzit.co}
 
 # Step 1: Backup everything
 echo "📦 Creating safety backup..."
@@ -136,7 +137,7 @@ curl -X POST http://localhost:5000/api/auth/register-organization \
   -H "Content-Type: application/json" \
   -d '{
     "organizationName": "Fixzit Test Corp",
-    "adminEmail": "admin@fixzit.com",
+    "adminEmail": "admin@'"${EMAIL_DOMAIN}"'",
     "adminPassword": "password123",
     "adminPhone": "0501234567",
     "plan": "trial"

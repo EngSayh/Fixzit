@@ -1,7 +1,5 @@
 "use client";
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
 import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
@@ -46,6 +44,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";
 import { parseDate } from "@/lib/date-utils";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 interface InvoiceItem {
   description: string;

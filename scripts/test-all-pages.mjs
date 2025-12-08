@@ -1,9 +1,12 @@
 import puppeteer from "puppeteer";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const users = [
-  { email: "admin@fixzit.co", password: "Admin@123", role: "SUPER_ADMIN" },
-  { email: "tenant@fixzit.co", password: "Tenant@123", role: "TENANT" },
-  { email: "vendor@fixzit.co", password: "Vendor@123", role: "VENDOR" },
+  { email: `admin@${EMAIL_DOMAIN}`, password: "Admin@123", role: "SUPER_ADMIN" },
+  { email: `tenant@${EMAIL_DOMAIN}`, password: "Tenant@123", role: "TENANT" },
+  { email: `vendor@${EMAIL_DOMAIN}`, password: "Vendor@123", role: "VENDOR" },
 ];
 
 const pages = [

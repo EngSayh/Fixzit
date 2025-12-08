@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-07  
-**Version**: 1.4  
+**Last Updated**: 2025-12-08  
+**Version**: 1.6  
 **Scope**: Database index management across all models
 
 ---
@@ -15,6 +15,11 @@ This register documents all issues discovered in the Fixzit index management sys
 **Impact**: ~~Deployment failures, potential cross-tenant data leaks, wasted database resources.~~ RESOLVED - no deployment failures expected.
 
 **Root Cause**: Dual-source index architecture without clear delineation of responsibilities. **FIXED** by establishing `lib/db/collections.ts` as single source of truth.
+
+## Pending Operational Checks (Auth & Email Domain)
+- Set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN` for static assets) before running demos/public pages; browser fallbacks now use a generic domain to avoid hardcoded Fixzit addresses.
+- When an API is reachable, run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth` with `BASE_URL` pointing to the active instance; investigate any non-2xx responses.
+- After auth passes, exercise auth E2E flows (`qa/tests/e2e-auth-unified.spec.ts`, `qa/tests/auth-flows.spec.ts`) against the same target to catch tenant/email regressions.
 
 ---
 
@@ -656,29 +661,27 @@ OR: Migrate Vendor/Tenant to collections.ts for full consistency with WorkOrder/
 
 ## Summary Statistics
 
-| Severity | Count | Status |
-|----------|-------|--------|
-| 🟥 CRITICAL | 3 | OPEN |
-| 🟧 MAJOR | 3 | OPEN |
-| 🟨 MODERATE | 2 | OPEN |
-| 🟩 MINOR | 1 | OPEN |
-| **TOTAL** | **9** | **9 OPEN** |
+| Severity | Open | Resolved | Total |
+|----------|------|----------|-------|
+| 🟥 CRITICAL | 0 | 15 | 15 |
+| 🟧 MAJOR | 1 | 25 | 26 |
+| 🟨 MODERATE | 2 | 12 | 14 |
+| 🟩 MINOR | 2 | 8 | 10 |
+| **TOTAL** | **5** | **60** | **65** |
+
+> **Last Updated**: 2025-12-08 - Updated counts to reflect actual resolved status
 
 ---
 
 ## Priority Fix Order
 
-Based on severity and dependencies:
+Based on current open items and dependencies:
 
-1. **ISSUE-006** (autoIndex: false) - Enabler for other fixes
-2. **ISSUE-001** (WorkOrder conflicts) - Blocker
-3. **ISSUE-002** (Product conflicts) - Blocker
-4. **ISSUE-003** (Property conflicts) - Blocker
-5. **ISSUE-004** (User index names) - Major architectural
-6. **ISSUE-005** (Documentation) - Major architectural
-7. **ISSUE-007** (Remove redundant schema indexes) - Moderate cleanup
-8. **ISSUE-008** (Test coverage) - Moderate reliability
-9. **ISSUE-009** (Vendor/Tenant verification) - Minor documentation
+1. **ISSUE-005** (Mixed orgId storage in souq payouts/withdrawals) - 🟧 MAJOR
+2. **ISSUE-007** (Redundant schema index definitions) - 🟨 MODERATE
+3. **ISSUE-008** (Index coverage verification test) - 🟨 MODERATE
+4. **ISSUE-006** (Ledger sign-validation canary warnings) - 🟩 MINOR
+5. **ISSUE-009** (Vendor/Tenant index approach documentation) - 🟩 MINOR
 
 ---
 
@@ -1236,6 +1239,841 @@ System has hardcoded "SAR" currency in 40+ UI components. While SAR is the prima
 2. Replace hardcoded strings with `formatCurrency(amount, currency)` calls
 3. Mock data should use currency from context
 4. Forms should allow currency selection
+
+---
+
+### ISSUE-019: Missing Webhook Signature Verification (Carrier Tracking)
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The carrier tracking webhook endpoint (`app/api/webhooks/carrier/tracking/route.ts`) had commented-out signature verification code, allowing anyone to send fake tracking updates.
+
+**Resolution**:
+- Implemented HMAC-SHA256 signature verification with timing-safe comparison
+- Added Zod validation schema for request body
+- Added carrier-specific webhook secrets configuration
+- Required orgId field for tenant isolation
+
+**Files**:
+- `app/api/webhooks/carrier/tracking/route.ts`: Complete security overhaul
+
+---
+
+### ISSUE-020: Missing Rate Limiting on Vendor Application Endpoint
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The vendor application endpoint (`app/api/vendor/apply/route.ts`) had no rate limiting, allowing unlimited form spam and potential DoS attacks. Also logged full PII in production.
+
+**Resolution**:
+- Added rate limiting: 5 requests per minute per IP
+- Added comprehensive Zod validation schema
+- Sanitized PII logging (only partial name, email domain)
+- Proper phone number format validation
+
+**Files**:
+- `app/api/vendor/apply/route.ts`: Added rate limiting and validation
+
+---
+
+### ISSUE-021: Missing Rate Limiting on i18n Locale Endpoint
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The i18n locale preference endpoint (`app/api/i18n/route.ts`) had no rate limiting, allowing cookie manipulation at scale.
+
+**Resolution**:
+- Added rate limiting: 30 requests per minute per IP
+- Updated OpenAPI documentation to include 429 response
+
+**Files**:
+- `app/api/i18n/route.ts`: Added rate limiting
+
+---
+
+### ISSUE-022: Missing Tenant Isolation in Withdrawal Balance Check
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `checkSellerBalance` method in `WithdrawalService` queried `souq_settlement_statements` without an `orgId` filter. A seller in one org could potentially check/exploit balance data from another org if `sellerId` values overlapped.
+
+**Resolution**:
+- Added `orgId` to `WithdrawalRequest` interface
+- Added `orgId` to `Withdrawal` interface  
+- Updated `checkSellerBalance` to require and use `orgId` in query
+- Updated `createWithdrawalRecord` to include `orgId`
+- Added orgId to audit logs
+
+**Files**:
+- `services/souq/settlements/withdrawal-service.ts`: Complete tenant isolation fix
+
+---
+
+### ISSUE-023: Floating Point Arithmetic for Financial Calculations
+
+**Severity**: 🟧 MAJOR  
+**Category**: Data Integrity, Financial Security  
+**Status**: 🔄 IDENTIFIED
+
+**Description**:  
+Fee calculations in multiple services use JavaScript native floating-point arithmetic followed by `toFixed()`. This can accumulate rounding errors in high-volume scenarios. Example: `100.03 * 0.1` could result in values like `10.000000001`.
+
+**Key Locations**:
+- `services/souq/marketplace-fee-service.ts`: Lines 304-335
+- `services/souq/seller-balance-service.ts`: Lines 263, 350, 548-551, 721, 740
+
+**Impact**:
+- Cumulative floating-point errors in high-transaction scenarios
+- Balance discrepancies between calculated and actual amounts
+- Potential financial auditing issues
+
+**Recommended Fix**:
+1. Use `Decimal128` MongoDB type with `decimal.js` for calculations
+2. Store all monetary values in minor units (cents/halalas) as integers
+3. Follow pattern already used in `lib/payments/currencyUtils.ts`
+
+---
+
+### ISSUE-024: Debug Console.log in Claims/Refund Services
+
+**Severity**: 🟨 MODERATE  
+**Category**: Logging Security  
+**Status**: ⚠️ ACCEPTABLE RISK
+
+**Description**:  
+Debug console.log statements exist in:
+- `services/souq/claims/claim-service.ts`: Lines 337, 371
+- `services/souq/claims/refund-processor.ts`: Line 921
+
+These are guarded by specific test environment variables (`DEBUG_CLAIM_TEST`, `DEBUG_REFUND_TEST`) and have eslint-disable comments.
+
+**Assessment**:
+- Risk is LOW because env vars are never set in production
+- Useful for debugging during development
+- Already has eslint-disable comments indicating intentional usage
+
+**Action**: No changes needed. Documented for awareness.
+
+---
+
+### ISSUE-025: Missing Rate Limiting on Aqar Chatbot Endpoint
+
+**Severity**: 🟧 MAJOR  
+**Category**: API Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/aqar/support/chatbot` endpoint was a public POST endpoint without rate limiting, making it vulnerable to DoS attacks. It also lacked proper input validation.
+
+**Files**:
+- `app/api/aqar/support/chatbot/route.ts`
+
+**Fix Applied**:
+- Added `smartRateLimit` with 30 requests/minute per IP
+- Added Zod schema for input validation with max length (2000 chars)
+
+**Commit**: cb615d96a
+
+---
+
+### ISSUE-026: Missing Rate Limiting on Aqar Listings Search
+
+**Severity**: 🟧 MAJOR  
+**Category**: API Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/aqar/listings/search` endpoint was a public GET endpoint without rate limiting, vulnerable to DoS via expensive Atlas Search queries.
+
+**Files**:
+- `app/api/aqar/listings/search/route.ts`
+
+**Fix Applied**:
+- Added `smartRateLimit` with 60 requests/minute per IP
+
+**Commit**: cb615d96a
+
+---
+
+### ISSUE-027: Mass Assignment in Admin Benchmark Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: API Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/admin/billing/benchmark/[id]` PATCH endpoint passed request body directly to `findByIdAndUpdate`, allowing modification of any field including protected ones like `_id`, `createdAt`.
+
+**Files**:
+- `app/api/admin/billing/benchmark/[id]/route.ts`
+
+**Fix Applied**:
+- Added field whitelisting for allowed fields
+- Only `name`, `description`, `category`, `value`, `unit`, `metadata`, `isActive` can be updated
+
+**Commit**: 527e3b597
+
+---
+
+### ISSUE-028: Mass Assignment in Admin PriceBook Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: API Security  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/admin/billing/pricebooks/[id]` PATCH endpoint passed request body directly to `findByIdAndUpdate`, allowing modification of any field.
+
+**Files**:
+- `app/api/admin/billing/pricebooks/[id]/route.ts`
+
+**Fix Applied**:
+- Added field whitelisting for allowed fields
+- Only `name`, `description`, `prices`, `currency`, `effectiveDate`, `expiryDate`, `isActive`, `metadata` can be updated
+
+**Commit**: 527e3b597
+
+---
+
+### ISSUE-029: IBAN Exposed in Withdrawal Service Logs
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The withdrawal service was logging full IBAN values when checksum validation failed, exposing sensitive financial data in logs.
+
+**Files**:
+- `services/souq/settlements/withdrawal-service.ts`
+
+**Fix Applied**:
+- Redact IBAN in logs (show first 4 + last 4 characters only)
+
+**Commit**: 59ac92547
+
+---
+
+### ISSUE-030: Phone Number Exposed in OTP Logs
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The OTP send route was logging full phone numbers when validation failed, exposing PII in logs.
+
+**Files**:
+- `app/api/auth/otp/send/route.ts`
+
+**Fix Applied**:
+- Redact phone number in logs (show last 4 digits only)
+
+**Commit**: 59ac92547
+
+---
+
+### ISSUE-031: Cross-Tenant Header Spoofing in Marketplace Context
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Tenant Isolation  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `resolveMarketplaceContext()` function in `lib/marketplace/context.ts` accepted `x-org-id` and `x-tenant-id` HTTP headers even for authenticated users, allowing attackers to spoof their organization and access data from other tenants. An attacker could send `x-org-id: victim-org-id` header to access checkout, orders, RFQs from any organization.
+
+**Files**:
+- `lib/marketplace/context.ts`
+
+**Impact**:
+- Cross-tenant data access
+- Potential financial fraud (accessing other org's orders/payments)
+- Complete tenant isolation bypass for all marketplace routes
+
+**Fix Applied**:
+- Authenticated users MUST use orgId from their JWT token
+- Headers only accepted for unauthenticated public browsing
+- Token claims take priority over headers
+
+---
+
+### ISSUE-032: Spoofable x-user Header in Projects Route
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/projects` route parsed `x-user` header for authentication, which can be trivially spoofed. Attackers could set `x-user: {"id":"attacker","orgId":"target"}` to create/read projects in any organization.
+
+**Files**:
+- `app/api/projects/route.ts`
+
+**Fix Applied**:
+- `x-user` header only parsed in NODE_ENV=test (for Playwright)
+- Production uses `getSessionUser()` for proper authentication
+- Backwards compatible with existing tests
+
+---
+
+### ISSUE-033: Copilot Webhook Secret Optional (Fail-Open)
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Authentication  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/copilot/knowledge` POST endpoint checked `COPILOT_WEBHOOK_SECRET` but if the env var was not set, the check was bypassed entirely. This is "fail-open" security - attackers could inject arbitrary knowledge documents if the secret wasn't configured.
+
+**Files**:
+- `app/api/copilot/knowledge/route.ts`
+
+**Fix Applied**:
+- Webhook secret is now REQUIRED
+- Returns 503 "Webhook not configured" if secret is missing
+- "Fail-closed" security pattern
+
+---
+
+### ISSUE-034: Organization Settings Returns First Org Without Auth
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Information Disclosure  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/organization/settings` endpoint returned the FIRST organization's branding (name, logo, colors) without any authentication or tenant context. This leaked org branding from org A to org B.
+
+**Files**:
+- `app/api/organization/settings/route.ts`
+
+**Fix Applied**:
+- Uses `getSessionUser()` to get authenticated user's orgId
+- Returns user's org branding, not arbitrary first org
+- Unauthenticated requests get default branding only
+
+---
+
+### ISSUE-035: Trial Request Route Missing Rate Limiting
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/trial-request` public POST endpoint had no rate limiting, vulnerable to spam and DoS attacks.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 3 requests/minute per IP
+
+---
+
+### ISSUE-036: Trial Request Route Logs PII
+
+**Severity**: 🟧 MAJOR  
+**Category**: Logging Security, PII Protection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The trial request route was logging user PII (name, email, phone, message) which is a compliance violation.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Removed PII from logs (only company and plan logged now)
+
+---
+
+### ISSUE-037: Souq Search Route Missing Rate Limiting
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/souq/search` public search endpoint had no rate limiting, vulnerable to DoS via expensive Meilisearch queries.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 120 requests/minute per IP
+
+---
+
+### ISSUE-038: Public Footer Route Missing Rate Limiting
+
+**Severity**: 🟩 MINOR  
+**Category**: Security, DoS Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/public/footer/[page]` endpoint had no rate limiting. While low risk due to simple DB queries, rate limiting prevents abuse.
+
+**Files**:
+- `app/api/public/footer/[page]/route.ts`
+
+**Fix Applied**:
+- Added rate limiting: 60 requests/minute per IP
+
+---
+
+### ISSUE-039: Support Welcome Email Route Missing Authentication
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/support/welcome-email` endpoint had NO authentication. Any attacker could call this endpoint with any email address to send welcome emails, potentially:
+1. Using the system as an email spamming tool
+2. Draining email service credits (SendGrid/Resend)
+3. Reputation damage (emails marked as spam)
+4. Social engineering by sending official-looking emails
+
+**Files**:
+- `app/api/support/welcome-email/route.ts`
+
+**Root Cause**:  
+Route was designed as an internal service endpoint but lacked any authentication mechanism.
+
+**Fix Applied**:
+- Added `INTERNAL_API_SECRET` header check
+- Requests without valid secret return 401 Unauthorized
+- Internal services must include `x-internal-secret` header
+
+**Code Change**:
+
+```typescript
+export async function POST(request: NextRequest) {
+  // Require internal API secret for security
+  const internalSecret = request.headers.get("x-internal-secret");
+  if (!internalSecret || internalSecret !== process.env.INTERNAL_API_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // ... rest of handler
+}
+```
+
+---
+
+### ISSUE-040: Souq Search isActive Filter Bug
+
+**Severity**: 🟧 MAJOR  
+**Category**: Correctness, Data Visibility  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/souq/search` endpoint had an incorrect filter - when `isActive=true` was set, it incorrectly pushed `inStock = true` instead of `isActive = true`. This caused inactive products to potentially appear in search results.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Changed filter from `inStock = true` to `isActive = true` when isActive param is set
+
+---
+
+### ISSUE-041: Souq Search Meilisearch Filter Injection
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Injection  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+User-supplied values (category, subcategory, brandId, badges, orgId) were interpolated directly into Meilisearch filter strings without escaping. Crafted values containing quotes or filter operators could alter query logic.
+
+**Files**:
+- `app/api/souq/search/route.ts`
+
+**Fix Applied**:
+- Added `escapeFilterValue()` function that sanitizes control characters and escapes quotes
+- Applied escaping to all user-supplied filter values
+
+---
+
+### ISSUE-042: Projects API Test Stub Exposed in Production
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Test Code in Production  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/projects` endpoint was a test-only in-memory stub but was accessible in production. It used non-persistent storage and had weak tenancy mapping.
+
+**Files**:
+- `app/api/projects/route.ts`
+
+**Fix Applied**:
+- Added environment check: `IS_TEST_ENV = NODE_ENV === "test" || PLAYWRIGHT_TESTS === "true"`
+- Both GET and POST handlers now return 404 in production
+- Test-only nature documented in code comments
+
+---
+
+### ISSUE-043: Trial Request Missing Email Validation
+
+**Severity**: 🟨 MINOR  
+**Category**: Validation, Bot Prevention  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/trial-request` endpoint accepted any string for email field without format validation, and had no bot mitigation.
+
+**Files**:
+- `app/api/trial-request/route.ts`
+
+**Fix Applied**:
+- Added Zod schema with proper email validation (`z.string().email()`)
+- Added honeypot field (`website`) - bots filling this field are silently rejected
+- All fields now have max length limits
+
+---
+
+### ISSUE-044: Organization Settings Secondary Color Mismatch
+
+**Severity**: 🟩 MINOR  
+**Category**: Branding Consistency  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Default branding used `secondaryColor: #1a365d` which didn't match the documented Fixzit green `#00A859`.
+
+**Files**:
+- `app/api/organization/settings/route.ts`
+
+**Fix Applied**:
+- Changed `secondaryColor` to `#00A859` to align with design tokens
+
+---
+
+### ISSUE-045: Header Spoofing in resolveRequestSession - CRITICAL AUTH BYPASS
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `resolveRequestSession()` function in `lib/auth/request-session.ts` accepted `x-user-id`, `x-user-role`, `x-user-email`, and `x-user-org-id` headers WITHOUT any environment check. Any attacker could impersonate any user by sending these headers.
+
+**Files**:
+- `lib/auth/request-session.ts`
+
+**Root Cause**:  
+Header-based auth was intended for tests but lacked NODE_ENV guard.
+
+**Fix Applied**:
+- Wrapped header parsing in `process.env.NODE_ENV === "test"` check
+- Production ignores all x-user-* headers
+- Only real NextAuth session is trusted in production
+
+---
+
+### ISSUE-046: Incoming x-user Headers Not Stripped in Middleware
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Security, Authentication Bypass  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The Next.js middleware set `x-user` headers for internal use after validating sessions. However, it did NOT strip incoming `x-user` headers first. An attacker could send spoofed headers that would be passed to API routes.
+
+**Files**:
+- `middleware.ts`
+- `server/middleware/withAuthRbac.ts`
+
+**Root Cause**:  
+Middleware trusted that headers weren't pre-set by external requests.
+
+**Fix Applied**:
+- Added header stripping at start of middleware:
+  - `x-user`, `x-org-id`, `x-impersonated-org-id` always stripped
+  - `x-user-id`, `x-user-role`, `x-user-email`, `x-user-org-id` stripped in production
+- Added security comments in `withAuthRbac.ts` documenting this dependency
+
+---
+
+### ISSUE-047: PII (Email) Logged in forgot-password Route
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Privacy, Compliance  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+The `/api/auth/forgot-password` route was logging email addresses in multiple places, violating SEC-029 PII compliance requirements.
+
+**Files**:
+- `app/api/auth/forgot-password/route.ts`
+
+**Fix Applied**:
+- Removed email from all logger calls
+- Added "PII redacted per SEC-029" comments
+- Only messageId kept in success log (non-PII)
+
+---
+
+### ISSUE-048: Hardcoded @fixzit Email Domains (Business.sa Rebrand Blocker)
+
+**Severity**: 🟧 MAJOR  
+**Category**: i18n, Configuration, Rebrand  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+77 occurrences of hardcoded `@fixzit.co`, `@fixzit.com`, and `@fixzit.sa` email addresses were scattered across scripts, tests, and config files. This blocks the Business.sa rebrand because email domains cannot be changed via environment configuration.
+
+**Files Affected (30+)**:
+- `scripts/testing/e2e-all-users-all-pages.js`
+- `scripts/testing/test-auth.js`
+- `scripts/seed-*.ts/.js/.mjs` (multiple files)
+- `scripts/test-*.ts/.js/.mjs` (multiple files)
+- `qa/config.js`, `qa/tests/*.spec.ts`
+- `modules/organizations/seed.mjs`
+- `public/app.js`, `public/simple-app.js`
+- `vitest.setup.ts`
+- `middleware.ts` (TypeScript fix)
+
+**Root Cause**:  
+Development assumed email domain would always be fixzit.co. No abstraction layer for configurable email domains.
+
+**Fix Applied**:
+- Added `EMAIL_DOMAIN` constant to all affected files
+- Pattern: `const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";`
+- Changed static strings to template literals: `` `admin@${EMAIL_DOMAIN}` ``
+- Browser context uses `window.EMAIL_DOMAIN || "fixzit.com"`
+- MongoDB init script uses variable concatenation
+
+**Remaining Intentional Hardcodes (14 occurrences)**:
+- `i18n/new-translations.ts`: Display content managed by i18n system
+- `*.test` TLD: RFC-reserved for testing (intentionally correct)
+- Unit test inputs: Testing string processing functions
+
+**Rebrand Instructions**:
+To switch all emails to Business.sa domain:
+```bash
+export EMAIL_DOMAIN=business.sa
+```
+
+---
+
+### ISSUE-049: Hard-coded Test Passwords in QA/E2E Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+QA and E2E test files contained hard-coded passwords (`password123`, `admin123`) instead of requiring environment variables. Risk: accidental use against shared/staging/prod, leaked credentials in logs, brittle CI when credentials rotate.
+
+**Files Fixed**:
+- `qa/tests/e2e-auth-unified.spec.ts`
+- `qa/tests/auth-flows.spec.ts` (already had fix)
+- `qa/config.js`
+
+**Resolution**:
+All test files now require `FIXZIT_TEST_ADMIN_PASSWORD` environment variable with fail-fast behavior if not set. No hardcoded fallbacks for test credentials.
+
+---
+
+### ISSUE-050: SUPER_ADMIN Elevation in Copilot Test Fixtures
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing, RBAC  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`tests/copilot/copilot.spec.ts` `loginAsRole` function granted every role `roles: [role, "SUPER_ADMIN"]` and `permissions: ["*"]`. This nullified STRICT v4.1 coverage - cross-tenant/role checks would silently pass/fail for wrong reasons, masking RBAC regressions.
+
+**File Fixed**:
+- `tests/copilot/copilot.spec.ts`: Lines 80-97
+
+**Resolution**:
+- Removed `"SUPER_ADMIN"` from roles array - now only uses actual role
+- Removed `permissions: ["*"]` - let RBAC system determine permissions
+- Added `TEST_ORG_ID` env var support for orgId
+- Tests now properly exercise STRICT v4.1 RBAC boundaries
+
+---
+
+### ISSUE-051: Hard-coded Demo Passwords Across Scripts
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Configuration  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Multiple seed and utility scripts had hard-coded demo passwords (`admin123`, `password123`) that couldn't be overridden via environment variables. While these are local dev defaults, they should be configurable for staging/production deployments.
+
+**Files Fixed**:
+- `lib/config/demo-users.ts`: Centralized with `DEMO_SUPERADMIN_PASSWORD` and `DEMO_DEFAULT_PASSWORD` env vars
+- `scripts/seed-demo-users.ts`
+- `scripts/create-demo-users.ts`
+- `scripts/seed-users.ts`
+- `scripts/quick-fix-superadmin.ts`
+- `scripts/update-demo-passwords.ts`
+- `scripts/unified-audit-system.js`
+
+**Resolution**:
+All scripts now use environment variables with local dev fallbacks:
+- `DEMO_SUPERADMIN_PASSWORD` (default: `admin123` for local dev only)
+- `DEMO_DEFAULT_PASSWORD` (default: `password123` for local dev only)
+
+**Usage for non-dev environments**:
+```bash
+export DEMO_SUPERADMIN_PASSWORD=your-secure-password
+export DEMO_DEFAULT_PASSWORD=your-secure-password
+```
+
+---
+
+### ISSUE-052: Additional Hard-coded Passwords in Scripts/E2E Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Additional hardcoded passwords found in E2E tests and seeding scripts that were missed in the initial scan.
+
+**Files Fixed**:
+- `tests/e2e/auth-flow.spec.ts`: Added fail-fast for `FIXZIT_TEST_ADMIN_PASSWORD`
+- `scripts/seedData.js`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/testing/test-auth.js`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/test-auth.ts`: Uses `DEMO_DEFAULT_PASSWORD` env var
+- `scripts/test-data.js`: Uses `DEMO_SUPERADMIN_PASSWORD` env var
+
+**Intentionally Excluded**:
+- `scripts/verify-passwords.ts`: Security audit tool that tests common passwords against stored hashes - intentionally contains password list
+
+**Resolution**:
+All test and seeding scripts now use environment variables. E2E tests fail-fast if required env vars not set.
+
+---
+
+### ISSUE-053: TypeScript Errors in Scripts and Test Files
+
+**Severity**: 🟧 MAJOR  
+**Category**: Build, TypeScript  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Multiple TypeScript errors across scripts and test files preventing clean builds:
+- Type narrowing issues after fail-fast checks
+- Missing required parameters in JWT encode (salt)
+- Module resolution issues with @/ path aliases
+- Read-only property assignments (NODE_ENV)
+
+**Files Fixed**:
+- `qa/tests/auth-flows.spec.ts`: Fixed TEST_USER.password type narrowing
+- `tests/copilot/copilot.spec.ts`: Added required `salt` parameter to encodeJwt
+- `scripts/auth-debug.ts`: Use Object.defineProperty for NODE_ENV
+- `scripts/fix-superadmin-login.ts`: Changed @/ imports to relative paths, added type assertions
+- `scripts/quick-fix-superadmin.ts`: Changed @/ imports to relative paths
+- `scripts/validate-notification-env.ts`: Changed @/ import to dotenv
+- `scripts/seed-e2e-test-users.ts`: Fixed emailVerified property access
+
+**Resolution**:
+All TypeScript errors in affected files resolved. Main typecheck passes cleanly.
+
+---
+
+### ISSUE-054: Plaintext Passwords Logged to Console
+
+**Severity**: 🟨 MODERATE  
+**Category**: Security, Logging  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+Demo/seed scripts were logging actual password values to stdout. In CI or shared logs, this leaks demo/superadmin credentials.
+
+**Files Fixed**:
+- `scripts/quick-fix-superadmin.ts`: Changed password log to `[use DEMO_SUPERADMIN_PASSWORD env value]`
+- `scripts/create-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
+- `scripts/seed-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
+
+**Resolution**:
+All password logging now shows env var name instead of actual value. Added hint: "Set SHOW_DEMO_CREDS=true to display actual passwords" for local dev.
+
+---
+
+### ISSUE-055: CI Secret Wiring for QA Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: CI/CD, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+QA tests require `FIXZIT_TEST_ADMIN_PASSWORD` but CI workflow only had `TEST_ADMIN_PASSWORD`. Without this alias, QA tests would fail in CI.
+
+**Files Fixed**:
+- `.github/workflows/e2e-tests.yml`: Added `FIXZIT_TEST_ADMIN_PASSWORD` and `FIXZIT_TEST_ADMIN_EMAIL` aliases
+
+**Resolution**:
+CI now passes both env var names (TEST_ADMIN_* and FIXZIT_TEST_ADMIN_*) for backward compatibility.
+
+---
+
+### ISSUE-056: Insecure JWT Secret Fallback in Playwright Tests
+
+**Severity**: 🟧 MAJOR  
+**Category**: Security, Testing  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`tests/copilot/copilot.spec.ts` used `playwright-secret` as fallback for NEXTAUTH_SECRET. This reduces test fidelity and, if services share the same fallback, could accept non-vetted tokens in lower environments.
+
+**Files Fixed**:
+- `tests/copilot/copilot.spec.ts`: Removed insecure fallback, now requires real secret with fail-fast
+
+**Resolution**:
+Tests now throw explicit error if NEXTAUTH_SECRET/AUTH_SECRET not set. Also added `org_id` (underscore version) for backend compatibility.
+
+---
+
+### ISSUE-057: Demo-users.ts Throws at Build Time Breaking Vercel Deployment
+
+**Severity**: 🟥 CRITICAL  
+**Category**: Build, Deployment  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+`lib/config/demo-users.ts` was modified to throw an error if `DEMO_SUPERADMIN_PASSWORD` and `DEMO_DEFAULT_PASSWORD` environment variables were not set. This caused Vercel builds to fail during the "Collecting page data" phase because the file is imported transitively by API routes via `auth.config.ts`.
+
+**Error**:
+```
+Error: DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set (no defaults) for demo user config.
+  at 116076 (.next/server/app/api/admin/audit-logs/route.js:1:502)
+[Error: Failed to collect page data for /api/admin/audit-logs]
+```
+
+**Root Cause**:
+- `auth.config.ts` imports `DEMO_EMAILS` from `lib/config/demo-users.ts`
+- API routes import `auth` which imports `auth.config.ts`
+- During build, env vars are not set, causing the throw statement to execute
+
+**Files Fixed**:
+- `lib/config/demo-users.ts`: Replaced throw with safe fallback placeholders (`[set DEMO_SUPERADMIN_PASSWORD]`)
+- `components/auth/DemoCredentialsSection.tsx`: Added check for `DEMO_PASSWORDS_CONFIGURED`
+- `scripts/seed-demo-users.ts`: Added `SHOW_DEMO_CREDS` opt-in for password logging
+- `tests/e2e/utils/auth.ts`: Improved offline fallback security
+
+**Resolution**:
+Demo passwords now use placeholder strings when env vars not set, allowing builds to succeed. Runtime validation still occurs in scripts that actually need the passwords. Components check `DEMO_PASSWORDS_CONFIGURED` before displaying credentials.
 
 ---
 

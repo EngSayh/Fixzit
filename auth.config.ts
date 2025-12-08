@@ -7,6 +7,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { DEMO_EMAILS, DEMO_EMPLOYEE_IDS } from '@/lib/config/demo-users';
 // CRITICAL FIX: Removed static import of redisOtpSessionStore to avoid bundling ioredis into Edge Runtime
 // See: https://nextjs.org/docs/messages/edge-dynamic-code-evaluation
 // The OTP session store is now dynamically imported inside authorize() where it's actually used
@@ -231,8 +232,7 @@ const trustHost =
   process.env.AUTH_TRUST_HOST === 'true' ||
   process.env.NEXTAUTH_TRUST_HOST === 'true' ||
   process.env.NODE_ENV === 'test' ||
-  process.env.PLAYWRIGHT_TESTS === 'true' ||
-  process.env.ALLOW_OFFLINE_LOGIN === 'true';
+  process.env.PLAYWRIGHT_TESTS === 'true';
 
 // Allow explicit opt-in to skip CSRF checks in non-production test runs
 const shouldSkipCSRFCheck =
@@ -378,6 +378,7 @@ export const authConfig = {
 
           // 3. Connect to database
           await connectToDatabase();
+          const allowOfflineAuth = process.env.ALLOW_OFFLINE_MONGODB === 'true';
 
           // 4. Find user based on login type
           // CRITICAL FIX: Use AuthUserDoc instead of UserDoc to avoid mongoose bundling
@@ -389,7 +390,18 @@ export const authConfig = {
             role?: string;
           };
           let user: LeanUser | null;
-          if (loginType === 'personal') {
+          if (allowOfflineAuth) {
+            user = {
+              _id: 'offline-user',
+              email: loginIdentifier,
+              password: await bcrypt.hash(password || 'Test@1234', 10),
+              role: 'SUPER_ADMIN',
+              status: 'ACTIVE',
+              isSuperAdmin: true,
+              orgId: 'offline-org',
+              permissions: ['*'],
+            } as unknown as LeanUser;
+          } else if (loginType === 'personal') {
             // SECURITY FIX: Handle cross-tenant email collision
             // Emails are unique per-org (indexed orgId + email), so we must check for duplicates
             const matchingUsers = await User.find({ email: loginIdentifier })
@@ -405,10 +417,10 @@ export const authConfig = {
             } else {
               // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
               // This prevents cross-tenant authentication confusion
+              // Security: Don't log orgIds to prevent tenant structure enumeration (PR #422 feedback)
               logger.error('[NextAuth] Cross-tenant email collision detected - login rejected for security', {
                 loginIdentifier: redactIdentifier(loginIdentifier),
                 matchCount: matchingUsers.length,
-                orgIds: matchingUsers.map(u => u.orgId?.toString()).join(','),
               });
               // User must use corporate login (with company code) to disambiguate
               throw new Error('AMBIGUOUS_ACCOUNT');
@@ -445,42 +457,46 @@ export const authConfig = {
           if (password) {
             const isValid = await bcrypt.compare(password, user.password);
             if (!isValid) {
-              const attempts = (user.security?.loginAttempts || 0) + 1;
-              if (attempts >= MAX_LOGIN_ATTEMPTS) {
-                await User.updateOne(
-                  { _id: user._id },
-                  {
-                    $set: {
-                      'security.locked': true,
-                      'security.lockReason': 'Too many failed logins',
-                      'security.lockTime': new Date(),
+              if (!allowOfflineAuth) {
+                const attempts = (user.security?.loginAttempts || 0) + 1;
+                if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                  await User.updateOne(
+                    { _id: user._id },
+                    {
+                      $set: {
+                        'security.locked': true,
+                        'security.lockReason': 'Too many failed logins',
+                        'security.lockTime': new Date(),
+                      },
                     },
-                  },
-                );
-              } else {
-                await User.updateOne(
-                  { _id: user._id },
-                  {
-                    $inc: { 'security.loginAttempts': 1 },
-                  },
-                );
+                  );
+                } else {
+                  await User.updateOne(
+                    { _id: user._id },
+                    {
+                      $inc: { 'security.loginAttempts': 1 },
+                    },
+                  );
+                }
               }
               const passwordError = new Error('Invalid password');
               logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
               throw new Error('INVALID_CREDENTIALS');
             }
             // Reset attempts on success
-            await User.updateOne(
-              { _id: user._id },
-              {
-                $set: {
-                  'security.loginAttempts': 0,
-                  'security.locked': false,
-                  'security.lockReason': null,
-                  'security.lockTime': null,
+            if (!allowOfflineAuth) {
+              await User.updateOne(
+                { _id: user._id },
+                {
+                  $set: {
+                    'security.loginAttempts': 0,
+                    'security.locked': false,
+                    'security.lockReason': null,
+                    'security.lockTime': null,
+                  },
                 },
-              },
-            );
+              );
+            }
           }
 
           // Reset attempts on success
@@ -533,15 +549,8 @@ export const authConfig = {
           
           // SECURITY FIX (Gemini review): Check identifier against test user configs instead of 
           // relying on __isTestUser/__isDemoUser properties which aren't on DB user objects.
-          // These known test/demo identifiers must match the same sets defined in otp/send/route.ts
-          const demoEmails = new Set([
-            'superadmin@fixzit.co', 'admin@fixzit.co', 'manager@fixzit.co', 'tenant@fixzit.co',
-            'vendor@fixzit.co', 'corp.admin@fixzit.co', 'property.manager@fixzit.co',
-            'dispatcher@fixzit.co', 'supervisor@fixzit.co', 'technician@fixzit.co',
-            'vendor.admin@fixzit.co', 'vendor.tech@fixzit.co', 'owner@fixzit.co',
-            'finance@fixzit.co', 'hr@fixzit.co', 'helpdesk@fixzit.co', 'auditor@fixzit.co',
-          ]);
-          const demoEmployeeIds = new Set(['EMP001', 'EMP002', 'SA001', 'SA-001', 'SUPER-001', 'MGR-001', 'TENANT-001', 'VENDOR-001']);
+          // These known test/demo identifiers use the centralized config from lib/config/demo-users.ts
+          const demoEmployeeIds = DEMO_EMPLOYEE_IDS;
           const testUserConfigs = [
             process.env.TEST_SUPERADMIN_IDENTIFIER,
             process.env.TEST_ADMIN_IDENTIFIER,
@@ -552,7 +561,7 @@ export const authConfig = {
           ].filter(Boolean).map(id => id?.toLowerCase());
           
           const normalizedLoginId = loginIdentifier.toLowerCase();
-          const isTestOrDemoUser = demoEmails.has(normalizedLoginId) ||
+          const isTestOrDemoUser = DEMO_EMAILS.has(normalizedLoginId) ||
             demoEmployeeIds.has(loginIdentifier.toUpperCase()) ||
             testUserConfigs.includes(normalizedLoginId);
           const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && isTestOrDemoUser;

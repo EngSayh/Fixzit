@@ -5,6 +5,12 @@
 
 import { test, expect } from "@playwright/test";
 
+// 🔐 Test password from env (fail-fast if not set)
+const TEST_PASSWORD = process.env.FIXZIT_TEST_ADMIN_PASSWORD;
+if (!TEST_PASSWORD) {
+  throw new Error("FIXZIT_TEST_ADMIN_PASSWORD must be set for E2E auth flow tests (no hardcoded fallback).");
+}
+
 // Override project-wide storageState to run as a guest for auth flows
 test.use({ storageState: undefined });
 
@@ -277,7 +283,7 @@ test.describe("Authentication - Guest User", () => {
     
     if (await emailInput.isVisible() && await passwordInput.isVisible()) {
       await emailInput.fill("test@example.com");
-      await passwordInput.fill("password123");
+      await passwordInput.fill(TEST_PASSWORD);
       await page.locator('button[type="submit"]').click();
       
       // Wait for potential redirect

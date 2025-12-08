@@ -1,7 +1,11 @@
 "use client";
 
-import React, { useRef, useLayoutEffect, forwardRef } from "react";
+import React, { useRef, useEffect, useLayoutEffect, forwardRef } from "react";
 import { logger } from "@/lib/logger";
+
+// SSR-safe layout effect - prevents hydration warning
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -73,7 +77,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     };
 
     // Resize on initial render and when `value` prop changes
-    useLayoutEffect(() => {
+    // Using isomorphic layout effect for SSR safety
+    useIsomorphicLayoutEffect(() => {
       resize();
     }, [props.value, autoResize]);
 

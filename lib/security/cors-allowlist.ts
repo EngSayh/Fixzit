@@ -1,23 +1,31 @@
 import { logSecurityEvent } from "@/lib/monitoring/security-events";
 import { logger } from "@/lib/logger";
+import { DOMAINS } from "@/lib/config/domains";
 
-const STATIC_ALLOWED_ORIGINS = [
-  // Production (.co)
-  "https://fixzit.co",
-  "https://www.fixzit.co",
-  "https://app.fixzit.co",
-  "https://dashboard.fixzit.co",
-  "https://staging.fixzit.co",
-  "https://api.fixzit.co",
+// Build CORS allowlist from centralized domain config
+const buildOriginsList = () => {
+  const primaryDomain = new URL(DOMAINS.primary).hostname.replace('www.', '');
+  return [
+    // Primary domain variants
+    `https://${primaryDomain}`,
+    `https://www.${primaryDomain}`,
+    `https://app.${primaryDomain}`,
+    `https://dashboard.${primaryDomain}`,
+    `https://staging.${primaryDomain}`,
+    `https://api.${primaryDomain}`,
+    // Also allow .sa variant if primary is .co
+    ...(primaryDomain.endsWith('.co') ? [
+      `https://${primaryDomain.replace('.co', '.sa')}`,
+      `https://www.${primaryDomain.replace('.co', '.sa')}`,
+      `https://app.${primaryDomain.replace('.co', '.sa')}`,
+      `https://dashboard.${primaryDomain.replace('.co', '.sa')}`,
+      `https://staging.${primaryDomain.replace('.co', '.sa')}`,
+      `https://api.${primaryDomain.replace('.co', '.sa')}`,
+    ] : []),
+  ];
+};
 
-  // Legacy/secondary (.sa)
-  "https://fixzit.sa",
-  "https://www.fixzit.sa",
-  "https://app.fixzit.sa",
-  "https://dashboard.fixzit.sa",
-  "https://staging.fixzit.sa",
-  "https://api.fixzit.sa",
-];
+const STATIC_ALLOWED_ORIGINS = buildOriginsList();
 
 const DEV_ALLOWED_ORIGINS = [
   "http://localhost:3000",

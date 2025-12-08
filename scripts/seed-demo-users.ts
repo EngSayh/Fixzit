@@ -1,11 +1,41 @@
 #!/usr/bin/env node
 /**
  * Seed demo users that match the login page credentials
- * Default passwords: superadmin uses "admin123", others use "password123"
+ * 
+ * SEC-051: Passwords now configurable via environment variables:
+ * - DEMO_SUPERADMIN_PASSWORD (default: admin123 for local dev only)
+ * - DEMO_DEFAULT_PASSWORD (default: password123 for local dev only)
+ * 
+ * Email domain is configurable via EMAIL_DOMAIN environment variable.
+ * Uses centralized demo user configuration from lib/config/demo-users.ts
  */
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
+import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
+
+// SEC-051: Require environment variables (no hardcoded fallbacks)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+const SHOW_DEMO_CREDS_IN_LOGS = process.env.SHOW_DEMO_CREDS === "true";
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set before seeding demo users.",
+  );
+}
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: seed-demo-users.ts cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run seed-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
 
 const demoPhones = {
   superadmin:
@@ -24,8 +54,8 @@ const demoUsers = [
   {
     code: "USR-SUPERADMIN",
     username: "superadmin",
-    email: "superadmin@fixzit.co",
-    password: "admin123",
+    email: getDemoEmail("superadmin"),
+    password: DEMO_SUPERADMIN_PASSWORD,
     phone: demoPhones.superadmin,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -57,16 +87,16 @@ const demoUsers = [
   {
     code: "USR-ADMIN",
     username: "admin",
-    email: "admin@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("admin"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.admin,
     // Don't set orgId/createdBy for existing user - will be updated via updateOne
   },
   {
     code: "USR-MANAGER",
     username: "manager",
-    email: "manager@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("manager"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.manager,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -98,8 +128,8 @@ const demoUsers = [
   {
     code: "USR-TENANT",
     username: "tenant",
-    email: "tenant@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("tenant"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.tenant,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -131,8 +161,8 @@ const demoUsers = [
   {
     code: "USR-VENDOR",
     username: "vendor",
-    email: "vendor@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("vendor"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.vendor,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -164,8 +194,8 @@ const demoUsers = [
   {
     code: "EMP001",
     username: "EMP001",
-    email: "emp001@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("emp001"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.emp001,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -176,8 +206,8 @@ const demoUsers = [
       address: { country: "SA" },
     },
     professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
+      role: "TEAM_MEMBER",
+      title: "Team Member",
       department: "Operations",
       skills: [],
       licenses: [],
@@ -197,8 +227,8 @@ const demoUsers = [
   {
     code: "EMP002",
     username: "EMP002",
-    email: "emp002@fixzit.co",
-    password: "password123",
+    email: getDemoEmail("emp002"),
+    password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.emp002,
     orgId: "68dc8955a1ba6ed80ff372dc",
     personal: {
@@ -209,8 +239,8 @@ const demoUsers = [
       address: { country: "SA" },
     },
     professional: {
-      role: "EMPLOYEE",
-      title: "Corporate Employee",
+      role: "TEAM_MEMBER",
+      title: "Team Member",
       department: "Operations",
       skills: [],
       licenses: [],
@@ -300,14 +330,27 @@ async function seedDemoUsers() {
     console.log(`   Skipped: ${skipped}`);
     console.log("   Total:   " + (created + updated + skipped));
     console.log("\n✅ Demo user seeding completed!");
-    console.log("\n📝 Login credentials:");
-    console.log("   Personal:  superadmin@fixzit.co / admin123");
-    console.log("   Personal:  admin@fixzit.co / password123");
-    console.log("   Personal:  manager@fixzit.co / password123");
-    console.log("   Personal:  tenant@fixzit.co / password123");
-    console.log("   Personal:  vendor@fixzit.co / password123");
-    console.log("   Corporate: EMP001 / password123");
-    console.log("   Corporate: EMP002 / password123");
+    if (SHOW_DEMO_CREDS_IN_LOGS) {
+      console.log("\n📝 Login credentials:");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / ${DEMO_SUPERADMIN_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP001 / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP002 / ${DEMO_DEFAULT_PASSWORD}`);
+    } else {
+      // SEC-051: Don't log passwords to console - they may end up in CI logs
+      console.log("\n📝 Login credentials (passwords hidden; use env vars):");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / [DEMO_SUPERADMIN_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP001 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP002 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
+    }
 
     process.exit(0);
   } catch (error) {

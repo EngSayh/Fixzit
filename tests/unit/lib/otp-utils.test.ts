@@ -14,6 +14,8 @@ import {
   hashIdentifier,
 } from "@/lib/otp-utils";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 describe("OTP Utils", () => {
   describe("EMPLOYEE_ID_REGEX", () => {
     it("should match valid employee IDs", () => {
@@ -80,7 +82,7 @@ describe("OTP Utils", () => {
     describe("GDPR/PII Compliance", () => {
       it("should redact email addresses showing only first 3 chars", () => {
         expect(redactIdentifier("user@email.com")).toBe("use***");
-        expect(redactIdentifier("admin@fixzit.co")).toBe("adm***");
+        expect(redactIdentifier(`admin@${EMAIL_DOMAIN}`)).toBe("adm***");
         expect(redactIdentifier("longusername@domain.com")).toBe("lon***");
       });
 

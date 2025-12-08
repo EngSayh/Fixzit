@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { renderMarkdownSanitized } from "@/lib/markdown";
 
 export const revalidate = 60;
 
@@ -13,14 +14,9 @@ type Article = {
   updatedAt?: Date | string;
 };
 
-// Simple markdown renderer that keeps paragraphs and single newlines as <br/>
+// Use sanitized markdown renderer to prevent XSS
 async function renderMarkdown(md: string): Promise<string> {
-  return md
-    .split(/\n{2,}/)
-    .map((block) =>
-      `<p>${block.split(/\n/).map((line) => line || "").join("<br/>")}</p>`,
-    )
-    .join("");
+  return renderMarkdownSanitized(md);
 }
 
 export default async function HelpArticlePage({

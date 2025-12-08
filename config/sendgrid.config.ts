@@ -51,7 +51,7 @@ export function getSendGridConfig(): SendGridConfig {
   const fromEmail =
     process.env.SENDGRID_FROM_EMAIL ||
     process.env.FROM_EMAIL ||
-    "noreply@fixzit.co";
+    `noreply@${process.env.EMAIL_DOMAIN || "fixzit.co"}`;
   const fromName = process.env.SENDGRID_FROM_NAME || "Fixzit";
 
   const replyToEmail = process.env.SENDGRID_REPLY_TO_EMAIL;

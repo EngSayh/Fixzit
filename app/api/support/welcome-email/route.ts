@@ -1,8 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import sgMail from "@sendgrid/mail";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
@@ -10,12 +8,14 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import {
   getSendGridConfig,
   getBaseEmailOptions,
   isSendGridConfigured,
   getTemplateId,
 } from "@/config/sendgrid.config";
+import { DOMAINS, EMAIL_DOMAINS } from "@/lib/config/domains";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -43,11 +43,23 @@ const welcomeEmailSchema = z.object({
  */
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
+  // Rate limiting - reduced to 5 req/min since this sends emails
   const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 5, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
+  }
+
+  // SECURITY FIX: Require internal API secret for email sending
+  // This endpoint should only be called by internal services
+  const secretValid = verifySecretHeader(
+    req,
+    "x-internal-secret",
+    process.env.INTERNAL_API_SECRET,
+  );
+  if (!secretValid) {
+    logger.warn("[welcome-email] Unauthorized access attempt", { clientIp });
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
   try {
@@ -99,7 +111,7 @@ Thank you for reporting an issue with our system. We're actively working to reso
 
 **Need Immediate Help?**
 - Contact our support team: ${EMAIL_DOMAINS.support}
-- Visit our help center: https://fixzit.com/help
+- Visit our help center: ${DOMAINS.primary}/help
 - Call us: +966 50 123 4567
 
 Welcome to the Fixzit family! 🚀

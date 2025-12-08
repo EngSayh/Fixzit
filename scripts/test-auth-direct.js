@@ -7,6 +7,8 @@ const dotenv = require('dotenv');
 // Load test environment
 dotenv.config({ path: '.env.test' });
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function testAuth() {
   console.log('🔍 Testing authentication directly...\n');
 
@@ -26,7 +28,7 @@ async function testAuth() {
     const UserSchema = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
 
     // 3. Find test user
-    const testEmail = process.env.TEST_USER_EMAIL || 'test-admin@fixzit.co';
+    const testEmail = process.env.TEST_USER_EMAIL || `test-admin@${EMAIL_DOMAIN}`;
     const testPassword = process.env.TEST_USER_PASSWORD || 'Test@1234';
     
     console.log(`👤 Looking for user: ${testEmail}`);

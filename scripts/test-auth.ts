@@ -6,12 +6,21 @@ import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import bcrypt from "bcryptjs";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password (env var with local dev fallback)
+const TEST_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
+if (!process.env.DEMO_DEFAULT_PASSWORD) {
+  console.warn("⚠️  DEMO_DEFAULT_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
 async function testAuth() {
   try {
     await db;
 
-    const email = "admin@fixzit.co";
-    const password = "password123";
+    const email = `admin@${EMAIL_DOMAIN}`;
+    const password = TEST_PASSWORD;
 
     console.log(`🔍 Testing authentication for ${email}...\n`);
 

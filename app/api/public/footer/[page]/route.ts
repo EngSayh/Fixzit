@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * GET /api/public/footer/:page
@@ -12,6 +15,13 @@ export async function GET(
   { params }: { params: { page: string } },
 ) {
   try {
+    // Rate limiting: 60 req/min per IP for public content
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/public/footer:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     await connectToDatabase();
 
     const { page } = params;

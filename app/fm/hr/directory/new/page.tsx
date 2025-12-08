@@ -222,7 +222,7 @@ export default function HRDirectoryCreatePage() {
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="+971 50 555 0102"
+                  placeholder="+966 50 555 0102"
                   value={draft.phone}
                   onChange={(event) =>
                     handleChange("phone", event.target.value)

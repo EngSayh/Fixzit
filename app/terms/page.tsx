@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FileText, Scale, AlertCircle, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 import { logger } from "@/lib/logger";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
 /**
  * Default terms of service content shown when CMS content is not available or not published.
  */
@@ -72,7 +72,7 @@ Any disputes shall be resolved through:
 ## Contact
 For questions about these terms:
 - Email: ${EMAIL_DOMAINS.legal}
-- Phone: +971 XX XXX XXXX
+- Phone: +966 XX XXX XXXX
 
 ## Severability
 If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.`;
@@ -287,10 +287,10 @@ export default function TermsPage() {
                     {t("terms.phone", "Phone")}
                   </div>
                   <a
-                    href="tel:+971XXXXXXXX"
+                    href="tel:+966XXXXXXXX"
                     className="text-primary hover:text-primary/90"
                   >
-                    +971 XX XXX XXXX
+                    +966 XX XXX XXXX
                   </a>
                 </div>
               </div>

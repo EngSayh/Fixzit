@@ -11,7 +11,12 @@
  */
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const TEST_PASSWORD = "password123"; // Default test password
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.SEED_PASSWORD;
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+if (!TEST_PASSWORD) {
+  throw new Error("TEST_USER_PASSWORD or SEED_PASSWORD is required for auth integration test");
+}
 
 // ANSI colors for output
 const colors = {
@@ -46,18 +51,13 @@ function logWarning(message) {
 
 // Test user credentials
 const testUsers = {
-  email: {
-    identifier: "admin@fixzit.co",
-    password: TEST_PASSWORD,
-    type: "email",
-  },
-  manager: {
-    identifier: "manager@fixzit.co",
+  superadmin: {
+    identifier: `superadmin@${EMAIL_DOMAIN}`,
     password: TEST_PASSWORD,
     type: "email",
   },
   employeeNumber: {
-    identifier: "EMP10001",
+    identifier: "EMP002",
     password: TEST_PASSWORD,
     type: "employee",
   },
@@ -91,8 +91,8 @@ async function testEmailLogin() {
           Cookie: cookies || "",
         },
         body: new URLSearchParams({
-          identifier: testUsers.email.identifier,
-          password: testUsers.email.password,
+          identifier: testUsers.superadmin.identifier,
+          password: testUsers.superadmin.password,
           rememberMe: "false",
           callbackUrl: `${BASE_URL}/fm/dashboard`,
           json: "true",
@@ -104,7 +104,7 @@ async function testEmailLogin() {
     if (loginResponse.status === 302 || loginResponse.status === 200) {
       const sessionCookie = loginResponse.headers.get("set-cookie");
       if (sessionCookie && sessionCookie.includes("authjs.session-token")) {
-        logSuccess(`Email login successful: ${testUsers.email.identifier}`);
+        logSuccess(`Email login successful: ${testUsers.superadmin.identifier}`);
         logSuccess("NextAuth session cookie set");
         return { success: true, cookies: sessionCookie };
       } else if (loginResponse.status === 200) {

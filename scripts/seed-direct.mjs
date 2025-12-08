@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
   console.error("❌ MONGODB_URI environment variable not set");
@@ -114,7 +117,7 @@ const users = [
   {
     code: "USR-001",
     username: "admin",
-    email: "admin@fixzit.co",
+    email: `admin@${EMAIL_DOMAIN}`,
     password: SEED_PASSWORD,
     personal: {
       firstName: "System",
@@ -181,7 +184,7 @@ const users = [
   {
     code: "USR-002",
     username: "tenant",
-    email: "tenant@fixzit.co",
+    email: `tenant@${EMAIL_DOMAIN}`,
     password: SEED_PASSWORD,
     personal: {
       firstName: "Ahmed",
@@ -248,7 +251,7 @@ const users = [
   {
     code: "USR-003",
     username: "vendor",
-    email: "vendor@fixzit.co",
+    email: `vendor@${EMAIL_DOMAIN}`,
     password: SEED_PASSWORD,
     personal: {
       firstName: "Mohammed",

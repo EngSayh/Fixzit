@@ -2,7 +2,6 @@
  * ICS Calendar Generator - Create RFC-5545 compliant .ics files for interview scheduling
  * Phase 2 implementation
  */
-
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 interface ICSEvent {

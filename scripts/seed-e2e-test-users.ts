@@ -25,17 +25,39 @@ if (fs.existsSync(envTestPath)) {
   console.warn('⚠️  .env.test not found, using process environment variables');
 }
 
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error('❌ SEEDING BLOCKED: seed-e2e-test-users.ts cannot run in production/CI');
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-e2e-test-users.ts (prevents accidental prod writes)');
+  process.exit(1);
+}
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 const orgObjectId = Types.ObjectId.isValid(TEST_ORG_ID)
   ? new Types.ObjectId(TEST_ORG_ID)
   : new Types.ObjectId();
 
-// Test user passwords from env or defaults
-const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234';
-const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234';
-const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || 'admin123';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'password123';
+// Test user passwords from env (no hardcoded defaults)
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    'SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seed-e2e-test-users.ts',
+  );
+}
+const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || BASE_PASSWORD;
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || BASE_PASSWORD;
 
 // Test phone numbers
 const PRIMARY_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
@@ -50,6 +72,9 @@ const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(
   process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100'
 );
 const DEMO_EMPLOYEE_ID = normalizeEmployeeId(process.env.DEMO_SUPERADMIN_EMPLOYEE || 'EMP-DEMO-001');
+const DEMO_ADMIN_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-002');
+const DEMO_MANAGER_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-003');
+const DEMO_EMP001_ID = normalizeEmployeeId('EMP001');
 
 const e2eTestUsers = [
   // ============================================
@@ -63,7 +88,7 @@ const e2eTestUsers = [
     },
     code: 'TEST-PRIMARY-ADMIN',
     username: PRIMARY_EMPLOYEE_ID,
-    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co',
+    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
     password: PRIMARY_PASSWORD,
     phone: PRIMARY_PHONE,
     employeeId: PRIMARY_EMPLOYEE_ID,
@@ -96,7 +121,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'ADMIN',
-      permissions: ['*']
+      permissions: []
     },
     preferences: {
       notifications: {
@@ -148,7 +173,7 @@ const e2eTestUsers = [
     },
     code: 'TEST-NONADMIN',
     username: NONADMIN_EMPLOYEE_ID,
-    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co',
+    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
     password: NONADMIN_PASSWORD,
     phone: NONADMIN_PHONE,
     employeeId: NONADMIN_EMPLOYEE_ID,
@@ -172,7 +197,7 @@ const e2eTestUsers = [
       }
     },
     professional: {
-      role: 'EMPLOYEE',
+      role: 'TEAM_MEMBER',
       title: 'E2E Test Regular User',
       department: 'Operations',
       skills: [],
@@ -233,7 +258,7 @@ const e2eTestUsers = [
     },
     code: 'DEMO-SUPERADMIN',
     username: DEMO_EMPLOYEE_ID,
-    email: 'superadmin@fixzit.co',
+    email: `superadmin@${EMAIL_DOMAIN}`,
     password: DEMO_SUPERADMIN_PASSWORD,
     phone: DEMO_PHONE,
     employeeId: DEMO_EMPLOYEE_ID,
@@ -266,7 +291,7 @@ const e2eTestUsers = [
     },
     security: {
       accessLevel: 'ADMIN',
-      permissions: ['*']
+      permissions: []
     },
     preferences: {
       notifications: {
@@ -306,11 +331,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-ADMIN',
-    username: normalizeEmployeeId('EMP-DEMO-002'),
-    email: 'admin@fixzit.co',
+    username: DEMO_ADMIN_EMPLOYEE_ID,
+    email: `admin@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP-DEMO-002'),
+    employeeId: DEMO_ADMIN_EMPLOYEE_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -369,7 +394,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP-DEMO-002',
+      employeeId: DEMO_ADMIN_EMPLOYEE_ID,
       benefits: []
     },
     compliance: { training: [] },
@@ -380,11 +405,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-MANAGER',
-    username: normalizeEmployeeId('EMP-DEMO-003'),
-    email: 'manager@fixzit.co',
+    username: DEMO_MANAGER_EMPLOYEE_ID,
+    email: `manager@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP-DEMO-003'),
+    employeeId: DEMO_MANAGER_EMPLOYEE_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -443,7 +468,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP-DEMO-003',
+      employeeId: DEMO_MANAGER_EMPLOYEE_ID,
       benefits: []
     },
     compliance: { training: [] },
@@ -454,11 +479,11 @@ const e2eTestUsers = [
   {
     envVars: null,
     code: 'DEMO-EMP001',
-    username: normalizeEmployeeId('EMP001'),
-    email: 'emp001@fixzit.co',
+    username: DEMO_EMP001_ID,
+    email: `emp001@${EMAIL_DOMAIN}`,
     password: DEMO_PASSWORD,
     phone: DEMO_PHONE,
-    employeeId: normalizeEmployeeId('EMP001'),
+    employeeId: DEMO_EMP001_ID,
     orgId: orgObjectId,
     createdBy: SEED_USER_ID,
     isSuperAdmin: false,
@@ -479,7 +504,7 @@ const e2eTestUsers = [
       }
     },
     professional: {
-      role: 'EMPLOYEE',
+      role: 'TEAM_MEMBER',
       title: 'Corporate Employee',
       department: 'Operations',
       skills: [],
@@ -517,7 +542,7 @@ const e2eTestUsers = [
     },
     performance: { reviews: [] },
     employment: {
-      employeeId: 'EMP001',
+      employeeId: DEMO_EMP001_ID,
       benefits: []
     },
     compliance: { training: [] },
@@ -557,7 +582,7 @@ async function seedE2ETestUsers() {
       employeeId: normalizedEmployeeId,
       orgId: orgObjectId,
       status: 'ACTIVE',
-      emailVerifiedAt: userData.emailVerified || new Date(),
+      emailVerifiedAt: (userData as { emailVerified?: Date }).emailVerified || new Date(),
       updatedAt: new Date(),
     };
 
@@ -638,18 +663,18 @@ async function seedE2ETestUsers() {
     console.log('PRIMARY TEST USER (for E2E tests):');
     console.log(`   Email:    ${primaryUser.email}`);
     console.log(`   Employee: ${primaryUser.employeeId}`);
-    console.log(`   Password: ${PRIMARY_PASSWORD}`);
-    console.log(`   Role:     ${primaryUser.professional.role}\n`);
+    console.log(`   Role:     ${primaryUser.professional.role}`);
+    console.log('   Password: from SEED_PASSWORD/TEST_USER_PASSWORD env\n');
     
     console.log('NON-ADMIN TEST USER (for RBAC tests):');
     console.log(`   Email:    ${nonAdminUser.email}`);
     console.log(`   Employee: ${nonAdminUser.employeeId}`);
-    console.log(`   Password: ${NONADMIN_PASSWORD}`);
-    console.log(`   Role:     ${nonAdminUser.professional.role}\n`);
+    console.log(`   Role:     ${nonAdminUser.professional.role}`);
+    console.log('   Password: from TEST_NONADMIN_PASSWORD/TEST_USER_PASSWORD env\n');
     
     console.log('DEMO USERS (login page quick access):');
     e2eTestUsers.slice(2).forEach(u => {
-      console.log(`   ${u.email.padEnd(30)} ${u.professional.role.padEnd(20)} ${u.code.includes('SUPERADMIN') ? DEMO_SUPERADMIN_PASSWORD : DEMO_PASSWORD}`);
+      console.log(`   ${u.email.padEnd(30)} ${u.professional.role.padEnd(20)} (password from DEMO_* env)`);
     });
     
     console.log('\n✅ ==========================================');

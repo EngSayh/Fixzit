@@ -10,13 +10,36 @@ import { test, expect } from "@playwright/test";
  * 3. Protected route access (no redirect loops)
  */
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
-// Test credentials (from database)
+// Test credentials (from database) - env-driven with fail-fast
+const TEST_PASSWORD =
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+
+if (!TEST_PASSWORD) {
+  throw new Error(
+    "FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required for auth flow tests (no hardcoded fallback).",
+  );
+}
+
 const TEST_USER = {
-  email: "admin@fixzit.co",
-  password: "password123",
+  email: process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
+  password: TEST_PASSWORD, // Guaranteed to be defined after fail-fast check above
 };
+
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run auth flows against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
 
 test.describe("Authentication Flows", () => {
   test.beforeEach(async ({ page }) => {

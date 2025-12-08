@@ -1,4 +1,6 @@
 // Simple React App - No external dependencies
+// 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
 console.log("App.js loading...");
 
 // Wait for React to load
@@ -29,7 +31,7 @@ function initializeApp() {
       this.setState({
         user: {
           name: "Demo User",
-          email: "demo@fixzit.com",
+          email: `demo@${EMAIL_DOMAIN}`,
           role: "admin",
         },
       });
@@ -173,7 +175,7 @@ function initializeApp() {
                 this.setState({
                   user: {
                     name: "Demo User",
-                    email: "demo@fixzit.com",
+                    email: `demo@${EMAIL_DOMAIN}`,
                     role: "admin",
                   },
                 }),

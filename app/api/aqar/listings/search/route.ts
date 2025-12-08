@@ -10,12 +10,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongo";
 import { AqarListing } from "@/server/models/aqar";
 import { SmartHomeLevel } from "@/server/models/aqar/Listing";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
 
 import { logger } from "@/lib/logger";
 export const runtime = "nodejs"; // Atlas Search requires Node.js runtime
 
 export async function GET(request: NextRequest) {
   try {
+    // AUDIT-2025-12-08: Added rate limiting - 60 requests per minute per IP (higher for search)
+    const ip = getClientIP(request);
+    const rl = await smartRateLimit(`aqar:search:${ip}`, 60, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Rate limit exceeded" },
+        { status: 429 },
+      );
+    }
+
     await connectDb();
 
     const { searchParams } = new URL(request.url);

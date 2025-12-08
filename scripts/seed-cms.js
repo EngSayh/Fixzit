@@ -1,6 +1,9 @@
 // Run this script to seed initial CMS pages
 // Usage: node scripts/seed-cms.js
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 const seedPages = async () => {
   const baseUrl = "http://localhost:3000";
   const headers = {
@@ -41,7 +44,7 @@ We implement appropriate technical and organizational measures to protect your p
 
 ## Contact Us
 
-If you have any questions about this Privacy Policy, please contact us at privacy@fixzit.co`,
+If you have any questions about this Privacy Policy, please contact us at privacy@${EMAIL_DOMAIN}`,
       status: "PUBLISHED",
     },
     {
@@ -80,7 +83,7 @@ In no event shall Fixzit be liable for any indirect, incidental, special, conseq
 
 ## Contact Information
 
-For questions about these Terms, contact us at legal@fixzit.co`,
+For questions about these Terms, contact us at legal@${EMAIL_DOMAIN}`,
       status: "PUBLISHED",
     },
     {
@@ -112,7 +115,7 @@ Access a curated marketplace of vendors, materials, and services directly within
 
 ## Contact Us
 
-Email: info@fixzit.co
+Email: info@${EMAIL_DOMAIN}
 Phone: +966 XX XXX XXXX
 Address: Riyadh, Saudi Arabia`,
       status: "PUBLISHED",

@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
 // Import models
 const User = require("../models/User");
 const Organization = require("../models/Organization");
@@ -12,20 +15,35 @@ const Vendor = require("../models/Vendor");
 const Subscription = require("../models/Subscription");
 const PropertyOwner = require("../models/PropertyOwner");
 
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.log(
+    "❌ SEEDING BLOCKED: seedData.js cannot run in production/CI environments",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.log(
+    "❌ ALLOW_SEED=1 is required to run seedData.js (prevents accidental prod writes)",
+  );
+  process.exit(1);
+}
+
+const DEFAULT_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!DEFAULT_PASSWORD) {
+  throw new Error(
+    "SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seedData.js",
+  );
+}
+
 const seedDatabase = async () => {
   try {
     console.log("🌱 Starting database seeding...");
-
-    // Production safety guard
-    if (process.env.NODE_ENV === "production") {
-      console.log(
-        "❌ SEEDING BLOCKED: Cannot run seeding in production environment",
-      );
-      console.log(
-        "   Set NODE_ENV to development or remove this check to proceed",
-      );
-      process.exit(1);
-    }
 
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI, {
@@ -76,21 +94,19 @@ const seedDatabase = async () => {
     const adminOrg = organizations[0]; // Use first organization for admin
     const adminUser = await User.create({
       name: "System Administrator",
-      email: "admin@fixzit.co",
-      password: "Admin@1234", // Plain text - User model pre-save hook will hash it
-      role: "super_admin",
+      email: `admin@${EMAIL_DOMAIN}`,
+      password: DEFAULT_PASSWORD, // Model pre-save hook will hash it
+      role: "SUPER_ADMIN",
       orgId: adminOrg.org._id,
       status: "active",
     });
-    console.log(
-      "🔑 Created deterministic admin account: admin@fixzit.co / Admin@1234",
-    );
+    console.log(`🔑 Created deterministic admin account: admin@${EMAIL_DOMAIN}`);
 
     // Create Users
     const users = [
       { user: adminUser, org: adminOrg.org, tenant: adminOrg.tenant },
     ];
-    const roles = ["super_admin", "admin", "manager", "technician", "owner"];
+    const roles = ["SUPER_ADMIN", "ADMIN", "MANAGER", "TECHNICIAN", "OWNER"];
 
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
       const { org, tenant } = organizations[orgIndex];
@@ -101,8 +117,8 @@ const seedDatabase = async () => {
 
         const user = await User.create({
           name: `User ${orgIndex + 1}-${i + 1}`,
-          email: `user${orgIndex + 1}${i + 1}@fixzit.co`,
-          password: "password123", // Plain text - User model pre-save hook will hash it
+          email: `user${orgIndex + 1}${i + 1}@${EMAIL_DOMAIN}`,
+          password: DEFAULT_PASSWORD, // Model pre-save hook will hash
           role: roles[i],
           orgId: org._id,
           status: "active",
@@ -123,7 +139,7 @@ const seedDatabase = async () => {
       for (let i = 1; i <= 10; i++) {
         // Find an owner user for this organization
         const ownerUser = users.find(
-          (u) => u.org._id.equals(org._id) && u.user.role === "owner",
+          (u) => u.org._id.equals(org._id) && u.user.role === "OWNER",
         );
 
         // Generate unique code manually to avoid pre-save hook conflicts
@@ -163,7 +179,7 @@ const seedDatabase = async () => {
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
       const { org, tenant } = organizations[orgIndex];
       const ownerUser = users.find(
-        (u) => u.org._id.equals(org._id) && u.user.role === "owner",
+        (u) => u.org._id.equals(org._id) && u.user.role === "OWNER",
       );
       const orgProperties = properties.filter((p) => p.org._id.equals(org._id));
 

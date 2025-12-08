@@ -1,26 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
 
-type VendorApplication = {
-  company?: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
-  services?: string;
-  notes?: string;
-};
+/**
+ * Zod schema for vendor application validation
+ * Validates required fields and formats
+ */
+const VendorApplicationSchema = z.object({
+  company: z.string().min(2, "Company name must be at least 2 characters").max(200),
+  contactName: z.string().min(2, "Contact name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format")
+    .optional(),
+  services: z.string().max(1000).optional(),
+  notes: z.string().max(2000).optional(),
+});
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as VendorApplication;
-  const { company, contactName, email, phone, services, notes } = body;
+  // Rate limiting: 5 requests per minute per IP to prevent spam
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "vendor-apply",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
 
-  if (!company || !contactName || !email) {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
     return NextResponse.json(
-      { error: "company, contactName, and email are required" },
+      { error: "Invalid JSON body" },
       { status: 400 },
     );
   }
+
+  const parseResult = VendorApplicationSchema.safeParse(body);
+  if (!parseResult.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        details: parseResult.error.issues.map((i) => ({
+          field: i.path.join("."),
+          message: i.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
+  const { company, contactName, email, phone, services, notes } = parseResult.data;
 
   try {
     await connectToDatabase().catch(() => null);
@@ -28,13 +62,14 @@ export async function POST(req: NextRequest) {
     logger.warn("[vendor-apply] DB connection skipped", { error });
   }
 
+  // Log sanitized application data (avoid logging full PII in production)
   logger.info("[vendor-apply] Vendor application received", {
     company,
-    contactName,
-    email,
-    phone,
-    services,
-    notes,
+    contactName: contactName.substring(0, 3) + "***", // Partial name for privacy
+    emailDomain: email.split("@")[1], // Only log domain, not full email
+    hasPhone: !!phone,
+    hasServices: !!services,
+    hasNotes: !!notes,
   });
 
   return NextResponse.json({ ok: true });

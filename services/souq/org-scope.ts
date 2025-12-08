@@ -21,6 +21,8 @@ export const buildSouqOrgFilter = (
     candidates.push(asString);
     if (MongoObjectId.isValid(asString)) {
       candidates.push(new MongoObjectId(asString));
+      // Ensure we also match documents created with mongoose.Types.ObjectId (driver ObjectId)
+      candidates.push(new Types.ObjectId(asString));
     }
     if (raw instanceof Types.ObjectId) {
       candidates.push(raw);

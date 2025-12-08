@@ -9,6 +9,7 @@ import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { Config } from "@/lib/config/constants";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 /**
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret)
+  if (!verifySecretHeader(req, "x-cron-secret", Config.security.cronSecret))
     return createSecureResponse({ error: "UNAUTH" }, 401, req);
   await connectToDatabase();
   const today = new Date();

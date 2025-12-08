@@ -4,12 +4,18 @@
 // 🔒 SECURITY: Gated by NEXT_PUBLIC_SHOW_DEMO_CREDS environment variable
 
 import { ArrowRight, Shield, User, Building2, Users } from "lucide-react";
+import {
+  DEMO_CREDENTIALS_PERSONAL,
+  DEMO_CREDENTIALS_CORPORATE,
+  DEMO_PASSWORDS_CONFIGURED,
+} from "@/lib/config/demo-users";
 
 // 🔒 SECURITY: Check if demo credentials should be shown
 // Only true in development or if explicitly enabled via env var
 const SHOW_DEMO_CREDS =
-  process.env.NODE_ENV === "development" ||
-  process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true";
+  (process.env.NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true") &&
+  DEMO_PASSWORDS_CONFIGURED;
 
 interface DemoCredential {
   role: string;
@@ -21,73 +27,74 @@ interface DemoCredential {
   color: string;
 }
 
+// Role to icon/color mapping for UI presentation
+const ROLE_STYLING: Record<
+  string,
+  { icon: typeof Shield; color: string }
+> = {
+  "Super Admin": {
+    icon: Shield,
+    color: "bg-destructive/10 text-destructive-foreground border-destructive/20",
+  },
+  Admin: {
+    icon: User,
+    color: "bg-primary/10 text-primary-foreground border-primary/20",
+  },
+  "Property Manager": {
+    icon: Building2,
+    color: "bg-success/10 text-success-foreground border-success/20",
+  },
+  Tenant: {
+    icon: Users,
+    color: "bg-secondary/10 text-secondary-foreground border-secondary/20",
+  },
+  Vendor: {
+    icon: Users,
+    color: "bg-warning/10 text-warning-foreground border-warning/20",
+  },
+};
+
+const CORPORATE_ROLE_STYLING: Record<
+  string,
+  { icon: typeof Shield; color: string }
+> = {
+  "Property Manager (Corporate)": {
+    icon: Building2,
+    color: "bg-success/10 text-success-foreground border-success/20",
+  },
+  "Admin (Corporate)": {
+    icon: User,
+    color: "bg-primary/10 text-primary-foreground border-primary/20",
+  },
+};
+
 // Only define credentials if we're going to show them
 // This ensures they're tree-shaken out of production builds when disabled
+// Uses centralized demo users from lib/config/demo-users.ts
 const DEMO_CREDENTIALS: DemoCredential[] = SHOW_DEMO_CREDS
-  ? [
-      {
-        role: "Super Admin",
-        email: "superadmin@fixzit.co",
-        password: "admin123",
-        description: "Full system access",
-        icon: Shield,
-        color:
-          "bg-destructive/10 text-destructive-foreground border-destructive/20",
-      },
-      {
-        role: "Admin",
-        email: "admin@fixzit.co",
-        password: "password123",
-        description: "Administrative access",
-        icon: User,
-        color: "bg-primary/10 text-primary-foreground border-primary/20",
-      },
-      {
-        role: "Property Manager",
-        email: "manager@fixzit.co",
-        password: "password123",
-        description: "Property management",
-        icon: Building2,
-        color: "bg-success/10 text-success-foreground border-success/20",
-      },
-      {
-        role: "Tenant",
-        email: "tenant@fixzit.co",
-        password: "password123",
-        description: "Tenant portal access",
-        icon: Users,
-        color: "bg-secondary/10 text-secondary-foreground border-secondary/20",
-      },
-      {
-        role: "Vendor",
-        email: "vendor@fixzit.co",
-        password: "password123",
-        description: "Vendor marketplace access",
-        icon: Users,
-        color: "bg-warning/10 text-warning-foreground border-warning/20",
-      },
-    ]
+  ? DEMO_CREDENTIALS_PERSONAL.map((cred) => ({
+      role: cred.role,
+      email: cred.email,
+      password: cred.password,
+      description: cred.description,
+      icon: ROLE_STYLING[cred.role]?.icon || User,
+      color:
+        ROLE_STYLING[cred.role]?.color ||
+        "bg-muted/10 text-muted-foreground border-muted/20",
+    }))
   : [];
 
 const CORPORATE_CREDENTIALS: DemoCredential[] = SHOW_DEMO_CREDS
-  ? [
-      {
-        role: "Property Manager (Corporate)",
-        employeeNumber: "EMP001",
-        password: "password123",
-        description: "Corporate account access",
-        icon: Building2,
-        color: "bg-success/10 text-success-foreground border-success/20",
-      },
-      {
-        role: "Admin (Corporate)",
-        employeeNumber: "EMP002",
-        password: "password123",
-        description: "Corporate administrative access",
-        icon: User,
-        color: "bg-primary/10 text-primary-foreground border-primary/20",
-      },
-    ]
+  ? DEMO_CREDENTIALS_CORPORATE.map((cred) => ({
+      role: cred.role,
+      employeeNumber: cred.employeeNumber,
+      password: cred.password,
+      description: cred.description,
+      icon: CORPORATE_ROLE_STYLING[cred.role]?.icon || User,
+      color:
+        CORPORATE_ROLE_STYLING[cred.role]?.color ||
+        "bg-primary/10 text-primary-foreground border-primary/20",
+    }))
   : [];
 
 interface DemoCredentialsSectionProps {

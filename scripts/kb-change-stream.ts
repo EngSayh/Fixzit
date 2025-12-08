@@ -1,5 +1,5 @@
 import "dotenv/config";
-import "tsx/register";
+import "tsx/esm";
 import { embedText } from "@/ai/embeddings";
 import { chunkText } from "@/kb/chunk";
 import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";

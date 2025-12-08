@@ -40,12 +40,13 @@ vi.mock("@/server/security/idempotency", () => ({
   createIdempotencyKey: mockCreateIdempotencyKey,
 }));
 
-vi.mock("./wo.schema", () => ({
+// FIXED: Mock path must match the import path in the service file
+vi.mock("@/server/work-orders/wo.schema", () => ({
   WoCreate: { parse: mockWoCreateParse },
   WoUpdate: { parse: mockWoUpdateParse },
 }));
 
-import * as service from "./wo.service";
+import * as service from "@/server/work-orders/wo.service";
 
 describe("wo.service", () => {
   const actorId = "actor-1";

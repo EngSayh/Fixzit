@@ -1,10 +1,12 @@
 const axios = require("axios");
 const BASE_URL = "http://localhost:5000";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function getAuthToken() {
   try {
     const res = await axios.post(`${BASE_URL}/api/auth/login`, {
-      email: "admin@fixzit.com",
+      email: `admin@${EMAIL_DOMAIN}`,
       password: "Admin@1234",
     });
     return res.data.token;
@@ -16,7 +18,7 @@ async function getAuthToken() {
 
 async function testAllEndpoints() {
   console.log("\n🔍 COMPLETE SCOPE VERIFICATION - ALL 80+ ENDPOINTS\n");
-  console.log("=" * 60);
+  console.log("=".repeat(60));
 
   const token = await getAuthToken();
   if (!token) {

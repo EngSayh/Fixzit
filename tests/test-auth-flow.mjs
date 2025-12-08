@@ -7,6 +7,19 @@ dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env.development" });
 dotenv.config();
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+const TEST_PASSWORD =
+  process.env.TEST_USER_PASSWORD || process.env.SEED_PASSWORD;
+const TEST_USER_IDENTIFIER =
+  process.env.TEST_USER_IDENTIFIER || `superadmin@${EMAIL_DOMAIN}`;
+const TEST_ORG_CODE = process.env.TEST_ORG_CODE || "platform-org-001";
+
+if (!TEST_PASSWORD) {
+  throw new Error(
+    "TEST_USER_PASSWORD or SEED_PASSWORD is required for auth flow test",
+  );
+}
+
 // Copy the LoginSchema from auth.config.ts
 const LoginSchema = z
   .object({
@@ -56,8 +69,8 @@ async function testAuthFlow() {
 
     // Simulate credentials from client
     const credentials = {
-      identifier: "admin@fixzit.co",
-      password: "password123",
+      identifier: TEST_USER_IDENTIFIER,
+      password: TEST_PASSWORD,
       rememberMe: false,
     };
 
@@ -81,24 +94,56 @@ async function testAuthFlow() {
 
     // Step 2: Connect to database
     console.log("Step 2: Connecting to MongoDB...");
-    const uri = process.env.MONGODB_URI;
+    const uri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error("TEST_MONGODB_URI or MONGODB_URI is required");
+    }
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Refusing to run auth-flow test against production");
+    }
+    if (
+      !process.env.TEST_MONGODB_URI &&
+      !uri.includes("test") &&
+      !uri.includes("localhost")
+    ) {
+      throw new Error(
+        "Use TEST_MONGODB_URI or a test database (uri should include 'test' or be localhost)",
+      );
+    }
     await mongoose.connect(uri);
     console.log("✅ MongoDB connected");
     console.log("");
 
     // Step 3: Find user
     console.log("Step 3: Finding user...");
-    const userSchema = new mongoose.Schema({}, { strict: false });
-    const User = mongoose.model("User", userSchema, "users");
+    const userSchema = new mongoose.Schema(
+      { passwordHash: { type: String, select: true } },
+      { strict: false },
+    );
+    const orgSchema = new mongoose.Schema({}, { strict: false });
+    const User =
+      mongoose.models.AuthFlowUser ||
+      mongoose.model("AuthFlowUser", userSchema, "users");
+    const Organization =
+      mongoose.models.AuthFlowOrg ||
+      mongoose.model("AuthFlowOrg", orgSchema, "organizations");
+
+    const targetOrg = await Organization.findOne({ code: TEST_ORG_CODE });
 
     let user;
-    if (loginType === "personal") {
-      console.log("   Looking for email:", loginIdentifier);
-      user = await User.findOne({ email: loginIdentifier });
-    } else {
-      console.log("   Looking for username:", loginIdentifier);
-      user = await User.findOne({ username: loginIdentifier });
-    }
+    const baseFilter =
+      loginType === "personal"
+        ? { email: loginIdentifier }
+        : { $or: [{ employeeId: loginIdentifier }, { username: loginIdentifier }] };
+    const filter = targetOrg?._id
+      ? { ...baseFilter, orgId: targetOrg._id }
+      : baseFilter;
+    console.log(
+      `   Looking for ${loginType === "personal" ? "email" : "username"}:`,
+      loginIdentifier,
+      targetOrg?._id ? `(orgId: ${targetOrg._id})` : "(no org filter)",
+    );
+    user = await User.findOne(filter).select("+passwordHash");
 
     if (!user) {
       console.error("❌ User not found");
@@ -111,7 +156,11 @@ async function testAuthFlow() {
 
     // Step 4: Verify password
     console.log("Step 4: Verifying password...");
-    const isValid = await bcrypt.compare(password, user.password);
+    const hash = user.passwordHash || user.password;
+    if (!hash) {
+      throw new Error("User record missing password hash");
+    }
+    const isValid = await bcrypt.compare(password, hash);
 
     if (!isValid) {
       console.error("❌ Password invalid");

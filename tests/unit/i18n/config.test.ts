@@ -4,7 +4,7 @@ import {
   SUPPORTED_LOCALES,
   LOCALE_META,
   Locale,
-} from "./config";
+} from "@/i18n/config";
 
 describe("i18n config", () => {
   describe("DEFAULT_LOCALE", () => {

@@ -7,6 +7,8 @@ dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env.development" });
 dotenv.config();
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function debugAuth() {
   try {
     const uri = process.env.MONGODB_URI;
@@ -24,7 +26,7 @@ async function debugAuth() {
     const User = mongoose.model("User", userSchema, "users");
 
     // Test credentials
-    const testEmail = "admin@fixzit.co";
+    const testEmail = `admin@${EMAIL_DOMAIN}`;
     const testPassword = "password123";
 
     console.log("🔍 Testing authentication for:", testEmail);
@@ -78,11 +80,11 @@ async function debugAuth() {
     console.log("");
     console.log("🔍 Checking other demo users...");
     const demoEmails = [
-      "superadmin@fixzit.co",
-      "admin@fixzit.co",
-      "manager@fixzit.co",
-      "tenant@fixzit.co",
-      "vendor@fixzit.co",
+      `superadmin@${EMAIL_DOMAIN}`,
+      `admin@${EMAIL_DOMAIN}`,
+      `manager@${EMAIL_DOMAIN}`,
+      `tenant@${EMAIL_DOMAIN}`,
+      `vendor@${EMAIL_DOMAIN}`,
     ];
 
     for (const email of demoEmails) {

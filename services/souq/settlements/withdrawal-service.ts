@@ -4,8 +4,10 @@ import { createPayout } from "@/lib/paytabs";
 
 /**
  * Withdrawal Request from Seller
+ * 🔐 STRICT v4.1: orgId is REQUIRED for tenant isolation
  */
 export interface WithdrawalRequest {
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   sellerId: string;
   statementId: string;
   amount: number;
@@ -19,8 +21,10 @@ export interface WithdrawalRequest {
 
 /**
  * Withdrawal Record in Database
+ * 🔐 STRICT v4.1: orgId is REQUIRED for tenant isolation
  */
 export interface Withdrawal {
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
   withdrawalId: string;
   sellerId: string;
   statementId: string;
@@ -67,7 +71,9 @@ export class WithdrawalService {
       }
 
       // Check seller balance
+      // 🔐 STRICT v4.1: Pass orgId for tenant-scoped balance check
       const hasBalance = await this.checkSellerBalance(
+        request.orgId,
         request.sellerId,
         request.amount,
       );
@@ -79,7 +85,9 @@ export class WithdrawalService {
       const withdrawalId = `WD-${Date.now()}-${request.sellerId.slice(0, 8)}`;
 
       // Create withdrawal record
+      // 🔐 STRICT v4.1: Include orgId for tenant isolation
       await this.createWithdrawalRecord({
+        orgId: request.orgId, // 🔐 STRICT v4.1
         withdrawalId,
         sellerId: request.sellerId,
         statementId: request.statementId,
@@ -95,6 +103,7 @@ export class WithdrawalService {
         withdrawalId,
         sellerId: request.sellerId,
         amount: request.amount,
+        orgId: request.orgId, // 🔐 Include orgId in logs for audit
       });
 
       const paytabsHandled = await this.tryPayTabsPayout(withdrawalId, request);
@@ -175,8 +184,10 @@ export class WithdrawalService {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
       void error;
+      // AUDIT-2025-12-08: Redact IBAN in logs to protect sensitive data
+      const redactedIban = iban ? `${iban.slice(0, 4)}****${iban.slice(-4)}` : 'UNKNOWN';
       logger.error("[Withdrawal] IBAN checksum validation error", error, {
-        iban,
+        iban: redactedIban,
       });
       return false;
     }
@@ -184,19 +195,22 @@ export class WithdrawalService {
 
   /**
    * Check if seller has sufficient balance
+   * 🔐 STRICT v4.1: Requires orgId for tenant isolation
    */
   private static async checkSellerBalance(
+    orgId: string,
     sellerId: string,
     amount: number,
   ): Promise<boolean> {
     try {
       const db = await getDatabase();
 
-      // Get latest settlement statement
+      // 🔐 STRICT v4.1: Query MUST include orgId for tenant isolation
+      // Get latest settlement statement for this org's seller
       const statement = await db
         .collection("souq_settlement_statements")
         .findOne(
-          { sellerId, status: "approved" },
+          { orgId, sellerId, status: "approved" },
           { sort: { statementDate: -1 } },
         );
 

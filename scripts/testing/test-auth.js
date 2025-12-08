@@ -7,16 +7,25 @@
 const https = require("http"); // Use http for localhost
 const { URL } = require("url");
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password for tests (env var with local dev fallback)
+const TEST_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
+if (!process.env.DEMO_DEFAULT_PASSWORD) {
+  console.warn("⚠️  DEMO_DEFAULT_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
 // Test configuration
 const BASE_URL = "http://localhost:3000";
 const TEST_USERS = [
-  { email: "admin@fixzit.co", password: "password123", name: "Admin User" },
+  { email: `admin@${EMAIL_DOMAIN}`, password: TEST_PASSWORD, name: "Admin User" },
   {
-    email: "property@fixzit.co",
-    password: "password123",
+    email: `property@${EMAIL_DOMAIN}`,
+    password: TEST_PASSWORD,
     name: "Property Manager",
   },
-  { email: "tech@fixzit.co", password: "password123", name: "Technician" },
+  { email: `tech@${EMAIL_DOMAIN}`, password: TEST_PASSWORD, name: "Technician" },
 ];
 
 // Colors for console output

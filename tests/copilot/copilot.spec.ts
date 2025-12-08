@@ -19,6 +19,9 @@
  * - Assertion results
  */
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
 import { test, expect, Page } from "@playwright/test";
 import { encode as encodeJwt } from "next-auth/jwt";
 import crypto from "node:crypto";
@@ -70,27 +73,48 @@ const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
   ? "__Secure-next-auth.session-token"
   : "next-auth.session-token";
 
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run copilot Playwright tests against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
+
 /**
  * Lightweight role-based authentication using offline JWT session cookies.
  * Avoids full OTP/login flows while still exercising RBAC-aware UI paths.
+ * 
+ * SEC-050: Removed SUPER_ADMIN elevation - tests now use actual role permissions
+ * to properly exercise STRICT v4.1 RBAC boundaries.
+ * 
+ * SECURITY: Requires real NEXTAUTH_SECRET/AUTH_SECRET - no insecure fallback.
  */
 async function loginAsRole(page: Page, role: string) {
-  const secret =
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    "playwright-secret";
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "NEXTAUTH_SECRET or AUTH_SECRET is required for RBAC tests (no insecure fallback)."
+    );
+  }
   const userId = crypto.randomUUID();
+  
+  // SEC-050: Use only the actual role - no SUPER_ADMIN elevation
+  // This ensures tests exercise real RBAC boundaries per STRICT v4.1
   const sessionToken = await encodeJwt({
     secret,
+    salt: "authjs.session-token", // Required by next-auth v5+ JWT encode
     maxAge: 30 * 24 * 60 * 60,
     token: {
       id: userId,
       sub: userId,
       email: `${role.toLowerCase()}@test.local`,
       role,
-      roles: [role, "SUPER_ADMIN"],
-      orgId: "test-org",
-      permissions: ["*"],
+      roles: [role], // Only the actual role, not SUPER_ADMIN
+      orgId: process.env.TEST_ORG_ID || "test-org",
+      org_id: process.env.TEST_ORG_ID || "test-org", // underscore version for backend compat
+      // SEC-050: Remove permissions: ["*"] - let RBAC system determine permissions
     },
   });
 
@@ -329,13 +353,13 @@ test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
       await page.goto("/login");
 
       // Set authentication session in localStorage
-      await page.evaluate(() => {
+      await page.evaluate((domain) => {
         localStorage.setItem(
           "next-auth.session-token",
           JSON.stringify({
             user: {
               id: "test-tenant-id",
-              email: "test@fixzit.sa",
+              email: `test@${domain}`,
               name: "Test Tenant",
               role: "TENANT",
               tenantId: "org-123",
@@ -345,7 +369,7 @@ test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
             ).toISOString(),
           }),
         );
-      });
+      }, EMAIL_DOMAIN);
 
       await page.goto("/");
       await openAssistant(page);

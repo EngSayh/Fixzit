@@ -22,6 +22,9 @@ config({ path: ".env.test", override: true });
 
 const TEST_PASSWORD = "Test@1234";
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
 const ORG_FIXTURES = [
   {
     key: "platform",
@@ -36,13 +39,13 @@ const ORG_FIXTURES = [
       primary: {
         name: "Transformation Office",
         title: "Program Director",
-        email: "ops@fixzit.sa",
+        email: `ops@${EMAIL_DOMAIN}`,
         phone: "+966-11-123-4567",
         mobile: "+966-50-000-0001",
       },
       billing: {
         name: "Finance Ops",
-        email: "finance@fixzit.sa",
+        email: `finance@${EMAIL_DOMAIN}`,
         phone: "+966-11-654-3210",
         address: {
           street: "King Fahd Road",
@@ -54,7 +57,7 @@ const ORG_FIXTURES = [
       },
       technical: {
         name: "Platform Engineering",
-        email: "platform@fixzit.sa",
+        email: `platform@${EMAIL_DOMAIN}`,
         phone: "+966-11-555-0101",
       },
     },

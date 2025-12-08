@@ -21,6 +21,7 @@ import type {
   BulkSMSResult,
   SMSProviderOptions,
 } from "./types";
+import { formatSaudiPhoneNumber } from "./phone-utils";
 
 // Lazy import Twilio to avoid loading if not used
 let twilioClient: ReturnType<typeof import("twilio")> | null = null;
@@ -75,37 +76,6 @@ function mapTwilioStatus(status?: string): SMSDeliveryStatus {
     default:
       return "unknown";
   }
-}
-
-/**
- * Format phone number to E.164 format for Saudi Arabia
- */
-function formatSaudiPhoneNumber(phone: string): string {
-  // Remove all spaces, dashes, and parentheses
-  const cleaned = phone.replace(/[\s\-()]/g, "");
-
-  // If already in E.164 format
-  if (cleaned.startsWith("+966")) {
-    return cleaned;
-  }
-
-  // Handle 00 prefix
-  if (cleaned.startsWith("00966")) {
-    return "+" + cleaned.substring(2);
-  }
-
-  // Handle just country code
-  if (cleaned.startsWith("966")) {
-    return "+" + cleaned;
-  }
-
-  // Handle local format with leading 0
-  if (cleaned.startsWith("0")) {
-    return "+966" + cleaned.substring(1);
-  }
-
-  // Assume local number
-  return "+966" + cleaned;
 }
 
 /**
@@ -283,8 +253,8 @@ export class TwilioProvider implements SMSProvider {
     let successful = 0;
     let failed = 0;
 
-    // Send sequentially to respect rate limits
-    for (const recipient of recipients) {
+    // Send sequentially to respect rate limits (O(n) with entries())
+    for (const [index, recipient] of recipients.entries()) {
       const result = await this.sendSMS(recipient, message);
       results.push(result);
       if (result.success) {
@@ -293,7 +263,7 @@ export class TwilioProvider implements SMSProvider {
         failed++;
       }
       // Small delay between sends
-      if (recipients.indexOf(recipient) < recipients.length - 1) {
+      if (index < recipients.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }

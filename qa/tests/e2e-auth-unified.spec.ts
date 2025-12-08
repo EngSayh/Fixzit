@@ -6,22 +6,51 @@
  * 2. Logout flow
  * 3. Protected route access (no redirect loops)
  * 4. Google OAuth (manual test - requires real Google account)
+ * 
+ * REQUIRED ENVIRONMENT VARIABLES:
+ *   FIXZIT_TEST_ADMIN_PASSWORD - Password for test admin account
  */
 
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+type PageFixtures = { page: Page };
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const TEST_EMAIL = "admin@fixzit.co";
-const TEST_PASSWORD = "password123";
+const TEST_EMAIL =
+  process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`;
+
+// 🔒 SEC-049: Require password from environment - no hardcoded defaults
+const TEST_PASSWORD =
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+if (!TEST_PASSWORD) {
+  throw new Error(
+    "❌ FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required for E2E tests.",
+  );
+}
+
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run E2E auth against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
 
 test.describe("Unified NextAuth Authentication", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: PageFixtures) => {
     // Clear all cookies and storage before each test
     await page.context().clearCookies();
     await page.goto(`${BASE_URL}/login`);
   });
 
-  test("should load login page successfully", async ({ page }) => {
+  test("should load login page successfully", async ({ page }: PageFixtures) => {
     await page.goto(`${BASE_URL}/login`);
 
     // Check for key elements
@@ -35,7 +64,7 @@ test.describe("Unified NextAuth Authentication", () => {
 
   test("should login with email and password (Credentials provider)", async ({
     page,
-  }) => {
+  }: PageFixtures) => {
     await page.goto(`${BASE_URL}/login`);
 
     // Fill in credentials
@@ -65,7 +94,7 @@ test.describe("Unified NextAuth Authentication", () => {
 
   test("should NOT have redirect loop when accessing protected route", async ({
     page,
-  }) => {
+  }: PageFixtures) => {
     // First login
     await page.goto(`${BASE_URL}/login`);
     await page.fill('input[name="identifier"]', TEST_EMAIL);
@@ -98,7 +127,7 @@ test.describe("Unified NextAuth Authentication", () => {
     console.log(`✅ No redirect loop detected (${redirectCount} redirects)`);
   });
 
-  test("should redirect unauthenticated user to login", async ({ page }) => {
+  test("should redirect unauthenticated user to login", async ({ page }: PageFixtures) => {
     // Try to access protected route without login
     await page.goto(`${BASE_URL}/fm/dashboard`);
 
@@ -109,7 +138,7 @@ test.describe("Unified NextAuth Authentication", () => {
     console.log("✅ Unauthenticated user correctly redirected to login");
   });
 
-  test("should logout successfully", async ({ page }) => {
+  test("should logout successfully", async ({ page }: PageFixtures) => {
     // First login
     await page.goto(`${BASE_URL}/login`);
     await page.fill('input[name="identifier"]', TEST_EMAIL);

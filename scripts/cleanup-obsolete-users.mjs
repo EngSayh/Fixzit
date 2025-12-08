@@ -4,7 +4,7 @@
  * Usage: ALLOW_PROD_DB=1 MONGODB_URI=... pnpm tsx scripts/cleanup-obsolete-users.mjs
  */
 import "dotenv/config";
-import "tsx/register";
+import "tsx/esm";
 import * as readline from "readline";
 import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
 import { COLLECTIONS } from "../lib/db/collections";

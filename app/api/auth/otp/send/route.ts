@@ -22,6 +22,11 @@ import {
   redactIdentifier,
 } from "@/lib/otp-utils";
 import { isTruthy } from "@/lib/utils/env";
+import {
+  DEMO_EMAILS,
+  DEMO_EMPLOYEE_IDS,
+  SPECIAL_DEMO_EMAILS,
+} from "@/lib/config/demo-users";
 import type { ObjectId } from "mongodb";
 
 interface UserDocument {
@@ -43,37 +48,7 @@ interface UserDocument {
   [key: string]: unknown;
 }
 
-const DEMO_EMAILS = new Set([
-  "superadmin@fixzit.co",
-  "admin@fixzit.co",
-  "manager@fixzit.co",
-  "tenant@fixzit.co",
-  "vendor@fixzit.co",
-  "corp.admin@fixzit.co",
-  "property.manager@fixzit.co",
-  "dispatcher@fixzit.co",
-  "supervisor@fixzit.co",
-  "technician@fixzit.co",
-  "vendor.admin@fixzit.co",
-  "vendor.tech@fixzit.co",
-  "tenant@fixzit.co",
-  "owner@fixzit.co",
-  "finance@fixzit.co",
-  "hr@fixzit.co",
-  "helpdesk@fixzit.co",
-  "auditor@fixzit.co",
-]);
-
-const DEMO_EMPLOYEE_IDS = new Set([
-  "EMP001",
-  "EMP002",
-  "SA001",
-  "SA-001",
-  "SUPER-001",
-  "MGR-001",
-  "TENANT-001",
-  "VENDOR-001",
-]);
+// Demo users are now imported from centralized config: @/lib/config/demo-users
 
 const TEST_USERS_FALLBACK_PHONE =
   process.env.NEXTAUTH_TEST_USERS_FALLBACK_PHONE ||
@@ -373,8 +348,9 @@ export async function POST(request: NextRequest) {
     
     // Check if this is a known test/demo user that should bypass OTP
     const normalizedIdForCheck = identifierRaw.toLowerCase();
-    // SECURITY: Externalize superadmin email to environment variable (Gemini review fix)
-    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || 'superadmin@fixzit.co').toLowerCase();
+    // SECURITY: Externalize superadmin email to environment variable
+    // Uses centralized config from lib/config/demo-users.ts as fallback
+    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || SPECIAL_DEMO_EMAILS.superadmin).toLowerCase();
     const isSuperadminEmail = normalizedIdForCheck === superadminEmail || 
                               normalizedIdForCheck === process.env.TEST_SUPERADMIN_IDENTIFIER?.toLowerCase();
     const isDemoOrTestUser = DEMO_EMAILS.has(normalizedIdForCheck) || 
@@ -800,7 +776,7 @@ export async function POST(request: NextRequest) {
     if (!isValidSaudiPhone(userPhone)) {
       logger.error("[OTP] Invalid phone number format", {
         userId: user._id?.toString?.() || loginIdentifier,
-        phone: userPhone,
+        phone: userPhone ? `****${userPhone.slice(-4)}` : 'UNKNOWN',
       });
       return NextResponse.json(
         {
@@ -926,14 +902,13 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Internal server error",
-        // Include error hint in non-development for debugging (no sensitive data)
-        errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
-          ? "database_connection" 
-          : errorName === "MONGO_DISABLED_FOR_BUILD"
-          ? "build_mode"
-          : "unknown",
-        // In development, include full error details for debugging
-        ...(process.env.NODE_ENV === "development" && { 
+        // Only include error hint in non-production environments (security fix from PR #436 feedback)
+        ...(process.env.NODE_ENV !== "production" && { 
+          errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
+            ? "database_connection" 
+            : errorName === "MONGO_DISABLED_FOR_BUILD"
+            ? "build_mode"
+            : "unknown",
           debug: { name: errorName, message: errorMessage }
         }),
       },

@@ -45,6 +45,7 @@ LOCALDATA.mkdir(exist_ok=True)
 
 EMAIL_WEBHOOK = os.environ.get("FXZ_EMAIL_WEBHOOK")
 ALERT_TO = os.environ.get("FXZ_ALERT_TO", "ops@yourco.com")
+EMAIL_DOMAIN = os.environ.get("EMAIL_DOMAIN", "fixzit.co")
 
 
 def generate_performance_chart_data(tenant: str = None):
@@ -520,7 +521,7 @@ def send_email_report(html_content):
             "to": ALERT_TO,
             "subject": subject,
             "html": html_content,
-            "from": "reports@fixzit.app",
+            "from": f"reports@{EMAIL_DOMAIN}",
         }
 
         response = requests.post(

@@ -12,6 +12,10 @@ import {
   getCircuitBreaker,
 } from "@/lib/resilience";
 import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import {
+  formatSaudiPhoneNumber,
+  isValidSaudiPhone,
+} from "@/lib/sms-providers/phone-utils";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
@@ -65,45 +69,8 @@ export async function withTwilioResilience<T>(
   );
 }
 
-/**
- * Format phone number to E.164 format (+966XXXXXXXXX)
- * Handles common Saudi phone number formats
- */
-function formatSaudiPhoneNumber(phone: string): string {
-  // Remove all spaces, dashes, and parentheses
-  const cleaned = phone.replace(/[\s\-()]/g, "");
-
-  // If already in E.164 format
-  if (cleaned.startsWith("+966")) {
-    return cleaned;
-  }
-
-  // Remove leading zeros
-  if (cleaned.startsWith("00966")) {
-    return "+" + cleaned.substring(2);
-  }
-
-  if (cleaned.startsWith("966")) {
-    return "+" + cleaned;
-  }
-
-  if (cleaned.startsWith("0")) {
-    return "+966" + cleaned.substring(1);
-  }
-
-  // Assume local number
-  return "+966" + cleaned;
-}
-
-/**
- * Validate Saudi phone number
- * Saudi mobile numbers: +966 5XX XXX XXXX (9 digits after country code)
- */
-function isValidSaudiPhone(phone: string): boolean {
-  const formatted = formatSaudiPhoneNumber(phone);
-  // Saudi mobile numbers start with +966 5 and have 9 digits total after country code
-  return /^\+9665\d{8}$/.test(formatted);
-}
+// Note: formatSaudiPhoneNumber and isValidSaudiPhone are now imported from phone-utils
+// and re-exported at the end of this file for backward compatibility
 
 /**
  * Send SMS via Twilio (or mocked console output in dev mode)

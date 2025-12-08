@@ -1,13 +1,24 @@
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
+import { getDemoEmail } from "../lib/config/demo-users";
+
+// SEC-051: Require explicit demo passwords (no baked defaults)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD are required for seed-users.ts (no defaults)."
+  );
+}
 
 const initialUsers = [
   {
     code: "USR-001",
     username: "admin",
-    email: "admin@fixzit.co",
-    password: "admin123",
+    email: getDemoEmail("admin"),
+    password: DEMO_SUPERADMIN_PASSWORD,
     personal: {
       firstName: "System",
       lastName: "Administrator",
@@ -31,7 +42,7 @@ const initialUsers = [
     },
     security: {
       accessLevel: "ADMIN",
-      permissions: ["*"],
+      permissions: [],
       mfa: {
         enabled: false,
         type: "EMAIL",
@@ -73,8 +84,8 @@ const initialUsers = [
   {
     code: "USR-002",
     username: "manager",
-    email: "manager@fixzit.co",
-    password: "Manager@123",
+    email: getDemoEmail("manager"),
+    password: DEMO_DEFAULT_PASSWORD,
     personal: {
       firstName: "Ahmed",
       lastName: "Al-Rashid",
@@ -140,8 +151,8 @@ const initialUsers = [
   {
     code: "USR-003",
     username: "technician",
-    email: "technician@fixzit.co",
-    password: "Tech@123",
+    email: getDemoEmail("technician"),
+    password: DEMO_DEFAULT_PASSWORD,
     personal: {
       firstName: "Mohammed",
       lastName: "Al-Harbi",

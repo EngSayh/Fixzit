@@ -15,6 +15,8 @@ mkdir -p "$TEST_DIR"/{tests/helpers,tests/config,reporters,scripts,test-reports,
 
 cd "$TEST_DIR"
 
+EMAIL_DOMAIN=${EMAIL_DOMAIN:-fixzit.co}
+
 # 2) Files ---------------------------------------------------------------------
 
 # package.json
@@ -40,11 +42,12 @@ cat > package.json <<'JSON'
 JSON
 
 # .env.test
-cat > .env.test <<'ENV'
+cat > .env.test <<ENV
 # FIXZIT SOUQ Test Environment Configuration
 BASE_URL=http://localhost:3000
 API_URL=http://localhost:5000/api
-ADMIN_EMAIL=admin@fixzit.com
+EMAIL_DOMAIN=${EMAIL_DOMAIN}
+ADMIN_EMAIL=admin@${EMAIL_DOMAIN}
 ADMIN_PASSWORD=Admin@123
 TEST_TIMEOUT=90000
 SCREENSHOT_ON_FAILURE=true
@@ -108,7 +111,9 @@ export async function loginAsSuperAdmin(
   apiContext: APIRequestContext,
   apiUrl: string
 ): Promise<LoginResponse> {
-  const email = process.env.ADMIN_EMAIL || 'admin@fixzit.com';
+  const email =
+    process.env.ADMIN_EMAIL ||
+    `admin@${process.env.EMAIL_DOMAIN || 'fixzit.co'}`;
   const password = process.env.ADMIN_PASSWORD || 'Admin@123';
 
   console.log(`🔐 Attempting login as: ${email}`);

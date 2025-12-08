@@ -63,7 +63,7 @@ export const EMAIL_DOMAINS = {
   /** Admin notifications/contact */
   admin: process.env.ADMIN_EMAIL || `admin@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
 
-  /** Fulfillment center contact */
+  /** Fulfillment notifications */
   fulfillment: process.env.FULFILLMENT_EMAIL || `fulfillment@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
 } as const;
 
@@ -102,25 +102,114 @@ export function getCurrentBaseUrl(): string {
     return vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`;
   }
 
+  // Fall back to configured base URL
   return DOMAINS.primary;
 }
 
 /**
- * Check if a URL is from a trusted domain
- *
- * @param url - The URL to check
- * @returns Whether the URL is from a trusted domain
+ * CORS allowlist - domains allowed for cross-origin requests
  */
-export function isTrustedDomain(url: string): boolean {
+export const CORS_ALLOWLIST = [
+  DOMAINS.primary,
+  DOMAINS.app,
+  DOMAINS.dashboard,
+  DOMAINS.staging,
+  DOMAINS.api,
+  // Add www variants
+  DOMAINS.primary.replace("://", "://www."),
+  // Development
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+].filter((url, index, self) => self.indexOf(url) === index); // Dedupe
+
+/**
+ * Check if a URL is in the CORS allowlist
+ */
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
   try {
-    const parsed = new URL(url);
-    const trustedHosts = [
-      new URL(DOMAINS.primary).hostname,
-      new URL(DOMAINS.app).hostname,
-      new URL(DOMAINS.dashboard).hostname,
-    ];
-    return trustedHosts.some(host => parsed.hostname.endsWith(host));
+    const normalizedOrigin = new URL(origin).origin;
+    return CORS_ALLOWLIST.some((allowed) => {
+      try {
+        return normalizedOrigin === new URL(allowed).origin;
+      } catch {
+        return false;
+      }
+    });
   } catch {
     return false;
   }
 }
+
+/**
+ * External service URLs
+ */
+export const EXTERNAL_URLS = {
+  /** Google Maps API */
+  googleMaps: "https://maps.googleapis.com/maps/api/js",
+
+  /** OpenAI API */
+  openAi: "https://api.openai.com/v1",
+
+  /** PayTabs payment gateway */
+  payTabs: process.env.PAYTABS_BASE_URL || "https://secure.paytabs.sa",
+
+  /** ZATCA e-invoicing */
+  zatca: "https://gw-fatoora.zatca.gov.sa",
+
+  /** Datadog logging */
+  datadog: "https://http-intake.logs.datadoghq.com",
+
+  /** WhatsApp deep link */
+  whatsapp: "https://wa.me",
+} as const;
+
+/**
+ * Build WhatsApp chat link
+ *
+ * @param phone - Phone number (will be cleaned)
+ * @param message - Optional pre-filled message
+ */
+export function buildWhatsAppLink(phone: string, message?: string): string {
+  const cleanPhone = phone.replace(/[^0-9]/g, "");
+  const baseUrl = `${EXTERNAL_URLS.whatsapp}/${cleanPhone}`;
+  if (message) {
+    return `${baseUrl}?text=${encodeURIComponent(message)}`;
+  }
+  return baseUrl;
+}
+
+/**
+ * Check if a domain is trusted (belongs to our platform)
+ */
+export function isTrustedDomain(url: string): boolean {
+  const stripWww = (h: string) => h.replace(/^www\./, "");
+  try {
+    const hostname = new URL(url).hostname;
+    const primaryHost = stripWww(new URL(DOMAINS.primary).hostname);
+    const configuredHosts = [
+      primaryHost,
+      stripWww(new URL(DOMAINS.app).hostname),
+      stripWww(new URL(DOMAINS.dashboard).hostname),
+      stripWww(new URL(DOMAINS.api).hostname),
+      stripWww(new URL(DOMAINS.staging).hostname),
+    ];
+
+    const saVariant = process.env.PRIMARY_SA_DOMAIN
+      ? stripWww(new URL(process.env.PRIMARY_SA_DOMAIN).hostname)
+      : null;
+    if (saVariant) {
+      configuredHosts.push(saVariant);
+    }
+
+    return configuredHosts.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export type DomainKey = keyof typeof DOMAINS;
+export type EmailDomainKey = keyof typeof EMAIL_DOMAINS;

@@ -6,13 +6,16 @@ import { logger } from "../../lib/logger";
 
 dotenv.config();
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
 const organizations = [
   {
     name: "Fixzit Platform",
     nameAr: "منصة فيكسيت",
     subscriptionPlan: "Enterprise",
     status: "active",
-    email: "platform@fixzit.sa",
+    email: `platform@${EMAIL_DOMAIN}`,
     phone: "+966-11-123-4567",
     website: "https://fixzit.sa",
     address: {
@@ -22,7 +25,7 @@ const organizations = [
       postalCode: "11564",
       country: "Saudi Arabia",
     },
-    billingEmail: "billing@fixzit.sa",
+    billingEmail: `billing@${EMAIL_DOMAIN}`,
     taxId: "SA-300000000000003",
     settings: { timezone: "Asia/Riyadh", language: "en", currency: "SAR" },
   },

@@ -1,10 +1,12 @@
 import bcrypt from "bcryptjs";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function generateHashes() {
   const passwords = [
-    { email: "admin@fixzit.co", password: "Admin@123" },
-    { email: "tenant@fixzit.co", password: "Tenant@123" },
-    { email: "vendor@fixzit.co", password: "Vendor@123" },
+    { email: `admin@${EMAIL_DOMAIN}`, password: "Admin@123" },
+    { email: `tenant@${EMAIL_DOMAIN}`, password: "Tenant@123" },
+    { email: `vendor@${EMAIL_DOMAIN}`, password: "Vendor@123" },
   ];
 
   for (const user of passwords) {

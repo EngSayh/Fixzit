@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
+import { getDemoEmail } from "../lib/config/demo-users";
 
 const demoEmails = [
-  "superadmin@fixzit.co",
-  "admin@fixzit.co",
-  "manager@fixzit.co",
-  "tenant@fixzit.co",
-  "vendor@fixzit.co",
+  getDemoEmail("superadmin"),
+  getDemoEmail("admin"),
+  getDemoEmail("manager"),
+  getDemoEmail("tenant"),
+  getDemoEmail("vendor"),
 ];
 
 async function checkUsers() {

@@ -7,10 +7,8 @@ import { vi, describe, expect, beforeEach, afterEach, test } from "vitest";
 import { createHash } from "crypto";
 
 // Import from the module under test.
-// If the implementation actually resides at src/server/security/idempotency.ts, adjust the path accordingly.
-// The diff shows code under idempotency.test.ts, which appears to be implementation; to avoid conflict, we
-// import from the same file path here. If your build forbids importing .test.ts in tests, move the impl to a non-test file.
-import * as Impl from "./idempotency";
+// The implementation resides at server/security/idempotency.ts
+import * as Impl from "@/server/security/idempotency";
 
 const { withIdempotency, createIdempotencyKey } = Impl as unknown as {
   withIdempotency<T>(

@@ -1,5 +1,5 @@
 require("dotenv/config");
-require("tsx/register");
+require("tsx/cjs");
 
 const { connectToDatabase, disconnectFromDatabase } = require("../lib/mongodb-unified.ts");
 const { COLLECTIONS, createIndexes } = require("../lib/db/collections.ts");

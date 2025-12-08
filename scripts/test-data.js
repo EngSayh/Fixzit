@@ -1,6 +1,15 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password (env var with local dev fallback)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+
+if (!process.env.DEMO_SUPERADMIN_PASSWORD) {
+  console.warn("⚠️  DEMO_SUPERADMIN_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
 // Connect to MongoDB
 mongoose.connect("mongodb://localhost:27017/fixzitsouq", {
   useNewUrlParser: true,
@@ -15,11 +24,12 @@ const WorkOrder = require("./models/WorkOrder");
 async function createTestData() {
   try {
     // Create admin user
-    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const hashedPassword = await bcrypt.hash(DEMO_SUPERADMIN_PASSWORD, 10);
+    const adminEmail = `admin@${EMAIL_DOMAIN}`;
     const admin = await User.findOneAndUpdate(
-      { email: "admin@fixzit.co" },
+      { email: adminEmail },
       {
-        email: "admin@fixzit.co",
+        email: adminEmail,
         password: hashedPassword,
         name: "Admin User",
         role: "super_admin",

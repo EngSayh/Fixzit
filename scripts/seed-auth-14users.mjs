@@ -2,8 +2,21 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) throw new Error("MONGODB_URI missing");
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: seed-auth-14users.mjs cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run this script (prevents accidental prod writes)");
+  process.exit(1);
+}
 
 // Organization Schema
 const orgSchema = new mongoose.Schema(
@@ -42,20 +55,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        "super_admin",
-        "corporate_admin",
-        "property_manager",
-        "operations_dispatcher",
-        "supervisor",
-        "technician_internal",
-        "vendor_admin",
-        "vendor_technician",
-        "tenant_resident",
-        "owner_landlord",
-        "finance_manager",
-        "hr_manager",
-        "helpdesk_agent",
-        "auditor_compliance",
+        "SUPER_ADMIN",
+        "CORPORATE_ADMIN",
+        "MANAGER",
+        "PROPERTY_MANAGER",
+        "OPERATIONS_MANAGER",
+        "TECHNICIAN",
+        "VENDOR",
+        "TENANT",
+        "OWNER",
+        "FINANCE",
+        "FINANCE_OFFICER",
+        "HR",
+        "HR_OFFICER",
+        "SUPPORT_AGENT",
       ],
     },
     permissions: [String],
@@ -135,127 +148,127 @@ async function seed() {
     // 1. Platform role
     {
       orgId: fixzitOrg._id,
-      email: "superadmin@fixzit.co",
-      employeeId: "SA001",
+      email: `superadmin@${EMAIL_DOMAIN}`,
+      employeeId: "EMP001",
       name: "Super Admin",
-      role: "super_admin",
+      role: "SUPER_ADMIN",
       permissions: ["*"],
     },
 
     // 2-3. Core admin roles
     {
       orgId: acmeOrg._id,
-      email: "corp.admin@fixzit.co",
-      employeeId: "CA001",
+      email: `corp.admin@${EMAIL_DOMAIN}`,
+      employeeId: "EMP002",
       name: "Corporate Admin",
-      role: "corporate_admin",
+      role: "CORPORATE_ADMIN",
       permissions: ["org:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "property.manager@fixzit.co",
-      employeeId: "PM001",
-      name: "Property Manager",
-      role: "property_manager",
-      permissions: ["properties:*", "workorders:*"],
+      email: `manager@${EMAIL_DOMAIN}`,
+      employeeId: "EMP003",
+      name: "Manager",
+      role: "MANAGER",
+      permissions: ["org:*", "workorders:*"],
     },
 
-    // 4-5. Operations roles
+    // 4-5. Operations & property roles
     {
       orgId: acmeOrg._id,
-      email: "dispatcher@fixzit.co",
-      employeeId: "DISP001",
-      name: "Operations Dispatcher",
-      role: "operations_dispatcher",
-      permissions: ["dispatch:*"],
+      email: `property.manager@${EMAIL_DOMAIN}`,
+      employeeId: "EMP004",
+      name: "Property Manager",
+      role: "PROPERTY_MANAGER",
+      permissions: ["properties:*", "workorders:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "supervisor@fixzit.co",
-      employeeId: "SUP001",
-      name: "Supervisor",
-      role: "supervisor",
-      permissions: ["workorders:*", "assets:*"],
+      email: `ops.manager@${EMAIL_DOMAIN}`,
+      employeeId: "EMP005",
+      name: "Operations Manager",
+      role: "OPERATIONS_MANAGER",
+      permissions: ["dispatch:*", "workorders:*"],
     },
 
     // 6. Technical role (internal)
     {
       orgId: acmeOrg._id,
-      email: "technician@fixzit.co",
-      employeeId: "TECH001",
+      email: `technician@${EMAIL_DOMAIN}`,
+      employeeId: "EMP006",
       name: "Technician (Internal)",
-      role: "technician_internal",
+      role: "TECHNICIAN",
       permissions: ["workorders:execute"],
     },
 
-    // 7-8. Vendor roles
+    // 7. Vendor role
     {
       orgId: acmeOrg._id,
-      email: "vendor.admin@fixzit.co",
-      employeeId: "VEND001",
-      name: "Vendor Admin",
-      role: "vendor_admin",
+      email: `vendor@${EMAIL_DOMAIN}`,
+      employeeId: "EMP007",
+      name: "Vendor",
+      role: "VENDOR",
       permissions: ["vendors:*", "marketplace:*"],
     },
-    {
-      orgId: acmeOrg._id,
-      email: "vendor.tech@fixzit.co",
-      employeeId: "VTECH001",
-      name: "Vendor Technician",
-      role: "vendor_technician",
-      permissions: ["workorders:execute"],
-    },
 
-    // 9-10. Customer roles
+    // 8-9. Customer roles
     {
       orgId: acmeOrg._id,
-      email: "tenant@fixzit.co",
+      email: `tenant@${EMAIL_DOMAIN}`,
       employeeId: null,
       name: "Tenant / Resident",
-      role: "tenant_resident",
+      role: "TENANT",
       permissions: ["tenant_portal:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "owner@fixzit.co",
-      employeeId: "OWN001",
+      email: `owner@${EMAIL_DOMAIN}`,
+      employeeId: "EMP008",
       name: "Owner / Landlord",
-      role: "owner_landlord",
+      role: "OWNER",
       permissions: ["owner_portal:*"],
     },
 
-    // 11-14. Support & Management roles
+    // 10-14. Business & support roles
     {
       orgId: acmeOrg._id,
-      email: "finance@fixzit.co",
-      employeeId: "FIN001",
-      name: "Finance Manager",
-      role: "finance_manager",
+      email: `finance@${EMAIL_DOMAIN}`,
+      employeeId: "EMP009",
+      name: "Finance",
+      role: "FINANCE",
       permissions: ["finance:*", "zatca:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "hr@fixzit.co",
-      employeeId: "HR001",
-      name: "HR Manager",
-      role: "hr_manager",
+      email: `finance.officer@${EMAIL_DOMAIN}`,
+      employeeId: "EMP010",
+      name: "Finance Officer",
+      role: "FINANCE_OFFICER",
+      permissions: ["finance:*"],
+    },
+    {
+      orgId: acmeOrg._id,
+      email: `hr@${EMAIL_DOMAIN}`,
+      employeeId: "EMP011",
+      name: "HR",
+      role: "HR",
       permissions: ["hr:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "helpdesk@fixzit.co",
-      employeeId: "HELP001",
-      name: "Helpdesk Agent",
-      role: "helpdesk_agent",
-      permissions: ["support:*", "crm:*"],
+      email: `hr.officer@${EMAIL_DOMAIN}`,
+      employeeId: "EMP012",
+      name: "HR Officer",
+      role: "HR_OFFICER",
+      permissions: ["hr:*"],
     },
     {
       orgId: acmeOrg._id,
-      email: "auditor@fixzit.co",
-      employeeId: "AUD001",
-      name: "Auditor / Compliance",
-      role: "auditor_compliance",
-      permissions: ["*"],
+      email: `support@${EMAIL_DOMAIN}`,
+      employeeId: "EMP013",
+      name: "Support Agent",
+      role: "SUPPORT_AGENT",
+      permissions: ["support:*", "crm:*"],
     },
   ];
 

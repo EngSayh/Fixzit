@@ -18,7 +18,11 @@ trap cleanup EXIT
 cleanup
 
 # Ensure auth secrets exist for Auth.js JWT encoding in Playwright helpers
-export AUTH_SECRET="${AUTH_SECRET:-playwright-secret}"
+if [[ -z "${AUTH_SECRET:-}" ]]; then
+  AUTH_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
+  echo "🔐 Generated ephemeral AUTH_SECRET for Playwright run."
+fi
+export AUTH_SECRET
 export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-$AUTH_SECRET}"
 export AUTH_SALT="${AUTH_SALT:-authjs.session-token}"
 

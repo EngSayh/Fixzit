@@ -6,27 +6,43 @@ import { AqarListing } from "@/server/models/aqar";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 import type { IListing } from "@/server/models/aqar/Listing";
 import { Types, Model } from "mongoose";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
 
 export const runtime = "nodejs";
 
 const listingModel = AqarListing as unknown as Model<IListing>;
 
-interface ChatbotRequestBody {
-  message?: string;
-  listingId?: string;
-}
+// AUDIT-2025-12-08: Added Zod schema for input validation
+const chatbotRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  listingId: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   const correlationId = crypto.randomUUID();
   try {
-    const body = (await request.json()) as ChatbotRequestBody;
-    const message = typeof body.message === "string" ? body.message.trim() : "";
-    if (!message) {
+    // AUDIT-2025-12-08: Added rate limiting - 30 requests per minute per IP
+    const ip = getClientIP(request);
+    const rl = await smartRateLimit(`aqar:chatbot:${ip}`, 30, 60_000);
+    if (!rl.allowed) {
       return NextResponse.json(
-        { error: "message is required" },
+        { error: "Rate limit exceeded", correlationId },
+        { status: 429 },
+      );
+    }
+
+    // AUDIT-2025-12-08: Zod validation with max length
+    const parseResult = chatbotRequestSchema.safeParse(await request.json());
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.issues[0]?.message || "Invalid request" },
         { status: 400 },
       );
     }
+    const body = parseResult.data;
+    const message = body.message.trim();
 
     await connectDb();
     let listing: (IListing & { _id: Types.ObjectId }) | null = null;

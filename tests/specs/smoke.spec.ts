@@ -36,7 +36,7 @@ test.beforeEach(async ({ context }) => {
       roles: ['ADMIN', 'SUPER_ADMIN'],
       orgId: process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || 'ffffffffffffffffffffffff',
       isSuperAdmin: true,
-      permissions: ['*'],
+      permissions: [],
     },
   });
 

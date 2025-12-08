@@ -5,6 +5,8 @@ dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env.development" });
 dotenv.config();
 
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
 async function test() {
   try {
     const uri = process.env.MONGODB_URI;
@@ -22,7 +24,7 @@ async function test() {
     const User = mongoose.model("User", userSchema, "users");
 
     // Check if admin user exists
-    const admin = await User.findOne({ email: "admin@fixzit.co" });
+    const admin = await User.findOne({ email: `admin@${EMAIL_DOMAIN}` });
     if (admin) {
       console.log("✅ Admin user found:", {
         email: admin.email,
@@ -34,7 +36,7 @@ async function test() {
             : admin.status === "ACTIVE",
       });
     } else {
-      console.log("❌ Admin user NOT found with email: admin@fixzit.co");
+      console.log(`❌ Admin user NOT found with email: admin@${EMAIL_DOMAIN}`);
 
       // Check what users exist
       const count = await User.countDocuments();

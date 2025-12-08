@@ -3,7 +3,6 @@ import { createPaymentPage } from "@/lib/paytabs";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Invoice } from "@/server/models/Invoice";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { z } from "zod";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -14,6 +13,8 @@ import {
   handleApiError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { EMAIL_DOMAINS, DOMAINS } from "@/lib/config/domains";
+import { joinUrl } from "@/lib/utils/url";
 
 /**
  * @openapi
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
       currency: invoice.currency,
       customerDetails: {
         name: invoice.recipient?.name || "Unknown Customer",
-        email: invoice.recipient?.email || EMAIL_DOMAINS.support,
+        email: invoice.recipient?.email || `customer@${EMAIL_DOMAINS.primary}`,
         phone: invoice.recipient?.phone || "+966500000000",
         address: invoice.recipient?.address || "Saudi Arabia",
         city: "Riyadh",
@@ -140,8 +141,8 @@ export async function POST(req: NextRequest) {
       },
       description: `Payment for Invoice ${invoice.number}`,
       invoiceId: invoice._id.toString(),
-      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payments/success`,
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`,
+      returnUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/payments/success"),
+      callbackUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/api/payments/callback"),
     };
 
     const paymentResponse = await createPaymentPage(
