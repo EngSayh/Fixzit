@@ -1821,5 +1821,48 @@ The `/api/auth/forgot-password` route was logging email addresses in multiple pl
 
 ---
 
+### ISSUE-048: Hardcoded @fixzit Email Domains (Business.sa Rebrand Blocker)
+
+**Severity**: 🟧 MAJOR  
+**Category**: i18n, Configuration, Rebrand  
+**Status**: ✅ RESOLVED (2025-12-08)
+
+**Description**:  
+77 occurrences of hardcoded `@fixzit.co`, `@fixzit.com`, and `@fixzit.sa` email addresses were scattered across scripts, tests, and config files. This blocks the Business.sa rebrand because email domains cannot be changed via environment configuration.
+
+**Files Affected (30+)**:
+- `scripts/testing/e2e-all-users-all-pages.js`
+- `scripts/testing/test-auth.js`
+- `scripts/seed-*.ts/.js/.mjs` (multiple files)
+- `scripts/test-*.ts/.js/.mjs` (multiple files)
+- `qa/config.js`, `qa/tests/*.spec.ts`
+- `modules/organizations/seed.mjs`
+- `public/app.js`, `public/simple-app.js`
+- `vitest.setup.ts`
+- `middleware.ts` (TypeScript fix)
+
+**Root Cause**:  
+Development assumed email domain would always be fixzit.co. No abstraction layer for configurable email domains.
+
+**Fix Applied**:
+- Added `EMAIL_DOMAIN` constant to all affected files
+- Pattern: `const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";`
+- Changed static strings to template literals: `` `admin@${EMAIL_DOMAIN}` ``
+- Browser context uses `window.EMAIL_DOMAIN || "fixzit.com"`
+- MongoDB init script uses variable concatenation
+
+**Remaining Intentional Hardcodes (14 occurrences)**:
+- `i18n/new-translations.ts`: Display content managed by i18n system
+- `*.test` TLD: RFC-reserved for testing (intentionally correct)
+- Unit test inputs: Testing string processing functions
+
+**Rebrand Instructions**:
+To switch all emails to Business.sa domain:
+```bash
+export EMAIL_DOMAIN=business.sa
+```
+
+---
+
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
