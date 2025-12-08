@@ -136,19 +136,45 @@ export async function sendSMS(
     case 'UNIFONIC':
       // TODO: Implement Unifonic provider for Saudi market
       logger.warn("[SMS] Unifonic provider not yet implemented, falling back to Twilio");
-      if (accountSid && authToken && fromNumber) {
-        return sendViaTwilio(formattedPhone, message, fromNumber, accountSid, authToken);
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+        return sendViaTwilio(
+          formattedPhone,
+          message,
+          process.env.TWILIO_PHONE_NUMBER,
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
       }
       return { success: false, error: 'Unifonic provider not implemented and Twilio fallback not configured' };
     
     case 'AWS_SNS':
       // TODO: Implement AWS SNS provider
       logger.warn("[SMS] AWS SNS provider not yet implemented");
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+        logger.warn("[SMS] Falling back to Twilio for AWS_SNS provider");
+        return sendViaTwilio(
+          formattedPhone,
+          message,
+          process.env.TWILIO_PHONE_NUMBER,
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+      }
       return { success: false, error: 'AWS SNS provider not implemented' };
     
     case 'NEXMO':
       // TODO: Implement Nexmo/Vonage provider
       logger.warn("[SMS] Nexmo provider not yet implemented");
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+        logger.warn("[SMS] Falling back to Twilio for Nexmo provider");
+        return sendViaTwilio(
+          formattedPhone,
+          message,
+          process.env.TWILIO_PHONE_NUMBER,
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+      }
       return { success: false, error: 'Nexmo provider not implemented' };
     
     default:

@@ -11,7 +11,7 @@ import { Queue, Worker, Job } from "bullmq";
 import type Redis from "ioredis";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
-import { SMSMessage, TSMSType, TSMSPriority, type ISMSMessage } from "@/server/models/SMSMessage";
+import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
 import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -44,7 +44,7 @@ let smsWorker: Worker<ISMSJobData> | null = null;
 function decryptProviderToken(encrypted?: string): string | undefined {
   if (!encrypted) return undefined;
   try {
-    return decryptField(encrypted, "sms.providerApiKey");
+    return decryptField(encrypted, "sms.providerApiKey") ?? undefined;
   } catch (error) {
     logger.error("[SMS Queue] Failed to decrypt provider API key", {
       error: error instanceof Error ? error.message : String(error),
@@ -62,9 +62,8 @@ type ProviderCandidate = SMSProviderOptions & {
 /**
  * Select provider candidates honoring defaultProvider, priority, supportedTypes,
  * and fall back to env Twilio creds when org settings are unusable.
- * @internal Reserved for future provider failover feature
  */
-function _buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
+function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
   const candidates: ProviderCandidate[] = [];
 
   for (const p of settings.providers || []) {
@@ -351,6 +350,7 @@ async function processSMSJob(messageId: string): Promise<void> {
   }
 
   const startTime = Date.now();
+  let recordedAttempt = false;
 
   try {
     const settings = await SMSSettings.getEffectiveSettings(message.orgId);
@@ -362,6 +362,15 @@ async function processSMSJob(messageId: string): Promise<void> {
 
     let lastError = "Unknown SMS failure";
     for (const candidate of candidates) {
+      if (!candidate.accountSid || !candidate.authToken || !candidate.from) {
+        lastError = `Provider ${candidate.name} missing credentials`;
+        logger.warn("[SMS Queue] Skipping provider due to missing credentials", {
+          messageId,
+          provider: candidate.name,
+        });
+        continue;
+      }
+
       const result = await sendSMS(message.to, message.message, {
         provider: candidate.provider,
         from: candidate.from,
@@ -374,11 +383,12 @@ async function processSMSJob(messageId: string): Promise<void> {
       if (result.success) {
         await SMSMessage.recordAttempt(messageId, {
           attemptedAt: new Date(),
-          provider: candidate.name || candidate.provider || "UNKNOWN",
+          provider: (candidate.name || candidate.provider || "LOCAL") as TSMSProvider,
           success: true,
           providerMessageId: result.messageSid,
           durationMs,
         });
+        recordedAttempt = true;
 
         logger.info("[SMS Queue] Message sent successfully", {
           messageId,
@@ -401,24 +411,28 @@ async function processSMSJob(messageId: string): Promise<void> {
     const durationMs = Date.now() - startTime;
     await SMSMessage.recordAttempt(messageId, {
       attemptedAt: new Date(),
-      provider: finalProvider?.name || "UNKNOWN",
+      provider: (finalProvider?.name || "LOCAL") as TSMSProvider,
       success: false,
       errorMessage: lastError,
       durationMs,
     });
+    recordedAttempt = true;
 
     throw new Error(lastError || "SMS send failed");
   } catch (error) {
     const durationMs = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    await SMSMessage.recordAttempt(messageId, {
-      attemptedAt: new Date(),
-      provider: "SYSTEM",
-      success: false,
-      errorMessage,
-      durationMs,
-    });
+    if (!recordedAttempt) {
+      await SMSMessage.recordAttempt(messageId, {
+        attemptedAt: new Date(),
+        provider: "LOCAL", // System-level failure before reaching provider
+        success: false,
+        errorMessage,
+        durationMs,
+      });
+      recordedAttempt = true;
+    }
 
     // 📊 FIXED: Record failed attempt for retry tracking and SLA breach detection
     logger.error("[SMS Queue] Send failed", {

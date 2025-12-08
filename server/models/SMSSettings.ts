@@ -140,6 +140,35 @@ const SMSSettingsSchema = new Schema<ISMSSettings>(
   }
 );
 
+// ---------- Validation ----------
+SMSSettingsSchema.pre("validate", function (next) {
+  const doc = this as ISMSSettings;
+
+  for (const provider of doc.providers || []) {
+    if (!provider.enabled) continue;
+
+    if (!provider.fromNumber) {
+      return next(new Error(`SMS provider ${provider.provider} missing fromNumber`));
+    }
+    if (!provider.accountId) {
+      return next(new Error(`SMS provider ${provider.provider} missing accountId`));
+    }
+    if (!provider.encryptedApiKey) {
+      return next(new Error(`SMS provider ${provider.provider} missing encryptedApiKey`));
+    }
+  }
+
+  // defaultProvider must exist in providers when org-specific settings are defined
+  if (!doc.isGlobal && doc.providers?.length) {
+    const hasDefault = doc.providers.some((p) => p.provider === doc.defaultProvider);
+    if (!hasDefault) {
+      return next(new Error(`defaultProvider ${doc.defaultProvider} is not defined in providers array`));
+    }
+  }
+
+  next();
+});
+
 // ---------- Indexes ----------
 SMSSettingsSchema.index({ isGlobal: 1 }, { unique: true, partialFilterExpression: { isGlobal: true } });
 SMSSettingsSchema.index({ orgId: 1 }, { unique: true, sparse: true });
