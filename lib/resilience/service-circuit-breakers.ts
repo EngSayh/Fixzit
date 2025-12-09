@@ -13,6 +13,8 @@ const twilioBreaker = createBreaker("twilio", 20_000);
 const meilisearchBreaker = createBreaker("meilisearch", 15_000);
 const zatcaBreaker = createBreaker("zatca", 60_000);
 const unifonicBreaker = createBreaker("unifonic", 20_000);
+const awsSnsBreaker = createBreaker("aws-sns", 20_000);
+const nexmoBreaker = createBreaker("nexmo", 20_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,
@@ -20,6 +22,8 @@ export const serviceCircuitBreakers = {
   meilisearch: meilisearchBreaker,
   zatca: zatcaBreaker,
   unifonic: unifonicBreaker,
+  "aws-sns": awsSnsBreaker,
+  nexmo: nexmoBreaker,
 } as const;
 
 export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;

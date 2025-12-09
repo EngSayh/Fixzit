@@ -29,6 +29,26 @@ export class CircuitBreaker {
 
   constructor(private readonly options: CircuitBreakerOptions) {}
 
+  /**
+   * Check if the circuit breaker is currently open (in cooldown).
+   * Use this to skip providers that are known to be failing.
+   */
+  isOpen(): boolean {
+    if (this.state !== "open") return false;
+    // Check if cooldown has expired
+    if (Date.now() >= this.nextAttemptTimestamp) {
+      return false; // Will transition to half-open on next run()
+    }
+    return true;
+  }
+
+  /**
+   * Get the current state of the circuit breaker.
+   */
+  getState(): BreakerState {
+    return this.state;
+  }
+
   private get failureThreshold(): number {
     return this.options.failureThreshold ?? 5;
   }

@@ -103,8 +103,10 @@ const ProviderConfigSchema = new Schema<IProviderConfig>(
 
 const SMSSettingsSchema = new Schema<ISMSSettings>(
   {
-    orgId: { type: String, index: true, sparse: true },
-    isGlobal: { type: Boolean, default: false, index: true },
+    // orgId index defined explicitly below with unique constraint - don't duplicate inline
+    orgId: { type: String },
+    // isGlobal index defined explicitly below with partialFilterExpression - don't duplicate inline
+    isGlobal: { type: Boolean, default: false },
 
     slaConfigs: { type: [SLAConfigSchema], default: [] },
     providers: { type: [ProviderConfigSchema], default: [] },

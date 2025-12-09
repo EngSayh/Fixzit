@@ -27,10 +27,12 @@ interface ReadinessStatus {
   checks: {
     mongodb: "ok" | "error" | "timeout";
     redis: "ok" | "error" | "disabled" | "timeout";
+    email: "ok" | "error" | "disabled" | "timeout";
   };
   latency: {
     mongodb?: number;
     redis?: number;
+    email?: number;
   };
   timestamp: string;
   requiresRedis?: boolean;
@@ -42,6 +44,7 @@ export async function GET(): Promise<NextResponse> {
     checks: {
       mongodb: "error",
       redis: "disabled",
+      email: "disabled",
     },
     latency: {},
     timestamp: new Date().toISOString(),

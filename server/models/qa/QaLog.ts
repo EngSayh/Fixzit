@@ -3,10 +3,10 @@ import { getModel } from "@/types/mongoose-compat";
 
 const QaLogSchema = new Schema(
   {
-    orgId: { type: Schema.Types.ObjectId, index: true, sparse: true },
+    orgId: { type: Schema.Types.ObjectId, sparse: true },
     event: { type: String, required: true },
     data: { type: Schema.Types.Mixed },
-    timestamp: { type: Date, default: Date.now, index: true },
+    timestamp: { type: Date, default: Date.now },
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     ip: { type: String },
     userAgent: { type: String },
