@@ -259,7 +259,7 @@ function checkVSCodeTasks() {
     const content = fs.readFileSync(tasksPath, 'utf-8');
     const tasks = JSON.parse(content);
     
-    const requiredTasks = ['Chunk Memory', 'Merge Memory', 'Memory Selfcheck'];
+    const requiredTasks = ['AI Memory: Chunk Repository', 'AI Memory: Merge Outputs', 'AI Memory: Selfcheck'];
     const taskLabels = (tasks.tasks || []).map(t => t.label);
     
     requiredTasks.forEach(taskName => {
