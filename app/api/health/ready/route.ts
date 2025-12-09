@@ -16,23 +16,39 @@ import { db } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/resilience";
+import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 
 export const dynamic = "force-dynamic";
 
 // Timeout for dependency checks - fail fast for readiness
 const HEALTH_CHECK_TIMEOUT_MS = 3_000;
 
+interface CircuitBreakerStat {
+  name: string;
+  state: "closed" | "open" | "half-open";
+  failureCount: number;
+  isOpen: boolean;
+  cooldownRemaining?: number;
+}
+
 interface ReadinessStatus {
   ready: boolean;
   checks: {
     mongodb: "ok" | "error" | "timeout";
     redis: "ok" | "error" | "disabled" | "timeout";
+    email: "ok" | "error" | "disabled" | "timeout";
   };
   latency: {
     mongodb?: number;
     redis?: number;
+    email?: number;
+  };
+  circuitBreakers?: {
+    hasOpenBreakers: boolean;
+    breakers: CircuitBreakerStat[];
   };
   timestamp: string;
+  requiresRedis?: boolean;
 }
 
 export async function GET(): Promise<NextResponse> {
@@ -41,6 +57,7 @@ export async function GET(): Promise<NextResponse> {
     checks: {
       mongodb: "error",
       redis: "disabled",
+      email: "disabled",
     },
     latency: {},
     timestamp: new Date().toISOString(),
@@ -77,6 +94,7 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Check Redis (optional - if configured)
+    const redisConfigured = Boolean(process.env.REDIS_URL);
     const redisClient = getRedisClient();
     if (redisClient) {
       const redisStart = Date.now();
@@ -99,8 +117,18 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
-    // Ready if MongoDB is OK (Redis is optional)
-    status.ready = status.checks.mongodb === "ok";
+    // Ready if MongoDB is OK and Redis is OK when configured
+    // This gates readiness on Redis when it's configured to prevent traffic
+    // routing to pods that can't reach the Redis dependency
+    const redisOk = !redisConfigured || status.checks.redis === "ok";
+    status.ready = status.checks.mongodb === "ok" && redisOk;
+    status.requiresRedis = redisConfigured;
+
+    // Add circuit breaker states for observability
+    status.circuitBreakers = {
+      hasOpenBreakers: hasOpenCircuitBreakers(),
+      breakers: getAllCircuitBreakerStats(),
+    };
 
     if (status.ready) {
       return NextResponse.json(status, { status: 200 });

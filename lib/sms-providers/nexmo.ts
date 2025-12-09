@@ -13,8 +13,22 @@
  */
 
 import { logger } from "@/lib/logger";
-import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
-import type { SMSResult, SMSStatusResult, SMSDeliveryStatus } from "./types";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for Nexmo
+const nexmoBreaker = getCircuitBreaker("nexmo");
+import { formatSaudiPhoneNumber, isValidSaudiPhone, validateAndFormatPhone } from "./phone-utils";
+import type {
+  SMSProvider,
+  SMSProviderType,
+  SMSResult,
+  SMSStatusResult,
+  SMSDeliveryStatus,
+  BulkSMSResult,
+} from "./types";
+
+// Maximum recipients for bulk SMS to prevent rate limit exhaustion
+const MAX_BULK_RECIPIENTS = 1000;
 
 export interface NexmoConfig {
   apiKey: string;
@@ -61,7 +75,8 @@ const NEXMO_STATUS_CODES: Record<string, string> = {
   "29": "Non white-listed destination",
 };
 
-export class NexmoProvider {
+export class NexmoProvider implements SMSProvider {
+  readonly name: SMSProviderType = "nexmo";
   private config: NexmoConfig;
   private baseUrl = "https://rest.nexmo.com";
 
@@ -85,20 +100,31 @@ export class NexmoProvider {
    * Send SMS via Nexmo/Vonage
    */
   async sendSMS(to: string, message: string): Promise<SMSResult> {
-    if (!this.isConfigured()) {
-      return {
-        success: false,
-        error: "Nexmo/Vonage not configured",
-        provider: "mock" as const,
-      };
-    }
-
-    // Format phone number (remove + for Nexmo)
+    // Format phone number first for consistent error responses
     let formattedPhone = isValidSaudiPhone(to)
       ? formatSaudiPhoneNumber(to)
       : to.startsWith("+")
         ? to
         : `+${to}`;
+
+    // Validate phone and warn if invalid
+    const validation = validateAndFormatPhone(to);
+    if (!validation.isValid) {
+      logger.warn("[Nexmo] Phone validation warning", {
+        error: validation.error,
+        to: formattedPhone.replace(/\d(?=\d{4})/g, "*"),
+      });
+    }
+
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: "Nexmo/Vonage not configured",
+        provider: this.name,
+        to: formattedPhone,
+        timestamp: new Date(),
+      };
+    }
     
     // Nexmo prefers numbers without + prefix
     formattedPhone = formattedPhone.replace(/^\+/, "");
@@ -118,13 +144,13 @@ export class NexmoProvider {
         params.append("callback", this.config.webhookUrl);
       }
 
-      const response = await fetch(`${this.baseUrl}/sms/json`, {
+      const response = await nexmoBreaker.run(async () => fetch(`${this.baseUrl}/sms/json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: params.toString(),
-      });
+      }));
 
       if (!response.ok) {
         throw new Error(`Nexmo API error: ${response.status} ${response.statusText}`);
@@ -147,7 +173,7 @@ export class NexmoProvider {
         return {
           success: false,
           error: errorText,
-          provider: "mock" as const,
+          provider: this.name,
         };
       }
 
@@ -161,7 +187,7 @@ export class NexmoProvider {
       return {
         success: true,
         messageId: firstMessage["message-id"],
-        provider: "mock" as const, // Type workaround - actual provider is Nexmo
+        provider: this.name,
         to: `+${formattedPhone}`,
         timestamp: new Date(),
         rawResponse: data,
@@ -176,9 +202,24 @@ export class NexmoProvider {
       return {
         success: false,
         error: errorMessage,
-        provider: "mock" as const,
+        provider: this.name,
       };
     }
+  }
+
+  /**
+   * Send OTP verification code via Nexmo
+   * @param to Recipient phone number
+   * @param code The OTP code to send
+   * @param expiresInMinutes How long the code is valid (default: 5)
+   */
+  async sendOTP(
+    to: string,
+    code: string,
+    expiresInMinutes: number = 5,
+  ): Promise<SMSResult> {
+    const message = `Your Fixzit verification code is: ${code}. Valid for ${expiresInMinutes} minutes. Do not share this code.`;
+    return this.sendSMS(to, message);
   }
 
   /**
@@ -201,16 +242,36 @@ export class NexmoProvider {
   async sendBulk(
     recipients: string[],
     message: string
-  ): Promise<{ success: boolean; sent: number; failed: number; results: SMSResult[] }> {
+  ): Promise<BulkSMSResult> {
+    // Enforce maximum recipients limit
+    if (recipients.length > MAX_BULK_RECIPIENTS) {
+      logger.error("[Nexmo] Bulk SMS exceeds maximum recipients", {
+        requested: recipients.length,
+        max: MAX_BULK_RECIPIENTS,
+      });
+      return {
+        total: recipients.length,
+        successful: 0,
+        sent: 0,
+        failed: recipients.length,
+        results: [{
+          success: false,
+          error: `Bulk SMS exceeds maximum of ${MAX_BULK_RECIPIENTS} recipients`,
+          provider: this.name,
+          timestamp: new Date(),
+        }],
+      };
+    }
+
     const results: SMSResult[] = [];
-    let sent = 0;
+    let successful = 0;
     let failed = 0;
 
     for (const recipient of recipients) {
       const result = await this.sendSMS(recipient, message);
       results.push(result);
       if (result.success) {
-        sent++;
+        successful++;
       } else {
         failed++;
       }
@@ -219,8 +280,9 @@ export class NexmoProvider {
     }
 
     return {
-      success: failed === 0,
-      sent,
+      total: recipients.length,
+      successful,
+      sent: successful,
       failed,
       results,
     };
@@ -229,9 +291,9 @@ export class NexmoProvider {
   /**
    * Test the Nexmo configuration
    */
-  async testConfiguration(): Promise<{ success: boolean; error?: string; balance?: string }> {
+  async testConfiguration(): Promise<boolean> {
     if (!this.isConfigured()) {
-      return { success: false, error: "Nexmo credentials not configured" };
+      return false;
     }
 
     try {
@@ -241,27 +303,13 @@ export class NexmoProvider {
         api_secret: this.config.apiSecret,
       });
 
-      const response = await fetch(`${this.baseUrl}/account/get-balance?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Nexmo API error: ${response.status}`);
-      }
+      const response = await fetch(
+        `${this.baseUrl}/account/get-balance?${params.toString()}`,
+      );
 
-      const data = await response.json();
-      
-      if (data.value !== undefined) {
-        return {
-          success: true,
-          balance: `${data.value} EUR`,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return response.ok;
+    } catch {
+      return false;
     }
   }
 }
@@ -269,7 +317,9 @@ export class NexmoProvider {
 // Singleton instance for convenience
 let defaultProvider: NexmoProvider | null = null;
 
-export function getNexmoProvider(config?: Partial<NexmoConfig>): NexmoProvider {
+export function getNexmoProvider(
+  config?: Partial<NexmoConfig>,
+): NexmoProvider {
   if (config) {
     return new NexmoProvider(config);
   }

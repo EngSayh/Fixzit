@@ -14,6 +14,8 @@ import { logger } from "@/lib/logger";
 import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
 import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
+import { getCircuitBreaker } from "@/lib/resilience";
+import type { CircuitBreakerName } from "@/lib/resilience/service-circuit-breakers";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { decryptField } from "@/lib/security/encryption";
 
@@ -67,6 +69,32 @@ const maskPhone = (to: string | undefined) => {
 };
 
 /**
+ * Map provider names to circuit breaker names.
+ */
+const PROVIDER_TO_BREAKER: Partial<Record<NonNullable<SMSProviderOptions["provider"]>, CircuitBreakerName>> = {
+  TWILIO: "twilio",
+  UNIFONIC: "unifonic",
+  AWS_SNS: "aws-sns",
+  NEXMO: "nexmo",
+};
+
+/**
+ * Check if a provider's circuit breaker is currently open.
+ */
+function isProviderCircuitOpen(providerName: SMSProviderOptions["provider"]): boolean {
+  if (!providerName) return false;
+  const breakerName = PROVIDER_TO_BREAKER[providerName];
+  if (!breakerName) return false;
+  try {
+    const breaker = getCircuitBreaker(breakerName);
+    return breaker.isOpen();
+  } catch {
+    return false;
+  }
+}
+
+
+/**
  * Select provider candidates honoring defaultProvider, priority, supportedTypes,
  * and fall back to env Twilio creds when org settings are unusable.
  */
@@ -75,6 +103,11 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
 
   for (const p of settings.providers || []) {
     if (!p.enabled) continue;
+    // 🔒 CIRCUIT BREAKER: Skip providers with open circuit breakers
+    if (isProviderCircuitOpen(p.provider as SMSProviderOptions["provider"])) {
+      logger.info("[SMS Queue] Skipping provider with open circuit breaker", { provider: p.provider, messageType });
+      continue;
+    }
     if (p.supportedTypes?.length && !p.supportedTypes.includes(messageType as TSMSType)) continue;
     candidates.push({
       name: p.provider as ProviderCandidate["name"],
@@ -97,7 +130,7 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
 
   const hasEnvTwilio =
     Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-  if (hasEnvTwilio) {
+  if (hasEnvTwilio && !isProviderCircuitOpen("TWILIO")) {
     candidates.push({
       name: "TWILIO",
       provider: "TWILIO",
@@ -624,9 +657,17 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
   // Worker throughput limit: configurable via env, default 120/min to accommodate multiple orgs
   // Per-org limits are enforced separately via checkOrgRateLimit (default 60/org/min)
   // Global worker limit should be >= max expected concurrent orgs * per-org limit
-  const workerMaxPerMinute = process.env.SMS_WORKER_MAX_PER_MIN
-    ? Math.max(30, Number(process.env.SMS_WORKER_MAX_PER_MIN))
+  const parsedLimit = Number(process.env.SMS_WORKER_MAX_PER_MIN);
+  const workerMaxPerMinute = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.max(30, parsedLimit)
     : 120;
+
+  if (process.env.SMS_WORKER_MAX_PER_MIN && !Number.isFinite(parsedLimit)) {
+    logger.warn("[SMS Worker] Invalid SMS_WORKER_MAX_PER_MIN value, using default", {
+      value: process.env.SMS_WORKER_MAX_PER_MIN,
+      default: 120,
+    });
+  }
 
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,

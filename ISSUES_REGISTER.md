@@ -2186,3 +2186,72 @@ Every send attempt (success or failure) is recorded with timestamp, provider, du
 
 **Document Owner**: Engineering Team  
 **Review Cycle**: After each fix, update status and verify resolution
+
+---
+
+## 🟨 MODERATE - Performance (Index Optimization)
+
+### ISSUE-DUP-INDEX-AUDIT: Duplicate Inline Indexes Across Models
+
+**Severity**: 🟨 MODERATE  
+**Category**: Performance  
+**Status**: 🔵 DOCUMENTED (2025-12-09)  
+**Discovered By**: Agent during circuit breaker PR work
+
+**Description**:  
+Multiple Mongoose models define inline `index: true` on fields that are ALSO covered by explicit compound indexes. This creates duplicate indexes:
+1. One standalone index from `index: true` 
+2. One compound index from `.index({ field: 1, ... })`
+
+MongoDB query optimizer can use compound indexes for queries on the first field, making standalone indexes redundant.
+
+**Affected Models (Detailed Analysis)**:
+
+| Model | Field | Inline Index | Compound Index | Action |
+|-------|-------|--------------|----------------|--------|
+| Permission.ts | key | `unique: true` + `index: true` | `.index({ key: 1 }, { unique: true })` | Remove inline `index: true` (triple definition!) |
+| Permission.ts | module | `index: true` | `.index({ module: 1, action: 1 })` | Remove inline - compound covers |
+| Role.ts | orgId | `index: true` | 5 compounds starting with `orgId: 1` | Remove inline |
+| Role.ts | name | `index: true` | `.index({ orgId: 1, name: 1 })` | Keep - may need standalone |
+| Role.ts | slug | `index: true` | `.index({ orgId: 1, slug: 1 })` | Keep - may need standalone |
+| Role.ts | wildcard | `index: true` | `.index({ orgId: 1, wildcard: 1 })` | Remove inline |
+| Role.ts | systemReserved | `index: true` | `.index({ orgId: 1, systemReserved: 1 })` | Remove inline |
+| Role.ts | level | `index: true` | `.index({ orgId: 1, level: -1 })` | Remove inline |
+| SMSMessage.ts | status | `index: true` | 4 compounds with `status: 1` | Remove inline |
+| SMSMessage.ts | slaBreached | `index: true` | `.index({ slaBreached: 1, status: 1 })` | Remove inline |
+| SMSMessage.ts | orgId | `index: true` | `.index({ orgId: 1, createdAt: -1 })` | Remove inline |
+| MaintenanceLog.ts | org_id | `index: true` | 4 compounds with `org_id: 1` | Remove inline |
+| MaintenanceLog.ts | unit_id | `index: true` | `.index({ org_id: 1, unit_id: 1, date: -1 })` | Remove inline |
+| MaintenanceLog.ts | property_id | `index: true` | `.index({ org_id: 1, property_id: 1, date: -1 })` | Remove inline |
+| MaintenanceLog.ts | date | `index: true` | All compounds include `date: -1` | Remove inline |
+| MaintenanceLog.ts | category | `index: true` | `.index({ org_id: 1, category: 1, date: -1 })` | Remove inline |
+| RevenueLog.ts | org_id | `index: true` | 5 compounds with `org_id: 1` | Remove inline |
+| RevenueLog.ts | unit_id | `index: true` | `.index({ org_id: 1, unit_id: 1, date: -1 })` | Remove inline |
+| RevenueLog.ts | property_id | `index: true` | `.index({ org_id: 1, property_id: 1, date: -1 })` | Remove inline |
+| RevenueLog.ts | tenant_id | `index: true` | `.index({ org_id: 1, tenant_id: 1, date: -1 })` | Remove inline |
+| RevenueLog.ts | status | `index: true` | `.index({ org_id: 1, status: 1, dueDate: 1 })` | Remove inline |
+| RevenueLog.ts | type | `index: true` | `.index({ org_id: 1, type: 1, date: -1 })` | Remove inline |
+| RevenueLog.ts | date | `index: true` | All compounds include `date: -1` | Remove inline |
+| RevenueLog.ts | dueDate | `index: true` | `.index({ org_id: 1, status: 1, dueDate: 1 })` | Remove inline |
+
+**Previously Fixed in This Branch**:
+- ✅ SMSSettings.ts - Fixed duplicate `timestamp: 1` index (commit f4bfe27ab)
+- ✅ QaAlert.ts - Fixed duplicate `createdAt: -1` index (commit f4bfe27ab)  
+- ✅ QaLog.ts - Fixed duplicate `timestamp: -1` index (commit f4bfe27ab)
+- ✅ Subscription.ts - Fixed duplicate `next_billing_date` index (commit 51415dce3)
+
+**Impact**:
+- Increased memory usage per duplicate index
+- Slower write operations (each insert/update must update all indexes)
+- Potential MongoDB warnings in logs
+- Not a deployment blocker - cosmetic/performance issue
+
+**Recommended Fix**:  
+Create a separate PR to systematically remove inline `index: true` from fields covered by compound indexes. Replace with comments like `// index via compound index below`.
+
+**Testing Required**:
+1. Run full test suite to ensure queries still perform correctly
+2. Verify no query regressions by checking explain plans
+3. Check MongoDB logs for index usage statistics
+
+---

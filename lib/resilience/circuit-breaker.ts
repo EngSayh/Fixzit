@@ -29,6 +29,26 @@ export class CircuitBreaker {
 
   constructor(private readonly options: CircuitBreakerOptions) {}
 
+  /**
+   * Check if the circuit breaker is currently open (in cooldown).
+   * Use this to skip providers that are known to be failing.
+   */
+  isOpen(): boolean {
+    if (this.state !== "open") return false;
+    // Check if cooldown has expired
+    if (Date.now() >= this.nextAttemptTimestamp) {
+      return false; // Will transition to half-open on next run()
+    }
+    return true;
+  }
+
+  /**
+   * Get the current state of the circuit breaker.
+   */
+  getState(): BreakerState {
+    return this.state;
+  }
+
   private get failureThreshold(): number {
     return this.options.failureThreshold ?? 5;
   }
@@ -92,6 +112,8 @@ export class CircuitBreaker {
     });
 
     this.failureCount += 1;
+    // FIX: Was "this.failureThreshold >= this.failureThreshold" (always true!)
+    // Now correctly checks if failure count has reached threshold
     if (
       this.failureCount >= this.failureThreshold ||
       this.state === "half-open"
@@ -119,5 +141,38 @@ export class CircuitBreaker {
       component: "circuit-breaker",
       action: "close",
     });
+  }
+
+  /**
+   * Reset the circuit breaker to initial closed state.
+   * @internal Only use in test code to prevent state bleeding between tests.
+   */
+  reset(): void {
+    this.state = "closed";
+    this.failureCount = 0;
+    this.successCount = 0;
+    this.nextAttemptTimestamp = 0;
+  }
+
+  /**
+   * Get statistics for monitoring/health checks
+   */
+  getStats(): {
+    name: string;
+    state: BreakerState;
+    failureCount: number;
+    isOpen: boolean;
+    cooldownRemaining: number;
+  } {
+    const now = Date.now();
+    return {
+      name: this.options.name,
+      state: this.state,
+      failureCount: this.failureCount,
+      isOpen: this.isOpen(),
+      cooldownRemaining: this.state === "open" 
+        ? Math.max(0, this.nextAttemptTimestamp - now)
+        : 0,
+    };
   }
 }

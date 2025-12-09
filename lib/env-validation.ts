@@ -282,7 +282,7 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
       ),
     },
     unifonic: {
-      configured: Boolean(process.env.UNIFONIC_APP_SID),
+      configured: Boolean(process.env.UNIFONIC_APP_SID && process.env.UNIFONIC_SENDER_ID),
     },
     encryption: {
       configured: Boolean(

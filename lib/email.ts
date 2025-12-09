@@ -1,10 +1,14 @@
 /**
  * Email Service Utility
- * Wrapper for SendGrid email functionality
+ * Wrapper for SendGrid email functionality with circuit breaker protection
  */
 
 import { logger } from "@/lib/logger";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for SendGrid
+const sendgridBreaker = getCircuitBreaker("sendgrid");
 
 export interface EmailResult {
   success: boolean;
@@ -19,6 +23,18 @@ function maskEmailAddress(address: string): string {
   if (!user) return `***@${domain}`;
   const visible = user.slice(0, 2);
   return `${visible}***@${domain}`;
+}
+
+/**
+ * Sanitize text for safe HTML insertion (XSS prevention)
+ */
+function sanitizeForHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 /**
@@ -44,7 +60,8 @@ export async function sendEmail(
     const sgMail = (await import("@sendgrid/mail")).default;
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    const result = await sgMail.send({
+    // Use circuit breaker to protect against SendGrid failures
+    const result = await sendgridBreaker.run(async () => sgMail.send({
       to,
       from:
         options?.from ||
@@ -57,10 +74,10 @@ export async function sendEmail(
         `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">
-            ${subject}
+            ${sanitizeForHtml(subject)}
           </h2>
           <div style="margin: 20px 0; line-height: 1.6; color: #666;">
-            ${body.replace(/\n/g, "<br>")}
+            ${sanitizeForHtml(body).replace(/\n/g, "<br>")}
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
           <p style="color: #999; font-size: 12px; text-align: center;">
@@ -69,7 +86,7 @@ export async function sendEmail(
           </p>
         </div>
       `,
-    });
+    }));
 
     const messageId =
       result?.[0]?.headers?.["x-message-id"] ||
