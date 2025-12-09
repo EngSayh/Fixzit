@@ -17,6 +17,7 @@ import { Types } from "mongoose";
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
+import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -145,15 +146,10 @@ export async function GET(req: NextRequest) {
     logger.error("GET /api/finance/accounts error:", error);
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to accounts");
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -337,33 +333,9 @@ export async function POST(req: NextRequest) {
     logger.error("POST /api/finance/accounts error:", error);
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to create account");
     }
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          details: error.issues,
-        },
-        { status: 400 },
-      );
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          error: error.message,
-        },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -17,6 +17,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
 import { z } from "zod";
+import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -146,15 +147,10 @@ export async function GET(
     logger.error("GET /api/finance/accounts/[id] error:", error);
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to account");
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -274,25 +270,10 @@ export async function PUT(
     logger.error("PUT /api/finance/accounts/[id] error:", error);
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to update account");
     }
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          details: error.issues,
-        },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -396,14 +377,9 @@ export async function DELETE(
     logger.error("DELETE /api/finance/accounts/[id] error:", error);
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to delete account");
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
