@@ -1,8 +1,34 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-08  
-**Version**: 1.6  
-**Scope**: Database index management across all models
+**Last Updated**: 2025-12-09  
+**Version**: 1.7  
+**Scope**: Database index management, security audits, observability
+
+---
+
+## Recent Additions (2025-12-09)
+
+### ISSUE-SEC-001: Security Audit Completed
+
+**Severity**: 🟩 Informational  
+**Category**: Security, Compliance  
+**Status**: ✅ COMPLETED
+
+**Description**: Comprehensive security audit covering:
+- Multi-tenancy scoping verification (all models use `tenantIsolationPlugin`)
+- RBAC enforcement verification (all protected routes use `getSessionUser`/`requireAbility`)
+- RTL/LTR compliance scan (minor issues in legacy CSS files documented)
+- Circuit breaker Prometheus metrics (new feature added)
+- E2E health endpoint tests (new test suite added)
+
+**Files Created**:
+- `docs/audits/SECURITY_AUDIT_2025-12-09.md` - Full audit report
+- `lib/resilience/circuit-breaker-metrics.ts` - Prometheus metrics export
+- `app/api/metrics/circuit-breakers/route.ts` - Metrics API endpoint
+- `tests/e2e/health-endpoints.spec.ts` - E2E tests for health endpoints
+- `tests/unit/lib/resilience/circuit-breaker-metrics.test.ts` - Unit tests
+
+**Findings**: No critical security issues. Minor RTL/LTR issues in legacy CSS documented for future cleanup.
 
 ---
 
