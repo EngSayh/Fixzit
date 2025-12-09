@@ -37,7 +37,7 @@ const DEFAULT_PORT = process.env.PW_PORT || '3000';
 const WEB_COMMAND = process.env.PW_WEB_SERVER
   ? process.env.PW_WEB_SERVER
   : useBuild
-    ? `sh -c "cd ${ROOT_DIR} && mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static 2>/dev/null || true; cp -R public .next/standalone/public 2>/dev/null || true; HOSTNAME=${DEFAULT_HOST} PORT=${DEFAULT_PORT} node .next/standalone/server.js"`
+    ? `sh -c "cd ${ROOT_DIR} && mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static 2>/dev/null || true; cp -R public .next/standalone/public 2>/dev/null || true; NEXT_OUTPUT=standalone HOSTNAME=${DEFAULT_HOST} PORT=${DEFAULT_PORT} node .next/standalone/server.js"`
     : `cd ${ROOT_DIR} && npm run dev:webpack -- --hostname ${DEFAULT_HOST} --port ${DEFAULT_PORT}`;
 const WEB_URL = process.env.PW_WEB_URL || `http://${DEFAULT_HOST}:${DEFAULT_PORT}`;
 
