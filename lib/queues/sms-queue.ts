@@ -95,15 +95,15 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
     return (a.priority ?? 99) - (b.priority ?? 99);
   });
 
-  const hasEnvTwilio =
-    Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-  if (hasEnvTwilio) {
+  const hasEnvTaqnyat =
+    Boolean(process.env.TAQNYAT_BEARER && process.env.TAQNYAT_SENDER_NAME);
+  if (hasEnvTaqnyat) {
     candidates.push({
-      name: "TWILIO",
-      provider: "TWILIO",
-      from: process.env.TWILIO_PHONE_NUMBER,
-      accountSid: process.env.TWILIO_ACCOUNT_SID,
-      authToken: process.env.TWILIO_AUTH_TOKEN,
+      name: "TAQNYAT",
+      provider: "TAQNYAT",
+      from: process.env.TAQNYAT_SENDER_NAME,
+      accountSid: process.env.TAQNYAT_SENDER_NAME,
+      authToken: process.env.TAQNYAT_BEARER,
       priority: 999,
     });
   }
@@ -586,7 +586,7 @@ async function processSMSJob(messageId: string): Promise<void> {
     if (!recordedAttempt) {
       await SMSMessage.recordAttempt(messageId, {
         attemptedAt: new Date(),
-        provider: "LOCAL", // System-level failure before reaching provider
+        provider: "MOCK", // System-level failure before reaching provider (MOCK indicates not a real provider attempt)
         success: false,
         errorMessage,
         durationMs,

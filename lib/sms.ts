@@ -1,8 +1,9 @@
 /**
- * SMS Service - Twilio Integration for Saudi Market
+ * SMS Service - Taqnyat Integration for Saudi Market
  *
  * Provides SMS functionality for notifications, OTP, and alerts.
  * Supports Saudi Arabian phone number formats.
+ * Uses Taqnyat as the CITC-compliant SMS provider.
  */
 
 import { logger } from "@/lib/logger";
@@ -16,17 +17,20 @@ import {
   formatSaudiPhoneNumber,
   isValidSaudiPhone,
 } from "@/lib/sms-providers/phone-utils";
-import { UnifonicProvider } from "@/lib/sms-providers/unifonic";
-import { AWSSNSProvider } from "@/lib/sms-providers/aws-sns";
-import { NexmoProvider } from "@/lib/sms-providers/nexmo";
+
+// Legacy providers - kept for backward compatibility but deprecated
+import { UnifonicProvider as _UnifonicProvider } from "@/lib/sms-providers/unifonic";
+import { AWSSNSProvider as _AWSSNSProvider } from "@/lib/sms-providers/aws-sns";
+import { NexmoProvider as _NexmoProvider } from "@/lib/sms-providers/nexmo";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
   process.env.SMS_DEV_MODE === "true" ||
   (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
-const twilioBreaker = getCircuitBreaker("twilio");
-const twilioResilience = SERVICE_RESILIENCE.twilio;
+// Circuit breaker for SMS providers
+const smsBreaker = getCircuitBreaker("sms");
+const smsResilience = SERVICE_RESILIENCE.twilio; // Reuse twilio config for SMS resilience
 
 function hasTwilioConfiguration(): boolean {
   return Boolean(
@@ -42,52 +46,62 @@ interface SMSResult {
   error?: string;
 }
 
-export type TwilioOperationLabel =
+export type SMSOperationLabel =
   | "sms-send"
   | "sms-status"
   | "sms-config-test"
   | "whatsapp-send";
 
-export async function withTwilioResilience<T>(
-  label: TwilioOperationLabel,
+/**
+ * Execute SMS operation with circuit breaker, timeout, and retry
+ */
+export async function withSMSResilience<T>(
+  label: SMSOperationLabel,
   operation: () => Promise<T>,
 ): Promise<T> {
   const timeoutMs =
     label === "sms-status"
-      ? twilioResilience.timeouts.statusMs
-      : twilioResilience.timeouts.smsSendMs;
+      ? smsResilience.timeouts.statusMs
+      : smsResilience.timeouts.smsSendMs;
 
   return executeWithRetry(
     () =>
-      twilioBreaker.run(() =>
+      smsBreaker.run(() =>
         withTimeout(() => operation(), {
           timeoutMs,
         }),
       ),
     {
-      maxAttempts: twilioResilience.retries.maxAttempts,
-      baseDelayMs: twilioResilience.retries.baseDelayMs,
-      label: `twilio-${label}`,
+      maxAttempts: smsResilience.retries.maxAttempts,
+      baseDelayMs: smsResilience.retries.baseDelayMs,
+      label: `sms-${label}`,
     },
   );
 }
+
+// Backward compatibility alias
+/** @deprecated Use withSMSResilience instead */
+export const withTwilioResilience = withSMSResilience;
+/** @deprecated Use SMSOperationLabel instead */
+export type TwilioOperationLabel = SMSOperationLabel;
 
 // Note: formatSaudiPhoneNumber and isValidSaudiPhone are now imported from phone-utils
 // and re-exported at the end of this file for backward compatibility
 
 /**
  * SMS provider options for org-specific configuration
- * 🔒 SECURITY: Allows per-org SMS provider settings (Twilio, Unifonic, etc.)
+ * 🔒 SECURITY: Allows per-org SMS provider settings
+ * NOTE: Taqnyat is the only CITC-compliant production provider for Saudi Arabia
  */
 export interface SMSProviderOptions {
-  provider?: 'TWILIO' | 'UNIFONIC' | 'AWS_SNS' | 'NEXMO';
-  from?: string;         // Override sender number
-  accountSid?: string;   // Provider account ID
-  authToken?: string;    // Provider auth token (decrypted)
+  provider?: 'TAQNYAT' | 'MOCK';
+  from?: string;         // Override sender number/name
+  accountSid?: string;   // Provider account ID (for Taqnyat: sender name)
+  authToken?: string;    // Provider auth token (for Taqnyat: bearer token)
 }
 
 /**
- * Send SMS via configured provider (default: Twilio)
+ * Send SMS via configured provider (default: Taqnyat - CITC-compliant for Saudi Arabia)
  * 🔒 SECURITY: Supports per-org provider configuration via options parameter
  */
 export async function sendSMS(
@@ -95,10 +109,10 @@ export async function sendSMS(
   message: string,
   options?: SMSProviderOptions
 ): Promise<SMSResult> {
-  const provider = options?.provider || 'TWILIO';
-  const fromNumber = options?.from || process.env.TWILIO_PHONE_NUMBER;
-  const accountSid = options?.accountSid || process.env.TWILIO_ACCOUNT_SID;
-  const authToken = options?.authToken || process.env.TWILIO_AUTH_TOKEN;
+  const provider = options?.provider || 'TAQNYAT';
+  const fromNumber = options?.from || process.env.TAQNYAT_SENDER_NAME;
+  const accountSid = options?.accountSid || process.env.TAQNYAT_SENDER_NAME;
+  const authToken = options?.authToken || process.env.TAQNYAT_BEARER;
 
   const formattedPhone = formatSaudiPhoneNumber(to);
 
@@ -109,9 +123,9 @@ export async function sendSMS(
   }
 
   // Check if we have valid credentials for the selected provider
-  const hasCredentials = provider === 'TWILIO' 
+  const hasCredentials = provider === 'TAQNYAT' 
     ? Boolean(accountSid && authToken && fromNumber)
-    : false; // Other providers not yet implemented
+    : provider === 'MOCK'; // MOCK always has "credentials"
 
   if (!hasCredentials && !SMS_DEV_MODE_ENABLED) {
     const error = `SMS provider ${provider} not configured. Missing credentials.`;
@@ -133,62 +147,21 @@ export async function sendSMS(
 
   // Route to appropriate provider
   switch (provider) {
-    case 'TWILIO':
-      return sendViaTwilio(formattedPhone, message, fromNumber!, accountSid!, authToken!);
-    
-    case 'UNIFONIC': {
-      // Use Unifonic provider for Saudi market
-      const unifonicProvider = new UnifonicProvider();
-      if (!unifonicProvider.isConfigured()) {
-        logger.warn("[SMS] Unifonic not configured, falling back to Twilio");
-        if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-          return sendViaTwilio(
-            formattedPhone,
-            message,
-            process.env.TWILIO_PHONE_NUMBER,
-            process.env.TWILIO_ACCOUNT_SID,
-            process.env.TWILIO_AUTH_TOKEN
-          );
-        }
-        return { success: false, error: 'Unifonic not configured and Twilio fallback not available' };
-      }
-      
-      const result = await unifonicProvider.sendSMS(formattedPhone, message);
-      return {
-        success: result.success,
-        messageSid: result.messageId,
-        error: result.error,
-      };
+    case 'TAQNYAT': {
+      // Taqnyat - CITC-compliant SMS provider for Saudi Arabia
+      return sendViaTaqnyat(formattedPhone, message, fromNumber!, authToken!);
     }
     
-    case 'AWS_SNS': {
-      // AWS SNS SMS provider implementation
-      const snsProvider = new AWSSNSProvider({
-        region: process.env.AWS_REGION || 'me-south-1',
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    case 'MOCK': {
+      // Mock provider for testing - returns success without sending
+      const messageSid = `mock-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      logger.info("[SMS] Mock provider - SMS simulated", {
+        to: formattedPhone,
+        preview: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+        messageSid,
+        provider: 'MOCK',
       });
-      const snsResult = await snsProvider.sendSMS(formattedPhone, message);
-      return {
-        success: snsResult.success,
-        messageSid: snsResult.messageId,
-        error: snsResult.error,
-      };
-    }
-    
-    case 'NEXMO': {
-      // Nexmo/Vonage SMS provider implementation
-      const nexmoProvider = new NexmoProvider({
-        apiKey: process.env.NEXMO_API_KEY || '',
-        apiSecret: process.env.NEXMO_API_SECRET || '',
-        from: process.env.NEXMO_FROM_NUMBER || 'Fixzit',
-      });
-      const nexmoResult = await nexmoProvider.sendSMS(formattedPhone, message);
-      return {
-        success: nexmoResult.success,
-        messageSid: nexmoResult.messageId,
-        error: nexmoResult.error,
-      };
+      return { success: true, messageSid };
     }
     
     default:
@@ -197,10 +170,78 @@ export async function sendSMS(
 }
 
 /**
- * Send SMS via Twilio
+ * Send SMS via Taqnyat (CITC-compliant for Saudi Arabia)
  * 🔒 SECURITY: Accepts credentials as params for per-org config
+ * @see https://taqnyat.sa/docs
  */
-async function sendViaTwilio(
+async function sendViaTaqnyat(
+  to: string,
+  message: string,
+  senderName: string,
+  bearerToken: string
+): Promise<SMSResult> {
+  try {
+    const response = await fetch("https://api.taqnyat.sa/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${bearerToken}`,
+      },
+      body: JSON.stringify({
+        recipients: [to],
+        body: message,
+        sender: senderName,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.statusCode !== 200) {
+      const errorMessage = data.message || `Taqnyat API error: ${response.status}`;
+      logger.error("[SMS] Taqnyat send failed", {
+        error: errorMessage,
+        statusCode: data.statusCode,
+        to,
+      });
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+
+    const messageSid = data.messageId || `taqnyat-${Date.now()}`;
+    logger.info("[SMS] Message sent successfully via Taqnyat", {
+      to,
+      messageSid,
+      status: "sent",
+    });
+
+    return {
+      success: true,
+      messageSid,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[SMS] Taqnyat send failed", {
+      error: errorMessage,
+      to,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
+ * Send SMS via Twilio (DEPRECATED - kept for reference, use Taqnyat for Saudi market)
+ * 🔒 SECURITY: Accepts credentials as params for per-org config
+ * @deprecated Use sendViaTaqnyat instead - Twilio not CITC-compliant for Saudi market
+ */
+async function _sendViaTwilio(
   to: string,
   message: string,
   from: string,

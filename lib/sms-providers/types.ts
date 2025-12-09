@@ -2,12 +2,17 @@
  * SMS Provider Type Definitions
  *
  * Shared types for all SMS provider implementations.
+ * 
+ * NOTE: Taqnyat is the only CITC-compliant production provider for Saudi Arabia.
+ * Other providers kept for backward compatibility but should not be used in production.
  */
 
 /**
  * Supported SMS provider types
+ * @preferred taqnyat - CITC-compliant for Saudi market
+ * @deprecated twilio, unifonic, aws_sns, nexmo - Use taqnyat for Saudi compliance
  */
-export type SMSProviderType = "twilio" | "unifonic" | "aws_sns" | "nexmo" | "mock";
+export type SMSProviderType = "taqnyat" | "mock" | "twilio" | "unifonic" | "aws_sns" | "nexmo";
 
 /**
  * SMS delivery status codes

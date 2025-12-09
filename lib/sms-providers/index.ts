@@ -195,30 +195,35 @@ export function getProvidersInfo(): Record<
   { configured: boolean; recommended: boolean; notes: string }
 > {
   return {
-    unifonic: {
-      configured: isUnifonicConfigured(),
+    taqnyat: {
+      configured: Boolean(process.env.TAQNYAT_BEARER && process.env.TAQNYAT_SENDER_NAME),
       recommended: true,
-      notes: "Recommended for Saudi Arabia and MENA region",
-    },
-    twilio: {
-      configured: isTwilioConfigured(),
-      recommended: false,
-      notes: "Limited support for Saudi Arabia",
-    },
-    aws_sns: {
-      configured: Boolean(process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY),
-      recommended: false,
-      notes: "AWS SNS for enterprise SMS delivery",
-    },
-    nexmo: {
-      configured: Boolean(process.env.NEXMO_API_KEY && process.env.NEXMO_API_SECRET),
-      recommended: false,
-      notes: "Vonage/Nexmo for global SMS delivery",
+      notes: "CITC-compliant provider for Saudi Arabia (REQUIRED for production)",
     },
     mock: {
       configured: true,
       recommended: false,
       notes: "Development/testing only - does not send real SMS",
+    },
+    unifonic: {
+      configured: isUnifonicConfigured(),
+      recommended: false,
+      notes: "DEPRECATED - Use Taqnyat for Saudi compliance",
+    },
+    twilio: {
+      configured: isTwilioConfigured(),
+      recommended: false,
+      notes: "DEPRECATED - Use Taqnyat for Saudi compliance",
+    },
+    aws_sns: {
+      configured: Boolean(process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY),
+      recommended: false,
+      notes: "DEPRECATED - Use Taqnyat for Saudi compliance",
+    },
+    nexmo: {
+      configured: Boolean(process.env.NEXMO_API_KEY && process.env.NEXMO_API_SECRET),
+      recommended: false,
+      notes: "DEPRECATED - Use Taqnyat for Saudi compliance",
     },
   };
 }
