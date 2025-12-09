@@ -15,11 +15,21 @@
 
 import { logger } from "@/lib/logger";
 import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
-import type { SMSResult, SMSStatusResult, SMSDeliveryStatus } from "./types";
+import type {
+  SMSProvider,
+  SMSProviderType,
+  SMSResult,
+  SMSStatusResult,
+  SMSDeliveryStatus,
+} from "./types";
 
-// AWS SDK v3 imports (tree-shakeable)
-let SNSClient: typeof import("@aws-sdk/client-sns").SNSClient | undefined;
-let PublishCommand: typeof import("@aws-sdk/client-sns").PublishCommand | undefined;
+// AWS SDK v3 - lazy loaded at runtime to avoid compile-time module resolution
+// Using 'unknown' types with runtime casting for dynamic imports
+type SNSClientType = unknown;
+type PublishCommandType = unknown;
+
+let SNSClient: SNSClientType | undefined;
+let PublishCommand: PublishCommandType | undefined;
 
 async function getAWSSDK() {
   if (!SNSClient || !PublishCommand) {
@@ -28,7 +38,9 @@ async function getAWSSDK() {
       SNSClient = sdk.SNSClient;
       PublishCommand = sdk.PublishCommand;
     } catch {
-      throw new Error("AWS SDK not installed. Run: pnpm add @aws-sdk/client-sns");
+      throw new Error(
+        "AWS SDK not installed. Run: pnpm add @aws-sdk/client-sns",
+      );
     }
   }
   return { SNSClient, PublishCommand };
@@ -41,14 +53,19 @@ export interface AWSSNSConfig {
   senderId?: string;
 }
 
-export class AWSSNSProvider {
+export class AWSSNSProvider implements SMSProvider {
+  readonly name: SMSProviderType = "aws_sns";
   private config: AWSSNSConfig;
-  private client: InstanceType<typeof import("@aws-sdk/client-sns").SNSClient> | null = null;
+  private client: unknown = null;
 
   constructor(config?: Partial<AWSSNSConfig>) {
     this.config = {
-      accessKeyId: config?.accessKeyId || process.env.AWS_SNS_ACCESS_KEY_ID || "",
-      secretAccessKey: config?.secretAccessKey || process.env.AWS_SNS_SECRET_ACCESS_KEY || "",
+      accessKeyId:
+        config?.accessKeyId || process.env.AWS_SNS_ACCESS_KEY_ID || "",
+      secretAccessKey:
+        config?.secretAccessKey ||
+        process.env.AWS_SNS_SECRET_ACCESS_KEY ||
+        "",
       region: config?.region || process.env.AWS_SNS_REGION || "me-south-1",
       senderId: config?.senderId || process.env.AWS_SNS_SENDER_ID,
     };
@@ -67,7 +84,8 @@ export class AWSSNSProvider {
   private async getClient() {
     if (!this.client) {
       const { SNSClient: Client } = await getAWSSDK();
-      this.client = new Client({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.client = new (Client as any)({
         region: this.config.region,
         credentials: {
           accessKeyId: this.config.accessKeyId,
@@ -86,7 +104,7 @@ export class AWSSNSProvider {
       return {
         success: false,
         error: "AWS SNS not configured",
-        provider: "mock" as const,
+        provider: this.name,
       };
     }
 
@@ -102,7 +120,10 @@ export class AWSSNSProvider {
       const client = await this.getClient();
 
       // Build message attributes
-      const messageAttributes: Record<string, { DataType: string; StringValue: string }> = {
+      const messageAttributes: Record<
+        string,
+        { DataType: string; StringValue: string }
+      > = {
         "AWS.SNS.SMS.SMSType": {
           DataType: "String",
           StringValue: "Transactional", // Or "Promotional" for marketing
@@ -117,13 +138,15 @@ export class AWSSNSProvider {
         };
       }
 
-      const command = new Cmd({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const command = new (Cmd as any)({
         PhoneNumber: formattedPhone,
         Message: message,
         MessageAttributes: messageAttributes,
       });
 
-      const response = await client.send(command);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (client as any).send(command);
 
       logger.info("[AWS SNS] SMS sent successfully", {
         messageId: response.MessageId,
@@ -133,12 +156,13 @@ export class AWSSNSProvider {
       return {
         success: true,
         messageId: response.MessageId,
-        provider: "mock" as const, // Type workaround - actual provider is SNS
+        provider: this.name,
         to: formattedPhone,
         timestamp: new Date(),
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("[AWS SNS] Failed to send SMS", {
         error: errorMessage,
         to: formattedPhone.replace(/\d(?=\d{4})/g, "*"),
@@ -147,7 +171,7 @@ export class AWSSNSProvider {
       return {
         success: false,
         error: errorMessage,
-        provider: "mock" as const,
+        provider: this.name,
       };
     }
   }
@@ -162,27 +186,25 @@ export class AWSSNSProvider {
     return {
       status: "unknown" as SMSDeliveryStatus,
       messageId: _messageId,
-      error: "AWS SNS requires webhook for delivery status - check /api/webhooks/sns/sms",
+      error:
+        "AWS SNS requires webhook for delivery status - check /api/webhooks/sns/sms",
     };
   }
 
   /**
    * Test the AWS SNS configuration
    */
-  async testConfiguration(): Promise<{ success: boolean; error?: string }> {
+  async testConfiguration(): Promise<boolean> {
     if (!this.isConfigured()) {
-      return { success: false, error: "AWS SNS credentials not configured" };
+      return false;
     }
 
     try {
       // Just verify we can create a client
       await this.getClient();
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return true;
+    } catch {
+      return false;
     }
   }
 }
@@ -190,7 +212,9 @@ export class AWSSNSProvider {
 // Singleton instance for convenience
 let defaultProvider: AWSSNSProvider | null = null;
 
-export function getAWSSNSProvider(config?: Partial<AWSSNSConfig>): AWSSNSProvider {
+export function getAWSSNSProvider(
+  config?: Partial<AWSSNSConfig>,
+): AWSSNSProvider {
   if (config) {
     return new AWSSNSProvider(config);
   }

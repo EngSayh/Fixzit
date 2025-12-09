@@ -14,7 +14,13 @@
 
 import { logger } from "@/lib/logger";
 import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
-import type { SMSResult, SMSStatusResult, SMSDeliveryStatus } from "./types";
+import type {
+  SMSProvider,
+  SMSProviderType,
+  SMSResult,
+  SMSStatusResult,
+  SMSDeliveryStatus,
+} from "./types";
 
 export interface NexmoConfig {
   apiKey: string;
@@ -61,7 +67,8 @@ const NEXMO_STATUS_CODES: Record<string, string> = {
   "29": "Non white-listed destination",
 };
 
-export class NexmoProvider {
+export class NexmoProvider implements SMSProvider {
+  readonly name: SMSProviderType = "nexmo";
   private config: NexmoConfig;
   private baseUrl = "https://rest.nexmo.com";
 
@@ -89,7 +96,7 @@ export class NexmoProvider {
       return {
         success: false,
         error: "Nexmo/Vonage not configured",
-        provider: "mock" as const,
+        provider: this.name,
       };
     }
 
@@ -147,7 +154,7 @@ export class NexmoProvider {
         return {
           success: false,
           error: errorText,
-          provider: "mock" as const,
+          provider: this.name,
         };
       }
 
@@ -161,7 +168,7 @@ export class NexmoProvider {
       return {
         success: true,
         messageId: firstMessage["message-id"],
-        provider: "mock" as const, // Type workaround - actual provider is Nexmo
+        provider: this.name,
         to: `+${formattedPhone}`,
         timestamp: new Date(),
         rawResponse: data,
@@ -176,7 +183,7 @@ export class NexmoProvider {
       return {
         success: false,
         error: errorMessage,
-        provider: "mock" as const,
+        provider: this.name,
       };
     }
   }
@@ -229,9 +236,9 @@ export class NexmoProvider {
   /**
    * Test the Nexmo configuration
    */
-  async testConfiguration(): Promise<{ success: boolean; error?: string; balance?: string }> {
+  async testConfiguration(): Promise<boolean> {
     if (!this.isConfigured()) {
-      return { success: false, error: "Nexmo credentials not configured" };
+      return false;
     }
 
     try {
@@ -241,27 +248,13 @@ export class NexmoProvider {
         api_secret: this.config.apiSecret,
       });
 
-      const response = await fetch(`${this.baseUrl}/account/get-balance?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Nexmo API error: ${response.status}`);
-      }
+      const response = await fetch(
+        `${this.baseUrl}/account/get-balance?${params.toString()}`,
+      );
 
-      const data = await response.json();
-      
-      if (data.value !== undefined) {
-        return {
-          success: true,
-          balance: `${data.value} EUR`,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return response.ok;
+    } catch {
+      return false;
     }
   }
 }
@@ -269,7 +262,9 @@ export class NexmoProvider {
 // Singleton instance for convenience
 let defaultProvider: NexmoProvider | null = null;
 
-export function getNexmoProvider(config?: Partial<NexmoConfig>): NexmoProvider {
+export function getNexmoProvider(
+  config?: Partial<NexmoConfig>,
+): NexmoProvider {
   if (config) {
     return new NexmoProvider(config);
   }
